@@ -700,6 +700,9 @@ bdr_maintain_db_workers(void)
 				 bdr_nodeid_name(&target, true),
 				 bdr_nodeid_name(&myid, true));
 
+		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr maintain db worker");
+		pgstat_report_appname("bdr maintain db worker");
+
 		/* Allocate a new shmem slot for this apply worker */
 		worker = bdr_worker_shmem_alloc(BDR_WORKER_APPLY, &slot);
 

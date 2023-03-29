@@ -1402,6 +1402,9 @@ bdr_catchup_to_lsn(remote_node_info *ri, XLogRecPtr target_lsn)
 				 "bdr: catchup apply to %X/%X",
 				 (uint32)(target_lsn >> 32), (uint32)target_lsn);
 		bgw.bgw_name[BGW_MAXLEN-1] = '\0';
+		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply worker");
+
+		pgstat_report_appname("bdr apply worker");
 
 		/* Launch the catchup worker and wait for it to start */
 		RegisterDynamicBackgroundWorker(&bgw, &bgw_handle);
