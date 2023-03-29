@@ -1815,7 +1815,7 @@ process_queued_drop(HeapTuple cmdtup)
 			continue;
 		}
 		type = TextDatumGetCString(datum);
-		objtype = unstringify_objtype(type);
+		objtype = (ObjectType) read_objtype_from_string(type);
 
 		/*
 		 * ignore objects that don't unstringify properly; those are
