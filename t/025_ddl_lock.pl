@@ -24,6 +24,11 @@ for my $node (@$nodes) {
     $node->restart;
 }
 
+# Now we have to wait for the nodes to actually join...
+for my $node (@$nodes) {
+    $node->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+}
+
 # Make sure DDL locking works
 my $timedout = 0;
 my $ret = $node_0->psql($bdr_test_dbname,
@@ -44,7 +49,8 @@ $DDL$)]);
 # Per 2ndQuadrant/bdr-private#78, acquisition of the global DDL lock by a node
 # forces its local transactions to read-only as well as those of its peers.
 #
-my $handle = start_acquire_ddl_lock($node_0, 'write_lock');
+my $timer = IPC::Run::timeout($TestLib::timeout_default);
+my $handle = start_acquire_ddl_lock($node_0, 'write_lock', $timer);
 wait_acquire_ddl_lock($handle);
 
 print "attempting insert 0\n";
@@ -71,7 +77,7 @@ my $offline_node = $nodes->[$offline_index];
 # Bring a node down
 $offline_node->stop;
  
-my $lock = start_acquire_ddl_lock($node_0, 'ddl_lock');
+my $lock = start_acquire_ddl_lock($node_0, 'ddl_lock', $timer);
 # Not much way around waiting here, since we're trying to show we'll
 # time out...
 sleep(2);

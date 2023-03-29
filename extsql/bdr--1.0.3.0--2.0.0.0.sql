@@ -531,6 +531,11 @@ BEGIN
     FROM pg_catalog.pg_replication_origin,
          bdr.bdr_parse_replident_name(roname) pi
     WHERE pi.local_dboid = (select oid from pg_database where datname = current_database());
+  WHEN 1100 THEN
+    PERFORM pg_replication_origin_drop(roname)
+    FROM pg_catalog.pg_replication_origin,
+         bdr.bdr_parse_replident_name(roname) pi
+    WHERE pi.local_dboid = (select oid from pg_database where datname = current_database());
   ELSE
     RAISE EXCEPTION 'Only PostgreSQL 9.4bdr and 9.6 are supported';
   END CASE;

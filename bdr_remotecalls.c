@@ -73,7 +73,7 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 	appendStringInfoChar(&dsn, ' ');
 	appendStringInfoString(&dsn, connstring);
 	appendStringInfo(&dsn,
-					" fallback_application_name='%s:%s'",
+					" application_name='%s:%s'",
 					bdr_get_my_cached_node_name(), appnamesuffix);
 
 	/*

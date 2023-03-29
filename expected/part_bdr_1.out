@@ -122,10 +122,11 @@ $$
 LANGUAGE plpgsql;
 NOTICE:  All slots dropped
 -- There should now be zero slots and no connections to them
-SELECT pid, application_name, state, sent_location, write_location, flush_location, replay_location, sync_state  FROM pg_stat_replication;
- pid | application_name | state | sent_location | write_location | flush_location | replay_location | sync_state 
------+------------------+-------+---------------+----------------+----------------+-----------------+------------
-(0 rows)
+SELECT count(*) FROM pg_stat_replication;
+ count 
+-------
+     0
+(1 row)
 
 SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM bdr.pg_replication_slots;
  slot_name | plugin | slot_type | datoid | database | active | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn 

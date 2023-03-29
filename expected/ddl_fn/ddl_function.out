@@ -14,18 +14,18 @@ $DDL$);
 (1 row)
 
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 \c regression
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar, integer) SECURITY DEFINER CALLED ON NULL INPUT VOLATILE ROWS 1 COST 1; $DDL$);
@@ -35,18 +35,18 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar
 (1 row)
 
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 \c postgres
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ 
@@ -62,18 +62,18 @@ $DDL$);
 (1 row)
 
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 \c regression
 \df test_fn
-                                                      List of functions
- Schema |  Name   | Result data type |                              Argument data types                              |  Type  
---------+---------+------------------+-------------------------------------------------------------------------------+--------
- public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | normal
+                                                     List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type 
+--------+---------+------------------+-------------------------------------------------------------------------------+------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_fn(varchar, integer); $DDL$);
@@ -107,10 +107,10 @@ $DDL$);
 (1 row)
 
 \df test_trigger_fn
-                              List of functions
- Schema |      Name       | Result data type | Argument data types |  Type   
---------+-----------------+------------------+---------------------+---------
- public | test_trigger_fn | trigger          |                     | trigger
+                            List of functions
+ Schema |      Name       | Result data type | Argument data types | Type 
+--------+-----------------+------------------+---------------------+------
+ public | test_trigger_fn | trigger          |                     | func
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE FUNCTION public.showtrigstate(rel regclass) 

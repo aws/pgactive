@@ -319,7 +319,6 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 	Datum		values[6];
 	char		sysid_str[33];
 	bool		tx_started = false;
-	bool		spi_pushed;
 	BDRNodeId	myid;
 
 	bdr_make_my_nodeid(&myid);
@@ -333,8 +332,8 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 		tx_started = true;
 		StartTransactionCommand();
 	}
-	spi_pushed = SPI_push_conditional();
 	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT,
 			 myid.sysid);
@@ -367,7 +366,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 					status, myid.sysid, myid.timeline, myid.dboid, spi_ret);
 
 	SPI_finish();
-	SPI_pop_conditional(spi_pushed);
+	PopActiveSnapshot();
 	if (tx_started)
 		CommitTransactionCommand();
 }
@@ -573,6 +572,7 @@ bdr_read_connection_configs()
 	values[2] = ObjectIdGetDatum(myid.dboid);
 
 	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
 
 	ret = SPI_execute_with_args(query.data, 3, types, values, NULL, false, 0);
 
@@ -668,6 +668,7 @@ bdr_read_connection_configs()
 	MemoryContextSwitchTo(saved_ctx);
 
 	SPI_finish();
+	PopActiveSnapshot();
 
 	MemoryContextSwitchTo(caller_ctx);
 

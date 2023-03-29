@@ -64,7 +64,7 @@ sub bdr_remove {
     # Alter table to use local sequence
     $node->safe_psql( $bdr_test_dbname,
 "ALTER TABLE test_table_sequence ALTER COLUMN id SET DEFAULT nextval('test_table_sequence_id_seq');");
-    insert_into_table_sequence( $node, 'test_table_sequence', 5 );
+    insert_into_table_sequence( $node, 'test_table_sequence', 5, 'true' );
     is( $node->safe_psql( $bdr_test_dbname, "select count(*) from test_table_sequence"),
         '5',
         "Global sequence converted to local sequence"

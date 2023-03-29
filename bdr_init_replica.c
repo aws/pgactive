@@ -262,11 +262,11 @@ bdr_init_exec_dump_restore(BDRNodeInfo *node,
 	appendStringInfoChar(&origin_dsn, ' ');
 	appendStringInfoString(&origin_dsn, node->init_from_dsn);
 	appendStringInfo(&origin_dsn,
-					 " fallback_application_name='%s: init dump'",
+					 " application_name='%s: init dump'",
 					 nodename);
 
 	appendStringInfo(&local_dsn,
-					 "%s fallback_application_name='%s: init restore'",
+					 "%s application_name='%s: init restore'",
 					 node->local_dsn, nodename);
 
 	pfree(nodename);

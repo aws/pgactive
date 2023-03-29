@@ -1815,6 +1815,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 
 		/* nothing to unlock, if there's a lock it's owned by someone else */
 		CommitTransactionCommand();
+		(void) MemoryContextSwitchTo(old_ctx);
 		return;
 	}
 

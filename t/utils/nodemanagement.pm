@@ -13,7 +13,7 @@ use Config;
 use Carp;
 use PostgresNode;
 # Patch PostgresNode with stuff we want from post-9.6
-require "t/backports/PostgresNode_96.pl";
+# require "t/backports/PostgresNode_96.pl";
 use TestLib;
 use Test::More;
 use IPC::Run;
@@ -106,12 +106,14 @@ sub make_bdr_group {
 #
 sub create_bdr_group {
     my $node      = shift;
-
+	my $pgport = $node->port;
+	my $pghost = $node->host;
+    my $node_connstr = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
     $node->safe_psql(
         $bdr_test_dbname, qq{
             SELECT bdr.bdr_group_create(
                     local_node_name := '@{[ $node->name ]}',
-                    node_external_dsn := '@{[ $node->connstr($bdr_test_dbname) ]}'
+                    node_external_dsn := '$node_connstr'
                     );
             }
     );
@@ -206,11 +208,19 @@ sub initandstart_logicaljoin_node {
 sub generate_bdr_logical_join_query {
     my ($local_node, $join_node, %params) = @_;
 
+	my $ln_port = $local_node->port;
+	my $ln_host = $local_node->host;
+    my $ln_connstr = "port=$ln_port host=$ln_host dbname=$bdr_test_dbname";
+
+	my $jn_port = $join_node->port;
+	my $jn_host = $join_node->host;
+    my $jn_connstr = "port=$jn_port host=$jn_host dbname=$bdr_test_dbname";
+
     my $join_query = qq{
             SELECT bdr.bdr_group_join(
                     local_node_name := '@{[$local_node->name]}',
-                    node_external_dsn := '@{[ $local_node->connstr($bdr_test_dbname) ]}',
-                    join_using_dsn := '@{[ $join_node->connstr($bdr_test_dbname) ]}'};
+                    node_external_dsn := '$ln_connstr',
+                    join_using_dsn := '$jn_connstr'};
 
     while (my ($k,$v) = each(%params)) {
         $join_query .= ", $k := '$v'";
@@ -332,7 +342,8 @@ sub initandstart_physicaljoin_node {
     my ($join_node, $upstream_node) = @_;
 
     my $new_conf_file = copy_transform_postgresqlconf( $join_node, $upstream_node );
-    my $h = start_bdr_init_copy($join_node, $upstream_node, $new_conf_file);
+    my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+    my $h = start_bdr_init_copy($join_node, $upstream_node, $new_conf_file, [$timeout]);
     $h->finish;
     is($h->result(0), 0, 'bdr_init_copy exited without error');
 
@@ -340,6 +351,7 @@ sub initandstart_physicaljoin_node {
     wait_for_pg_isready($join_node);
 
     # wait for BDR to come up
+    $upstream_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
     $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
 
     $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'

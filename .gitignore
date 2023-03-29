@@ -36,6 +36,8 @@ lib*.pc
 /log/
 /results/
 /tmp_check/
+/tmp_test_*
+/home
 *~
 /bdr-*.tar.bz2
 /.distgitrev

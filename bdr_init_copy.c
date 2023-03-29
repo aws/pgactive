@@ -811,7 +811,7 @@ set_sysid(uint64 sysid)
 	}
 	else
 	{
-		exec_path = find_other_exec_or_die(argv0, "bdr_resetxlog", "bdr_resetxlog (PostgreSQL) " PG_VERSION "\n");
+		exec_path = find_other_exec_or_die(argv0, "bdr_resetxlog", NULL);
 		cmdname = "bdr_resetxlog";
 	}
 

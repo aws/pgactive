@@ -259,7 +259,7 @@ bdr_connect(const char *conninfo,
 	initStringInfo(&conninfo_repl);
 
 	appendStringInfo(&conninfo_repl, "replication=database "
-									 "fallback_application_name='%s' ",
+									 "application_name='%s' ",
 			(appname == NULL ? "bdr" : NameStr(*appname)));
 
 	appendStringInfoString(&conninfo_repl, bdr_default_apply_connection_options);

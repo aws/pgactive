@@ -22,13 +22,13 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                           Table "public.test_tbl"
-    Column     |  Type   | Modifiers | Storage  | Stats target | Description 
----------------+---------+-----------+----------+--------------+-------------
- pk            | integer | not null  | plain    |              | 
- dropping_col1 | text    |           | extended |              | 
- dropping_col2 | text    |           | extended |              | 
- col1          | text    |           | extended |              | 
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col1 | text    |           |          |         | extended |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -48,14 +48,14 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                           Table "public.test_tbl"
-    Column     |  Type   | Modifiers | Storage  | Stats target | Description 
----------------+---------+-----------+----------+--------------+-------------
- pk            | integer | not null  | plain    |              | 
- dropping_col1 | text    |           | extended |              | 
- dropping_col2 | text    |           | extended |              | 
- col1          | text    |           | extended |              | 
- col2          | text    |           | extended |              | 
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col1 | text    |           |          |         | extended |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
+ col2          | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -89,13 +89,13 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                           Table "public.test_tbl"
-    Column     |  Type   | Modifiers | Storage  | Stats target | Description 
----------------+---------+-----------+----------+--------------+-------------
- pk            | integer | not null  | plain    |              | 
- dropping_col2 | text    |           | extended |              | 
- col1          | text    |           | extended |              | 
- col2          | text    |           | extended |              | 
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
+ col2          | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -115,12 +115,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -140,12 +140,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -165,12 +165,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -190,12 +190,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -215,12 +215,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -240,12 +240,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                            Table "public.test_tbl"
- Column |  Type   |      Modifiers      | Storage  | Stats target | Description 
---------+---------+---------------------+----------+--------------+-------------
- pk     | integer | not null            | plain    |              | 
- col1   | text    | default 'abc'::text | extended |              | 
- col2   | text    |                     | extended |              | 
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          | 'abc'::text | extended |              | 
+ col2   | text    |           |          |             | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -265,12 +265,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                            Table "public.test_tbl"
- Column |  Type   |      Modifiers      | Storage  | Stats target | Description 
---------+---------+---------------------+----------+--------------+-------------
- pk     | integer | not null            | plain    |              | 
- col1   | text    | default 'abc'::text | extended |              | 
- col2   | text    | default 'abc'::text | extended |              | 
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          | 'abc'::text | extended |              | 
+ col2   | text    |           |          | 'abc'::text | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -290,12 +290,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                            Table "public.test_tbl"
- Column |  Type   |      Modifiers      | Storage  | Stats target | Description 
---------+---------+---------------------+----------+--------------+-------------
- pk     | integer | not null            | plain    |              | 
- col1   | text    |                     | extended |              | 
- col2   | text    | default 'abc'::text | extended |              | 
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          |             | extended |              | 
+ col2   | text    |           |          | 'abc'::text | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -315,12 +315,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -340,12 +340,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 Check constraints:
@@ -367,12 +367,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 Check constraints:
@@ -395,12 +395,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 Check constraints:
@@ -422,12 +422,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    |           | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -463,12 +463,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    |           | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
     "test_idx" UNIQUE, btree (col1) REPLICA IDENTITY
@@ -505,12 +505,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
     "test_idx" UNIQUE, btree (col1)
@@ -548,12 +548,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -588,23 +588,23 @@ $DDL$);
 (1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -625,12 +625,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- col1   | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -649,34 +649,34 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- foobar | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- foobar | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- foobar | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
@@ -696,12 +696,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage  | Stats target | Description 
---------+---------+-----------+----------+--------------+-------------
- pk     | integer | not null  | plain    |              | 
- foobar | text    | not null  | extended |              | 
- col2   | text    | not null  | extended |              | 
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
 Indexes:
     "test_ddl_pk" PRIMARY KEY, btree (pk)
 
@@ -738,10 +738,10 @@ $DDL$);
 (1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage | Stats target | Description 
---------+---------+-----------+---------+--------------+-------------
- id     | integer |           | plain   | 10           | 
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 10           | 
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN id SET STATISTICS 0;
@@ -752,10 +752,10 @@ $DDL$);
 (1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage | Stats target | Description 
---------+---------+-----------+---------+--------------+-------------
- id     | integer |           | plain   | 0            | 
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 0            | 
 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
@@ -765,10 +765,10 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage | Stats target | Description 
---------+---------+-----------+---------+--------------+-------------
- id     | integer |           | plain   | 0            | 
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 0            | 
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN id SET STATISTICS -1;
@@ -779,10 +779,10 @@ $DDL$);
 (1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage | Stats target | Description 
---------+---------+-----------+---------+--------------+-------------
- id     | integer |           | plain   |              | 
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   |              | 
 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
@@ -792,10 +792,10 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type   | Modifiers | Storage | Stats target | Description 
---------+---------+-----------+---------+--------------+-------------
- id     | integer |           | plain   |              | 
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   |              | 
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 DROP TABLE public.test_tbl;
@@ -842,68 +842,68 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \d+ test_inh_root
-                          Table "public.test_inh_root"
- Column |       Type        | Modifiers | Storage  | Stats target | Description 
---------+-------------------+-----------+----------+--------------+-------------
- id     | integer           | not null  | plain    |              | 
- val1   | character varying |           | extended |              | 
- val2   | integer           |           | plain    |              | 
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
 Indexes:
     "test_inh_root_pkey" PRIMARY KEY, btree (id)
 Child tables: test_inh_chld1
 
 \d+ test_inh_chld1
-                           Table "public.test_inh_chld1"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Inherits: test_inh_root
 Child tables: test_inh_chld2
 
 \d+ test_inh_chld2
-                           Table "public.test_inh_chld2"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Inherits: test_inh_chld1
 
 \c regression
 \d+ test_inh_root
-                          Table "public.test_inh_root"
- Column |       Type        | Modifiers | Storage  | Stats target | Description 
---------+-------------------+-----------+----------+--------------+-------------
- id     | integer           | not null  | plain    |              | 
- val1   | character varying |           | extended |              | 
- val2   | integer           |           | plain    |              | 
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
 Indexes:
     "test_inh_root_pkey" PRIMARY KEY, btree (id)
 Child tables: test_inh_chld1
 
 \d+ test_inh_chld1
-                           Table "public.test_inh_chld1"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Inherits: test_inh_root
 Child tables: test_inh_chld2
 
 \d+ test_inh_chld2
-                           Table "public.test_inh_chld2"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Inherits: test_inh_chld1
 
 SELECT * FROM public.test_inh_root;
@@ -984,74 +984,74 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \d+ test_inh_root
-                          Table "public.test_inh_root"
- Column |       Type        | Modifiers | Storage  | Stats target | Description 
---------+-------------------+-----------+----------+--------------+-------------
- id     | integer           | not null  | plain    |              | 
- val1   | character varying |           | extended |              | 
- val2   | integer           |           | plain    |              | 
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
 Indexes:
     "test_inh_root_pkey" PRIMARY KEY, btree (id)
 Child tables: test_inh_chld1
 
 \d+ test_inh_chld1
-                               Table "public.test_inh_chld1"
-  Column   |       Type        |     Modifiers      | Storage  | Stats target | Description 
------------+-------------------+--------------------+----------+--------------+-------------
- id        | integer           | not null default 1 | plain    |              | 
- val1      | character varying |                    | extended |              | 
- val2      | integer           |                    | plain    |              | 
- child1col | integer           |                    | plain    |              | 
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null | 1       | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Check constraints:
     "idchk" CHECK (id > 0)
 Inherits: test_inh_root
 Child tables: test_inh_chld2
 
 \d+ test_inh_chld2
-                           Table "public.test_inh_chld2"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Check constraints:
     "idchk" CHECK (id > 0)
 Inherits: test_inh_chld1
 
 \c postgres
 \d+ test_inh_root
-                          Table "public.test_inh_root"
- Column |       Type        | Modifiers | Storage  | Stats target | Description 
---------+-------------------+-----------+----------+--------------+-------------
- id     | integer           | not null  | plain    |              | 
- val1   | character varying |           | extended |              | 
- val2   | integer           |           | plain    |              | 
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
 Indexes:
     "test_inh_root_pkey" PRIMARY KEY, btree (id)
 Child tables: test_inh_chld1
 
 \d+ test_inh_chld1
-                               Table "public.test_inh_chld1"
-  Column   |       Type        |     Modifiers      | Storage  | Stats target | Description 
------------+-------------------+--------------------+----------+--------------+-------------
- id        | integer           | not null default 1 | plain    |              | 
- val1      | character varying |                    | extended |              | 
- val2      | integer           |                    | plain    |              | 
- child1col | integer           |                    | plain    |              | 
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null | 1       | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Check constraints:
     "idchk" CHECK (id > 0)
 Inherits: test_inh_root
 Child tables: test_inh_chld2
 
 \d+ test_inh_chld2
-                           Table "public.test_inh_chld2"
-  Column   |       Type        | Modifiers | Storage  | Stats target | Description 
------------+-------------------+-----------+----------+--------------+-------------
- id        | integer           | not null  | plain    |              | 
- val1      | character varying |           | extended |              | 
- val2      | integer           |           | plain    |              | 
- child1col | integer           |           | plain    |              | 
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
 Check constraints:
     "idchk" CHECK (id > 0)
 Inherits: test_inh_chld1
