@@ -60,8 +60,8 @@ all: \
 
 # We can't use Makefile.global's MAJORVERSION here yet
 ifneq ($(BDR_PG_MAJORVERSION),94)
-SCRIPTS_built += bdr_resetxlog
-all: bdr_resetxlog
+SCRIPTS_built += bdr_resetwal
+all: bdr_resetwal
 endif
 
 # When in development add -Werror
@@ -194,24 +194,10 @@ BDR_DUMP_LIBS := -lz -lpgfeutils
 DUMPOBJS += $(BDR_DUMP_DIR)/string_utils.o
 endif
 
-ifneq ($(MAJORVERSION),9.4)
-RESETXLOG_OBJS := pg_resetxlog/$(BDR_PG_MAJORVERSION)/pg_resetwal.o
-RESETXLOG_LIBS := -lpgfeutils
+BDRRESETWAL_OBJS := compat/$(BDR_PG_MAJORVERSION)/bdr_resetwal.o
 
-bdr_resetxlog_dir:
-	mkdir -p pg_resetxlog/$(BDR_PG_MAJORVERSION)
-
-.PHONY: bdr_resetxlog_dir
-
-bdr_resetxlog: bdr_resetxlog_dir $(RESETXLOG_OBJS)
-	$(CC) $(CFLAGS) $(RESETXLOG_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
-else
-RESETXLOG_OBJS := 
-RESETXLOG_LIBS :=
-
-bdr_resetxlog:
-	@echo "bdr_resetxlog is not built on 9.4"
-endif
+bdr_resetwal: $(BDRRESETWAL_OBJS)
+	$(CC) $(CFLAGS) $(BDRRESETWAL_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
 
 # Ensure Makefiles are up2date (should we move this to Makefile.global?)
 Makefile: Makefile.in config.status configure
@@ -300,7 +286,7 @@ additional-clean:
 	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
 	rm -f bdr_dump$(X) $(DUMPOBJS)
-	rm -f bdr_resetxlog$(X) $(RESETXLOG_OBJS)
+	rm -rf bdr_resetwal$(X) $(BDRRESETWAL_OBJS)
 	rm -f extsql/bdr--0.[89].0.[0-9].sql
 	rm -rf doc/html
 	$(MAKE) -C doc clean

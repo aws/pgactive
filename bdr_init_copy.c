@@ -543,8 +543,9 @@ main(int argc, char **argv)
 	 * unique. If node A is copied to node B, then node A is copied to node C,
 	 * both nodes B and C will have the same tlid.
 	 *
-	 * For 9.6 this means using a patched pg_resetxlog since the stock one
-	 * doesn't know how to alter the sysid.
+	 * Since the core pg_resetwal doesn't know to set system identifier, we use
+	 * a patched version of pg_resetwal, called bdr_resetwal with an extra
+	 * option to set system identifier.
 	 */
 	set_sysid(node_info.local_sysid);
 
@@ -792,7 +793,7 @@ set_sysid(uint64 sysid)
 	int			 ret;
 	PQExpBuffer  cmd = createPQExpBuffer();
 	char		*exec_path;
-	char		*cmdname = "bdr_resetxlog";
+	char		*cmdname = "bdr_resetwal";
 
 	exec_path = find_other_exec_or_die(argv0, cmdname, NULL);
 	appendPQExpBuffer(cmd, "%s \"-s "UINT64_FORMAT"\" \"%s\"", exec_path, sysid, data_dir);
@@ -1502,8 +1503,6 @@ get_connstr(char *connstr, char *dbname, char *dbhost, char *dbport, char *dbuse
  * Create a new unique installation identifier.
  *
  * See notes in xlog.c about the algorithm.
- *
- * XXX: how to reuse the code between xlog.c, pg_resetxlog.c and this file
  */
 static uint64
 GenerateSystemIdentifier(void)

@@ -28,8 +28,8 @@ lib*.pc
 
 # bdr specific
 /bdr_init_copy
-/bdr_resetxlog
 /bdr_dump
+/bdr_resetwal
 /bdr_version.h
 /bdr_pgbench_check
 /scripts/bdr_initial_load
