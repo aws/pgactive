@@ -39,10 +39,6 @@
 void
 bdr_process_remote_message(StringInfo s)
 {
-#if PG_VERSION_NUM/100 == 904
-	int			chanlen;
-	const char *chan;
-#endif
 	StringInfoData message;
 	bool		transactional;
 	int			msg_type;
@@ -60,33 +56,6 @@ bdr_process_remote_message(StringInfo s)
 	initStringInfo(&message);
 	message.len = pq_getmsgint(s, 4);
 	message.data = (char *) pq_getmsgbytes(s, message.len);
-
-#if PG_VERSION_NUM/100 == 904
-	/*
-	 * 9.4 carried message multiplexing info in the payload, so we have to
-	 * examine and discard it after making sure the message is for us.
-	 *
-	 * Even though there are no other channel users this must be retained
-	 * for compatibility with older 9.4bdr nodes.
-	 */
-
-	chanlen = pq_getmsgint(&message, 4);
-	chan = pq_getmsgbytes(&message, chanlen);
-
-	/* Channel filtering is only needed in 9.4, in 9.6 it's done on the output plugin */
-	if (strncmp(chan, "bdr", chanlen) != 0)
-	{
-		elog(LOG, "ignoring message in channel %s",
-			 pnstrdup(chan, chanlen));
-		return;
-	}
-
-	/*
-	 * The message is for us. The un-consumed portion of the 'message'
-	 * StringInfo is the same as the body of a 9.6 WAL message now.
-	 */
-#endif
-
 	msg_type = pq_getmsgint(&message, 4);
 	bdr_getmsg_nodeid(&message, &origin_node, true);
 
@@ -129,11 +98,6 @@ bdr_prepare_message(StringInfo s, BdrMessageType message_type)
 		 (void*)s,
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(myid));
 
-#if PG_VERSION_NUM/100 == 904
-	/* channel. Only send on 9.4 since it's embedded in 9.6 messages */
-	pq_sendint(s, strlen(BDR_LOGICAL_MSG_PREFIX), 4);
-	pq_sendbytes(s, BDR_LOGICAL_MSG_PREFIX, strlen(BDR_LOGICAL_MSG_PREFIX));
-#endif
 	/* message type */
 	pq_sendint(s, message_type, 4);
 	/* node identifier */
