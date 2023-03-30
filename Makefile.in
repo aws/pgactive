@@ -295,7 +295,9 @@ additional-clean:
 	rm -f bdr_init_copy$(X) bdr_init_copy.o
 	rm -f bdr_version.h
 	rm -f .distgitrev
-	rm -rf tmp_check
+	rm -rf tmp_check results log
+	rm -f  regression.diffs regression.out bdr_init_copy_postgres.log
+	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
 	rm -f bdr_dump$(X) $(DUMPOBJS)
 	rm -f bdr_resetxlog$(X) $(RESETXLOG_OBJS)
@@ -306,7 +308,7 @@ additional-clean:
 additional-maintainer-clean: clean
 	rm -f configure
 	rm -f config.status config.log
-	rm -f bdr_config.h.in Makefile
+	rm -f bdr_config_generated.h Makefile Makefile.global
 	rm -f run_tests
 	@rm -rf autom4te.cache/
 	$(MAKE) -C doc maintainer-clean
