@@ -12,7 +12,6 @@ bdr_subdir = .
 bdr_top_builddir = .
 
 MODULE_big = bdr
-
 EXTENSION = bdr
 
 DATA = \
@@ -46,23 +45,16 @@ DOCS = README.bdr bdr.conf.sample
 # pgxs doesn't know how to handle directories of docs, or built docs, so the
 # html docs will get separate rules below
 
-# We can't use SCRIPTS_built because it isn't supported by 9.4 and we can't use
-# SCRIPTS because it breaks VPATH builds.  So we'll just inject support later
-# for SCRIPTS_built if PGXS doesn't support it.
 SCRIPTS_built = \
 	scripts/bdr_initial_load \
 	bdr_init_copy \
-	bdr_dump
+	bdr_dump \
+	bdr_resetwal
 all: \
 	scripts/bdr_initial_load \
 	bdr_init_copy \
-	bdr_dump
-
-# We can't use Makefile.global's MAJORVERSION here yet
-ifneq ($(BDR_PG_MAJORVERSION),94)
-SCRIPTS_built += bdr_resetwal
-all: bdr_resetwal
-endif
+	bdr_dump \
+	bdr_resetwal
 
 # When in development add -Werror
 PG_CPPFLAGS = -std=gnu89 -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
@@ -162,7 +154,6 @@ DDLTESTS_FUNC := \
 	ddl_fn/ddl_view \
 	ddl_fn/ddl_disable_ddl
 
-
 include Makefile.global
 
 $(info Building against PostgreSQL $(MAJORVERSION))
@@ -182,17 +173,8 @@ DUMPOBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/dumputils.o
 
 BDR_DUMP_DIR := pg_dump$(BDR_PG_MAJORVERSION)
-ifeq ($(MAJORVERSION),9.6)
-BDR_DUMP_LIBS := -lpgfeutils
-DUMPOBJS += $(BDR_DUMP_DIR)/keywords.o
-else ifeq ($(MAJORVERSION),9.4)
-BDR_DUMP_LIBS :=
-DUMPOBJS += $(BDR_DUMP_DIR)/keywords.o \
-	$(BDR_DUMP_DIR)/kwlookup.o
-else
 BDR_DUMP_LIBS := -lz -lpgfeutils
 DUMPOBJS += $(BDR_DUMP_DIR)/string_utils.o
-endif
 
 BDRRESETWAL_OBJS := compat/$(BDR_PG_MAJORVERSION)/bdr_resetwal.o
 
@@ -303,19 +285,7 @@ additional-maintainer-clean: clean
 # typical installcheck users do not have (e.g. buildfarm clients).
 installcheck: ;
 
-ifeq ($(BDR_PG_MAJORVERSION),9.4)
-# We must emulate SCRIPTS_built for Pg 9.4 as PGXS doesn't support it
-install: install-scripts
-install-scripts:
-	$(INSTALL_SCRIPT) $(SCRIPTS_built) '$(DESTDIR)$(bindir)/'
-.PHONY: install-scripts
-installdirs: installdirs-scripts
-installdirs-scripts:
-	$(MKDIR_P) '$(DESTDIR)$(bindir)'
-.PHONY: installdirs-scripts
-endif
-
-check: regresscheck noisolationcheck prove_installcheck
+check: regresscheck prove_installcheck
 
 REGRESSCHECKS= \
 	init \
@@ -352,7 +322,6 @@ REGRESSCHECKS= \
 	$(SEQTESTS) \
 	part_bdr
 
-
 ISOLATIONCHECKS=\
 	isolation/init \
 	isolation/ddlconflict \
@@ -379,13 +348,6 @@ regresscheck: all install
 	./run_tests --config $(bdr_abs_srcdir)/$(REGRESSCONFIG) \
 		--testbinary src/test/regress/pg_regress \
 		$(REGRESSCHECKS)
-
-noisolationcheck:
-	@echo "Isolation tests are now skipped by default even on 9.4"
-	@echo "Use 'make isolationcheck' to run them"
-
-.PHONY: noisolationcheck
-
 
 ifeq ($(MAJORVERSION),9.4)
 isolationcheck: all install
