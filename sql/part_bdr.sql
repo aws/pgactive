@@ -96,7 +96,7 @@ LANGUAGE plpgsql;
 
 -- There should now be zero slots and no connections to them
 SELECT count(*) FROM pg_stat_replication;
-SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM bdr.pg_replication_slots;
+SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM pg_replication_slots;
 
 -- Zero active connections
 SELECT count(*) FROM pg_stat_replication;

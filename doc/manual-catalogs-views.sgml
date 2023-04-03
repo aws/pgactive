@@ -224,7 +224,7 @@
   <para>
    It is a convenience join on <literal>bdr.bdr_nodes</literal>,
    <literal>pg_catalog.pg_stat_replication</literal>
-   and <literal>bdr.pg_replication_slots</literal>, showing
+   and <literal>pg_replication_slots</literal>, showing
    which nodes have which slots, their current walsender activity
    and their replay positions.
   </para>
@@ -281,31 +281,31 @@
      <row>
       <entry><structfield>slot_name</structfield></entry>
       <entry><type>name</type></entry>
-      <entry><structname>bdr.pg_replication_slots</structname><structfield>.slot_name</structfield></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.slot_name</structfield></entry>
       <entry>A unique, cluster-wide identifier for the replication slot.</entry>
      </row>
      <row>
       <entry><structfield>slot_restart_lsn</structfield></entry>
       <entry><type>pg_lsn</type></entry>
-      <entry><structname>bdr.pg_replication_slots</structname><structfield>.restrt_lsn</structfield></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.restrt_lsn</structfield></entry>
       <entry>The address (LSN) of oldest WAL which still might be required by the consumer of this slot and thus won't be automatically removed during checkpoints.</entry>
      </row>
      <row>
       <entry><structfield>slot_confirmed_lsn</structfield></entry>
       <entry><type>pg_lsn</type></entry>
-      <entry><structname>bdr.pg_replication_slots</structname><structfield>.slot_confirmed_flush_lsn</structfield></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.slot_confirmed_flush_lsn</structfield></entry>
       <entry>The address (LSN) up to which the logical slot's consumer has confirmed receiving data. Data older than this is not available anymore. NULL for physical slots.</entry>
      </row>
      <row>
       <entry><structfield>walsender_active</structfield></entry>
       <entry><type>boolean</type></entry>
-      <entry><structname>bdr.pg_replication_slots</structname><structfield>.active</structfield></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.active</structfield></entry>
       <entry>True if this slot is currently actively being used.</entry>
      </row>
      <row>
       <entry><structfield>walsender_pid</structfield></entry>
       <entry><type>integer</type></entry>
-      <entry><structname>bdr.pg_replication_slots</structname><structfield>.active_pid</structfield></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.active_pid</structfield></entry>
       <entry>The process ID of the session using this slot if the slot is currently actively being used. NULL if inactive.</entry>
      </row>
      <row>

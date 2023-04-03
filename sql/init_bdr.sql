@@ -44,13 +44,13 @@ SELECT count(*) FROM pg_stat_replication;
 SELECT conn_dsn, conn_replication_sets FROM bdr.bdr_connections ORDER BY conn_dsn;
 SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER BY node_local_dsn;
 
-SELECT 1 FROM bdr.pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
+SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
 
 \c regression
 SELECT conn_dsn, conn_replication_sets FROM bdr.bdr_connections ORDER BY conn_dsn;
 SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER BY node_local_dsn;
 
-SELECT 1 FROM bdr.pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
+SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE VIEW public.ddl_info AS

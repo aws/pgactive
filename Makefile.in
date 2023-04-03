@@ -14,31 +14,7 @@ bdr_top_builddir = .
 MODULE_big = bdr
 EXTENSION = bdr
 
-DATA = \
-	extsql/bdr--1.0.0.0.sql \
-	extsql/bdr--1.0.0.0--1.0.1.0.sql \
-	extsql/bdr--1.0.1.0--1.0.2.0.sql \
-	extsql/bdr--1.0.2.0--1.0.3.0.sql \
-	extsql/bdr--1.0.3.0--2.0.0.0.sql \
-	extsql/bdr--2.0.0.0--2.0.1.0.sql \
-	extsql/bdr--2.0.1.0--2.0.2.0.sql \
-	extsql/bdr--2.0.2.0--2.0.3.0.sql \
-	extsql/bdr--2.0.3.0--2.0.4.0.sql \
-	extsql/bdr--2.0.4.0--2.0.5.0.sql \
-	extsql/bdr--2.0.5.0--2.0.6.0.sql
-
-# Remember to add $(call genextfile,from,to) invocations for these
-DATA_built = \
-	extsql/bdr--1.0.1.0.sql \
-	extsql/bdr--1.0.2.0.sql \
-	extsql/bdr--1.0.3.0.sql \
-	extsql/bdr--2.0.0.0.sql \
-	extsql/bdr--2.0.1.0.sql \
-	extsql/bdr--2.0.2.0.sql \
-	extsql/bdr--2.0.3.0.sql \
-	extsql/bdr--2.0.4.0.sql \
-	extsql/bdr--2.0.5.0.sql \
-	extsql/bdr--2.0.6.0.sql
+DATA = extsql/bdr--2.0.7.0.sql
 
 DOCS = README.bdr bdr.conf.sample
 
@@ -210,33 +186,6 @@ scripts/bdr_initial_load: scripts/bdr_initial_load.in
 	sed -e "s/BDR_VERSION/$(BDR_VERSION)/" -e "s/PG_VERSION/$(VERSION)/" $< > $@
 	@chmod +x $@
 
-#----
-# Generate flattened extension files.
-#
-# This isn't needed on PostgreSQL 10 as it's smart enough to figure out a
-# creation path, but we still need it for 9.6 and 9.4bdr.
-#
-# Note that make 3.81 doesn't like define with =, so don't add one even though
-# that's how the manual shows the syntax. See
-# http://stackoverflow.com/q/13260396/398670 .
-#---
-define genextfile
-extsql/bdr--$(2).sql: extsql/bdr--$(1).sql extsql/bdr--$(1)--$(2).sql
-	mkdir -p extsql
-	cat $$^ > $$@
-endef
-
-$(eval $(call genextfile,1.0.0.0,1.0.1.0))
-$(eval $(call genextfile,1.0.1.0,1.0.2.0))
-$(eval $(call genextfile,1.0.2.0,1.0.3.0))
-$(eval $(call genextfile,1.0.3.0,2.0.0.0))
-$(eval $(call genextfile,2.0.0.0,2.0.1.0))
-$(eval $(call genextfile,2.0.1.0,2.0.2.0))
-$(eval $(call genextfile,2.0.2.0,2.0.3.0))
-$(eval $(call genextfile,2.0.3.0,2.0.4.0))
-$(eval $(call genextfile,2.0.4.0,2.0.5.0))
-$(eval $(call genextfile,2.0.5.0,2.0.6.0))
-
 pg_dump_dir:
 	mkdir -p $(BDR_DUMP_DIR)
 
@@ -269,7 +218,6 @@ additional-clean:
 	rm -rf scripts/bdr_initial_load
 	rm -f bdr_dump$(X) $(DUMPOBJS)
 	rm -rf bdr_resetwal$(X) $(BDRRESETWAL_OBJS)
-	rm -f extsql/bdr--0.[89].0.[0-9].sql
 	rm -rf doc/html
 	$(MAKE) -C doc clean
 
@@ -297,7 +245,6 @@ REGRESSCHECKS= \
 	$(REGRESS_COMPAT) \
 	preseed_check \
 	supervisordb \
-	upgrade \
 	identifier \
 	schema_desync \
 	replorigin_filter \
@@ -305,7 +252,6 @@ REGRESSCHECKS= \
 	catalog \
 	terminate \
 	skipchanges \
-	pgreplicationslots \
 	seq2 \
 	read_only \
 	$(FAILING_TESTS) \

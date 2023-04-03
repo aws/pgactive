@@ -128,7 +128,7 @@ SELECT count(*) FROM pg_stat_replication;
      0
 (1 row)
 
-SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM bdr.pg_replication_slots;
+SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM pg_replication_slots;
  slot_name | plugin | slot_type | datoid | database | active | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn 
 -----------+--------+-----------+--------+----------+--------+------+--------------+-------------+---------------------
 (0 rows)
@@ -184,6 +184,7 @@ SELECT bdr.remove_bdr_from_local_node(true, true);
 WARNING:  forcing deletion of possibly active BDR node
 NOTICE:  node forced to parted state, now removing
 NOTICE:  removing BDR from node
+INFO:  BDR 1.0 global sequences not supported, nothing to convert
 NOTICE:  BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.
  remove_bdr_from_local_node 
 ----------------------------
