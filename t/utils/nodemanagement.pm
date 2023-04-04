@@ -117,7 +117,8 @@ sub create_bdr_group {
                     );
             }
     );
-    $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $node->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');
 }
@@ -245,7 +246,7 @@ sub bdr_logical_join {
 
     if (!$nowait) {
         $local_node->safe_psql( $bdr_test_dbname,
-            'SELECT bdr.bdr_node_join_wait_for_ready()' );
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 }
 
@@ -351,8 +352,10 @@ sub initandstart_physicaljoin_node {
     wait_for_pg_isready($join_node);
 
     # wait for BDR to come up
-    $upstream_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
-    $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $upstream_node->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+    $join_node->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 
     $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');

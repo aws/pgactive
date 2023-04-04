@@ -43,7 +43,8 @@ sub insert_into_table_sequence {
     my $node_name = $node->name();
 
     if (not defined $no_node_join_check) {
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     if ( not defined $no_of_inserts ) {

@@ -1501,10 +1501,12 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION bdr.bdr_node_join_wait_for_ready()
+CREATE FUNCTION bdr.bdr_node_join_wait_for_ready(timeout integer DEFAULT 0)
 RETURNS void LANGUAGE plpgsql VOLATILE AS $body$
 DECLARE
     _node_status "char";
+    _node_name text;
+    loops integer := 0;
 BEGIN
     IF current_setting('transaction_isolation') <> 'read committed' THEN
         RAISE EXCEPTION 'Can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
@@ -1512,15 +1514,23 @@ BEGIN
     END IF;
 
     LOOP
-        SELECT INTO _node_status
-          node_status
+        SELECT node_status, node_name
         FROM bdr.bdr_nodes
         WHERE (node_sysid, node_timeline, node_dboid)
-              = bdr.bdr_get_local_nodeid();
+              = bdr.bdr_get_local_nodeid()
+        INTO _node_status, _node_name;
 
     PERFORM pg_sleep(0.5);
 
         EXIT WHEN _node_status = 'r';
+
+        IF timeout > 0 THEN
+          loops := loops + 1;
+          IF loops > timeout * 2 THEN
+            RAISE EXCEPTION 'Node % cannot reach ready state within % seconds, current state is %.',
+                            _node_name, timeout, _node_status;
+          END IF;
+        END IF;
     END LOOP;
 END;
 $body$;

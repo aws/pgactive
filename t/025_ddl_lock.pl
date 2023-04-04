@@ -26,7 +26,8 @@ for my $node (@$nodes) {
 
 # Now we have to wait for the nodes to actually join...
 for my $node (@$nodes) {
-    $node->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $node->safe_psql($bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Make sure DDL locking works

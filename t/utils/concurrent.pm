@@ -134,7 +134,7 @@ sub concurrent_joins_logical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
-            'SELECT bdr.bdr_node_join_wait_for_ready()' );
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and verify
@@ -186,7 +186,8 @@ sub concurrent_joins_physical {
     # wait for BDR to come up
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -319,7 +320,7 @@ sub concurrent_join_part_logical {
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
         $node->safe_psql( $bdr_test_dbname,
-            'SELECT bdr.bdr_node_join_wait_for_ready()' );
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and verify
@@ -381,7 +382,8 @@ sub concurrent_join_part_physical {
 
     # wait for BDR to come up
     foreach my $node (@{$join_nodes}) {
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -449,7 +451,8 @@ sub concurrent_joins_logical_physical {
     # wait for BDR to come up
     foreach my $join_node (@join_nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and validate
@@ -466,11 +469,13 @@ sub concurrent_joins_logical_physical {
 sub concurrent_inserts {
     my ($upstream_node,$table_name,$inserts,@nodes) = @_;
     my @node_queries;
-    $upstream_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $upstream_node->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     $upstream_node->safe_psql($bdr_test_dbname,"TRUNCATE TABLE $table_name");
     foreach my $node (@nodes) {
         my $node_name = $node->name();
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         my $insert_query = "INSERT INTO public.$table_name(node_name) SELECT '$node_name' FROM generate_series(1,$inserts)";
         push @node_queries, [$node, $insert_query];
     }

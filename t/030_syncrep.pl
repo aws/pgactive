@@ -92,7 +92,8 @@ for my $node (@nodes) {
 
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
-    $node->safe_psql('bdr_test', 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -147,7 +148,8 @@ for my $node (@nodes) {
 
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
-    $node->safe_psql('bdr_test', 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -190,7 +192,8 @@ for my $node (@nodes) {
 
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
-    $node->safe_psql('bdr_test', 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Everything should work while the system is all-up

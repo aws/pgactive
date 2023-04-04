@@ -38,7 +38,8 @@ command_fails(
 # Time to bring up BDR
 create_bdr_group($node_a);
 
-$node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()');
+$node_a->safe_psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a');
@@ -84,8 +85,10 @@ command_ok(
 my $bdr_version = $node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_version()');
 note "BDR version $bdr_version";
 
-$node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()');
-$node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()');
+$node_a->safe_psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+$node_b->safe_psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a');
