@@ -1525,15 +1525,6 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION bdr_upgrade_to_090(my_conninfo text, local_conninfo text, remote_conninfo text)
-RETURNS void LANGUAGE plpgsql AS $$
-BEGIN
-	RAISE EXCEPTION 'Upgrades from 0.7.x or 0.8.x direct to 1.0+ not supported';
-END;
-$$;
-
-REVOKE ALL ON FUNCTION bdr_upgrade_to_090(text,text,text) FROM public;
-
 CREATE TYPE bdr.bdr_sync_type AS ENUM
 (
 	'none',
