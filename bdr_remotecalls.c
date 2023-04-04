@@ -288,6 +288,13 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
 					   "       current_setting('is_superuser') AS issuper");
 
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		ereport(ERROR,
+				(errmsg("Unable to get BDR version string and is_superuser info from remote node"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+	}
+
 	Assert(PQnfields(res) == 2);
 	Assert(PQntuples(res) == 1);
 
