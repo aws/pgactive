@@ -100,9 +100,6 @@ bdr_register_perdb_worker(const char * dbname)
 	snprintf(bgw.bgw_name, BGW_MAXLEN,
 			 "bdr db: %s", dbname);
 
-	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr db worker");
-	pgstat_report_appname("bdr db worker");
-
 	/*
 	 * The main arg is composed of two uint16 parts - the worker
 	 * generation number (see bdr_worker_shmem_startup) and the index into
@@ -384,9 +381,6 @@ bdr_supervisor_worker_main(Datum main_arg)
 	if (!BdrWorkerCtl->is_supervisor_restart)
 	{
 		BackgroundWorkerInitializeConnection("template1", NULL, 0);
-
-		/* Make bdr supervisor  recognisable in pg_stat_activity */
-		pgstat_report_appname("bdr supervisor");
 		bdr_supervisor_createdb();
 
 		BdrWorkerCtl->is_supervisor_restart = true;
@@ -486,8 +480,6 @@ bdr_supervisor_register()
 	bgw.bgw_restart_time = 1;
 	bgw.bgw_notify_pid = 0;
 	snprintf(bgw.bgw_name, BGW_MAXLEN,
-			 "bdr supervisor");
-	snprintf(bgw.bgw_type, BGW_MAXLEN,
 			 "bdr supervisor");
 	bgw.bgw_main_arg = Int32GetDatum(0); /* unused */
 
