@@ -12,57 +12,25 @@ bdr_subdir = .
 bdr_top_builddir = .
 
 MODULE_big = bdr
-
 EXTENSION = bdr
 
-DATA = \
-	extsql/bdr--1.0.0.0.sql \
-	extsql/bdr--1.0.0.0--1.0.1.0.sql \
-	extsql/bdr--1.0.1.0--1.0.2.0.sql \
-	extsql/bdr--1.0.2.0--1.0.3.0.sql \
-	extsql/bdr--1.0.3.0--2.0.0.0.sql \
-	extsql/bdr--2.0.0.0--2.0.1.0.sql \
-	extsql/bdr--2.0.1.0--2.0.2.0.sql \
-	extsql/bdr--2.0.2.0--2.0.3.0.sql \
-	extsql/bdr--2.0.3.0--2.0.4.0.sql \
-	extsql/bdr--2.0.4.0--2.0.5.0.sql \
-	extsql/bdr--2.0.5.0--2.0.6.0.sql
-
-# Remember to add $(call genextfile,from,to) invocations for these
-DATA_built = \
-	extsql/bdr--1.0.1.0.sql \
-	extsql/bdr--1.0.2.0.sql \
-	extsql/bdr--1.0.3.0.sql \
-	extsql/bdr--2.0.0.0.sql \
-	extsql/bdr--2.0.1.0.sql \
-	extsql/bdr--2.0.2.0.sql \
-	extsql/bdr--2.0.3.0.sql \
-	extsql/bdr--2.0.4.0.sql \
-	extsql/bdr--2.0.5.0.sql \
-	extsql/bdr--2.0.6.0.sql
+DATA = extsql/bdr--2.0.7.0.sql
 
 DOCS = README.bdr bdr.conf.sample
 
 # pgxs doesn't know how to handle directories of docs, or built docs, so the
 # html docs will get separate rules below
 
-# We can't use SCRIPTS_built because it isn't supported by 9.4 and we can't use
-# SCRIPTS because it breaks VPATH builds.  So we'll just inject support later
-# for SCRIPTS_built if PGXS doesn't support it.
 SCRIPTS_built = \
 	scripts/bdr_initial_load \
 	bdr_init_copy \
-	bdr_dump
+	bdr_dump \
+	bdr_resetwal
 all: \
 	scripts/bdr_initial_load \
 	bdr_init_copy \
-	bdr_dump
-
-# We can't use Makefile.global's MAJORVERSION here yet
-ifneq ($(BDR_PG_MAJORVERSION),94)
-SCRIPTS_built += bdr_resetxlog
-all: bdr_resetxlog
-endif
+	bdr_dump \
+	bdr_resetwal
 
 # When in development add -Werror
 PG_CPPFLAGS = -std=gnu89 -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
@@ -162,7 +130,6 @@ DDLTESTS_FUNC := \
 	ddl_fn/ddl_view \
 	ddl_fn/ddl_disable_ddl
 
-
 include Makefile.global
 
 $(info Building against PostgreSQL $(MAJORVERSION))
@@ -182,36 +149,13 @@ DUMPOBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/dumputils.o
 
 BDR_DUMP_DIR := pg_dump$(BDR_PG_MAJORVERSION)
-ifeq ($(MAJORVERSION),9.6)
-BDR_DUMP_LIBS := -lpgfeutils
-DUMPOBJS += $(BDR_DUMP_DIR)/keywords.o
-else ifeq ($(MAJORVERSION),9.4)
-BDR_DUMP_LIBS :=
-DUMPOBJS += $(BDR_DUMP_DIR)/keywords.o \
-	$(BDR_DUMP_DIR)/kwlookup.o
-else
 BDR_DUMP_LIBS := -lz -lpgfeutils
 DUMPOBJS += $(BDR_DUMP_DIR)/string_utils.o
-endif
 
-ifneq ($(MAJORVERSION),9.4)
-RESETXLOG_OBJS := pg_resetxlog/$(BDR_PG_MAJORVERSION)/pg_resetwal.o
-RESETXLOG_LIBS := -lpgfeutils
+BDRRESETWAL_OBJS := compat/$(BDR_PG_MAJORVERSION)/bdr_resetwal.o
 
-bdr_resetxlog_dir:
-	mkdir -p pg_resetxlog/$(BDR_PG_MAJORVERSION)
-
-.PHONY: bdr_resetxlog_dir
-
-bdr_resetxlog: bdr_resetxlog_dir $(RESETXLOG_OBJS)
-	$(CC) $(CFLAGS) $(RESETXLOG_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
-else
-RESETXLOG_OBJS := 
-RESETXLOG_LIBS :=
-
-bdr_resetxlog:
-	@echo "bdr_resetxlog is not built on 9.4"
-endif
+bdr_resetwal: $(BDRRESETWAL_OBJS)
+	$(CC) $(CFLAGS) $(BDRRESETWAL_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
 
 # Ensure Makefiles are up2date (should we move this to Makefile.global?)
 Makefile: Makefile.in config.status configure
@@ -242,33 +186,6 @@ scripts/bdr_initial_load: scripts/bdr_initial_load.in
 	sed -e "s/BDR_VERSION/$(BDR_VERSION)/" -e "s/PG_VERSION/$(VERSION)/" $< > $@
 	@chmod +x $@
 
-#----
-# Generate flattened extension files.
-#
-# This isn't needed on PostgreSQL 10 as it's smart enough to figure out a
-# creation path, but we still need it for 9.6 and 9.4bdr.
-#
-# Note that make 3.81 doesn't like define with =, so don't add one even though
-# that's how the manual shows the syntax. See
-# http://stackoverflow.com/q/13260396/398670 .
-#---
-define genextfile
-extsql/bdr--$(2).sql: extsql/bdr--$(1).sql extsql/bdr--$(1)--$(2).sql
-	mkdir -p extsql
-	cat $$^ > $$@
-endef
-
-$(eval $(call genextfile,1.0.0.0,1.0.1.0))
-$(eval $(call genextfile,1.0.1.0,1.0.2.0))
-$(eval $(call genextfile,1.0.2.0,1.0.3.0))
-$(eval $(call genextfile,1.0.3.0,2.0.0.0))
-$(eval $(call genextfile,2.0.0.0,2.0.1.0))
-$(eval $(call genextfile,2.0.1.0,2.0.2.0))
-$(eval $(call genextfile,2.0.2.0,2.0.3.0))
-$(eval $(call genextfile,2.0.3.0,2.0.4.0))
-$(eval $(call genextfile,2.0.4.0,2.0.5.0))
-$(eval $(call genextfile,2.0.5.0,2.0.6.0))
-
 pg_dump_dir:
 	mkdir -p $(BDR_DUMP_DIR)
 
@@ -295,18 +212,19 @@ additional-clean:
 	rm -f bdr_init_copy$(X) bdr_init_copy.o
 	rm -f bdr_version.h
 	rm -f .distgitrev
-	rm -rf tmp_check
+	rm -rf tmp_check results log
+	rm -f  regression.diffs regression.out bdr_init_copy_postgres.log
+	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
 	rm -f bdr_dump$(X) $(DUMPOBJS)
-	rm -f bdr_resetxlog$(X) $(RESETXLOG_OBJS)
-	rm -f extsql/bdr--0.[89].0.[0-9].sql
+	rm -rf bdr_resetwal$(X) $(BDRRESETWAL_OBJS)
 	rm -rf doc/html
 	$(MAKE) -C doc clean
 
 additional-maintainer-clean: clean
 	rm -f configure
 	rm -f config.status config.log
-	rm -f bdr_config.h.in Makefile
+	rm -f bdr_config_generated.h Makefile Makefile.global
 	rm -f run_tests
 	@rm -rf autom4te.cache/
 	$(MAKE) -C doc maintainer-clean
@@ -315,19 +233,7 @@ additional-maintainer-clean: clean
 # typical installcheck users do not have (e.g. buildfarm clients).
 installcheck: ;
 
-ifeq ($(BDR_PG_MAJORVERSION),9.4)
-# We must emulate SCRIPTS_built for Pg 9.4 as PGXS doesn't support it
-install: install-scripts
-install-scripts:
-	$(INSTALL_SCRIPT) $(SCRIPTS_built) '$(DESTDIR)$(bindir)/'
-.PHONY: install-scripts
-installdirs: installdirs-scripts
-installdirs-scripts:
-	$(MKDIR_P) '$(DESTDIR)$(bindir)'
-.PHONY: installdirs-scripts
-endif
-
-check: regresscheck noisolationcheck prove_installcheck
+check: regresscheck prove_installcheck
 
 REGRESSCHECKS= \
 	init \
@@ -339,7 +245,6 @@ REGRESSCHECKS= \
 	$(REGRESS_COMPAT) \
 	preseed_check \
 	supervisordb \
-	upgrade \
 	identifier \
 	schema_desync \
 	replorigin_filter \
@@ -347,7 +252,6 @@ REGRESSCHECKS= \
 	catalog \
 	terminate \
 	skipchanges \
-	pgreplicationslots \
 	seq2 \
 	read_only \
 	$(FAILING_TESTS) \
@@ -363,7 +267,6 @@ REGRESSCHECKS= \
 	dml_toasted \
 	$(SEQTESTS) \
 	part_bdr
-
 
 ISOLATIONCHECKS=\
 	isolation/init \
@@ -391,13 +294,6 @@ regresscheck: all install
 	./run_tests --config $(bdr_abs_srcdir)/$(REGRESSCONFIG) \
 		--testbinary src/test/regress/pg_regress \
 		$(REGRESSCHECKS)
-
-noisolationcheck:
-	@echo "Isolation tests are now skipped by default even on 9.4"
-	@echo "Use 'make isolationcheck' to run them"
-
-.PHONY: noisolationcheck
-
 
 ifeq ($(MAJORVERSION),9.4)
 isolationcheck: all install

@@ -1,12 +1,12 @@
 -- Verify data from preseed.sql has correctly been cloned
 \c regression
 \d some_local_tbl
-                         Table "public.some_local_tbl"
- Column |  Type   |                          Modifiers                          
---------+---------+-------------------------------------------------------------
- id     | integer | not null default nextval('some_local_tbl_id_seq'::regclass)
- key    | text    | not null
- data   | text    | 
+                            Table "public.some_local_tbl"
+ Column |  Type   | Collation | Nullable |                  Default                   
+--------+---------+-----------+----------+--------------------------------------------
+ id     | integer |           | not null | nextval('some_local_tbl_id_seq'::regclass)
+ key    | text    |           | not null | 
+ data   | text    |           |          | 
 Indexes:
     "some_local_tbl_pkey" PRIMARY KEY, btree (id)
     "some_local_tbl_key_key" UNIQUE CONSTRAINT, btree (key)
@@ -29,12 +29,12 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c postgres
 \d some_local_tbl
-                         Table "public.some_local_tbl"
- Column |  Type   |                          Modifiers                          
---------+---------+-------------------------------------------------------------
- id     | integer | not null default nextval('some_local_tbl_id_seq'::regclass)
- key    | text    | not null
- data   | text    | 
+                            Table "public.some_local_tbl"
+ Column |  Type   | Collation | Nullable |                  Default                   
+--------+---------+-----------+----------+--------------------------------------------
+ id     | integer |           | not null | nextval('some_local_tbl_id_seq'::regclass)
+ key    | text    |           | not null | 
+ data   | text    |           |          | 
 Indexes:
     "some_local_tbl_pkey" PRIMARY KEY, btree (id)
     "some_local_tbl_key_key" UNIQUE CONSTRAINT, btree (key)

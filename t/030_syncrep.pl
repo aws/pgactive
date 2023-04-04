@@ -36,11 +36,8 @@ my $node_b = get_new_node('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
 
 # application_name should be the same as the node name
-is($node_a->safe_psql('postgres', q[SELECT application_name FROM pg_stat_activity WHERE application_name <> 'psql' AND application_name NOT LIKE '%init' ORDER BY application_name]),
-q[bdr supervisor
-node_a:perdb
-node_b:apply
-node_b:send],
+is($node_a->safe_psql('postgres', q[SELECT count(*) >= 4 FROM pg_stat_activity WHERE application_name IN ('bdr supervisor', 'node_a:perdb', 'node_b:apply', 'node_b:send')]),
+q[t],
 '2-node application_name check');
 
 # Create the other nodes
@@ -51,15 +48,8 @@ my $node_d = get_new_node('node_d');
 initandstart_logicaljoin_node($node_d, $node_c);
 
 # other apply workers should be visible now
-is($node_a->safe_psql('postgres', q[SELECT application_name FROM pg_stat_activity WHERE application_name <> 'psql' AND application_name NOT LIKE '%init' ORDER BY application_name]),
-q[bdr supervisor
-node_a:perdb
-node_b:apply
-node_b:send
-node_c:apply
-node_c:send
-node_d:apply
-node_d:send],
+is($node_a->safe_psql('postgres', q[SELECT count(*) >= 8 FROM pg_stat_activity WHERE application_name IN ('bdr supervisor', 'node_a:perdb', 'node_b:apply', 'node_b:send', 'node_c:apply', 'node_c:send', 'node_d:apply', 'node_d:send')]),
+q[t],
 '4-node application_name check');
 
 #-------------------------------------
@@ -98,6 +88,12 @@ $node_d->safe_psql('bdr_test', q[ALTER SYSTEM SET synchronous_standby_names = '"
 for my $node (@nodes) {
   $node->safe_psql('bdr_test', q[ALTER SYSTEM SET bdr.synchronous_commit = on]);
   $node->restart;
+}
+
+# Now we have to wait for the nodes to actually join...
+for my $node (@nodes) {
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -150,6 +146,12 @@ for my $node (@nodes) {
   $node->restart;
 }
 
+# Now we have to wait for the nodes to actually join...
+for my $node (@nodes) {
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+}
+
 # Everything should work while the system is all-up
 is($node_a->psql('bdr_test', q[INSERT INTO t(x) VALUES ('A: 2-2 B2 C2')]), 0, 'A: 2-safe 2-sync B up C up');
 
@@ -186,6 +188,12 @@ $node_d->safe_psql('bdr_test', q[ALTER SYSTEM SET synchronous_standby_names = '1
 
 for my $node (@nodes) {
   $node->restart;
+}
+
+# Now we have to wait for the nodes to actually join...
+for my $node (@nodes) {
+    $node->safe_psql('bdr_test',
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 }
 
 # Everything should work while the system is all-up

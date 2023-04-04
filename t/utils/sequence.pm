@@ -38,9 +38,14 @@ sub create_table_global_sequence {
 
 # Insert into table_sequence
 sub insert_into_table_sequence {
-    my ( $node, $table_name, $no_of_inserts ) = @_;
+    my ( $node, $table_name, $no_of_inserts, $no_node_join_check) = @_;
 
     my $node_name = $node->name();
+
+    if (not defined $no_node_join_check) {
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+    }
 
     if ( not defined $no_of_inserts ) {
         $no_of_inserts = 1;

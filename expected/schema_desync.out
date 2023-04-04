@@ -14,11 +14,11 @@ $DDL$);
 (1 row)
 
 \d desync
-    Table "public.desync"
- Column |  Type   | Modifiers 
---------+---------+-----------
- id     | integer | not null
- n1     | integer | not null
+               Table "public.desync"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ id     | integer |           | not null | 
+ n1     | integer |           | not null | 
 Indexes:
     "desync_pkey" PRIMARY KEY, btree (id)
 
@@ -31,11 +31,11 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 -- basic builtin datatypes
 \c :writedb2
 \d desync
-    Table "public.desync"
- Column |  Type   | Modifiers 
---------+---------+-----------
- id     | integer | not null
- n1     | integer | not null
+               Table "public.desync"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ id     | integer |           | not null | 
+ n1     | integer |           | not null | 
 Indexes:
     "desync_pkey" PRIMARY KEY, btree (id)
 

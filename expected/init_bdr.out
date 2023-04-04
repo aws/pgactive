@@ -110,7 +110,7 @@ SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER 
  r           | dbname=regression | dbname=postgres
 (2 rows)
 
-SELECT 1 FROM bdr.pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
+SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
  ?column? 
 ----------
         1
@@ -132,7 +132,7 @@ SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER 
  r           | dbname=regression | dbname=postgres
 (2 rows)
 
-SELECT 1 FROM bdr.pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
+SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
  ?column? 
 ----------
         1

@@ -195,12 +195,11 @@
 
    <para>
 	Information about replication slots (both logical and physical) is
-	available in the <literal>pg_catalog.pg_replication_slots</literal> view
-	or, for Postgres-BDR 9.4, from the <literal>bdr.pg_replication_slots</>
-	view. This view shows all slots, whether or not there is an active
-	replication connection using them. It looks like:
+	available in the <literal>pg_catalog.pg_replication_slots</literal> view.
+  This view shows all slots, whether or not there is an active replication
+  connection using them. It looks like:
     <programlisting>
-    SELECT * FROM bdr.pg_replication_slots;
+    SELECT * FROM pg_replication_slots;
                     slot_name                | plugin | slot_type | datoid | database | active | active_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn 
     -----------------------------------------+--------+-----------+--------+----------+--------+------------+------+--------------+-------------+---------------------
      bdr_16386_6127682459268878512_1_16386__ | bdr    | logical   |  16386 | bdrdemo  | t      |       4121 |      |          749 | 0/191B130   | 0/201E120
@@ -224,7 +223,7 @@
 	<programlisting>
 	SELECT *
 	FROM pg_catalog.pg_stat_replication r
-	FULL OUTER JOIN bdr.pg_replication_slots s
+	FULL OUTER JOIN pg_catalog.pg_replication_slots s
 	             ON r.pid = s.active_pid
 	WHERE r.application_name IS NULL
 	   OR r.application_name LIKE 'bdr%';
@@ -240,7 +239,7 @@
     SELECT
       slot_name, database, active, active_pid
       pg_xlog_location_diff(pg_current_xlog_insert_location(), restart_lsn) AS retained_bytes
-    FROM bdr.pg_replication_slots
+    FROM pg_catalog.pg_replication_slots
     WHERE plugin = 'bdr';
     </programlisting>
    </para>

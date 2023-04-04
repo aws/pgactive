@@ -33,6 +33,11 @@
  * backend-only stuff in the XLOG include files we need.  But we need a
  * frontend-ish environment otherwise.  Hence this ugly hack.
  */
+
+/*
+ * NB: This version is patched to call its self bdr_resetwal and add a
+ * -s or system-identifier option to reset the system_identifier.
+ */
 #define FRONTEND 1
 
 #include "postgres.h"
@@ -64,6 +69,7 @@ static XLogSegNo newXlogSegNo;	/* new XLOG segment # */
 static bool guessed = false;	/* T if we had to guess at any values */
 static const char *progname;
 static uint32 set_xid_epoch = (uint32) -1;
+static TransactionId set_oldest_xid = 0;
 static TransactionId set_xid = 0;
 static TransactionId set_oldest_commit_ts_xid = 0;
 static TransactionId set_newest_commit_ts_xid = 0;
@@ -76,7 +82,6 @@ static int	WalSegSz;
 static int	set_wal_segsize;
 static uint64 set_sysid = 0;
 
-static uint64 GenerateSystemIdentifier(void);
 static void CheckDataVersion(void);
 static bool ReadControlFile(void);
 static void GuessControlValues(void);
@@ -103,6 +108,8 @@ main(int argc, char *argv[])
 		{"dry-run", no_argument, NULL, 'n'},
 		{"next-oid", required_argument, NULL, 'o'},
 		{"multixact-offset", required_argument, NULL, 'O'},
+		{"system-identifier", required_argument, NULL, 's'},
+		{"oldest-transaction-id", required_argument, NULL, 'u'},
 		{"next-transaction-id", required_argument, NULL, 'x'},
 		{"wal-segsize", required_argument, NULL, 1},
 		{NULL, 0, NULL, 0}
@@ -137,7 +144,7 @@ main(int argc, char *argv[])
 	}
 
 
-	while ((c = getopt_long(argc, argv, "c:D:e:fl:m:no:O:x:s::", long_options, NULL)) != -1)
+	while ((c = getopt_long(argc, argv, "c:D:e:fl:m:no:O:s:u:x:", long_options, NULL)) != -1)
 	{
 		switch (c)
 		{
@@ -166,6 +173,21 @@ main(int argc, char *argv[])
 				if (set_xid_epoch == -1)
 				{
 					fprintf(stderr, _("%s: transaction ID epoch (-e) must not be -1\n"), progname);
+					exit(1);
+				}
+				break;
+
+			case 'u':
+				set_oldest_xid = strtoul(optarg, &endptr, 0);
+				if (endptr == optarg || *endptr != '\0')
+				{
+					fprintf(stderr, _("invalid argument for option %s"), "-u");
+					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
+					exit(1);
+				}
+				if (!TransactionIdIsNormal(set_oldest_xid))
+				{
+					fprintf(stderr, _("oldest transaction ID (-u) must be greater than or equal to %u"), FirstNormalTransactionId);
 					exit(1);
 				}
 				break;
@@ -280,6 +302,20 @@ main(int argc, char *argv[])
 				}
 				break;
 
+            case 's':
+                if (sscanf(optarg, UINT64_FORMAT, &set_sysid) != 1)
+                {
+                    fprintf(stderr, _("%s: invalid argument for option -s\n"), progname);
+                    fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
+                    exit(1);
+                }
+				if (set_sysid == 0)
+				{
+					fprintf(stderr, _("%s: system identifier (-s) must not be 0\n"), progname);
+					exit(1);
+				}
+                break;
+
 			case 'l':
 				if (strspn(optarg, "01234567890ABCDEFabcdef") != XLOG_FNAME_LEN)
 				{
@@ -312,22 +348,6 @@ main(int argc, char *argv[])
 					exit(1);
 				}
 				break;
-
-                        case 's':
-                                if (optarg)
-                                {
-                                        if (sscanf(optarg, UINT64_FORMAT, &set_sysid) != 1)
-                                        {
-                                                fprintf(stderr, _("%s: invalid argument for option -s\n"), progname);
-                                                fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
-                                                exit(1);
-                                        }
-                                }
-                                else
-                                {
-                                        set_sysid = GenerateSystemIdentifier();
-                                }
-                                break;
 
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
@@ -451,22 +471,14 @@ main(int argc, char *argv[])
 	if (set_xid_epoch != -1)
 		ControlFile.checkPointCopy.nextXidEpoch = set_xid_epoch;
 
-	if (set_xid != 0)
+	if (set_oldest_xid != 0)
 	{
-		ControlFile.checkPointCopy.nextXid = set_xid;
-
-		/*
-		 * For the moment, just set oldestXid to a value that will force
-		 * immediate autovacuum-for-wraparound.  It's not clear whether adding
-		 * user control of this is useful, so let's just do something that's
-		 * reasonably safe.  The magic constant here corresponds to the
-		 * maximum allowed value of autovacuum_freeze_max_age.
-		 */
-		ControlFile.checkPointCopy.oldestXid = set_xid - 2000000000;
-		if (ControlFile.checkPointCopy.oldestXid < FirstNormalTransactionId)
-			ControlFile.checkPointCopy.oldestXid += FirstNormalTransactionId;
+		ControlFile.checkPointCopy.oldestXid = set_oldest_xid;
 		ControlFile.checkPointCopy.oldestXidDB = InvalidOid;
 	}
+
+	if (set_xid != 0)
+		ControlFile.checkPointCopy.nextXid = set_xid;
 
 	if (set_oldest_commit_ts_xid != 0)
 		ControlFile.checkPointCopy.oldestCommitTsXid = set_oldest_commit_ts_xid;
@@ -501,8 +513,8 @@ main(int argc, char *argv[])
 	if (minXlogSegNo > newXlogSegNo)
 		newXlogSegNo = minXlogSegNo;
 
-        if (set_sysid != 0)
-                ControlFile.system_identifier = set_sysid;
+	if (set_sysid != 0)
+		ControlFile.system_identifier = set_sysid;
 
 	/*
 	 * If we had to guess anything, and -f was not given, just print the
@@ -609,26 +621,6 @@ CheckDataVersion(void)
 
 
 /*
- * Create a new unique installation identifier.
- *
- * See notes in xlog.c about the algorithm.
- */
-static uint64
-GenerateSystemIdentifier(void)
-{
-       uint64                  sysidentifier;
-       struct timeval  tv;
-
-       gettimeofday(&tv, NULL);
-       sysidentifier = ((uint64) tv.tv_sec) << 32;
-       sysidentifier |= ((uint64) tv.tv_usec) << 12;
-       sysidentifier |= getpid() & 0xFFF;
-
-       return sysidentifier;
-}
-
-
-/*
  * Try to read the existing pg_control file.
  *
  * This routine is also responsible for updating old pg_control versions
@@ -720,6 +712,7 @@ static void
 GuessControlValues(void)
 {
 	uint64		sysidentifier;
+	struct timeval tv;
 
 	/*
 	 * Set up a completely default set of pg_control values.
@@ -734,7 +727,10 @@ GuessControlValues(void)
 	 * Create a new unique installation identifier, since we can no longer use
 	 * any old XLOG records.  See notes in xlog.c about the algorithm.
 	 */
-	sysidentifier = GenerateSystemIdentifier();
+	gettimeofday(&tv, NULL);
+	sysidentifier = ((uint64) tv.tv_sec) << 32;
+	sysidentifier |= ((uint64) tv.tv_usec) << 12;
+	sysidentifier |= getpid() & 0xFFF;
 
 	ControlFile.system_identifier = sysidentifier;
 
@@ -1348,20 +1344,21 @@ usage(void)
 	printf(_("Usage:\n  %s [OPTION]... DATADIR\n\n"), progname);
 	printf(_("Options:\n"));
 	printf(_("  -c, --commit-timestamp-ids=XID,XID\n"
-			 "                                 set oldest and newest transactions bearing\n"
-			 "                                 commit timestamp (zero means no change)\n"));
-	printf(_(" [-D, --pgdata=]DATADIR          data directory\n"));
-	printf(_("  -e, --epoch=XIDEPOCH           set next transaction ID epoch\n"));
-	printf(_("  -f, --force                    force update to be done\n"));
-	printf(_("  -l, --next-wal-file=WALFILE    set minimum starting location for new WAL\n"));
-	printf(_("  -m, --multixact-ids=MXID,MXID  set next and oldest multitransaction ID\n"));
-	printf(_("  -n, --dry-run                  no update, just show what would be done\n"));
-	printf(_("  -o, --next-oid=OID             set next OID\n"));
-	printf(_("  -O, --multixact-offset=OFFSET  set next multitransaction offset\n"));
-	printf(_("  -V, --version                  output version information, then exit\n"));
-	printf(_("  -s [SYSID]                     set system identifier (or generate one)\n"));
-	printf(_("  -x, --next-transaction-id=XID  set next transaction ID\n"));
-	printf(_("      --wal-segsize=SIZE         size of WAL segments, in megabytes\n"));
-	printf(_("  -?, --help                     show this help, then exit\n"));
+			 "                                   set oldest and newest transactions bearing\n"
+			 "                                   commit timestamp (zero means no change)\n"));
+	printf(_(" [-D, --pgdata=]DATADIR            data directory\n"));
+	printf(_("  -e, --epoch=XIDEPOCH             set next transaction ID epoch\n"));
+	printf(_("  -f, --force                      force update to be done\n"));
+	printf(_("  -l, --next-wal-file=WALFILE      set minimum starting location for new WAL\n"));
+	printf(_("  -m, --multixact-ids=MXID,MXID    set next and oldest multitransaction ID\n"));
+	printf(_("  -n, --dry-run                    no update, just show what would be done\n"));
+	printf(_("  -o, --next-oid=OID               set next OID\n"));
+	printf(_("  -O, --multixact-offset=OFFSET    set next multitransaction offset\n"));
+	printf(_("  -s, --system-identifier=SYSID    set system identifier\n"));
+	printf(_("  -u, --oldest-transaction-id=XID  set oldest transaction ID\n"));
+	printf(_("  -V, --version                    output version information, then exit\n"));
+	printf(_("  -x, --next-transaction-id=XID    set next transaction ID\n"));
+	printf(_("      --wal-segsize=SIZE           size of WAL segments, in megabytes\n"));
+	printf(_("  -?, --help                       show this help, then exit\n"));
 	printf(_("\nReport bugs to <pgsql-bugs@postgresql.org>.\n"));
 }

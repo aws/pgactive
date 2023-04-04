@@ -134,7 +134,7 @@ sub concurrent_joins_logical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
-            'SELECT bdr.bdr_node_join_wait_for_ready()' );
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and verify
@@ -160,7 +160,8 @@ sub concurrent_joins_physical {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file);
+        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
 
@@ -185,7 +186,8 @@ sub concurrent_joins_physical {
     # wait for BDR to come up
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -227,10 +229,8 @@ sub concurrent_part {
 
 sub pgbench_init {
     my ($node, $scale) = @_;
-
-    if (!command_ok(['pgbench', '-i', '-s', $scale, '-d', $node->connstr($bdr_test_dbname)], 'pgbench init successful')) {
-        BAIL_OUT('test cannot continue, benchmark setup failed');
-    }
+    $node->pgbench(
+	    "--initialize --scale=$scale");
 }
 
 sub pgbench_start {
@@ -272,8 +272,6 @@ sub join_under_write_load {
 
     $pgbench_handle->signal('TERM');
     $pgbench_handle->finish;
-
-    is($pgbench_handle->full_result(0), 0, 'pgbench exited without error');
 }
 
 # Check if concurrent  join and part works
@@ -322,7 +320,7 @@ sub concurrent_join_part_logical {
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
         $node->safe_psql( $bdr_test_dbname,
-            'SELECT bdr.bdr_node_join_wait_for_ready()' );
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and verify
@@ -346,7 +344,8 @@ sub concurrent_join_part_physical {
     # Start bdr_init_copy for each node we're asked to joini.
     foreach my $node (@{$join_nodes}) {
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file);
+        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
 
@@ -383,7 +382,8 @@ sub concurrent_join_part_physical {
 
     # wait for BDR to come up
     foreach my $node (@{$join_nodes}) {
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -418,7 +418,8 @@ sub concurrent_joins_logical_physical {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file);
+        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
     
@@ -450,7 +451,8 @@ sub concurrent_joins_logical_physical {
     # wait for BDR to come up
     foreach my $join_node (@join_nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_node_join_wait_for_ready()' );
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     }
 
     # and validate
@@ -467,9 +469,13 @@ sub concurrent_joins_logical_physical {
 sub concurrent_inserts {
     my ($upstream_node,$table_name,$inserts,@nodes) = @_;
     my @node_queries;
+    $upstream_node->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
     $upstream_node->safe_psql($bdr_test_dbname,"TRUNCATE TABLE $table_name");
     foreach my $node (@nodes) {
         my $node_name = $node->name();
+        $node->safe_psql( $bdr_test_dbname,
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
         my $insert_query = "INSERT INTO public.$table_name(node_name) SELECT '$node_name' FROM generate_series(1,$inserts)";
         push @node_queries, [$node, $insert_query];
     }

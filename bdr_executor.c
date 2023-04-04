@@ -42,14 +42,6 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
-#if PG_VERSION_NUM/100 == 904
-/* Needed for InitDirtySnapshot on 9.4 */
-#include "utils/tqual.h"
-/* Needed for PushActiveSnapshot, GetLatestSnapshot and PopActiveSnapshot on 9.4 */
-#include "utils/snapmgr.h"
-#endif
-
-
 static void BdrExecutorStart(QueryDesc *queryDesc, int eflags);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;

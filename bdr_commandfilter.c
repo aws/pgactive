@@ -749,6 +749,7 @@ static void
 prevent_drop_extension_bdr(DropStmt *stmt)
 {
 	ListCell   *cell;
+	Oid	bdr_oid;
 
 	if (bdr_permit_unsafe_commands)
 		return;
@@ -757,27 +758,17 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 	if (stmt->removeType != OBJECT_EXTENSION)
 		return;
 
+	bdr_oid = get_extension_oid("bdr", false);
+
 	/* Check to see if the BDR extension is being dropped */
 	foreach(cell, stmt->objects)
 	{
-		ObjectAddress address;
-		List	   *objname = lfirst(cell);
-		Relation	relation = NULL;
+		Value	*objname = lfirst(cell);
+		Oid	ext_oid;
 
-		/* Get an ObjectAddress for the object. */
-		address = get_object_address(stmt->removeType,
-									 castNode(Node, objname),
-									 &relation,
-									 AccessExclusiveLock,
-									 stmt->missing_ok);
+		ext_oid = get_extension_oid(strVal(objname), false);
 
-		if (!OidIsValid(address.objectId))
-			continue;
-
-		/* for an extension the object name is unqualified */
-		Assert(list_length(objname) == 1);
-
-		if (strcmp(strVal(linitial(objname)), "bdr") == 0)
+		if (bdr_oid == ext_oid)
 			ereport(ERROR,
 					(errmsg("Dropping the BDR extension is prohibited while BDR is active"),
 					 errhint("Part this node with bdr.part_by_node_names(...) first, or if appropriate use bdr.remove_bdr_from_local_node(...)")));

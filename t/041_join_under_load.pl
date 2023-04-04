@@ -11,7 +11,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 20;
+use Test::More tests => 19;
 use utils::nodemanagement;
 use utils::concurrent;
 

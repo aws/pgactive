@@ -135,7 +135,16 @@ bdr_find_other_exec(const char *argv0, const char *target,
 	if (sscanf(line, "%*s %*s %d.%d", &pre_dot, &post_dot) != 2)
 		return -2;
 
-	*version = (pre_dot * 100 + post_dot) * 100;
+	if (pre_dot < 10)
+	{
+		/* old style, e.g. 9.6.1 */
+		*version = pre_dot * 10000 + post_dot * 100;
+	}
+	else
+	{
+		/* new style, e.g. 10.1 */
+		*version = pre_dot * 10000;
+	}
 
 	return 0;
 }

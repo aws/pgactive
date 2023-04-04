@@ -53,7 +53,8 @@ $new_node->safe_psql($bdr_test_dbname, $join_query);
 # TODO: do some more work on offline node here
 
 # We should never become ready since we'll be stuck at catchup
-$new_node->psql($bdr_test_dbname, "SELECT bdr.bdr_node_join_wait_for_ready()",
+$new_node->psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Logical node join timed out while node down');
 
@@ -64,7 +65,8 @@ is($new_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes
 
 # If we bring the offline node back online, join should be able to proceed
 $offline_node->start;
-is($new_node->psql($bdr_test_dbname, "SELECT bdr.bdr_node_join_wait_for_ready()"), 0,
+is($new_node->psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]), 0,
     'join succeeded once offline node came back');
 foreach my $node (@{$nodes}) {
     check_join_status($new_node, $node);
@@ -92,7 +94,8 @@ my $handle = start_bdr_init_copy($new_physical_join_node, $node_0, $new_conf_fil
 ok($handle->finish, 'bdr_init_copy finished without error');
 
 $timedout = 0;
-$new_physical_join_node->psql($bdr_test_dbname, "SELECT bdr.bdr_node_join_wait_for_ready()",
+$new_physical_join_node->psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Physical node join timed out while node down');
 
@@ -104,7 +107,8 @@ is($new_physical_join_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM
 # If we bring up the new node, join should proceed?
 $offline_node->start;
 
-is($new_physical_join_node->psql($bdr_test_dbname, "SELECT bdr.bdr_node_join_wait_for_ready()"), 0,
+is($new_physical_join_node->psql($bdr_test_dbname,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]), 0,
     'physical join succeeded once offline node came back');
 
 foreach my $node (@{$nodes}) {

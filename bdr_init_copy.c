@@ -6,7 +6,7 @@
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_conflict_logging.c
+ *		bdr_init_copy.c
  *
  * -------------------------------------------------------------------------
  */
@@ -482,18 +482,7 @@ main(int argc, char **argv)
 
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_name = '%s'\n", restore_point_name);
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_inclusive = true\n");
-	if (PG_VERSION_NUM/100 == 904)
-	{
-		appendPQExpBuffer(recoveryconfcontents, "pause_at_recovery_target = off");
-	}
-	else if (PG_VERSION_NUM >= 90600)
-	{
-		appendPQExpBuffer(recoveryconfcontents, "recovery_target_action = promote");
-	}
-	else
-	{
-		die(_("Only 9.4bdr and 9.6 are supported"));
-	}
+	appendPQExpBuffer(recoveryconfcontents, "recovery_target_action = promote");
 
 	WriteRecoveryConf(recoveryconfcontents);
 
@@ -554,8 +543,9 @@ main(int argc, char **argv)
 	 * unique. If node A is copied to node B, then node A is copied to node C,
 	 * both nodes B and C will have the same tlid.
 	 *
-	 * For 9.6 this means using a patched pg_resetxlog since the stock one
-	 * doesn't know how to alter the sysid.
+	 * Since the core pg_resetwal doesn't know to set system identifier, we use
+	 * a patched version of pg_resetwal, called bdr_resetwal with an extra
+	 * option to set system identifier.
 	 */
 	set_sysid(node_info.local_sysid);
 
@@ -802,24 +792,13 @@ set_sysid(uint64 sysid)
 {
 	int			 ret;
 	PQExpBuffer  cmd = createPQExpBuffer();
-	char		*exec_path, *cmdname;
+	char		*exec_path;
+	char		*cmdname = "bdr_resetwal";
 
-	if (PG_VERSION_NUM/100 == 904)
-	{
-		exec_path = find_other_exec_or_die(argv0, "pg_resetxlog", "pg_resetxlog (PostgreSQL) " PG_VERSION "\n");
-		cmdname = "pg_resetxlog";
-	}
-	else
-	{
-		exec_path = find_other_exec_or_die(argv0, "bdr_resetxlog", "bdr_resetxlog (PostgreSQL) " PG_VERSION "\n");
-		cmdname = "bdr_resetxlog";
-	}
-
+	exec_path = find_other_exec_or_die(argv0, cmdname, NULL);
 	appendPQExpBuffer(cmd, "%s \"-s "UINT64_FORMAT"\" \"%s\"", exec_path, sysid, data_dir);
-
 	print_msg(VERBOSITY_DEBUG, _("Running %s: %s.\n"), cmdname, cmd->data);
 	ret = system(cmd->data);
-
 	destroyPQExpBuffer(cmd);
 
 	if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
@@ -839,61 +818,9 @@ static void
 remove_unwanted_files(void)
 {
 	/*
-	 * 9.4's pg_basebackup copies pg_logical/checkpoints; 9.6 does
-	 * not since there's no such thing on 9.6.
+	 * This is a no-op function for now, if needed can be used to remove
+	 * unwanted files.
 	 */
-	if (PG_VERSION_NUM/100 == 904)
-	{
-		DIR				*lldir;
-		struct dirent	*llde;
-		PQExpBuffer		 llpath = createPQExpBuffer();
-		PQExpBuffer		 filename = createPQExpBuffer();
-
-		printfPQExpBuffer(llpath, "%s/%s", data_dir, LLOGCDIR);
-
-		print_msg(VERBOSITY_DEBUG, _("Removing data from \"%s\" directory.\n"),
-				  llpath->data);
-
-		/*
-		 * Remove stray logical replication checkpoints
-		 */
-		lldir = opendir(llpath->data);
-		if (lldir == NULL)
-		{
-			die(_("Could not open directory \"%s\": %s\n"),
-				llpath->data, strerror(errno));
-		}
-
-		while (errno = 0, (llde = readdir(lldir)) != NULL)
-		{
-			size_t len = strlen(llde->d_name);
-			if (len > 5 && !strcmp(llde->d_name + len - 5, ".ckpt"))
-			{
-				printfPQExpBuffer(filename, "%s/%s", llpath->data, llde->d_name);
-
-				if (unlink(filename->data) != 0)
-				{
-					die(_("Could not unlink checkpoint file \"%s\": %s\n"),
-						filename->data, strerror(errno));
-				}
-			}
-		}
-
-		destroyPQExpBuffer(llpath);
-		destroyPQExpBuffer(filename);
-
-		if (errno)
-		{
-			die(_("Could not read directory \"%s\": %s\n"),
-				LLOGCDIR, strerror(errno));
-		}
-
-		if (closedir(lldir))
-		{
-			die(_("Could not close directory \"%s\": %s\n"),
-				LLOGCDIR, strerror(errno));
-		}
-	}
 }
 
 /*
@@ -1321,10 +1248,7 @@ remove_unwanted_data(PGconn *conn)
 	}
 	PQclear(res);
 
-	if (PG_VERSION_NUM/100 == 904)
-		dropident_sql = "SELECT pg_catalog.pg_replication_identifier_drop(riname) FROM pg_catalog.pg_replication_identifier;";
-	else
-		dropident_sql = "SELECT pg_catalog.pg_replication_origin_drop(roname) FROM pg_catalog.pg_replication_origin;";
+	dropident_sql = "SELECT pg_catalog.pg_replication_origin_drop(roname) FROM pg_catalog.pg_replication_origin;";
 
 	/* Remove replication identifiers. */
 	res = PQexec(conn, dropident_sql);
@@ -1343,27 +1267,10 @@ remove_unwanted_data(PGconn *conn)
 static void
 reset_bdr_sequence_cache(PGconn *conn)
 {
-	PGresult	   *res;
-
-	if (PG_VERSION_NUM/100 == 904)
-	{
-		/* Cleanup sequence cache */
-		res = PQexec(conn,
-					 "SELECT\n"
-					 "    bdr.bdr_internal_sequence_reset_cache(pg_class.oid)\n"
-					 "FROM pg_class\n"
-					 "    JOIN pg_seqam ON (pg_seqam.oid = pg_class.relam)\n"
-					 "    JOIN pg_namespace ON (pg_class.relnamespace = pg_namespace.oid)\n"
-					 "WHERE\n"
-					 "    relkind = 'S'\n"
-					 "    AND seqamname = 'bdr'\n");
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			PQclear(res);
-			die(_("Could not clean sequence cache: %s\n"), PQerrorMessage(conn));
-		}
-		PQclear(res);
-	}
+	/*
+	 * This is a no-op function for now, if needed can be used to clean up
+	 * sequence cache.
+	 */
 }
 
 /*
@@ -1375,47 +1282,35 @@ initialize_replication_identifier(PGconn *conn, NodeInfo *ni, Oid dboid, char *r
 	PGresult   *res;
 	char		remote_ident[256];
 	PQExpBuffer query = createPQExpBuffer();
-	const char *origin_or_identifier;
 
 	snprintf(remote_ident, sizeof(remote_ident), BDR_REPORIGIN_ID_FORMAT,
 				ni->remote_sysid, ni->remote_tlid, dboid, dboid, "");
 
-	if (PG_VERSION_NUM/100 == 904)
-		origin_or_identifier = "identifier";
-	else
-		origin_or_identifier = "origin";
-
-	printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_%s_create('%s')",
-					 origin_or_identifier, remote_ident);
+	printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_origin_create('%s')",
+					  remote_ident);
 
 	res = PQexec(conn, query->data);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		die(_("Could not create replication %s \"%s\": status %s: %s\n"),
-			 origin_or_identifier, query->data,
-			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+		die(_("Could not create replication origin \"%s\": status %s: %s\n"),
+			  query->data, PQresStatus(PQresultStatus(res)),
+			  PQresultErrorMessage(res));
 	}
 	PQclear(res);
 
 	if (remote_lsn)
 	{
-		/*
-		 * This mess is to handle renaming of pg_replication_identifier_advance
-		 * to pg_replication_origin_advance and removal of the local_lsn param
-		 * in 9.6.
- 		 */
-		printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_%s_advance('%s', '%s'%s)",
-						 origin_or_identifier, remote_ident, remote_lsn,
-						 (PG_VERSION_NUM/100 == 904 ? ", '0/0'" : ""));
+		printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_origin_advance('%s', '%s')",
+						 remote_ident, remote_lsn);
 
 		res = PQexec(conn, query->data);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
-			die(_("Could not advance replication %s \"%s\": status %s: %s\n"),
-				 origin_or_identifier, query->data,
-				 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+			die(_("Could not advance replication origin \"%s\": status %s: %s\n"),
+				  query->data, PQresStatus(PQresultStatus(res)),
+				  PQresultErrorMessage(res));
 		}
 		PQclear(res);
 	}
@@ -1608,8 +1503,6 @@ get_connstr(char *connstr, char *dbname, char *dbhost, char *dbport, char *dbuse
  * Create a new unique installation identifier.
  *
  * See notes in xlog.c about the algorithm.
- *
- * XXX: how to reuse the code between xlog.c, pg_resetxlog.c and this file
  */
 static uint64
 GenerateSystemIdentifier(void)
