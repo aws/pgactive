@@ -2593,6 +2593,8 @@ bdr_apply_work(PGconn* streamConn)
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
 
+		CHECK_FOR_INTERRUPTS();
+
 		if (PQstatus(streamConn) == CONNECTION_BAD)
 		{
 			bdr_count_disconnect();
@@ -2752,6 +2754,8 @@ bdr_apply_work(PGconn* streamConn)
 				 */
 				bdr_apply_reload_config();
 			}
+
+			CHECK_FOR_INTERRUPTS();
 		}
 
 		MemoryContextResetAndDeleteChildren(MessageContext);

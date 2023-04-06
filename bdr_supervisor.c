@@ -442,6 +442,8 @@ bdr_supervisor_worker_main(Datum main_arg)
 			 */
 			bdr_supervisor_rescan_dbs();
 		}
+
+		CHECK_FOR_INTERRUPTS();
 	}
 
 	proc_exit(0);

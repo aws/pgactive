@@ -1294,6 +1294,8 @@ cancel_conflicting_transactions(void)
 			/* emergency bailout if postmaster has died */
 			if (rc & WL_POSTMASTER_DEATH)
 				proc_exit(1);
+
+			CHECK_FOR_INTERRUPTS();
 		}
 		else
 		{
@@ -1307,7 +1309,10 @@ cancel_conflicting_transactions(void)
 			if (p == 0)
 				conflict++;
 			else
+			{
 				pg_usleep(1000);
+				CHECK_FOR_INTERRUPTS();
+			}
 
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 				 LOCKTRACE "signalling pid %d to terminate because of global DDL lock acquisition", p);

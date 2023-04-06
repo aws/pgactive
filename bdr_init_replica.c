@@ -709,6 +709,7 @@ bdr_init_wait_for_slot_creation()
 			 (uint32)found, (uint32)list_length(configs));
 
 		pg_usleep(100000);
+		CHECK_FOR_INTERRUPTS();
 	}
 
 	CommitTransactionCommand();
@@ -871,7 +872,9 @@ bdr_wait_for_local_node_ready()
 		/* emergency bailout if postmaster has died */
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
-		
+
+		CHECK_FOR_INTERRUPTS();
+
 		StartTransactionCommand();
 		SPI_connect();
 		PushActiveSnapshot(GetTransactionSnapshot());
@@ -1426,6 +1429,8 @@ bdr_catchup_to_lsn(remote_node_info *ri, XLogRecPtr target_lsn)
 			/* emergency bailout if postmaster has died */
 			if (rc & WL_POSTMASTER_DEATH)
 				proc_exit(1);
+
+			CHECK_FOR_INTERRUPTS();
 
 			/* Is our worker still replaying? */
 			bgw_status = GetBackgroundWorkerPid(bgw_handle, &bgw_pid);
