@@ -21,7 +21,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 47;
+use Test::More;
 use utils::nodemanagement;
 
 
@@ -259,3 +259,5 @@ is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'final results node 
 is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'final results node B');
 is($node_c->safe_psql($bdr_test_dbname, $query), $expected, 'final results node C');
 is($node_d->safe_psql($bdr_test_dbname, $query), $expected, 'final results node D');
+
+done_testing();

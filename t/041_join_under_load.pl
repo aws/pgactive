@@ -11,7 +11,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 19;
+use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
 
@@ -43,3 +43,5 @@ join_under_write_load('physical',$node_a, get_new_node('node_c'), $pgbench_scale
 TODO: {
     todo_skip 'should compare node contents after join under load', 1;
 }
+
+done_testing();

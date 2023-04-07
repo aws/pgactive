@@ -9,7 +9,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 3;
+use Test::More;
 use utils::nodemanagement;
 
 
@@ -50,3 +50,5 @@ exec_ddl( $node_a, qq{ALTER SEQUENCE public.test_seq CYCLE;} );
 ($ret, $stdout, $stderr) = $node_a->psql($bdr_test_dbname,
 qq{ SELECT bdr.global_seq_nextval('test_seq'::regclass) FROM generate_series(1,4::bigint); });
 like($stderr, qr/produced a negative result/, "psql error message for nextval cycling back to negative");
+
+done_testing();

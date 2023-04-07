@@ -10,7 +10,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 13;
+use Test::More;
 use utils::nodemanagement;
 
 my $node_a = get_new_node('node_a');
@@ -66,3 +66,5 @@ is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db();'), 'f
 ok(!$node_a->psql($bdr_test_dbname, 'DROP EXTENSION bdr;'), 'extension dropped');
 
 $node_a->stop('fast');
+
+done_testing();

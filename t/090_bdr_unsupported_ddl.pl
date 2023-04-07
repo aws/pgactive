@@ -8,7 +8,7 @@ use Carp;
 use PostgresNode;
 use TestLib;
 use threads;
-use Test::More tests => 23;
+use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
@@ -69,3 +69,4 @@ sub ddl_fail {
 	like($stderr,qr/$error_msg/, "psql error message $test_case");
 }
 
+done_testing();

@@ -10,7 +10,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 15;
+use Test::More;
 use utils::nodemanagement;
 
 my $tempdir = TestLib::tempdir;
@@ -149,3 +149,5 @@ my $seqid_b = $node_b->safe_psql($bdr_test_dbname, 'SELECT node_seq_id FROM bdr.
 
 is($seqid_a, 1, 'first node got global sequence ID 1');
 is($seqid_b, 2, 'second node got global sequence ID 2');
+
+done_testing();

@@ -25,7 +25,7 @@ use Config;
 use PostgresNode;
 use TestLib;
 use threads;
-use Test::More tests => 19;
+use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
@@ -84,3 +84,5 @@ sub check_table {
 		is($table_values,"1\n2","Data should not be modified in $table_name on $node_name"); 
 	}
 }
+
+done_testing();

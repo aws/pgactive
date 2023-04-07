@@ -15,7 +15,7 @@ use Config;
 use PostgresNode;
 use TestLib;
 use threads;
-use Test::More tests => 21;
+use Test::More;
 use utils::nodemanagement;
 
 # Create a cluster of 3 nodes
@@ -59,3 +59,5 @@ TODO: {
     is($node_0->safe_psql($bdr_test_dbname,"SELECT id FROM $test_table"),
         '',"Changes not replayed to " . $node_0->name() . " after resume");
 }
+
+done_testing();

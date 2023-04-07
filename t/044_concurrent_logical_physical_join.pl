@@ -12,7 +12,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 50;
+use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
 
@@ -40,3 +40,4 @@ concurrent_joins_logical_physical([\@{ [$node_p,$node_a]}],[\@{[$node_q,$node_l]
 #clean up
 stop_nodes([$node_l,$node_p,$node_q,$node_a]);
 
+done_testing();
