@@ -476,13 +476,14 @@ bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
 RepOriginId
 bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
 {
-	char		ident[256];
+	char	*ident;
+	RepOriginId id;
 
-	snprintf(ident, sizeof(ident),
-			 BDR_REPORIGIN_ID_FORMAT,
-			 node->sysid, node->timeline, node->dboid, MyDatabaseId,
-			 EMPTY_REPLICATION_NAME);
-	return replorigin_by_name(ident, false);
+	ident = bdr_replident_name(node, MyDatabaseId);
+	id = replorigin_by_name(ident, false);
+	pfree(ident);
+
+	return id;
 }
 
 /*

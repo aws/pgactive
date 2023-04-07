@@ -1284,7 +1284,8 @@ initialize_replication_identifier(PGconn *conn, NodeInfo *ni, Oid dboid, char *r
 	PQExpBuffer query = createPQExpBuffer();
 
 	snprintf(remote_ident, sizeof(remote_ident), BDR_REPORIGIN_ID_FORMAT,
-				ni->remote_sysid, ni->remote_tlid, dboid, dboid, "");
+			 ni->remote_sysid, ni->remote_tlid, dboid, dboid,
+			 EMPTY_REPLICATION_NAME);
 
 	printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_origin_create('%s')",
 					  remote_ident);
