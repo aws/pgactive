@@ -5,7 +5,15 @@ SELECT * FROM public.bdr_regress_variables()
 BEGIN;
 SET LOCAL bdr.permit_ddl_locking = true;
 SELECT bdr.bdr_replicate_ddl_command($$
-	CREATE EXTENSION IF NOT EXISTS cube SCHEMA public;
+	-- XXX: BDR prevents replicating commands inside create/alter/drop
+	-- extension, it asserts (Assert(!bdr_in_extension);) that in
+	-- bdr_commandfilter function. But, cube extension version 1.4 has two
+	-- ALTER EXTENSION ... DROP FUNCTION statements which cause the
+	-- assertion to fail. Therefore, we choose to install a previous version
+	-- of cube extension, which is okay for the sake of these tests. However,
+	-- we might have to change this when upstream postgres removes version 1.3
+	-- completely.
+	CREATE EXTENSION IF NOT EXISTS cube SCHEMA public VERSION '1.3';
 	CREATE EXTENSION IF NOT EXISTS hstore SCHEMA public;
 
 	CREATE TABLE public.contrib_dml (

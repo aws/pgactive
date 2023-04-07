@@ -41,6 +41,11 @@ create_bdr_group($node_a);
 $node_a->safe_psql($bdr_test_dbname,
 	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 
+# PostgresNode doesn't know we started the node since we didn't
+# use any of its methods, so we'd better tell it to check. Otherwise
+# it'll ignore the node for things like pg_ctl stop.
+$node_a->_update_pid(1);
+
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a');
 
@@ -89,6 +94,11 @@ $node_a->safe_psql($bdr_test_dbname,
 	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
 $node_b->safe_psql($bdr_test_dbname,
 	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+
+# PostgresNode doesn't know we started the node since we didn't
+# use any of its methods, so we'd better tell it to check. Otherwise
+# it'll ignore the node for things like pg_ctl stop.
+$node_b->_update_pid(1);
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a');

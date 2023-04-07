@@ -19,11 +19,7 @@ use PostgresNode;
 use TestLib;
 use threads;
 use Test::More;
-use Time::HiRes qw(usleep);
-use utils::nodemanagement qw(
-        :DEFAULT
-        generate_bdr_logical_join_query
-        );
+use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
 my $node_a = get_new_node('node_a');

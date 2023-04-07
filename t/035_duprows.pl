@@ -39,20 +39,20 @@ initandstart_logicaljoin_node($node_b, $node_a);
 my @nodes = ($node_a, $node_b);
 
 # Everything working?
-$node_a->safe_psql('bdr_test', q[SELECT bdr.bdr_replicate_ddl_command($DDL$CREATE TABLE public.t(x text)$DDL$)]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_replicate_ddl_command($DDL$CREATE TABLE public.t(x text)$DDL$)]);
 # Make sure everything caught up by forcing another lock
-$node_a->safe_psql('bdr_test', q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 
 for my $node (@nodes) {
-  $node->safe_psql('bdr_test', q[INSERT INTO t(x) VALUES (bdr.bdr_get_local_node_name())]);
+  $node->safe_psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES (bdr.bdr_get_local_node_name())]);
 }
-$node_a->safe_psql('bdr_test', q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 
 my $expected = q[node_a|node_a
 node_b|node_b];
 
-is($node_a->safe_psql('bdr_test', $query), $expected, 'results node A before restart B');
-is($node_b->safe_psql('bdr_test', $query), $expected, 'results node B before restart B');
+is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'results node A before restart B');
+is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B before restart B');
 
 #
 # We've stored the end of the commit record of the last replayed xact into the
@@ -70,24 +70,24 @@ is($node_b->safe_psql('bdr_test', $query), $expected, 'results node B before res
 $node_b->stop('immediate');
 $node_b->start;
 
-is($node_a->safe_psql('bdr_test', $query), $expected, 'results node A after restart B');
-is($node_b->safe_psql('bdr_test', $query), $expected, 'results node B after restart B');
+is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'results node A after restart B');
+is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B after restart B');
 
 $node_a->stop;
-is($node_b->safe_psql('bdr_test', $query), $expected, 'results node B during restart A');
+is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B during restart A');
 $node_a->start;
 # to make sure a is ready for queries again:
 sleep(1);
 
 note "taking final DDL lock";
-$node_a->safe_psql('bdr_test', q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 note "done, checking final state";
 
 $expected = q[node_a|node_a
 node_b|node_b];
 
-is($node_a->safe_psql('bdr_test', $query), $expected, 'final results node A');
-is($node_b->safe_psql('bdr_test', $query), $expected, 'final results node B');
+is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'final results node A');
+is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'final results node B');
 
 $node_a->stop;
 $node_b->stop;

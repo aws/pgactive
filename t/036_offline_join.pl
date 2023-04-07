@@ -99,6 +99,11 @@ $new_physical_join_node->psql($bdr_test_dbname,
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Physical node join timed out while node down');
 
+# PostgresNode doesn't know we started the node since we didn't
+# use any of its methods, so we'd better tell it to check. Otherwise
+# it'll ignore the node for things like pg_ctl stop.
+$new_physical_join_node->_update_pid(1);
+
 is($new_physical_join_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = '" . $new_physical_join_node->name . "'"), 'c',
     "bdr.bdr_nodes still in status 'c'");
 
