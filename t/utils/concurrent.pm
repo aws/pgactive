@@ -453,6 +453,7 @@ sub concurrent_joins_logical_physical {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
             qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        $node->_update_pid(1);
     }
 
     # and validate

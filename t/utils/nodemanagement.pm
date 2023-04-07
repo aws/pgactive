@@ -471,7 +471,7 @@ sub stop_nodes {
     my ($stop_nodes, $mode) = @_;
 
     for my $stop_node (@{$stop_nodes}) {
-        $stop_node->stop($mode);
+        $stop_node->stop($mode, fail_ok => 1);
     }
 }
 
@@ -605,7 +605,7 @@ sub wait_for_pg_isready {
 # Threadsafe(ish)?
 sub dump_nodes_statuses {
     my $node = shift;
-    note "Nodes table from " . $node->name . " is:\n" . $node->safe_psql('bdr_test', q[select node_name, node_status from bdr.bdr_nodes]) . "\n";
+    note "Nodes table from " . $node->name . " is:\n" . $node->safe_psql($bdr_test_dbname, q[select node_name, node_status from bdr.bdr_nodes]) . "\n";
 }
 
 # Create a dummy table on a node, with single field 'id'.

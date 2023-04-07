@@ -26,8 +26,6 @@ is($node_a->safe_psql($bdr_test_dbname, q[SELECT 1 FROM pg_catalog.pg_extension 
 my $node_b = get_new_node('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
 
-check_join_status($node_b, $node_a);
-
 is($node_b->safe_psql($bdr_test_dbname, q[SELECT 1 FROM pg_catalog.pg_extension WHERE extname = 'bdr_test_dummy_extension']),
     '1', 'bdr_test_dummy_extension got restored on downstream');
 

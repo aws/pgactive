@@ -9,16 +9,9 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use IPC::Run qw(timeout);;
+use IPC::Run;
 use Test::More;
-use utils::nodemanagement qw(
-		:DEFAULT
-		generate_bdr_logical_join_query
-		copy_transform_postgresqlconf
-		start_bdr_init_copy
-		);
-
-my $timedout = 0;
+use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
 my $nodes = make_bdr_group(2,'node_');
