@@ -38,5 +38,5 @@ my $node_q = get_new_node('node_q');
 concurrent_joins_logical_physical([\@{ [$node_p,$node_a]}],[\@{[$node_q,$node_l]}]);
 
 #clean up
-stop_nodes([$node_m,$node_k,$node_l,$node_p,$node_q,$node_a]);
+stop_nodes([$node_l,$node_p,$node_q,$node_a]);
 
