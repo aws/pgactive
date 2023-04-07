@@ -18,7 +18,7 @@ use Config;
 use PostgresNode;
 use TestLib;
 use utils::nodemanagement;
-use Test::More tests => 14;
+use Test::More;
 
 my $query = q[
 select coalesce(node_name, bdr.bdr_get_local_node_name()) AS origin_node_name, x
@@ -91,3 +91,5 @@ is($node_b->safe_psql('bdr_test', $query), $expected, 'final results node B');
 
 $node_a->stop;
 $node_b->stop;
+
+done_testing();

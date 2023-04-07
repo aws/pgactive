@@ -6,7 +6,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 18;
+use Test::More;
 use utils::nodemanagement;
 use utils::sequence;
 
@@ -71,3 +71,4 @@ sub bdr_remove {
     );
 }
 
+done_testing();

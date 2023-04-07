@@ -11,7 +11,7 @@ use Cwd;
 use Config;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 23;
+use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
@@ -85,3 +85,5 @@ is( $node_0->safe_psql( $bdr_test_dbname, "SELECT state FROM bdr.bdr_global_lock
 # Then hard-kill the node that's trying to acquire the lock. Verify that the
 # other nodes consider it still held. Part the acquiring node from the others
 # and verify that the lock was force-released.
+
+done_testing();
