@@ -295,8 +295,7 @@ process_remote_begin(StringInfo s)
 	 */
 	if (flags & BDR_OUTPUT_TRANSACTION_HAS_ORIGIN)
 	{
-		char remote_ident[256];
-		NameData replication_name;
+		char	*remote_ident;
 		MemoryContext old_ctx;
 		BDRNodeId my_nodeid;
 		bdr_make_my_nodeid(&my_nodeid);
@@ -313,24 +312,20 @@ process_remote_begin(StringInfo s)
 					 errdetail("Received a transaction from the remote node that originated on this node")));
 		}
 
-		/* replication_name is currently unused in bdr */
-		NameStr(replication_name)[0] = '\0';
-
 		/*
 		 * To determine whether the commit was forwarded by the upstream from
 		 * another node, we need to get the local RepOriginId for that node based
 		 * on the (sysid, timelineid, dboid) supplied in catchup mode.
 		 */
-		snprintf(remote_ident, sizeof(remote_ident),
-				BDR_REPORIGIN_ID_FORMAT,
-				remote_origin.sysid, remote_origin.timeline, remote_origin.dboid, MyDatabaseId,
-				NameStr(replication_name));
+		remote_ident = bdr_replident_name(&remote_origin, MyDatabaseId);
 
 		old_ctx = CurrentMemoryContext;
 		StartTransactionCommand();
 		remote_origin_id = replorigin_by_name(remote_ident, false);
 		CommitTransactionCommand();
 		(void) MemoryContextSwitchTo(old_ctx);
+
+		pfree(remote_ident);
 	}
 
 	if (bdr_trace_replay)
