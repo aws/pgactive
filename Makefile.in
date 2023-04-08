@@ -152,10 +152,11 @@ BDR_DUMP_DIR := pg_dump$(BDR_PG_MAJORVERSION)
 BDR_DUMP_LIBS := -lz -lpgfeutils
 DUMPOBJS += $(BDR_DUMP_DIR)/string_utils.o
 
-BDRRESETWAL_OBJS := compat/$(BDR_PG_MAJORVERSION)/bdr_resetwal.o
+BDR_RESETWAL_DIR := compat/$(BDR_PG_MAJORVERSION)/pg_resetwal
+BDR_RESETWAL_OBJS := $(BDR_RESETWAL_DIR)/pg_resetwal.o
 
-bdr_resetwal: $(BDRRESETWAL_OBJS)
-	$(CC) $(CFLAGS) $(BDRRESETWAL_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
+bdr_resetwal: $(BDR_RESETWAL_OBJS)
+	$(CC) $(CFLAGS) $(BDR_RESETWAL_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
 
 # Ensure Makefiles are up2date (should we move this to Makefile.global?)
 Makefile: Makefile.in config.status configure
@@ -217,7 +218,7 @@ additional-clean:
 	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
 	rm -f bdr_dump$(X) $(DUMPOBJS)
-	rm -rf bdr_resetwal$(X) $(BDRRESETWAL_OBJS)
+	rm -rf bdr_resetwal$(X) $(BDR_RESETWAL_OBJS)
 	rm -rf doc/html
 	$(MAKE) -C doc clean
 
