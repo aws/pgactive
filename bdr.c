@@ -1348,6 +1348,7 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 				proc_exit(1);
 
 			ResetLatch(&MyProc->procLatch);
+			CHECK_FOR_INTERRUPTS();
 		}
 
 #if BDR_VERSION_NUM >= 90600

@@ -1312,6 +1312,8 @@ cancel_conflicting_transactions(void)
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 				 LOCKTRACE "signalling pid %d to terminate because of global DDL lock acquisition", p);
 		}
+
+		CHECK_FOR_INTERRUPTS();
 	}
 
 	return true;

@@ -951,6 +951,8 @@ bdr_perdb_worker_main(Datum main_arg)
 				bdr_maintain_db_workers();
 			}
 		}
+
+		CHECK_FOR_INTERRUPTS();
 	}
 
 	perdb->database_oid = InvalidOid;
