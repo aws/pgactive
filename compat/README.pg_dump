@@ -1,0 +1,92 @@
+Note that the bdr_dump tool is nothing but pg_dump of core postgres plus
+additional changes shown as diff in this README file.
+
+While porting BDR to higher postgres versions:
+1. Copy pg_dump source code files from postgres src/bin/pg_dump directory to
+compat/PG_VERSION/pg_dump directory.
+2. Apply the diff (search for the diff code in the previous versions of pg_dump
+code in compat/PG_VERSION-previous/pg_dump to understand where the code fits in
+newer versions) shown in this README file to respective files under
+compat/PG_VERSION/pg_dump directory.
+3. Copy src/fe_utils/string_utils.c from postgres source code to
+compat/PG_VERSION/pg_dump directory. string_utils.c file is needed by pg_dump
+to make pg_dump a self-reliant component while compiling BDR source code.
+
+XXX: It might be worth doing this a bit differently - either a dedicated tool
+for BDR or a compile-time script that pulls in the pg_dump code from postgres
+source directory and applies the diff builds (but a caveat here - BDR will lose
+self-reliance, meaning, one can't build BDR source code without postgres source
+code specified) or we might as well push this diff to upstream pg_dump (but a
+caveat here - it's a bit hard to build the case and even if we do so, no
+backporting) or understand if we need this diff at all for BDR. But that's for
+another day.
+
+bdr_dump diff from core pg_dump:
+========================================
+--- postgres/src/bin/pg_dump/pg_backup.h 2023-04-07 01:29:32.005774912 +0000
++++ bdr/compat/11/pg_dump/pg_backup.h      2023-04-08 06:04:18.760092450 +0000
+@@ -143,6 +143,7 @@
+        bool            oids;
+
+        int                     binary_upgrade;
++       int                     bdr_init_node;
+
+        /* various user-settable parameters */
+        bool            schemaOnly;
+
+--- postgres/src/bin/pg_dump/pg_dump.c  2023-04-07 01:29:32.009774950 +0000
++++ bdr/compat/11/pg_dump/pg_dump.c        2023-04-08 06:08:59.474756886 +0000
+@@ -351,6 +351,7 @@
+                 */
+                {"attribute-inserts", no_argument, &dopt.column_inserts, 1},
+                {"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
++               {"bdr-init-node", no_argument, &dopt.bdr_init_node, 1},
+                {"column-inserts", no_argument, &dopt.column_inserts, 1},
+                {"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
+                {"disable-triggers", no_argument, &dopt.disable_triggers, 1},
+@@ -8761,6 +8762,8 @@
+ {
+        if (dopt->binary_upgrade)
+                return true;
++       if (dopt->bdr_init_node)
++               return true;
+        if (tbinfo->attisdropped[colno])
+                return false;
+        return (tbinfo->attislocal[colno] || tbinfo->ispartition);
+@@ -16074,6 +16077,36 @@
+                        }
+                }
+
++               /* Some of the binary compatibility is needed for bdr as well. */
++               if (dopt->bdr_init_node && tbinfo->relkind == RELKIND_RELATION)
++               {
++                       for (j = 0; j < tbinfo->numatts; j++)
++                       {
++                               if (!tbinfo->attisdropped[j])
++                                       continue;
++
++                               appendPQExpBufferStr(q, "\n-- For bdr init, recreate dropped column.\n");
++                               appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
++                                                                        "SET attlen = %d, "
++                                                                        "attalign = '%c', attbyval = false\n"
++                                                                        "WHERE attname = ",
++                                                                        tbinfo->attlen[j],
++                                                                        tbinfo->attalign[j]);
++                               appendStringLiteralAH(q, tbinfo->attnames[j], fout);
++                               appendPQExpBufferStr(q, "\n  AND attrelid = ");
++                               appendStringLiteralAH(q, qualrelname, fout);
++                               appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
++
++                               if (tbinfo->relkind == RELKIND_RELATION ||
++                                       tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
++                                       appendPQExpBuffer(q, "ALTER TABLE ONLY %s ", qualrelname);
++                               else
++                                       appendPQExpBuffer(q, "ALTER FOREIGN TABLE %s ", qualrelname);
++
++                               appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
++                       }
++               }
++
+                /*
+                 * For partitioned tables, emit the ATTACH PARTITION clause.  Note
+                 * that we always want to create partitions this way instead of using

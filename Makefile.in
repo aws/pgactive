@@ -134,7 +134,9 @@ include Makefile.global
 
 $(info Building against PostgreSQL $(MAJORVERSION))
 
-DUMPOBJS = $(BDR_DUMP_DIR)/pg_dump.o \
+BDR_DUMP_DIR := compat/$(BDR_PG_MAJORVERSION)/pg_dump
+
+BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/common.o \
 	$(BDR_DUMP_DIR)/pg_dump_sort.o \
 	$(BDR_DUMP_DIR)/pg_backup_archiver.o \
@@ -148,9 +150,15 @@ DUMPOBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/compress_io.o \
 	$(BDR_DUMP_DIR)/dumputils.o
 
-BDR_DUMP_DIR := pg_dump$(BDR_PG_MAJORVERSION)
 BDR_DUMP_LIBS := -lz -lpgfeutils
-DUMPOBJS += $(BDR_DUMP_DIR)/string_utils.o
+
+# string_utils.c file is needed by pg_dump so we copied it from postgres source
+# code src/fe_utils/ and placed it under compat/$(BDR_PG_MAJORVERSION)/pg_dump
+# to make pg_dump a self-reliant component while compiling BDR source code.
+BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/string_utils.o
+
+bdr_dump: $(BDR_DUMP_OBJS)
+	$(CC) $(CFLAGS) $(BDR_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(BDR_DUMP_LIBS) -o $@$(X)
 
 BDR_RESETWAL_DIR := compat/$(BDR_PG_MAJORVERSION)/pg_resetwal
 BDR_RESETWAL_OBJS := $(BDR_RESETWAL_DIR)/pg_resetwal.o
@@ -187,12 +195,6 @@ scripts/bdr_initial_load: scripts/bdr_initial_load.in
 	sed -e "s/BDR_VERSION/$(BDR_VERSION)/" -e "s/PG_VERSION/$(VERSION)/" $< > $@
 	@chmod +x $@
 
-pg_dump_dir:
-	mkdir -p $(BDR_DUMP_DIR)
-
-bdr_dump: pg_dump_dir $(DUMPOBJS)
-	$(CC) $(CFLAGS) $(DUMPOBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(BDR_DUMP_LIBS) -o $@$(X)
-
 doc:
 	$(MAKE) -C doc all
 
@@ -217,7 +219,7 @@ additional-clean:
 	rm -f  regression.diffs regression.out bdr_init_copy_postgres.log
 	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
-	rm -f bdr_dump$(X) $(DUMPOBJS)
+	rm -f bdr_dump$(X) $(BDR_DUMP_OBJS)
 	rm -rf bdr_resetwal$(X) $(BDR_RESETWAL_OBJS)
 	rm -rf doc/html
 	$(MAKE) -C doc clean
