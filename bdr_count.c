@@ -41,7 +41,7 @@
  */
 typedef struct BdrCountSlot
 {
-	RepOriginId	node_id;
+	RepOriginId node_id;
 
 	/* we use int64 to make sure we can export to sql, there is uint64 there */
 	int64		nr_commit;
@@ -55,7 +55,7 @@ typedef struct BdrCountSlot
 	int64		nr_delete_conflict;
 
 	int64		nr_disconnect;
-}	BdrCountSlot;
+}			BdrCountSlot;
 
 /*
  * Shared memory header for the stats module.
@@ -64,7 +64,7 @@ typedef struct BdrCountControl
 {
 	LWLockId	lock;
 	BdrCountSlot slots[FLEXIBLE_ARRAY_MEMBER];
-}	BdrCountControl;
+}			BdrCountControl;
 
 /*
  * Header of a stats disk serialization, used to detect old files, changed
@@ -75,7 +75,7 @@ typedef struct BdrCountSerialize
 	uint32		magic;
 	uint32		version;
 	uint32		nr_slots;
-}	BdrCountSerialize;
+}			BdrCountSerialize;
 
 /* magic number of the stats file, don't change */
 static const uint32 bdr_count_magic = 0x5e51A7;
@@ -84,7 +84,7 @@ static const uint32 bdr_count_magic = 0x5e51A7;
 static const uint32 bdr_count_version = 2;
 
 /* shortcut for the finding BdrCountControl in memory */
-static BdrCountControl *BdrCountCtl = NULL;
+static BdrCountControl * BdrCountCtl = NULL;
 
 /* how many nodes have we built shmem for */
 static Size bdr_count_nnodes = 0;
@@ -124,7 +124,7 @@ bdr_count_shmem_init(int nnodes)
 	Assert(process_shared_preload_libraries_in_progress);
 
 	Assert(nnodes >= 0);
-	bdr_count_nnodes = (Size)nnodes;
+	bdr_count_nnodes = (Size) nnodes;
 
 	RequestAddinShmemSpace(bdr_count_shmem_size());
 	/* lock for slot acquiration */
@@ -351,16 +351,16 @@ pg_stat_get_bdr(PG_FUNCTION_ARGS)
 
 		replorigin_by_oid(slot->node_id, false, &riname);
 
-		values[ 0] = ObjectIdGetDatum(slot->node_id);
-		values[ 1] = ObjectIdGetDatum(slot->node_id);
-		values[ 2] = CStringGetTextDatum(riname);
-		values[ 3] = Int64GetDatumFast(slot->nr_commit);
-		values[ 4] = Int64GetDatumFast(slot->nr_rollback);
-		values[ 5] = Int64GetDatumFast(slot->nr_insert);
-		values[ 6] = Int64GetDatumFast(slot->nr_insert_conflict);
-		values[ 7] = Int64GetDatumFast(slot->nr_update);
-		values[ 8] = Int64GetDatumFast(slot->nr_update_conflict);
-		values[ 9] = Int64GetDatumFast(slot->nr_delete);
+		values[0] = ObjectIdGetDatum(slot->node_id);
+		values[1] = ObjectIdGetDatum(slot->node_id);
+		values[2] = CStringGetTextDatum(riname);
+		values[3] = Int64GetDatumFast(slot->nr_commit);
+		values[4] = Int64GetDatumFast(slot->nr_rollback);
+		values[5] = Int64GetDatumFast(slot->nr_insert);
+		values[6] = Int64GetDatumFast(slot->nr_insert_conflict);
+		values[7] = Int64GetDatumFast(slot->nr_update);
+		values[8] = Int64GetDatumFast(slot->nr_update_conflict);
+		values[9] = Int64GetDatumFast(slot->nr_delete);
 		values[10] = Int64GetDatumFast(slot->nr_delete_conflict);
 		values[11] = Int64GetDatumFast(slot->nr_disconnect);
 
@@ -393,8 +393,8 @@ bdr_count_serialize(void)
 				 errmsg("could not unlink \"%s\": %m", tpath)));
 
 	fd = OpenTransientFilePerm((char *) tpath,
-						   O_WRONLY | O_CREAT | O_EXCL | PG_BINARY,
-						   S_IRUSR | S_IWUSR);
+							   O_WRONLY | O_CREAT | O_EXCL | PG_BINARY,
+							   S_IRUSR | S_IWUSR);
 	if (fd < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -408,7 +408,7 @@ bdr_count_serialize(void)
 	write_size = sizeof(serial);
 	if ((write(fd, &serial, write_size)) != write_size)
 	{
-		int		save_errno = errno;
+		int			save_errno = errno;
 
 		CloseTransientFile(fd);
 		errno = save_errno;
@@ -422,7 +422,7 @@ bdr_count_serialize(void)
 	write_size = sizeof(BdrCountSlot) * bdr_count_nnodes;
 	if ((write(fd, &BdrCountCtl->slots, write_size)) != write_size)
 	{
-		int		save_errno = errno;
+		int			save_errno = errno;
 
 		CloseTransientFile(fd);
 		errno = save_errno;
@@ -460,7 +460,7 @@ bdr_count_unserialize(void)
 	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
 
 	fd = OpenTransientFilePerm((char *) path,
-						   O_RDONLY | PG_BINARY, 0);
+							   O_RDONLY | PG_BINARY, 0);
 	if (fd < 0 && errno == ENOENT)
 		goto out;
 
@@ -475,7 +475,8 @@ bdr_count_unserialize(void)
 	read_size = sizeof(serial);
 	if (read(fd, &serial, read_size) != read_size)
 	{
-		int saved_errno = errno;
+		int			saved_errno = errno;
+
 		LWLockRelease(BdrCountCtl->lock);
 		CloseTransientFile(fd);
 		errno = saved_errno;
@@ -510,7 +511,8 @@ bdr_count_unserialize(void)
 	read_size = sizeof(BdrCountSlot) * serial.nr_slots;
 	if (read(fd, &BdrCountCtl->slots, read_size) != read_size)
 	{
-		int saved_errno = errno;
+		int			saved_errno = errno;
+
 		CloseTransientFile(fd);
 		errno = saved_errno;
 		ereport(ERROR,

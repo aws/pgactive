@@ -194,16 +194,20 @@
 #define LOCKTRACE "DDL LOCK TRACE: "
 
 extern Datum bdr_ddl_lock_info(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_ddl_lock_info);
 
 /* GUCs */
-bool bdr_permit_ddl_locking = false;
-/* -1 means use max_standby_streaming_delay */
-int bdr_max_ddl_lock_delay = -1;
-/* -1 means use lock_timeout/statement_timeout */
-int bdr_ddl_lock_timeout = -1;
+bool		bdr_permit_ddl_locking = false;
 
-typedef enum BDRLockState {
+/* -1 means use max_standby_streaming_delay */
+int			bdr_max_ddl_lock_delay = -1;
+
+/* -1 means use lock_timeout/statement_timeout */
+int			bdr_ddl_lock_timeout = -1;
+
+typedef enum BDRLockState
+{
 	BDR_LOCKSTATE_NOLOCK,
 
 	/* States on acquiring node */
@@ -216,14 +220,16 @@ typedef enum BDRLockState {
 	BDR_LOCKSTATE_PEER_CATCHUP,
 	BDR_LOCKSTATE_PEER_CONFIRMED
 
-} BDRLockState;
+}			BDRLockState;
 
-typedef struct BDRLockWaiter {
+typedef struct BDRLockWaiter
+{
 	PGPROC	   *proc;
 	slist_node	node;
-} BDRLockWaiter;
+}			BDRLockWaiter;
 
-typedef struct BdrLocksDBState {
+typedef struct BdrLocksDBState
+{
 	/* db slot used */
 	bool		in_use;
 
@@ -237,24 +243,23 @@ typedef struct BdrLocksDBState {
 	bool		locked_and_loaded;
 
 	/*
-	 * despite the use of a lock counter, currently only one
-	 * lock may exist at a time.
+	 * despite the use of a lock counter, currently only one lock may exist at
+	 * a time.
 	 */
 	int			lockcount;
 
 	/*
 	 * If the lock is held by a peer, the node ID of the peer.
-	 * InvalidRepOriginId represents the local node, like usual.
-	 * Lock may be in the process of being acquired not fully
-	 * held.
+	 * InvalidRepOriginId represents the local node, like usual. Lock may be
+	 * in the process of being acquired not fully held.
 	 */
-	RepOriginId	lock_holder;
+	RepOriginId lock_holder;
 
 	/* pid of lock holder if it's a backend of on local node */
 	int			lock_holder_local_pid;
 
 	/* Type of lock held or being acquired */
-	BDRLockType	lock_type;
+	BDRLockType lock_type;
 
 	/*
 	 * Progress of lock acquisition. We need this so that if we set lock_type
@@ -273,22 +278,27 @@ typedef struct BdrLocksDBState {
 
 	Latch	   *requestor;
 	slist_head	waiters;		/* list of waiting PGPROCs */
-} BdrLocksDBState;
+}			BdrLocksDBState;
 
-typedef struct BdrLocksCtl {
-	LWLockId			lock;
-	BdrLocksDBState    *dbstate;
-	BDRLockWaiter	   *waiters;
-} BdrLocksCtl;
+typedef struct BdrLocksCtl
+{
+	LWLockId	lock;
+	BdrLocksDBState *dbstate;
+	BDRLockWaiter *waiters;
+}			BdrLocksCtl;
 
-typedef struct BDRLockXactCallbackInfo {
+typedef struct BDRLockXactCallbackInfo
+{
 	/* Lock state to apply at commit time */
 	BDRLockState commit_pending_lock_state;
-	bool pending;
-} BDRLockXactCallbackInfo;
+	bool		pending;
+}			BDRLockXactCallbackInfo;
 
 static BDRLockXactCallbackInfo bdr_lock_state_xact_callback_info
-	= {BDR_LOCKSTATE_NOLOCK, false};
+=
+{
+	BDR_LOCKSTATE_NOLOCK, false
+};
 
 static void bdr_lock_holder_xact_callback(XactEvent event, void *arg);
 static void bdr_lock_state_xact_callback(XactEvent event, void *arg);
@@ -303,24 +313,25 @@ static void bdr_send_confirm_lock(void);
 
 static void bdr_locks_addwaiter(PGPROC *proc);
 static void bdr_locks_on_unlock(void);
-static int ddl_lock_log_level(int);
+static int	ddl_lock_log_level(int);
 static void register_holder_xact_callback(void);
 static void register_state_xact_callback(void);
 static void bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock);
 
-static BdrLocksCtl *bdr_locks_ctl;
+static BdrLocksCtl * bdr_locks_ctl;
 
 /* shmem init hook to chain to on startup, if any */
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 
 /* this database's state */
-static BdrLocksDBState *bdr_my_locks_database = NULL;
+static BdrLocksDBState * bdr_my_locks_database = NULL;
 
 static bool this_xact_acquired_lock = false;
 
 
 /* SQL function to explcitly acquire global DDL lock */
 PGDLLIMPORT extern Datum bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_acquire_global_lock_sql);
 
 
@@ -340,7 +351,7 @@ bdr_locks_shmem_size(void)
 static void
 bdr_locks_shmem_startup(void)
 {
-	bool        found;
+	bool		found;
 
 	if (prev_shmem_startup_hook != NULL)
 		prev_shmem_startup_hook();
@@ -380,8 +391,8 @@ bdr_locks_shmem_init()
 void
 bdr_locks_addwaiter(PGPROC *proc)
 {
-	BDRLockWaiter  *waiter = &bdr_locks_ctl->waiters[proc->pgprocno];
-	slist_iter iter;
+	BDRLockWaiter *waiter = &bdr_locks_ctl->waiters[proc->pgprocno];
+	slist_iter	iter;
 
 	waiter->proc = proc;
 
@@ -398,7 +409,7 @@ bdr_locks_addwaiter(PGPROC *proc)
 		{
 			elog(WARNING, LOCKTRACE "backend %d already registered as waiter for DDL lock release",
 				 MyProcPid);
-			Assert(false); /* crash in debug builds */
+			Assert(false);		/* crash in debug builds */
 			return;
 		}
 	}
@@ -413,21 +424,21 @@ bdr_locks_on_unlock(void)
 	while (!slist_is_empty(&bdr_my_locks_database->waiters))
 	{
 		slist_node *node;
-		BDRLockWaiter  *waiter;
+		BDRLockWaiter *waiter;
 		PGPROC	   *proc;
 
 		node = slist_pop_head_node(&bdr_my_locks_database->waiters);
 
 		/*
 		 * Detect a self-referencing node and bail out by tossing the rest of
-		 * the list. This shouldn't be necessary, it's an emergency bailout
-		 * to stop us going into an infinite loop while holding a LWLock.
+		 * the list. This shouldn't be necessary, it's an emergency bailout to
+		 * stop us going into an infinite loop while holding a LWLock.
 		 *
 		 * We have to PANIC here so we force shmem and lwlock state to be
-		 * re-inited. We could possibly just clobber the list and exit, leaving
-		 * waiters dangling. But since this should be guarded against by
-		 * bdr_locks_addwaiter, it shouldn't happen anyway.
-		 * (See: 2ndQuadrant/bdr-private#130)
+		 * re-inited. We could possibly just clobber the list and exit,
+		 * leaving waiters dangling. But since this should be guarded against
+		 * by bdr_locks_addwaiter, it shouldn't happen anyway. (See:
+		 * 2ndQuadrant/bdr-private#130)
 		 */
 		if (slist_has_next(&bdr_my_locks_database->waiters, node)
 			&& slist_next_node(&bdr_my_locks_database->waiters, node) == node)
@@ -468,13 +479,13 @@ ddl_lock_log_level(int ddl_lock_trace_level)
 /*
  * Find, and create if necessary, the lock state entry for dboid.
  */
-static BdrLocksDBState*
+static BdrLocksDBState *
 bdr_locks_find_database(Oid dboid, bool create)
 {
-	int off;
-	int free_off = -1;
+	int			off;
+	int			free_off = -1;
 
-	for(off = 0; off < bdr_max_databases; off++)
+	for (off = 0; off < bdr_max_databases; off++)
 	{
 		BdrLocksDBState *db = &bdr_locks_ctl->dbstate[off];
 
@@ -489,6 +500,7 @@ bdr_locks_find_database(Oid dboid, bool create)
 	}
 
 	if (!create)
+
 		/*
 		 * We can't call get_databse_name here as the catalogs may not be
 		 * accessible, so we can only report the oid of the database.
@@ -501,6 +513,7 @@ bdr_locks_find_database(Oid dboid, bool create)
 	if (free_off != -1)
 	{
 		BdrLocksDBState *db = &bdr_locks_ctl->dbstate[free_off];
+
 		memset(db, 0, sizeof(BdrLocksDBState));
 		db->dboid = MyDatabaseId;
 		db->in_use = true;
@@ -509,8 +522,8 @@ bdr_locks_find_database(Oid dboid, bool create)
 
 	ereport(ERROR,
 			(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
-			errmsg("Too many databases BDR-enabled for bdr.max_databases"),
-			errhint("Increase bdr.max_databases above the current limit of %d", bdr_max_databases)));
+			 errmsg("Too many databases BDR-enabled for bdr.max_databases"),
+			 errhint("Increase bdr.max_databases above the current limit of %d", bdr_max_databases)));
 }
 
 static void
@@ -535,12 +548,12 @@ bdr_locks_find_my_database(bool create)
 void
 bdr_locks_startup(void)
 {
-	Relation		rel;
-	ScanKey			key;
-	SysScanDesc		scan;
-	Snapshot		snap;
-	HeapTuple		tuple;
-	StringInfoData	s;
+	Relation	rel;
+	ScanKey		key;
+	SysScanDesc scan;
+	Snapshot	snap;
+	HeapTuple	tuple;
+	StringInfoData s;
 
 	Assert(IsUnderPostmaster);
 	Assert(!IsTransactionState());
@@ -595,8 +608,8 @@ bdr_locks_startup(void)
 		Datum		values[10];
 		bool		isnull[10];
 		const char *state;
-		RepOriginId	node_id;
-		BDRLockType	lock_type;
+		RepOriginId node_id;
+		BDRLockType lock_type;
 		BDRNodeId	locker_id;
 
 		heap_deform_tuple(tuple, RelationGetDescr(rel),
@@ -604,9 +617,10 @@ bdr_locks_startup(void)
 
 		/* lookup the lock owner's node id */
 		if (isnull[9])
+
 			/*
-			 * A bug in BDR prior to 2.0.4 could leave this null
-			 * when it should really be in catchup mode.
+			 * A bug in BDR prior to 2.0.4 could leave this null when it
+			 * should really be in catchup mode.
 			 */
 		{
 			elog(WARNING, "fixing up bad DDL lock state, should be 'catchup' not NULL");
@@ -634,7 +648,7 @@ bdr_locks_startup(void)
 		}
 		else if (strcmp(state, "catchup") == 0)
 		{
-			XLogRecPtr		wait_for_lsn;
+			XLogRecPtr	wait_for_lsn;
 
 			/*
 			 * Restart the catchup period. There shouldn't be any need to
@@ -685,19 +699,18 @@ bdr_locks_set_nnodes(int nnodes)
 	if (bdr_my_locks_database->nnodes < nnodes && bdr_my_locks_database->nnodes > 0 && !bdr_my_locks_database->lockcount)
 	{
 		/*
-		 * Because we take the ddl lock before setting node_status = r now, and
-		 * we only count ready nodes in the node count, it should only be
+		 * Because we take the ddl lock before setting node_status = r now,
+		 * and we only count ready nodes in the node count, it should only be
 		 * possible for the node count to increase when the DDL lock is held.
 		 *
 		 * If there are older BDR nodes that don't take the DDL lock before
-		 * joining this protection doesn't apply, so we can only warn about it.
-		 * Unless there's a lock acquisition in progress (which we don't
+		 * joining this protection doesn't apply, so we can only warn about
+		 * it. Unless there's a lock acquisition in progress (which we don't
 		 * actually know from here) it's harmless anyway.
 		 *
 		 * A corresponding nodecount decrease without the DDL lock held is
-		 * normal. Node part doesn't take the DDL lock, but it's careful
-		 * to reject any in-progress DDL lock attempt or release any held
-		 * lock.
+		 * normal. Node part doesn't take the DDL lock, but it's careful to
+		 * reject any in-progress DDL lock attempt or release any held lock.
 		 *
 		 * FIXME: there's a race here where we could release the lock before
 		 * applying the final changes for the node in the perdb worker. We
@@ -724,7 +737,7 @@ bool
 bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 						  const BDRNodeId * const origin, StringInfo message)
 {
-	bool handled = true;
+	bool		handled = true;
 
 	Assert(CurrentMemoryContext == MessageContext);
 
@@ -736,7 +749,7 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	{
 		int			lock_type;
 
-		if (message->cursor == message->len) 		/* Old proto */
+		if (message->cursor == message->len)	/* Old proto */
 			lock_type = BDR_LOCK_WRITE;
 		else
 			lock_type = pq_getmsgint(message, 4);
@@ -745,6 +758,7 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	else if (msg_type == BDR_MESSAGE_RELEASE_LOCK)
 	{
 		BDRNodeId	peer;
+
 		/* locks are node-wide, so no node name */
 		bdr_getmsg_nodeid(message, &peer, false);
 		bdr_process_release_ddl_lock(origin, &peer);
@@ -753,10 +767,11 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	{
 		BDRNodeId	peer;
 		int			lock_type;
+
 		/* locks are node-wide, so no node name */
 		bdr_getmsg_nodeid(message, &peer, false);
 
-		if (message->cursor == message->len) 		/* Old proto */
+		if (message->cursor == message->len)	/* Old proto */
 			lock_type = BDR_LOCK_WRITE;
 		else
 			lock_type = pq_getmsgint(message, 4);
@@ -767,10 +782,11 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	{
 		BDRNodeId	peer;
 		int			lock_type;
+
 		/* locks are node-wide, so no node name */
 		bdr_getmsg_nodeid(message, &peer, false);
 
-		if (message->cursor == message->len) 		/* Old proto */
+		if (message->cursor == message->len)	/* Old proto */
 			lock_type = BDR_LOCK_WRITE;
 		else
 			lock_type = pq_getmsgint(message, 4);
@@ -779,14 +795,16 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	}
 	else if (msg_type == BDR_MESSAGE_REQUEST_REPLAY_CONFIRM)
 	{
-		XLogRecPtr confirm_lsn;
+		XLogRecPtr	confirm_lsn;
+
 		confirm_lsn = pq_getmsgint64(message);
 
 		bdr_process_request_replay_confirm(origin, confirm_lsn);
 	}
 	else if (msg_type == BDR_MESSAGE_REPLAY_CONFIRM)
 	{
-		XLogRecPtr confirm_lsn;
+		XLogRecPtr	confirm_lsn;
+
 		confirm_lsn = pq_getmsgint64(message);
 
 		bdr_process_replay_confirm(origin, confirm_lsn);
@@ -809,7 +827,7 @@ bdr_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 static void
 bdr_lock_holder_xact_callback(XactEvent event, void *arg)
 {
-	BDRNodeId myid;
+	BDRNodeId	myid;
 
 	Assert(arg == NULL);
 	Assert(!IsBdrApplyWorker());
@@ -824,7 +842,7 @@ bdr_lock_holder_xact_callback(XactEvent event, void *arg)
 		StringInfoData s;
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE), LOCKTRACE "releasing owned ddl lock on xact %s",
-			event == XACT_EVENT_ABORT ? "abort" : "commit");
+			 event == XACT_EVENT_ABORT ? "abort" : "commit");
 
 		initStringInfo(&s);
 		bdr_prepare_message(&s, BDR_MESSAGE_RELEASE_LOCK);
@@ -854,7 +872,7 @@ bdr_lock_holder_xact_callback(XactEvent event, void *arg)
 		/* We requested the lock we're releasing */
 
 		if (bdr_my_locks_database->lockcount == 0)
-			 bdr_locks_on_unlock();
+			bdr_locks_on_unlock();
 
 		LWLockRelease(bdr_locks_ctl->lock);
 	}
@@ -881,7 +899,7 @@ bdr_lock_state_xact_callback(XactEvent event, void *arg)
 {
 	Assert(arg == NULL);
 	Assert(IsBackgroundWorker);
-	Assert(IsBdrApplyWorker()||IsBdrPerdbWorker());
+	Assert(IsBdrApplyWorker() || IsBdrPerdbWorker());
 
 	if (event == XACT_EVENT_COMMIT && bdr_lock_state_xact_callback_info.pending)
 	{
@@ -907,8 +925,9 @@ register_state_xact_callback(void)
 static SysScanDesc
 locks_begin_scan(Relation rel, Snapshot snap, const BDRNodeId * const node)
 {
-	ScanKey			key;
-	char			buf[30];
+	ScanKey		key;
+	char		buf[30];
+
 	key = (ScanKey) palloc(sizeof(ScanKeyData) * 4);
 
 	sprintf(buf, UINT64_FORMAT, node->sysid);
@@ -996,21 +1015,21 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	if (this_xact_acquired_lock)
 	{
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_STATEMENT),
-			LOCKTRACE "acquiring in mode <%s> (upgrading from <%s>) from <%d> peer nodes for "BDR_NODEID_FORMAT_WITHNAME" [tracelevel=%s]",
-			bdr_lock_type_to_name(lock_type),
-			bdr_lock_type_to_name(bdr_my_locks_database->lock_type),
-			bdr_my_locks_database->nnodes,
-			BDR_LOCALID_FORMAT_WITHNAME_ARGS,
-			GetConfigOption("bdr.trace_ddl_locks_level", false, false));
+			 LOCKTRACE "acquiring in mode <%s> (upgrading from <%s>) from <%d> peer nodes for " BDR_NODEID_FORMAT_WITHNAME " [tracelevel=%s]",
+			 bdr_lock_type_to_name(lock_type),
+			 bdr_lock_type_to_name(bdr_my_locks_database->lock_type),
+			 bdr_my_locks_database->nnodes,
+			 BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+			 GetConfigOption("bdr.trace_ddl_locks_level", false, false));
 	}
 	else
 	{
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_STATEMENT),
-			LOCKTRACE "acquiring in mode <%s> from <%d> nodes for "BDR_NODEID_FORMAT_WITHNAME" [tracelevel=%s]",
-			bdr_lock_type_to_name(lock_type),
-			bdr_my_locks_database->nnodes,
-			BDR_LOCALID_FORMAT_WITHNAME_ARGS,
-			GetConfigOption("bdr.trace_ddl_locks_level", false, false));
+			 LOCKTRACE "acquiring in mode <%s> from <%d> nodes for " BDR_NODEID_FORMAT_WITHNAME " [tracelevel=%s]",
+			 bdr_lock_type_to_name(lock_type),
+			 bdr_my_locks_database->nnodes,
+			 BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+			 GetConfigOption("bdr.trace_ddl_locks_level", false, false));
 	}
 
 	/* register an XactCallback to release the lock */
@@ -1021,24 +1040,25 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	/* check whether the lock can actually be acquired */
 	if (!this_xact_acquired_lock && bdr_my_locks_database->lockcount > 0)
 	{
-		BDRNodeId	holder, myid;
+		BDRNodeId	holder,
+					myid;
 
 		bdr_make_my_nodeid(&myid);
 
 		bdr_fetch_sysid_via_node_id(bdr_my_locks_database->lock_holder, &holder);
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE),
-			LOCKTRACE "lock already held by "BDR_NODEID_FORMAT_WITHNAME" (is_local %d, pid %d)",
-			BDR_NODEID_FORMAT_WITHNAME_ARGS(holder),
-			bdr_nodeid_eq(&myid, &holder),
-			bdr_my_locks_database->lock_holder_local_pid);
+			 LOCKTRACE "lock already held by " BDR_NODEID_FORMAT_WITHNAME " (is_local %d, pid %d)",
+			 BDR_NODEID_FORMAT_WITHNAME_ARGS(holder),
+			 bdr_nodeid_eq(&myid, &holder),
+			 bdr_my_locks_database->lock_holder_local_pid);
 
 		Assert(bdr_my_locks_database->lock_state > BDR_LOCKSTATE_NOLOCK);
 
 		ereport(ERROR,
 				(errcode(ERRCODE_LOCK_NOT_AVAILABLE),
 				 errmsg("database is locked against ddl by another node"),
-				 errhint("Node "BDR_NODEID_FORMAT_WITHNAME" in the cluster is already performing DDL",
+				 errhint("Node " BDR_NODEID_FORMAT_WITHNAME " in the cluster is already performing DDL",
 						 BDR_NODEID_FORMAT_WITHNAME_ARGS(holder))));
 	}
 
@@ -1108,12 +1128,12 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	 * ---
 	 */
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-		LOCKTRACE "sent DDL lock mode %s request for "BDR_NODEID_FORMAT_WITHNAME"), waiting for confirmation",
-		bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
+		 LOCKTRACE "sent DDL lock mode %s request for " BDR_NODEID_FORMAT_WITHNAME "), waiting for confirmation",
+		 bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
 
 	while (true)
 	{
-		int rc;
+		int			rc;
 
 		ResetLatch(&MyProc->procLatch);
 
@@ -1164,8 +1184,8 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	bdr_my_locks_database->lock_state = BDR_LOCKSTATE_ACQUIRE_ACQUIRED;
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE),
-		LOCKTRACE "DDL lock acquired in mode mode %s for "BDR_NODEID_FORMAT_WITHNAME,
-		bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
+		 LOCKTRACE "DDL lock acquired in mode mode %s for " BDR_NODEID_FORMAT_WITHNAME,
+		 bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
 
 	LWLockRelease(bdr_locks_ctl->lock);
 }
@@ -1173,7 +1193,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 Datum
 bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS)
 {
-	char *mode = text_to_cstring(PG_GETARG_TEXT_P(0));
+	char	   *mode = text_to_cstring(PG_GETARG_TEXT_P(0));
 
 	if (bdr_skip_ddl_locking)
 		ereport(WARNING,
@@ -1191,7 +1211,7 @@ bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS)
 static bool
 check_is_my_origin_node(const BDRNodeId * const peer)
 {
-	BDRNodeId session_origin_node;
+	BDRNodeId	session_origin_node;
 	MemoryContext old_ctx;
 
 	Assert(!IsTransactionState());
@@ -1212,7 +1232,8 @@ check_is_my_origin_node(const BDRNodeId * const peer)
 static bool
 check_is_my_node(const BDRNodeId * const node)
 {
-	BDRNodeId myid;
+	BDRNodeId	myid;
+
 	bdr_make_my_nodeid(&myid);
 	return bdr_nodeid_eq(node, &myid);
 }
@@ -1228,9 +1249,9 @@ static bool
 cancel_conflicting_transactions(void)
 {
 	VirtualTransactionId *conflict;
-	TimestampTz		killtime,
-					canceltime;
-	int				waittime = 1000;
+	TimestampTz killtime,
+				canceltime;
+	int			waittime = 1000;
 
 
 	LWLockAcquire(bdr_locks_ctl->lock, LW_EXCLUSIVE);
@@ -1238,12 +1259,12 @@ cancel_conflicting_transactions(void)
 	LWLockRelease(bdr_locks_ctl->lock);
 
 	killtime = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
-		bdr_max_ddl_lock_delay > 0 ?
-			bdr_max_ddl_lock_delay : max_standby_streaming_delay);
+										   bdr_max_ddl_lock_delay > 0 ?
+										   bdr_max_ddl_lock_delay : max_standby_streaming_delay);
 
 	if (bdr_ddl_lock_timeout > 0 || LockTimeout > 0)
 		canceltime = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
-			bdr_ddl_lock_timeout > 0 ? bdr_ddl_lock_timeout : LockTimeout);
+												 bdr_ddl_lock_timeout > 0 ? bdr_ddl_lock_timeout : LockTimeout);
 	else
 		TIMESTAMP_NOEND(canceltime);
 
@@ -1278,7 +1299,7 @@ cancel_conflicting_transactions(void)
 		}
 		else if (GetCurrentTimestamp() < killtime)
 		{
-			int	rc;
+			int			rc;
 
 			/* Increasing backoff interval for wait time with limit of 1s */
 			waittime *= 2;
@@ -1298,7 +1319,7 @@ cancel_conflicting_transactions(void)
 		else
 		{
 			/* We reached timeout so lets kill the writing transaction */
-			pid_t p = CancelVirtualTransaction(*conflict, PROCSIG_RECOVERY_CONFLICT_LOCK);
+			pid_t		p = CancelVirtualTransaction(*conflict, PROCSIG_RECOVERY_CONFLICT_LOCK);
 
 			/*
 			 * Either confirm kill or sleep a bit to prevent the other node
@@ -1322,8 +1343,8 @@ cancel_conflicting_transactions(void)
 static void
 bdr_request_replay_confirmation(void)
 {
-	StringInfoData	s;
-	XLogRecPtr		wait_for_lsn;
+	StringInfoData s;
+	XLogRecPtr	wait_for_lsn;
 
 	initStringInfo(&s);
 
@@ -1339,8 +1360,8 @@ bdr_request_replay_confirmation(void)
 	 * from startup, not here.
 	 */
 	Assert(
-		bdr_my_locks_database->lock_type == BDR_LOCK_WRITE
-		  && (bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_CANCEL_XACTS));
+		   bdr_my_locks_database->lock_type == BDR_LOCK_WRITE
+		   && (bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_CANCEL_XACTS));
 
 	bdr_send_message(&s, false);
 
@@ -1358,9 +1379,9 @@ bdr_request_replay_confirmation(void)
 void
 bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type)
 {
-	StringInfoData	s;
+	StringInfoData s;
 	const char *lock_name = bdr_lock_type_to_name(lock_type);
-	BDRNodeId myid;
+	BDRNodeId	myid;
 	MemoryContext old_ctx = CurrentMemoryContext;
 
 	bdr_make_my_nodeid(&myid);
@@ -1373,7 +1394,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 	bdr_locks_find_my_database(false);
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-		 LOCKTRACE "%s lock requested by node "BDR_NODEID_FORMAT_WITHNAME,
+		 LOCKTRACE "%s lock requested by node " BDR_NODEID_FORMAT_WITHNAME,
 		 lock_name, BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 
 	initStringInfo(&s);
@@ -1386,10 +1407,10 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 
 	if (bdr_my_locks_database->lockcount == 0)
 	{
-		Relation rel;
-		Datum	values[10];
-		bool	nulls[10];
-		HeapTuple tup;
+		Relation	rel;
+		Datum		values[10];
+		bool		nulls[10];
+		HeapTuple	tup;
 
 		/*
 		 * No previous DDL lock found. Start acquiring it.
@@ -1430,11 +1451,11 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		PG_TRY();
 		{
 			tup = heap_form_tuple(RelationGetDescr(rel), values, nulls);
-			//simple_heap_insert(rel, tup);
+			/* simple_heap_insert(rel, tup); */
 			bdr_locks_set_commit_pending_state(BDR_LOCKSTATE_PEER_BEGIN_CATCHUP);
-			//CatalogTupleUpdate(rel, &tup->t_self, tup);
+			/* CatalogTupleUpdate(rel, &tup->t_self, tup); */
 			CatalogTupleInsert(rel, tup);
-			ForceSyncCommit(); /* async commit would be too complicated */
+			ForceSyncCommit();	/* async commit would be too complicated */
 			heap_close(rel, NoLock);
 			CommitTransactionCommand();
 			(void) MemoryContextSwitchTo(old_ctx);
@@ -1443,9 +1464,10 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		{
 			if (geterrcode() == ERRCODE_UNIQUE_VIOLATION)
 			{
-			    /*
-				 * Shouldn't happen since we take the control segment lock before checking
-				 * lockcount, and increment lockcount before releasing it.
+				/*
+				 * Shouldn't happen since we take the control segment lock
+				 * before checking lockcount, and increment lockcount before
+				 * releasing it.
 				 */
 				elog(WARNING,
 					 "declining global lock because a conflicting global lock exists in bdr_global_locks");
@@ -1468,9 +1490,9 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		if (lock_type >= BDR_LOCK_WRITE)
 		{
 			/*
-			 * Now kill all local processes that are still writing. We can't just
-			 * prevent them from writing via the acquired lock as they are still
-			 * running.
+			 * Now kill all local processes that are still writing. We can't
+			 * just prevent them from writing via the acquired lock as they
+			 * are still running.
 			 */
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
 				 LOCKTRACE "terminating any local processes that conflict with the global lock");
@@ -1482,20 +1504,22 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			}
 
 			/*
-			 * We now have to wait till all our local pending changes have been
-			 * streamed out. We do this by sending a message which is then acked
-			 * by all other nodes. When the required number of messages is back we
-			 * can confirm the lock to the original requestor
-			 * (c.f. bdr_process_replay_confirm()).
+			 * We now have to wait till all our local pending changes have
+			 * been streamed out. We do this by sending a message which is
+			 * then acked by all other nodes. When the required number of
+			 * messages is back we can confirm the lock to the original
+			 * requestor (c.f. bdr_process_replay_confirm()).
 			 *
-			 * If we didn't wait for everyone to replay local changes then a DDL
-			 * change that caused those local changes not to apply on remote
-			 * nodes might occur, causing a divergent conflict.
+			 * If we didn't wait for everyone to replay local changes then a
+			 * DDL change that caused those local changes not to apply on
+			 * remote nodes might occur, causing a divergent conflict.
 			 */
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 				 LOCKTRACE "requesting replay confirmation from all other nodes before confirming global lock granted");
 			bdr_request_replay_confirmation();
-		} else {
+		}
+		else
+		{
 			/*
 			 * Simple DDL locks that are not conflicting with existing
 			 * transactions can be just confirmed immediatelly.
@@ -1508,14 +1532,14 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			LWLockRelease(bdr_locks_ctl->lock);
 		}
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE),
-			 LOCKTRACE "global lock granted to remote node "BDR_NODEID_FORMAT_WITHNAME,
+			 LOCKTRACE "global lock granted to remote node " BDR_NODEID_FORMAT_WITHNAME,
 			 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 	}
 	else if (bdr_my_locks_database->lock_holder == replorigin_session_origin &&
 			 lock_type > bdr_my_locks_database->lock_type)
 	{
 		Relation	rel;
-		SysScanDesc	scan;
+		SysScanDesc scan;
 		Snapshot	snap;
 		HeapTuple	tuple;
 		bool		found = false;
@@ -1557,7 +1581,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 
 			newtuple = heap_form_tuple(RelationGetDescr(rel),
 									   values, isnull);
-			//simple_heap_update(rel, &tuple->t_self, newtuple);
+			/* simple_heap_update(rel, &tuple->t_self, newtuple); */
 			bdr_locks_set_commit_pending_state(BDR_LOCKSTATE_PEER_BEGIN_CATCHUP);
 			CatalogTupleUpdate(rel, &tuple->t_self, newtuple);
 			found = true;
@@ -1578,9 +1602,9 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		if (lock_type >= BDR_LOCK_WRITE)
 		{
 			/*
-			 * Now kill all local processes that are still writing. We can't just
-			 * prevent them from writing via the acquired lock as they are still
-			 * running.
+			 * Now kill all local processes that are still writing. We can't
+			 * just prevent them from writing via the acquired lock as they
+			 * are still running.
 			 */
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
 				 LOCKTRACE "terminating any local processes that conflict with the global lock");
@@ -1597,20 +1621,22 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			LWLockRelease(bdr_locks_ctl->lock);
 
 			/*
-			 * We now have to wait till all our local pending changes have been
-			 * streamed out. We do this by sending a message which is then acked
-			 * by all other nodes. When the required number of messages is back we
-			 * can confirm the lock to the original requestor
-			 * (c.f. bdr_process_replay_confirm()).
+			 * We now have to wait till all our local pending changes have
+			 * been streamed out. We do this by sending a message which is
+			 * then acked by all other nodes. When the required number of
+			 * messages is back we can confirm the lock to the original
+			 * requestor (c.f. bdr_process_replay_confirm()).
 			 *
-			 * If we didn't wait for everyone to replay local changes then a DDL
-			 * change that caused those local changes not to apply on remote
-			 * nodes might occur, causing a divergent conflict.
+			 * If we didn't wait for everyone to replay local changes then a
+			 * DDL change that caused those local changes not to apply on
+			 * remote nodes might occur, causing a divergent conflict.
 			 */
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 				 LOCKTRACE "requesting replay confirmation from all other nodes before confirming global lock granted");
 			bdr_request_replay_confirmation();
-		} else {
+		}
+		else
+		{
 			/*
 			 * Simple DDL locks that are not conflicting with existing
 			 * transactions can be just confirmed immediatelly.
@@ -1627,12 +1653,12 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		}
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-			 LOCKTRACE "global lock granted to remote node "BDR_NODEID_FORMAT_WITHNAME,
+			 LOCKTRACE "global lock granted to remote node " BDR_NODEID_FORMAT_WITHNAME,
 			 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 	}
 	else
 	{
-		BDRNodeId replay_node;
+		BDRNodeId	replay_node;
 
 		LWLockRelease(bdr_locks_ctl->lock);
 decline:
@@ -1673,7 +1699,7 @@ bdr_process_release_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
 		return;
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-		 LOCKTRACE "global lock released by "BDR_NODEID_FORMAT_WITHNAME,
+		 LOCKTRACE "global lock released by " BDR_NODEID_FORMAT_WITHNAME,
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*lock));
 
 	bdr_locks_release_local_ddl_lock(lock);
@@ -1688,23 +1714,22 @@ bdr_process_release_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
  * successfully is terminated.
  */
 void
-bdr_locks_node_parted(BDRNodeId *node)
+bdr_locks_node_parted(BDRNodeId * node)
 {
-	bool peer_holds_lock = false;
-	BDRNodeId owner;
+	bool		peer_holds_lock = false;
+	BDRNodeId	owner;
 
 	bdr_locks_find_my_database(false);
 
 	elog(INFO, "XXX testing if node holds ddl lock");
 
 	/*
- 	 * Rather than looking up the replication origin of the
-	 * node being parted, which might no longer exist, check
-	 * if the lock is held and if so, if the node id matches.
+	 * Rather than looking up the replication origin of the node being parted,
+	 * which might no longer exist, check if the lock is held and if so, if
+	 * the node id matches.
 	 *
-	 * We could just call bdr_locks_release_local_ddl_lock but that'll
-	 * do table scans etc we can avoid by taking a quick look at shmem
-	 * first.
+	 * We could just call bdr_locks_release_local_ddl_lock but that'll do
+	 * table scans etc we can avoid by taking a quick look at shmem first.
 	 */
 	LWLockAcquire(bdr_locks_ctl->lock, LW_SHARED);
 	if (bdr_my_locks_database->lock_type > BDR_LOCK_NOLOCK)
@@ -1713,7 +1738,7 @@ bdr_locks_node_parted(BDRNodeId *node)
 		bdr_fetch_sysid_via_node_id(bdr_my_locks_database->lock_holder, &owner);
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-			 LOCKTRACE "global lock held by "BDR_NODEID_FORMAT_WITHNAME" released after node part",
+			 LOCKTRACE "global lock held by " BDR_NODEID_FORMAT_WITHNAME " released after node part",
 			 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 
 		peer_holds_lock = bdr_nodeid_eq(node, &owner);
@@ -1741,13 +1766,13 @@ bdr_locks_node_parted(BDRNodeId *node)
 static void
 bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 {
-	Relation		rel;
-	Snapshot		snap;
-	SysScanDesc		scan;
-	HeapTuple		tuple;
-	bool			found = false;
-	Latch		   *latch;
-	MemoryContext	old_ctx = CurrentMemoryContext;
+	Relation	rel;
+	Snapshot	snap;
+	SysScanDesc scan;
+	HeapTuple	tuple;
+	bool		found = false;
+	Latch	   *latch;
+	MemoryContext old_ctx = CurrentMemoryContext;
 
 	/* FIXME: check db */
 
@@ -1769,8 +1794,9 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 		elog(DEBUG2, "found global lock entry to delete in response to global lock release message");
 		simple_heap_delete(rel, &tuple->t_self);
 		bdr_locks_set_commit_pending_state(BDR_LOCKSTATE_NOLOCK);
-		ForceSyncCommit(); /* async commit would be too complicated */
+		ForceSyncCommit();		/* async commit would be too complicated */
 		found = true;
+
 		/*
 		 * if we found a local lock tuple, there must be shmem state for it
 		 * (and we recover it after crash, too).
@@ -1792,12 +1818,11 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	/*
 	 * Note that it's not unexpected to receive release requests for locks
 	 * this node hasn't acquired. We'll only get a release from a node that
-	 * previously sent an acquire message, but if we rejected the acquire
-	 * from that node we don't keep any record of the rejection.
+	 * previously sent an acquire message, but if we rejected the acquire from
+	 * that node we don't keep any record of the rejection.
 	 *
 	 * We might've rejected a lock because we hold a lock for another node
-	 * already, in which case we'll still hold a lock throughout this
-	 * call.
+	 * already, in which case we'll still hold a lock throughout this call.
 	 *
 	 * Another cause is if we already committed removal of this lock locally
 	 * but crashed before advancing the replication origin, so we replay it
@@ -1808,11 +1833,11 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 		ereport(DEBUG1,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("Did not find global lock entry locally for a remotely released global lock"),
-				 errdetail("node "BDR_NODEID_FORMAT_WITHNAME" sent a release message but the lock isn't held locally",
+				 errdetail("node " BDR_NODEID_FORMAT_WITHNAME " sent a release message but the lock isn't held locally",
 						   BDR_NODEID_FORMAT_WITHNAME_ARGS(*lock))));
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-			 LOCKTRACE "missing local lock entry for remotely released global lock from "BDR_NODEID_FORMAT_WITHNAME,
+			 LOCKTRACE "missing local lock entry for remotely released global lock from " BDR_NODEID_FORMAT_WITHNAME,
 			 BDR_NODEID_FORMAT_WITHNAME_ARGS(*lock));
 
 		/* nothing to unlock, if there's a lock it's owned by someone else */
@@ -1854,7 +1879,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 		 LOCKTRACE "global lock released locally");
 
 	/* notify an eventual waiter */
-	if(latch)
+	if (latch)
 		SetLatch(latch);
 }
 
@@ -1869,7 +1894,7 @@ void
 bdr_process_confirm_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * const lock,
 							 BDRLockType lock_type)
 {
-	Latch *latch;
+	Latch	   *latch;
 
 	if (!check_is_my_origin_node(origin))
 		return;
@@ -1893,13 +1918,13 @@ bdr_process_confirm_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
 	latch = bdr_my_locks_database->requestor;
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-		 LOCKTRACE "received global lock confirmation number %d/%d from "BDR_NODEID_FORMAT_WITHNAME,
+		 LOCKTRACE "received global lock confirmation number %d/%d from " BDR_NODEID_FORMAT_WITHNAME,
 		 bdr_my_locks_database->acquire_confirmed, bdr_my_locks_database->nnodes,
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*origin));
 
 	LWLockRelease(bdr_locks_ctl->lock);
 
-	if(latch)
+	if (latch)
 		SetLatch(latch);
 }
 
@@ -1914,7 +1939,7 @@ void
 bdr_process_decline_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * const lock,
 							 BDRLockType lock_type)
 {
-	Latch *latch;
+	Latch	   *latch;
 
 	/* don't care if another database has been declined a lock */
 	if (!check_is_my_origin_node(origin))
@@ -1925,7 +1950,7 @@ bdr_process_decline_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
 	if (bdr_my_locks_database->lock_type != lock_type)
 	{
 		elog(WARNING,
-			 LOCKTRACE "received global lock confirmation with unexpected lock type (%d) from "BDR_NODEID_FORMAT_WITHNAME", waiting for (%d)",
+			 LOCKTRACE "received global lock confirmation with unexpected lock type (%d) from " BDR_NODEID_FORMAT_WITHNAME ", waiting for (%d)",
 			 lock_type, BDR_NODEID_FORMAT_WITHNAME_ARGS(*origin), bdr_my_locks_database->lock_type);
 		return;
 	}
@@ -1934,11 +1959,11 @@ bdr_process_decline_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
 	bdr_my_locks_database->acquire_declined++;
 	latch = bdr_my_locks_database->requestor;
 	LWLockRelease(bdr_locks_ctl->lock);
-	if(latch)
+	if (latch)
 		SetLatch(latch);
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE),
-		 LOCKTRACE "global lock request declined by node "BDR_NODEID_FORMAT_WITHNAME,
+		 LOCKTRACE "global lock request declined by node " BDR_NODEID_FORMAT_WITHNAME,
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*origin));
 }
 
@@ -1959,17 +1984,18 @@ bdr_process_request_replay_confirm(const BDRNodeId * const node, XLogRecPtr requ
 	bdr_locks_find_my_database(false);
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-		 LOCKTRACE "replay confirmation requested by node "BDR_NODEID_FORMAT_WITHNAME"; sending",
+		 LOCKTRACE "replay confirmation requested by node " BDR_NODEID_FORMAT_WITHNAME "; sending",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 
 	initStringInfo(&s);
 	bdr_prepare_message(&s, BDR_MESSAGE_REPLAY_CONFIRM);
 	pq_sendint64(&s, request_lsn);
+
 	/*
 	 * This is crash safe even though we don't update the replication origin
 	 * and FlushDatabaseBuffers() before replying. The message written to WAL
-	 * by bdr_send_message will not get decoded and sent by walsenders until it
-	 * is flushed to disk.
+	 * by bdr_send_message will not get decoded and sent by walsenders until
+	 * it is flushed to disk.
 	 */
 	bdr_send_message(&s, false);
 }
@@ -1978,15 +2004,15 @@ bdr_process_request_replay_confirm(const BDRNodeId * const node, XLogRecPtr requ
 static void
 bdr_send_confirm_lock(void)
 {
-	Relation		rel;
-	SysScanDesc		scan;
-	Snapshot		snap;
-	HeapTuple		tuple;
+	Relation	rel;
+	SysScanDesc scan;
+	Snapshot	snap;
+	HeapTuple	tuple;
 
-	BDRNodeId		replay;
-	StringInfoData	s;
-	bool			found = false;
-	MemoryContext	old_ctx;
+	BDRNodeId	replay;
+	StringInfoData s;
+	bool		found = false;
+	MemoryContext old_ctx;
 
 	initStringInfo(&s);
 
@@ -2000,8 +2026,8 @@ bdr_send_confirm_lock(void)
 
 	/* ddl lock jumps straight past catchup, write lock must have done catchup */
 	Assert(
-		(bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_BEGIN_CATCHUP && bdr_my_locks_database->lock_type == BDR_LOCK_DDL)
-		|| (bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_CATCHUP && bdr_my_locks_database->lock_type == BDR_LOCK_WRITE));
+		   (bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_BEGIN_CATCHUP && bdr_my_locks_database->lock_type == BDR_LOCK_DDL)
+		   || (bdr_my_locks_database->lock_state == BDR_LOCKSTATE_PEER_CATCHUP && bdr_my_locks_database->lock_type == BDR_LOCK_WRITE));
 
 	Assert(!IsTransactionState());
 	old_ctx = CurrentMemoryContext;
@@ -2013,12 +2039,12 @@ bdr_send_confirm_lock(void)
 	bdr_send_message(&s, true); /* transactional */
 
 	/*
-	 * Update state of lock. Do so in the same xact that confirms the
-	 * lock. That way we're safe against crashes.
+	 * Update state of lock. Do so in the same xact that confirms the lock.
+	 * That way we're safe against crashes.
 	 *
-	 * This is safe even though we don't force a synchronous commit,
-	 * because the message written to WAL by bdr_send_message will
-	 * not get decoded and sent by walsenders until it is flushed.
+	 * This is safe even though we don't force a synchronous commit, because
+	 * the message written to WAL by bdr_send_message will not get decoded and
+	 * sent by walsenders until it is flushed.
 	 */
 	/* Scan for a matching lock whose state needs to be updated */
 	snap = RegisterSnapshot(GetLatestSnapshot());
@@ -2046,7 +2072,7 @@ bdr_send_confirm_lock(void)
 
 		newtuple = heap_form_tuple(RelationGetDescr(rel),
 								   values, isnull);
-		//simple_heap_update(rel, &tuple->t_self, newtuple);
+		/* simple_heap_update(rel, &tuple->t_self, newtuple); */
 		bdr_locks_set_commit_pending_state(BDR_LOCKSTATE_PEER_CONFIRMED);
 		CatalogTupleUpdate(rel, &tuple->t_self, newtuple);
 		found = true;
@@ -2076,7 +2102,7 @@ bdr_send_confirm_lock(void)
 void
 bdr_process_replay_confirm(const BDRNodeId * const node, XLogRecPtr request_lsn)
 {
-	bool quorum_reached = false;
+	bool		quorum_reached = false;
 
 	if (!check_is_my_origin_node(node))
 		return;
@@ -2085,12 +2111,12 @@ bdr_process_replay_confirm(const BDRNodeId * const node, XLogRecPtr request_lsn)
 
 	LWLockAcquire(bdr_locks_ctl->lock, LW_EXCLUSIVE);
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-		 LOCKTRACE "processing replay confirmation from node "BDR_NODEID_FORMAT_WITHNAME" for request %X/%X at %X/%X",
+		 LOCKTRACE "processing replay confirmation from node " BDR_NODEID_FORMAT_WITHNAME " for request %X/%X at %X/%X",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node),
-		 (uint32)(bdr_my_locks_database->replay_confirmed_lsn >> 32),
-		 (uint32)bdr_my_locks_database->replay_confirmed_lsn,
-		 (uint32)(request_lsn >> 32),
-		 (uint32)request_lsn);
+		 (uint32) (bdr_my_locks_database->replay_confirmed_lsn >> 32),
+		 (uint32) bdr_my_locks_database->replay_confirmed_lsn,
+		 (uint32) (request_lsn >> 32),
+		 (uint32) request_lsn);
 
 	/* request matches the one we're interested in */
 	if (bdr_my_locks_database->replay_confirmed_lsn == request_lsn)
@@ -2129,10 +2155,10 @@ bdr_process_replay_confirm(const BDRNodeId * const node, XLogRecPtr request_lsn)
 void
 bdr_locks_process_remote_startup(const BDRNodeId * const node)
 {
-	Relation rel;
-	Snapshot snap;
+	Relation	rel;
+	Snapshot	snap;
 	SysScanDesc scan;
-	HeapTuple tuple;
+	HeapTuple	tuple;
 	StringInfoData s;
 	MemoryContext old_ctx;
 
@@ -2143,7 +2169,7 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 	initStringInfo(&s);
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-		 LOCKTRACE "got startup message from node "BDR_NODEID_FORMAT_WITHNAME", clearing any locks it held",
+		 LOCKTRACE "got startup message from node " BDR_NODEID_FORMAT_WITHNAME ", clearing any locks it held",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 
 	old_ctx = CurrentMemoryContext;
@@ -2175,7 +2201,7 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 		}
 
 		if (bdr_my_locks_database->lockcount == 0)
-			 bdr_locks_on_unlock();
+			bdr_locks_on_unlock();
 
 		LWLockRelease(bdr_locks_ctl->lock);
 	}
@@ -2199,14 +2225,14 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 static bool
 bdr_locks_peer_has_lock(BDRLockType min_mode)
 {
-	bool lock_held_by_peer;
+	bool		lock_held_by_peer;
 
 	Assert(LWLockHeldByMe(bdr_locks_ctl->lock));
 
 	lock_held_by_peer = !this_xact_acquired_lock &&
-						bdr_my_locks_database->lockcount > 0 &&
-						bdr_my_locks_database->lock_type >= min_mode &&
-						bdr_my_locks_database->lock_holder != InvalidRepOriginId;
+		bdr_my_locks_database->lockcount > 0 &&
+		bdr_my_locks_database->lock_type >= min_mode &&
+		bdr_my_locks_database->lock_holder != InvalidRepOriginId;
 
 	if (lock_held_by_peer)
 	{
@@ -2238,7 +2264,7 @@ bdr_locks_peer_has_lock(BDRLockType min_mode)
 void
 bdr_locks_check_dml(void)
 {
-	bool lock_held_by_peer;
+	bool		lock_held_by_peer;
 
 	if (bdr_skip_ddl_locking)
 		return;
@@ -2246,8 +2272,8 @@ bdr_locks_check_dml(void)
 	bdr_locks_find_my_database(false);
 
 	/*
-	 * The bdr is still starting up and hasn't loaded locks, wait for it.
-	 * The statement_timeout will kill us if necessary.
+	 * The bdr is still starting up and hasn't loaded locks, wait for it. The
+	 * statement_timeout will kill us if necessary.
 	 */
 	while (!bdr_my_locks_database->locked_and_loaded)
 	{
@@ -2263,8 +2289,8 @@ bdr_locks_check_dml(void)
 	 * If the locker is our own node we can safely continue. Postgres's normal
 	 * heavyweight locks will ensure consistency, and we'll replay changes in
 	 * commit-order to peers so there's no ordering problem. It doesn't matter
-	 * if we hold the lock or are still acquiring it; if we're acquiring and we
-	 * fail to get the lock, another node that acquires our local lock will
+	 * if we hold the lock or are still acquiring it; if we're acquiring and
+	 * we fail to get the lock, another node that acquires our local lock will
 	 * deal with any running xacts then.
 	 */
 	LWLockAcquire(bdr_locks_ctl->lock, LW_SHARED);
@@ -2277,7 +2303,7 @@ bdr_locks_check_dml(void)
 	 */
 	if (lock_held_by_peer)
 	{
-		TimestampTz		canceltime;
+		TimestampTz canceltime;
 
 		/*
 		 * If we add a waiter after the lock is released we may get woken
@@ -2287,14 +2313,14 @@ bdr_locks_check_dml(void)
 
 		if (bdr_ddl_lock_timeout > 0 || LockTimeout > 0)
 			canceltime = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
-				bdr_ddl_lock_timeout > 0 ? bdr_ddl_lock_timeout : LockTimeout);
+													 bdr_ddl_lock_timeout > 0 ? bdr_ddl_lock_timeout : LockTimeout);
 		else
 			TIMESTAMP_NOEND(canceltime);
 
 		/* Wait for lock to be released. */
 		for (;;)
 		{
-			int rc;
+			int			rc;
 
 			if (!TIMESTAMP_IS_NOEND(canceltime) &&
 				GetCurrentTimestamp() < canceltime)
@@ -2388,7 +2414,8 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 {
 #define BDR_DDL_LOCK_INFO_NFIELDS 13
 	BdrLocksDBState state;
-	BDRNodeId	locknodeid, myid;
+	BDRNodeId	locknodeid,
+				myid;
 	char		sysid_str[33];
 	Datum		values[BDR_DDL_LOCK_INFO_NFIELDS];
 	bool		isnull[BDR_DDL_LOCK_INFO_NFIELDS];
@@ -2426,18 +2453,21 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 	{
 		/*
 		 * While we don't strictly need to map the reporigin to node identity,
-		 * doing so here saves the user from having to parse the reporigin name
-		 * and map it to bdr.bdr_nodes to get the node name.
+		 * doing so here saves the user from having to parse the reporigin
+		 * name and map it to bdr.bdr_nodes to get the node name.
 		 */
 		values[field++] = ObjectIdGetDatum(state.lock_holder);
-		if (bdr_fetch_sysid_via_node_id_ifexists(state.lock_holder, &locknodeid, true)) {
+		if (bdr_fetch_sysid_via_node_id_ifexists(state.lock_holder, &locknodeid, true))
+		{
 			snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, locknodeid.sysid);
 			values[field++] = CStringGetTextDatum(sysid_str);
 			values[field++] = ObjectIdGetDatum(locknodeid.timeline);
 			values[field++] = ObjectIdGetDatum(locknodeid.dboid);
-		} else {
+		}
+		else
+		{
 			elog(WARNING, "lookup of replication origin %d failed",
-				state.lock_holder);
+				 state.lock_holder);
 			isnull[field++] = true;
 			isnull[field++] = true;
 			isnull[field++] = true;
@@ -2446,9 +2476,10 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 	}
 	else
 	{
-		int end;
+		int			end;
+
 		for (end = field + 5; field < end; field++)
-			isnull[field]=true;
+			isnull[field] = true;
 	}
 
 	/* lock_state */
@@ -2463,8 +2494,8 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 	 *
 	 * npeers, npeers_confirmed, npeers_declined, npeers_replayed, replay_upto
 	 *
-	 * These reflect shmem state directly; no checking for whether we're locker
-	 * etc.
+	 * These reflect shmem state directly; no checking for whether we're
+	 * locker etc.
 	 *
 	 * Note that the counters get cleared once the current operation is
 	 * finished, so you'll rarely if ever see nnodes = acquire_confirmed for

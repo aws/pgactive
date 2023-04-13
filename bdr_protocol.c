@@ -21,7 +21,8 @@ bdr_getmsg_nodeid(StringInfo message, BDRNodeId * const nodeid, bool expect_empt
 	nodeid->dboid = pq_getmsgint(message, 4);
 	if (expect_empty_nodename)
 	{
-		int namelen = pq_getmsgint(message, 4);
+		int			namelen = pq_getmsgint(message, 4);
+
 		if (namelen != 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_PROTOCOL_VIOLATION),

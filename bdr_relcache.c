@@ -36,9 +36,9 @@
 static HTAB *BDRRelcacheHash = NULL;
 
 static void
-BDRRelcacheHashInvalidateEntry(BDRRelation *entry)
+BDRRelcacheHashInvalidateEntry(BDRRelation * entry)
 {
-	int i;
+	int			i;
 
 	if (entry->conflict_handlers)
 		pfree(entry->conflict_handlers);
@@ -152,9 +152,9 @@ bdr_validate_replication_set_name(const char *name,
 	}
 
 	if (!allow_implicit && (
-			strcmp(name, "default") == 0 ||
-			strcmp(name, "all") == 0
-			))
+							strcmp(name, "default") == 0 ||
+							strcmp(name, "all") == 0
+							))
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_NAME_TOO_LONG),
@@ -166,20 +166,20 @@ bdr_validate_replication_set_name(const char *name,
 }
 
 void
-bdr_parse_relation_options(const char *label, BDRRelation *rel)
+bdr_parse_relation_options(const char *label, BDRRelation * rel)
 {
 	JsonbIterator *it;
 	JsonbValue	v;
 	int			r;
 	bool		parsing_sets = false;
 	int			level = 0;
-	Jsonb	*data = NULL;
+	Jsonb	   *data = NULL;
 
 	if (label == NULL)
 		return;
 
 	data = DatumGetJsonbP(
-		DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
+						  DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
 
 	if (!JB_ROOT_IS_OBJECT(data))
 		elog(ERROR, "root needs to be an object");
@@ -218,7 +218,7 @@ bdr_parse_relation_options(const char *label, BDRRelation *rel)
 		}
 		else if (parsing_sets)
 		{
-			char *setname;
+			char	   *setname;
 			MemoryContext oldcontext;
 
 			if (r != WJB_ELEM)
@@ -246,8 +246,8 @@ bdr_parse_relation_options(const char *label, BDRRelation *rel)
 
 	if (rel != NULL && rel->num_replication_sets > 0)
 	{
-			qsort(rel->replication_sets, rel->num_replication_sets,
-				  sizeof(char *), pg_qsort_strcmp);
+		qsort(rel->replication_sets, rel->num_replication_sets,
+			  sizeof(char *), pg_qsort_strcmp);
 	}
 
 }
@@ -309,13 +309,16 @@ bdr_heap_close(BDRRelation * rel, LOCKMODE lockmode)
 
 
 static bool
-relation_in_replication_set(BDRRelation *r, const char *setname)
+relation_in_replication_set(BDRRelation * r, const char *setname)
 {
 	/* "all" set contains, surprise, all relations */
 	if (strcmp(setname, "all") == 0)
 		return true;
 
-	/* "default" set contains all relations without a replication set configuration */
+	/*
+	 * "default" set contains all relations without a replication set
+	 * configuration
+	 */
 	if (strcmp(setname, "default") == 0 && r->num_replication_sets == -1)
 		return true;
 
@@ -335,10 +338,10 @@ relation_in_replication_set(BDRRelation *r, const char *setname)
 static HeapTuple
 replset_lookup(Relation rel, const char *cname)
 {
-	ScanKey			key;
-	NameData		name;
-	SysScanDesc		scan;
-	HeapTuple		tuple = NULL;
+	ScanKey		key;
+	NameData	name;
+	SysScanDesc scan;
+	HeapTuple	tuple = NULL;
 
 	namestrcpy(&name, cname);
 
@@ -375,13 +378,13 @@ replset_lookup(Relation rel, const char *cname)
  * currently can't invalidate the cache correctly otherwise.
  */
 void
-bdr_heap_compute_replication_settings(BDRRelation *r,
-									  int		   conf_num_replication_sets,
-									  char		 **conf_replication_sets)
+bdr_heap_compute_replication_settings(BDRRelation * r,
+									  int conf_num_replication_sets,
+									  char **conf_replication_sets)
 {
-	int i;
+	int			i;
 
-	Assert(MyReplicationSlot); /* in decoding */
+	Assert(MyReplicationSlot);	/* in decoding */
 
 	Assert(!r->computed_repl_valid);
 
@@ -402,9 +405,9 @@ bdr_heap_compute_replication_settings(BDRRelation *r,
 	 */
 	for (i = 0; i < conf_num_replication_sets; i++)
 	{
-		Relation repl_sets;
-		HeapTuple tuple;
-		const char* setname;
+		Relation	repl_sets;
+		HeapTuple	tuple;
+		const char *setname;
 
 		setname = conf_replication_sets[i];
 

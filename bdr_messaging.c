@@ -59,14 +59,14 @@ bdr_process_remote_message(StringInfo s)
 	msg_type = pq_getmsgint(&message, 4);
 	bdr_getmsg_nodeid(&message, &origin_node, true);
 
-	elog(DEBUG1, "received message type %s from "BDR_NODEID_FORMAT_WITHNAME" at %X/%X",
+	elog(DEBUG1, "received message type %s from " BDR_NODEID_FORMAT_WITHNAME " at %X/%X",
 		 bdr_message_type_str(msg_type),
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(origin_node),
 		 (uint32) (lsn >> 32), (uint32) lsn);
 
 	if (bdr_locks_process_message(msg_type, transactional, lsn, &origin_node, &message))
 		goto done;
-	
+
 	elog(WARNING, "unhandled BDR message of type %s", bdr_message_type_str(msg_type));
 
 	resetStringInfo(&message);
@@ -89,13 +89,13 @@ done:
 void
 bdr_prepare_message(StringInfo s, BdrMessageType message_type)
 {
-	BDRNodeId myid;
-	
+	BDRNodeId	myid;
+
 	bdr_make_my_nodeid(&myid);
 
-	elog(DEBUG2, "preparing message type %s in %p from "BDR_NODEID_FORMAT_WITHNAME,
+	elog(DEBUG2, "preparing message type %s in %p from " BDR_NODEID_FORMAT_WITHNAME,
 		 bdr_message_type_str(message_type),
-		 (void*)s,
+		 (void *) s,
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(myid));
 
 	/* message type */
@@ -109,20 +109,20 @@ bdr_prepare_message(StringInfo s, BdrMessageType message_type)
 /*
  * Send a WAL message previously prepared with bdr_prepare_message,
  * after using pq_send functions to add message-specific payload.
- * 
+ *
  * The StringInfo is reset automatically and may be re-used
  * for another message.
  */
 void
 bdr_send_message(StringInfo s, bool transactional)
 {
-	XLogRecPtr lsn;
+	XLogRecPtr	lsn;
 
 	lsn = LogLogicalMessage(BDR_LOGICAL_MSG_PREFIX, s->data, s->len, transactional);
 	XLogFlush(lsn);
 
 	elog(DEBUG3, "sending prepared message %p",
-		 (void*)s);
+		 (void *) s);
 
 	resetStringInfo(s);
 }
@@ -131,7 +131,8 @@ bdr_send_message(StringInfo s, bool transactional)
  * Get the text name for a message type. The caller must
  * NOT free the result.
  */
-char* bdr_message_type_str(BdrMessageType message_type)
+char *
+bdr_message_type_str(BdrMessageType message_type)
 {
 	switch (message_type)
 	{

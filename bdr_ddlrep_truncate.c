@@ -36,10 +36,13 @@
 #include "utils/memutils.h"
 
 PGDLLEXPORT Datum bdr_queue_truncate(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_queue_truncate);
 PGDLLEXPORT Datum bdr_truncate_trigger_add(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_truncate_trigger_add);
 PGDLLEXPORT Datum bdr_internal_create_truncate_trigger(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_internal_create_truncate_trigger);
 
 static List *bdr_truncated_tables = NIL;
@@ -60,12 +63,13 @@ static void
 bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 {
 	CreateTrigStmt *tgstmt;
-	RangeVar	   *relrv = makeRangeVar(schemaname, relname, -1);
-	Relation		rel;
-	List		   *funcname;
-	ObjectAddress	tgaddr, procaddr;
-	int				nfound;
-	Oid				fargtypes[1];   /* dummy, see 0a52d378 */
+	RangeVar   *relrv = makeRangeVar(schemaname, relname, -1);
+	Relation	rel;
+	List	   *funcname;
+	ObjectAddress tgaddr,
+				procaddr;
+	int			nfound;
+	Oid			fargtypes[1];	/* dummy, see 0a52d378 */
 
 	if (OidIsValid(relid))
 		rel = heap_open(relid, AccessExclusiveLock);
@@ -81,7 +85,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	 */
 	if (rel->trigdesc)
 	{
-		Trigger	   *trigger = rel->trigdesc->triggers;
+		Trigger    *trigger = rel->trigdesc->triggers;
 		int			i;
 		Oid			funcoid = LookupFuncName(funcname, 0, &fargtypes[0], false);
 
@@ -118,20 +122,22 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	tgaddr = CreateTrigger(tgstmt, NULL, rel->rd_id, InvalidOid,
 						   InvalidOid, InvalidOid,
 						   InvalidOid, InvalidOid, NULL,
-						   true /* tgisinternal */, false);
+						   true /* tgisinternal */ , false);
 
 	/*
 	 * The trigger was created with a 'n'ormal dependency on
 	 * bdr.queue_truncate(), which will cause DROP EXTENSION bdr to fail with
 	 * something like:
 	 *
-	 *   trigger truncate_trigger_26908 on table sometable depends on function bdr.queue_truncate()
+	 * trigger truncate_trigger_26908 on table sometable depends on function
+	 * bdr.queue_truncate()
 	 *
-	 * We want the trigger to bdr dropped if EITHER the BDR extension is dropped
-	 * (thus so is bdr.queue_truncate()) OR if the table the trigger is attached
-	 * to is dropped, so we want an automatic dependency on the target table.
-	 * CreateTrigger doesn't offer this directly and we'd rather not cause an
-	 * API break by adding a param, so just twiddle the created dependency.
+	 * We want the trigger to bdr dropped if EITHER the BDR extension is
+	 * dropped (thus so is bdr.queue_truncate()) OR if the table the trigger
+	 * is attached to is dropped, so we want an automatic dependency on the
+	 * target table. CreateTrigger doesn't offer this directly and we'd rather
+	 * not cause an API break by adding a param, so just twiddle the created
+	 * dependency.
 	 */
 
 	procaddr.classId = ProcedureRelationId;
@@ -165,9 +171,10 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 Datum
 bdr_internal_create_truncate_trigger(PG_FUNCTION_ARGS)
 {
-	Oid relid = PG_GETARG_OID(0);
-	Relation rel = heap_open(relid, AccessExclusiveLock);
-	char *schemaname = get_namespace_name(RelationGetNamespace(rel));
+	Oid			relid = PG_GETARG_OID(0);
+	Relation	rel = heap_open(relid, AccessExclusiveLock);
+	char	   *schemaname = get_namespace_name(RelationGetNamespace(rel));
+
 	bdr_create_truncate_trigger(schemaname, RelationGetRelationName(rel), relid);
 	pfree(schemaname);
 	heap_close(rel, AccessExclusiveLock);
@@ -187,17 +194,16 @@ bdr_internal_create_truncate_trigger(PG_FUNCTION_ARGS)
 Datum
 bdr_truncate_trigger_add(PG_FUNCTION_ARGS)
 {
-	EventTriggerData   *trigdata;
+	EventTriggerData *trigdata;
 
-	if (!CALLED_AS_EVENT_TRIGGER(fcinfo))  /* internal error */
+	if (!CALLED_AS_EVENT_TRIGGER(fcinfo))	/* internal error */
 		elog(ERROR, "not fired by event trigger manager");
 
 	/*
-	 * Since triggers are created tgisinternal and their creation is
-	 * not replicated or dumped we must create truncate triggers on
-	 * tables even if they're created by a replicated command or
-	 * restore of a dump. Recursion is not a problem since we don't
-	 * queue anything for replication anymore.
+	 * Since triggers are created tgisinternal and their creation is not
+	 * replicated or dumped we must create truncate triggers on tables even if
+	 * they're created by a replicated command or restore of a dump. Recursion
+	 * is not a problem since we don't queue anything for replication anymore.
 	 */
 
 	trigdata = (EventTriggerData *) fcinfo->context;
@@ -205,8 +211,8 @@ bdr_truncate_trigger_add(PG_FUNCTION_ARGS)
 	if (strcmp(trigdata->tag, "CREATE TABLE") == 0 &&
 		IsA(trigdata->parsetree, CreateStmt))
 	{
-		CreateStmt *stmt = (CreateStmt *)trigdata->parsetree;
-		char *nspname;
+		CreateStmt *stmt = (CreateStmt *) trigdata->parsetree;
+		char	   *nspname;
 
 		/* Skip temporary and unlogged tables */
 		if (stmt->relation->relpersistence != RELPERSISTENCE_PERMANENT)
@@ -215,8 +221,8 @@ bdr_truncate_trigger_add(PG_FUNCTION_ARGS)
 		nspname = get_namespace_name(RangeVarGetCreationNamespace(stmt->relation));
 
 		/*
-		 * By this time the relation has been created so it's safe to
-		 * call RangeVarGetRelid
+		 * By this time the relation has been created so it's safe to call
+		 * RangeVarGetRelid
 		 */
 		bdr_create_truncate_trigger(nspname, stmt->relation->relname, InvalidOid);
 
@@ -242,9 +248,9 @@ bdr_start_truncate(void)
 void
 bdr_finish_truncate(void)
 {
-	ListCell	   *lc;
-	char		   *sep = "";
-	StringInfoData	buf;
+	ListCell   *lc;
+	char	   *sep = "";
+	StringInfoData buf;
 
 	/* Nothing to do if the list of truncated table is empty. */
 	if (list_length(bdr_truncated_tables) < 1)
@@ -253,14 +259,14 @@ bdr_finish_truncate(void)
 	initStringInfo(&buf);
 	appendStringInfoString(&buf, "TRUNCATE TABLE ONLY ");
 
-	foreach (lc, bdr_truncated_tables)
+	foreach(lc, bdr_truncated_tables)
 	{
 		Oid			reloid = lfirst_oid(lc);
 		char	   *relname;
 
 		relname = quote_qualified_identifier(
-			get_namespace_name(get_rel_namespace(reloid)),
-			get_rel_name(reloid));
+											 get_namespace_name(get_rel_namespace(reloid)),
+											 get_rel_name(reloid));
 
 		appendStringInfoString(&buf, sep);
 		appendStringInfoString(&buf, relname);
@@ -283,10 +289,10 @@ bdr_finish_truncate(void)
 Datum
 bdr_queue_truncate(PG_FUNCTION_ARGS)
 {
-	TriggerData	   *tdata = (TriggerData *) fcinfo->context;
-	MemoryContext	oldcontext;
+	TriggerData *tdata = (TriggerData *) fcinfo->context;
+	MemoryContext oldcontext;
 
-	if (!CALLED_AS_TRIGGER(fcinfo))	/* internal error */
+	if (!CALLED_AS_TRIGGER(fcinfo)) /* internal error */
 		ereport(ERROR,
 				(errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
 				 errmsg("function \"%s\" was not called by trigger manager",
@@ -301,14 +307,14 @@ bdr_queue_truncate(PG_FUNCTION_ARGS)
 	 * don't queue it as it would insert duplicate commands into the queue.
 	 */
 	if (in_bdr_replicate_ddl_command)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/*
 	 * If we're currently replaying something from a remote node, don't queue
 	 * the commands; that would cause recursion.
 	 */
 	if (replorigin_session_origin != InvalidRepOriginId)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/* Make sure the list change survives the trigger call. */
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);

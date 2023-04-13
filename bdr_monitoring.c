@@ -40,9 +40,9 @@ PG_FUNCTION_INFO_V1(bdr_wait_slot_confirm_lsn);
 Datum
 bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 {
-	XLogRecPtr target_lsn;
-	Name slot_name;
-	int i;
+	XLogRecPtr	target_lsn;
+	Name		slot_name;
+	int			i;
 
 	if (PG_ARGISNULL(0))
 		slot_name = NULL;
@@ -55,14 +55,14 @@ bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 		target_lsn = PG_GETARG_LSN(1);
 
 	elog(DEBUG1, "waiting for %s to pass confirmed_flush position %X/%X",
-	     slot_name == NULL ? "all local slots" : NameStr(*slot_name),
-	     (uint32)(target_lsn>>32), (uint32)target_lsn);
+		 slot_name == NULL ? "all local slots" : NameStr(*slot_name),
+		 (uint32) (target_lsn >> 32), (uint32) target_lsn);
 
 	do
 	{
-		XLogRecPtr oldest_confirmed_lsn = InvalidXLogRecPtr;
-		int oldest_slot_pos = -1;
-		int rc;
+		XLogRecPtr	oldest_confirmed_lsn = InvalidXLogRecPtr;
+		int			oldest_slot_pos = -1;
+		int			rc;
 
 		LWLockAcquire(ReplicationSlotControlLock, LW_SHARED);
 		for (i = 0; i < max_replication_slots; i++)
@@ -85,10 +85,10 @@ bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 
 		if (oldest_slot_pos >= 0)
 			elog(DEBUG2, "oldest confirmed lsn is %X/%X on slot '%s', %u bytes left until %X/%X",
-				 (uint32)(oldest_confirmed_lsn>>32), (uint32)oldest_confirmed_lsn,
+				 (uint32) (oldest_confirmed_lsn >> 32), (uint32) oldest_confirmed_lsn,
 				 NameStr(ReplicationSlotCtl->replication_slots[oldest_slot_pos].data.name),
-				 (uint32)(target_lsn - oldest_confirmed_lsn),
-				 (uint32)(target_lsn>>32), (uint32)target_lsn);
+				 (uint32) (target_lsn - oldest_confirmed_lsn),
+				 (uint32) (target_lsn >> 32), (uint32) target_lsn);
 
 		LWLockRelease(ReplicationSlotControlLock);
 
@@ -99,14 +99,14 @@ bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   1000, PG_WAIT_EXTENSION);
 
-        ResetLatch(&MyProc->procLatch);
+		ResetLatch(&MyProc->procLatch);
 
-        if (rc & WL_POSTMASTER_DEATH)
+		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
 
 		CHECK_FOR_INTERRUPTS();
 
-	} while(1);
+	} while (1);
 
 	PG_RETURN_VOID();
 }

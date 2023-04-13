@@ -77,6 +77,7 @@ Oid			QueuedDropsRelid = InvalidOid;
 /* Global apply worker state */
 BDRNodeId	origin;
 bool		started_transaction = false;
+
 /* During apply, holds xid of remote transaction */
 TransactionId replication_origin_xid = InvalidTransactionId;
 
@@ -84,48 +85,49 @@ TransactionId replication_origin_xid = InvalidTransactionId;
  * For tracking of the remote origin's information when in catchup mode
  * (BDR_OUTPUT_TRANSACTION_HAS_ORIGIN).
  */
-static BDRNodeId		remote_origin;
-static XLogRecPtr		remote_origin_lsn = InvalidXLogRecPtr;
+static BDRNodeId remote_origin;
+static XLogRecPtr remote_origin_lsn = InvalidXLogRecPtr;
+
 /* The local identifier for the remote's origin, if any. */
-static RepOriginId		remote_origin_id = InvalidRepOriginId;
+static RepOriginId remote_origin_id = InvalidRepOriginId;
 
 /*
  * A message counter for the xact, for debugging. We don't send
  * the remote change LSN with messages, so this aids identification
  * of which change causes an error.
  */
-static uint32			xact_action_counter;
+static uint32 xact_action_counter;
 
 /*
  * This code only runs within an apply bgworker, so we can stash a pointer to our
  * state in shm in a global for convenient access.
  */
-static BdrApplyWorker *bdr_apply_worker = NULL;
+static BdrApplyWorker * bdr_apply_worker = NULL;
 
-static BdrConnectionConfig *bdr_apply_config = NULL;
+static BdrConnectionConfig * bdr_apply_config = NULL;
 
-dlist_head bdr_lsn_association = DLIST_STATIC_INIT(bdr_lsn_association);
+dlist_head	bdr_lsn_association = DLIST_STATIC_INIT(bdr_lsn_association);
 
 struct ActionErrCallbackArg
 {
-	const char * action_name;
-	const char * remote_nspname;
-	const char * remote_relname;
-	bool is_ddl_or_drop;
-	bool suppress_output;
+	const char *action_name;
+	const char *remote_nspname;
+	const char *remote_relname;
+	bool		is_ddl_or_drop;
+	bool		suppress_output;
 };
 
-static BDRRelation *read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg);
-static void read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup);
+static BDRRelation * read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg);
+static void read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup);
 
 static void check_apply_update(BdrConflictType conflict_type,
 							   RepOriginId local_node_id, TimestampTz local_ts,
-							   BDRRelation *rel, HeapTuple local_tuple,
+							   BDRRelation * rel, HeapTuple local_tuple,
 							   HeapTuple remote_tuple, HeapTuple *new_tuple,
 							   bool *perform_update, bool *log_update,
-							   BdrConflictResolution *resolution);
+							   BdrConflictResolution * resolution);
 
-static void check_bdr_wakeups(BDRRelation *rel);
+static void check_bdr_wakeups(BDRRelation * rel);
 static HeapTuple process_queued_drop(HeapTuple cmdtup);
 static void process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started);
 static bool bdr_performing_work(void);
@@ -149,50 +151,50 @@ static void log_tuple(const char *format, TupleDesc desc, HeapTuple tup);
 
 static void
 format_action_description(
-	StringInfo si,
-	const char * action_name,
-	const char * remote_nspname,
-	const char * remote_relname,
-	bool is_ddl_or_drop)
+						  StringInfo si,
+						  const char *action_name,
+						  const char *remote_nspname,
+						  const char *remote_relname,
+						  bool is_ddl_or_drop)
 {
 	appendStringInfoString(si, "apply ");
 	appendStringInfoString(si, action_name);
 
 	if (remote_nspname != NULL
-			&& remote_relname != NULL
-			&& !is_ddl_or_drop)
+		&& remote_relname != NULL
+		&& !is_ddl_or_drop)
 	{
 		appendStringInfo(si, " from remote relation %s.%s",
-				remote_nspname, remote_relname);
+						 remote_nspname, remote_relname);
 	}
 
 	appendStringInfo(si,
-			" in commit before %X/%X, xid %u commited at %s (action #%u)",
-			(uint32)(replorigin_session_origin_lsn>>32),
-			(uint32)replorigin_session_origin_lsn,
-			replication_origin_xid,
-			timestamptz_to_str(replorigin_session_origin_timestamp),
-			xact_action_counter);
+					 " in commit before %X/%X, xid %u commited at %s (action #%u)",
+					 (uint32) (replorigin_session_origin_lsn >> 32),
+					 (uint32) replorigin_session_origin_lsn,
+					 replication_origin_xid,
+					 timestamptz_to_str(replorigin_session_origin_timestamp),
+					 xact_action_counter);
 
 	if (replorigin_session_origin != InvalidRepOriginId)
 	{
-		appendStringInfo(si, " from node "BDR_NODEID_FORMAT_WITHNAME,
-				BDR_NODEID_FORMAT_WITHNAME_ARGS(origin));
+		appendStringInfo(si, " from node " BDR_NODEID_FORMAT_WITHNAME,
+						 BDR_NODEID_FORMAT_WITHNAME_ARGS(origin));
 	}
 
 	if (remote_origin_id != InvalidRepOriginId)
 	{
-		appendStringInfo(si, " forwarded from commit %X/%X on node "BDR_NODEID_FORMAT_WITHNAME,
-				(uint32)(remote_origin_lsn>>32),
-				(uint32)remote_origin_lsn,
-				BDR_NODEID_FORMAT_WITHNAME_ARGS(remote_origin));
+		appendStringInfo(si, " forwarded from commit %X/%X on node " BDR_NODEID_FORMAT_WITHNAME,
+						 (uint32) (remote_origin_lsn >> 32),
+						 (uint32) remote_origin_lsn,
+						 BDR_NODEID_FORMAT_WITHNAME_ARGS(remote_origin));
 	}
 }
 
 static void
 action_error_callback(void *arg)
 {
-	struct ActionErrCallbackArg *action = (struct ActionErrCallbackArg*)arg;
+	struct ActionErrCallbackArg *action = (struct ActionErrCallbackArg *) arg;
 	StringInfoData si;
 
 	if (!action->suppress_output)
@@ -200,10 +202,10 @@ action_error_callback(void *arg)
 		initStringInfo(&si);
 
 		format_action_description(&si,
-			action->action_name,
-			action->remote_nspname,
-			action->remote_relname,
-			action->is_ddl_or_drop);
+								  action->action_name,
+								  action->remote_nspname,
+								  action->remote_relname,
+								  action->is_ddl_or_drop);
 
 		errcontext("%s", si.data);
 	}
@@ -212,12 +214,12 @@ action_error_callback(void *arg)
 static void
 process_remote_begin(StringInfo s)
 {
-	XLogRecPtr		commit_afterend_lsn;
-	TimestampTz		committime;
-	TransactionId	remote_xid;
-	char			statbuf[100];
-	int				apply_delay = bdr_apply_config->apply_delay;
-	int				flags = 0;
+	XLogRecPtr	commit_afterend_lsn;
+	TimestampTz committime;
+	TransactionId remote_xid;
+	char		statbuf[100];
+	int			apply_delay = bdr_apply_config->apply_delay;
+	int			flags = 0;
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
 
@@ -237,9 +239,9 @@ process_remote_begin(StringInfo s)
 	flags = pq_getmsgint(s, 4);
 
 	/*
-	 * This is the LSN of the end of the commit xlog record + 1, even
-	 * though we're in BEGIN. We have it because we process the whole
-	 * reorder buffer only at commit time.
+	 * This is the LSN of the end of the commit xlog record + 1, even though
+	 * we're in BEGIN. We have it because we process the whole reorder buffer
+	 * only at commit time.
 	 */
 	commit_afterend_lsn = pq_getmsgint64(s);
 	Assert(commit_afterend_lsn != InvalidXLogRecPtr);
@@ -265,12 +267,12 @@ process_remote_begin(StringInfo s)
 	 * Set up state for commit and conflict detection. The timestamp will be
 	 * recorded as the replicated xact's commit timestamp, and the LSN will be
 	 * used to advance the replication origin for the node at local COMMIT
-	 * time. Set the remote LSN to the end of the remote commit record + 1
-	 * so we know exactly when the next record to start processing is.
-	 * 
+	 * time. Set the remote LSN to the end of the remote commit record + 1 so
+	 * we know exactly when the next record to start processing is.
+	 *
 	 * This means that replorigin_session_origin_lsn and our replication
-	 * origin doesn't actually point to the last-processed commit record,
-	 * but just after it.
+	 * origin doesn't actually point to the last-processed commit record, but
+	 * just after it.
 	 */
 	replorigin_session_origin_lsn = commit_afterend_lsn;
 	replorigin_session_origin_timestamp = committime;
@@ -279,10 +281,10 @@ process_remote_begin(StringInfo s)
 	replication_origin_xid = remote_xid;
 
 	snprintf(statbuf, sizeof(statbuf),
-			"bdr_apply: BEGIN origin(orig_lsn, timestamp): %X/%X, %s",
-			(uint32) (replorigin_session_origin_lsn >> 32),
-			(uint32) replorigin_session_origin_lsn,
-			timestamptz_to_str(committime));
+			 "bdr_apply: BEGIN origin(orig_lsn, timestamp): %X/%X, %s",
+			 (uint32) (replorigin_session_origin_lsn >> 32),
+			 (uint32) replorigin_session_origin_lsn,
+			 timestamptz_to_str(committime));
 
 	pgstat_report_activity(STATE_RUNNING, statbuf);
 
@@ -295,9 +297,10 @@ process_remote_begin(StringInfo s)
 	 */
 	if (flags & BDR_OUTPUT_TRANSACTION_HAS_ORIGIN)
 	{
-		char	*remote_ident;
+		char	   *remote_ident;
 		MemoryContext old_ctx;
-		BDRNodeId my_nodeid;
+		BDRNodeId	my_nodeid;
+
 		bdr_make_my_nodeid(&my_nodeid);
 
 		if (bdr_nodeid_eq(&remote_origin, &my_nodeid))
@@ -314,8 +317,8 @@ process_remote_begin(StringInfo s)
 
 		/*
 		 * To determine whether the commit was forwarded by the upstream from
-		 * another node, we need to get the local RepOriginId for that node based
-		 * on the (sysid, timelineid, dboid) supplied in catchup mode.
+		 * another node, we need to get the local RepOriginId for that node
+		 * based on the (sysid, timelineid, dboid) supplied in catchup mode.
 		 */
 		remote_ident = bdr_replident_name(&remote_origin, MyDatabaseId);
 
@@ -331,6 +334,7 @@ process_remote_begin(StringInfo s)
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_action_description(&si, "BEGIN", NULL, NULL, false);
 		cbarg.suppress_output = true;
@@ -349,24 +353,24 @@ process_remote_begin(StringInfo s)
 			int			usec;
 			int			ret;
 			long		delay_ms;
-			TimestampTz		current;
+			TimestampTz current;
 
 			current = GetCurrentTimestamp();
 
 			/*
-			 * Some amount of clock drift/skew is normal, so
-			 * we must handle remote commits that are in the future
-			 * according to our local clock.
+			 * Some amount of clock drift/skew is normal, so we must handle
+			 * remote commits that are in the future according to our local
+			 * clock.
 			 */
 			if (current < replorigin_session_origin_timestamp)
 			{
 				TimestampDifference(replorigin_session_origin_timestamp, current,
 									&sec, &usec);
-				
+
 				/* ignore small skews */
 				if (sec > 1)
 					ereport(WARNING,
-							(errmsg("clock skew detected: node "BDR_NODEID_FORMAT_WITHNAME" clock is ahead of local clock by at least %ld.%03d seconds",
+							(errmsg("clock skew detected: node " BDR_NODEID_FORMAT_WITHNAME " clock is ahead of local clock by at least %ld.%03d seconds",
 									BDR_NODEID_FORMAT_WITHNAME_ARGS(origin), sec,
 									usec / 1000)));
 
@@ -387,10 +391,10 @@ process_remote_begin(StringInfo s)
 									&sec, &usec);
 
 				/*
-				 * WaitLatch doesn't support > INT_MAX ms, including any us component,
-				 * and we have to guard against overflow anyway.
+				 * WaitLatch doesn't support > INT_MAX ms, including any us
+				 * component, and we have to guard against overflow anyway.
 				 */
-				if (sec >= (INT_MAX/1000 - 1000))
+				if (sec >= (INT_MAX / 1000 - 1000))
 				{
 					elog(WARNING, "ignoring absurd remote commit timestamp and/or apply_delay");
 					delay_ms = 0;
@@ -431,10 +435,10 @@ process_remote_begin(StringInfo s)
 static void
 process_remote_commit(StringInfo s)
 {
-	XLogRecPtr		commit_lsn PG_USED_FOR_ASSERTS_ONLY;
-	TimestampTz		committime PG_USED_FOR_ASSERTS_ONLY;
-	TimestampTz		commit_afterend_lsn;
-	int				flags;
+	XLogRecPtr	commit_lsn PG_USED_FOR_ASSERTS_ONLY;
+	TimestampTz committime PG_USED_FOR_ASSERTS_ONLY;
+	TimestampTz commit_afterend_lsn;
+	int			flags;
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
 
@@ -454,13 +458,15 @@ process_remote_commit(StringInfo s)
 		elog(ERROR, "Commit flags are currently unused, but flags was set to %i", flags);
 
 	/* order of access to fields after flags is important */
-	commit_lsn = pq_getmsgint64(s);	/* start of commit record; not used anymore */
+	commit_lsn = pq_getmsgint64(s); /* start of commit record; not used
+									 * anymore */
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_action_description(&si, "COMMIT", NULL, NULL, false);
 		cbarg.suppress_output = true;
@@ -472,17 +478,17 @@ process_remote_commit(StringInfo s)
 	Assert(committime == replorigin_session_origin_timestamp);
 
 	Assert(replorigin_session_origin_lsn == commit_afterend_lsn /* bdr 2.0 msg */
-		|| replorigin_session_origin_lsn == commit_lsn); /* bdr 1.0 msg */
+		   || replorigin_session_origin_lsn == commit_lsn); /* bdr 1.0 msg */
 
 	/*
-	 * BDR 1.0 used to send the start-of-commit lsn (commit_lsn) in BEGIN,
-	 * not the position of the end of the commit record, and we might have
-	 * used that in the replorigin settings if that's all we had.
+	 * BDR 1.0 used to send the start-of-commit lsn (commit_lsn) in BEGIN, not
+	 * the position of the end of the commit record, and we might have used
+	 * that in the replorigin settings if that's all we had.
 	 *
-	 * That's wrong; we're supposed to use end-of-commit + 1. But with BDR
-	 * 1.0 we don't have that information. To protect against replaying
-	 * the same commit again, report that we've flushed at least 1 byte
-	 * past start-of-commit.
+	 * That's wrong; we're supposed to use end-of-commit + 1. But with BDR 1.0
+	 * we don't have that information. To protect against replaying the same
+	 * commit again, report that we've flushed at least 1 byte past
+	 * start-of-commit.
 	 */
 	if (replorigin_session_origin_lsn == commit_lsn)
 		replorigin_session_origin_lsn += 1;
@@ -521,8 +527,8 @@ process_remote_commit(StringInfo s)
 	 *
 	 * However, if we're in catchup mode, see if the commit is relayed from
 	 * elsewhere and advance the replication origin corresponding to the
-	 * appropriate node, since that won't get advanced automatically
-	 * on commit.
+	 * appropriate node, since that won't get advanced automatically on
+	 * commit.
 	 */
 	if (remote_origin_id != InvalidRepOriginId &&
 		remote_origin_id != replorigin_session_origin)
@@ -533,7 +539,7 @@ process_remote_commit(StringInfo s)
 		 * change data at the right place.
 		 */
 		replorigin_advance(remote_origin_id, remote_origin_lsn,
-				XactLastCommitEnd, false, true);
+						   XactLastCommitEnd, false, true);
 	}
 
 	CurrentResourceOwner = bdr_saved_resowner;
@@ -552,12 +558,13 @@ process_remote_commit(StringInfo s)
 	 * start of the next record, we should stop if replay equals it.
 	 */
 	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr
-			&& bdr_apply_worker->replay_stop_lsn <= commit_afterend_lsn)
+		&& bdr_apply_worker->replay_stop_lsn <= commit_afterend_lsn)
 	{
 		ereport(LOG,
 				(errmsg("bdr apply finished processing; replayed up to %X/%X of required %X/%X",
-				 (uint32)(commit_afterend_lsn>>32), (uint32)commit_afterend_lsn,
-				 (uint32)(bdr_apply_worker->replay_stop_lsn>>32), (uint32)bdr_apply_worker->replay_stop_lsn)));
+						(uint32) (commit_afterend_lsn >> 32), (uint32) commit_afterend_lsn,
+						(uint32) (bdr_apply_worker->replay_stop_lsn >> 32), (uint32) bdr_apply_worker->replay_stop_lsn)));
+
 		/*
 		 * We clear the replay_stop_lsn field to indicate successful catchup,
 		 * so we don't need a separate flag field in shmem for all apply
@@ -565,7 +572,10 @@ process_remote_commit(StringInfo s)
 		 */
 		bdr_apply_worker->replay_stop_lsn = InvalidXLogRecPtr;
 
-		/* flush all writes so the latest position can be reported back to the sender */
+		/*
+		 * flush all writes so the latest position can be reported back to the
+		 * sender
+		 */
 		XLogFlush(GetXLogWriteRecPtr());
 
 		/* Stop gracefully */
@@ -584,12 +594,12 @@ process_remote_insert(StringInfo s)
 	BDRTupleData new_tuple;
 	TupleTableSlot *newslot;
 	TupleTableSlot *oldslot;
-	BDRRelation	*rel;
+	BDRRelation *rel;
 	bool		started_tx;
 	ResultRelInfo *relinfo;
 	ItemPointer conflicts;
 	bool		conflict = false;
-	ScanKey	   *index_keys;
+	ScanKey    *index_keys;
 	int			i;
 	ItemPointerData conflicting_tid;
 	ErrorContextCallback errcallback;
@@ -614,9 +624,10 @@ process_remote_insert(StringInfo s)
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_action_description(&si, "INSERT",
-				cbarg.remote_nspname, cbarg.remote_relname, false);
+								  cbarg.remote_nspname, cbarg.remote_relname, false);
 		cbarg.suppress_output = true;
 		elog(LOG, "TRACE: %s", si.data);
 		cbarg.suppress_output = false;
@@ -636,7 +647,8 @@ process_remote_insert(StringInfo s)
 
 	read_tuple_parts(s, rel, &new_tuple);
 	{
-		HeapTuple tup;
+		HeapTuple	tup;
+
 		tup = heap_form_tuple(RelationGetDescr(rel->rel),
 							  new_tuple.values, new_tuple.isnull);
 		ExecStoreTuple(tup, newslot, InvalidBuffer, true);
@@ -656,7 +668,7 @@ process_remote_insert(StringInfo s)
 	 */
 	ExecOpenIndices(estate->es_result_relation_info, false);
 	relinfo = estate->es_result_relation_info;
-	index_keys = palloc0(relinfo->ri_NumIndices * sizeof(ScanKeyData*));
+	index_keys = palloc0(relinfo->ri_NumIndices * sizeof(ScanKeyData *));
 	conflicts = palloc0(relinfo->ri_NumIndices * sizeof(ItemPointerData));
 
 	build_index_scan_keys(estate, index_keys, &new_tuple);
@@ -665,7 +677,7 @@ process_remote_insert(StringInfo s)
 	for (i = 0; i < relinfo->ri_NumIndices; i++)
 	{
 		IndexInfo  *ii = relinfo->ri_IndexRelationInfo[i];
-		bool found = false;
+		bool		found = false;
 
 		/*
 		 * Only unique indexes are of interest here, and we can't deal with
@@ -695,13 +707,13 @@ process_remote_insert(StringInfo s)
 		{
 			/* TODO: Report tuple identity in log */
 			ereport(ERROR,
-				(errcode(ERRCODE_UNIQUE_VIOLATION),
-				errmsg("multiple unique constraints violated by remotely INSERTed tuple"),
-				errdetail("Cannot apply transaction because remotely INSERTed tuple "
-					  "conflicts with a local tuple on more than one UNIQUE "
-					  "constraint and/or PRIMARY KEY"),
-				errhint("Resolve the conflict by removing or changing the conflicting "
-					"local tuple")));
+					(errcode(ERRCODE_UNIQUE_VIOLATION),
+					 errmsg("multiple unique constraints violated by remotely INSERTed tuple"),
+					 errdetail("Cannot apply transaction because remotely INSERTed tuple "
+							   "conflicts with a local tuple on more than one UNIQUE "
+							   "constraint and/or PRIMARY KEY"),
+					 errhint("Resolve the conflict by removing or changing the conflicting "
+							 "local tuple")));
 		}
 		else if (found)
 		{
@@ -724,11 +736,11 @@ process_remote_insert(StringInfo s)
 	if (conflict)
 	{
 		TimestampTz local_ts;
-		RepOriginId	local_node_id;
+		RepOriginId local_node_id;
 		bool		apply_update;
 		bool		log_update;
 		HeapTuple	user_tuple = NULL;
-		BdrApplyConflict *apply_conflict = NULL; /* Mute compiler */
+		BdrApplyConflict *apply_conflict = NULL;	/* Mute compiler */
 		BdrConflictResolution resolution;
 
 		get_local_tuple_origin(oldslot->tts_tuple, &local_ts, &local_node_id);
@@ -748,9 +760,9 @@ process_remote_insert(StringInfo s)
 		if (log_update)
 		{
 			apply_conflict = bdr_make_apply_conflict(
-				BdrConflictType_InsertInsert, resolution,
-				replication_origin_xid, rel, oldslot, local_node_id,
-				newslot, local_ts, NULL /*no error*/);
+													 BdrConflictType_InsertInsert, resolution,
+													 replication_origin_xid, rel, oldslot, local_node_id,
+													 newslot, local_ts, NULL /* no error */ );
 
 			bdr_conflict_log_serverlog(apply_conflict);
 
@@ -763,8 +775,8 @@ process_remote_insert(StringInfo s)
 		if (apply_update)
 		{
 			/*
-			 * User specified conflict handler provided a new tuple; form it to
-			 * a bdr tuple.
+			 * User specified conflict handler provided a new tuple; form it
+			 * to a bdr tuple.
 			 */
 			if (user_tuple)
 			{
@@ -807,11 +819,11 @@ process_remote_insert(StringInfo s)
 	if (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
 		RelationGetRelid(rel->rel) == QueuedDropsRelid)
 	{
-		HeapTuple ht;
+		HeapTuple	ht;
 		LockRelId	lockid = rel->rel->rd_lockInfo.lockRelId;
 		TransactionId oldxid = GetTopTransactionId();
-		Oid relid = RelationGetRelid(rel->rel);
-		Relation qrel;
+		Oid			relid = RelationGetRelid(rel->rel);
+		Relation	qrel;
 
 		/* there never should be conflicts on these */
 		Assert(!conflict);
@@ -879,7 +891,7 @@ process_remote_update(StringInfo s)
 	BDRTupleData old_tuple;
 	BDRTupleData new_tuple;
 	Oid			idxoid;
-	BDRRelation	*rel;
+	BDRRelation *rel;
 	Relation	idxrel;
 	ScanKeyData skey[INDEX_MAX_KEYS];
 	HeapTuple	user_tuple = NULL,
@@ -902,9 +914,10 @@ process_remote_update(StringInfo s)
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_action_description(&si, "UPDATE",
-				cbarg.remote_nspname, cbarg.remote_relname, false);
+								  cbarg.remote_nspname, cbarg.remote_relname, false);
 		cbarg.suppress_output = true;
 		elog(LOG, "TRACE: %s", si.data);
 		cbarg.suppress_output = false;
@@ -969,15 +982,15 @@ process_remote_update(StringInfo s)
 
 	/* look for tuple identified by the (old) primary key */
 	found_tuple = find_pkey_tuple(skey, rel, idxrel, oldslot, true,
-						pkey_sent ? LockTupleExclusive : LockTupleNoKeyExclusive);
+								  pkey_sent ? LockTupleExclusive : LockTupleNoKeyExclusive);
 
 	if (found_tuple)
 	{
 		TimestampTz local_ts;
-		RepOriginId	local_node_id;
+		RepOriginId local_node_id;
 		bool		apply_update;
 		bool		log_update;
-		BdrApplyConflict *apply_conflict = NULL; /* Mute compiler */
+		BdrApplyConflict *apply_conflict = NULL;	/* Mute compiler */
 		BdrConflictResolution resolution;
 
 		remote_tuple = heap_modify_tuple(oldslot->tts_tuple,
@@ -991,6 +1004,7 @@ process_remote_update(StringInfo s)
 #ifdef VERBOSE_UPDATE
 		{
 			StringInfoData o;
+
 			initStringInfo(&o);
 			tuple_to_stringinfo(&o, RelationGetDescr(rel->rel), oldslot->tts_tuple);
 			appendStringInfo(&o, " to");
@@ -1018,9 +1032,9 @@ process_remote_update(StringInfo s)
 		if (log_update)
 		{
 			apply_conflict = bdr_make_apply_conflict(
-				BdrConflictType_UpdateUpdate, resolution,
-				replication_origin_xid, rel, oldslot, local_node_id,
-				newslot, local_ts, NULL /*no error*/);
+													 BdrConflictType_UpdateUpdate, resolution,
+													 replication_origin_xid, rel, oldslot, local_node_id,
+													 newslot, local_ts, NULL /* no error */ );
 
 			bdr_conflict_log_serverlog(apply_conflict);
 
@@ -1030,8 +1044,8 @@ process_remote_update(StringInfo s)
 		if (apply_update)
 		{
 			/*
-			 * User specified conflict handler provided a new tuple; form it to
-			 * a bdr tuple.
+			 * User specified conflict handler provided a new tuple; form it
+			 * to a bdr tuple.
 			 */
 			if (user_tuple)
 			{
@@ -1056,12 +1070,12 @@ process_remote_update(StringInfo s)
 	else
 	{
 		/*
-		 * Update target is missing. We don't know if this is an update-vs-delete
-		 * conflict or if the target tuple came from some 3rd node and hasn't yet
-		 * been applied to the local node.
+		 * Update target is missing. We don't know if this is an
+		 * update-vs-delete conflict or if the target tuple came from some 3rd
+		 * node and hasn't yet been applied to the local node.
 		 */
 
-		bool skip = false;
+		bool		skip = false;
 		BdrApplyConflict *apply_conflict;
 		BdrConflictResolution resolution;
 
@@ -1087,8 +1101,8 @@ process_remote_update(StringInfo s)
 
 
 		apply_conflict = bdr_make_apply_conflict(
-			BdrConflictType_UpdateDelete, resolution, replication_origin_xid,
-			rel, NULL, InvalidRepOriginId, newslot, 0, NULL /*no error*/);
+												 BdrConflictType_UpdateDelete, resolution, replication_origin_xid,
+												 rel, NULL, InvalidRepOriginId, newslot, 0, NULL /* no error */ );
 
 		bdr_conflict_log_serverlog(apply_conflict);
 
@@ -1136,7 +1150,7 @@ process_remote_delete(StringInfo s)
 	BDRTupleData oldtup;
 	TupleTableSlot *oldslot;
 	Oid			idxoid;
-	BDRRelation	*rel;
+	BDRRelation *rel;
 	Relation	idxrel;
 	ScanKeyData skey[INDEX_MAX_KEYS];
 	bool		found_old;
@@ -1160,9 +1174,10 @@ process_remote_delete(StringInfo s)
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_action_description(&si, "DELETE",
-				cbarg.remote_nspname, cbarg.remote_relname, false);
+								  cbarg.remote_nspname, cbarg.remote_relname, false);
 		cbarg.suppress_output = true;
 		elog(LOG, "TRACE: %s", si.data);
 		cbarg.suppress_output = false;
@@ -1207,7 +1222,8 @@ process_remote_delete(StringInfo s)
 
 #ifdef VERBOSE_DELETE
 	{
-		HeapTuple tup;
+		HeapTuple	tup;
+
 		tup = heap_form_tuple(RelationGetDescr(rel->rel),
 							  oldtup.values, oldtup.isnull);
 		ExecStoreTuple(tup, oldslot, InvalidBuffer, true);
@@ -1271,11 +1287,11 @@ process_remote_delete(StringInfo s)
 					(errmsg("DELETE vs DELETE handler returned a row which isn't allowed.")));
 
 		apply_conflict = bdr_make_apply_conflict(
-			BdrConflictType_DeleteDelete,
-			skip ? BdrConflictResolution_ConflictTriggerSkipChange :
-				   BdrConflictResolution_DefaultSkipChange,
-			replication_origin_xid,	rel, NULL, InvalidRepOriginId,
-			oldslot, 0, NULL /*no error*/);
+												 BdrConflictType_DeleteDelete,
+												 skip ? BdrConflictResolution_ConflictTriggerSkipChange :
+												 BdrConflictResolution_DefaultSkipChange,
+												 replication_origin_xid, rel, NULL, InvalidRepOriginId,
+												 oldslot, 0, NULL /* no error */ );
 
 		bdr_conflict_log_serverlog(apply_conflict);
 		bdr_conflict_log_table(apply_conflict);
@@ -1304,8 +1320,8 @@ process_remote_delete(StringInfo s)
 static void
 get_local_tuple_origin(HeapTuple tuple, TimestampTz *commit_ts, RepOriginId *node_id)
 {
-	TransactionId	xmin;
-	RepOriginId	node_id_raw;
+	TransactionId xmin;
+	RepOriginId node_id_raw;
 
 	/* refetch tuple, check for old commit ts & origin */
 	xmin = HeapTupleHeaderGetXmin(tuple->t_data);
@@ -1323,7 +1339,7 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 							  TimestampTz local_ts,
 							  TimestampTz remote_ts,
 							  bool *perform_update, bool *log_update,
-							  BdrConflictResolution *resolution)
+							  BdrConflictResolution * resolution)
 {
 	int			cmp;
 
@@ -1345,11 +1361,12 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 	}
 	else
 	{
-		BDRNodeId local, remote;
+		BDRNodeId	local,
+					remote;
 
 		/*
-		 * Timestamps are equal. Use sysid + timeline id to decide which
-		 * tuple to retain.
+		 * Timestamps are equal. Use sysid + timeline id to decide which tuple
+		 * to retain.
 		 */
 		bdr_fetch_sysid_via_node_id(local_node_id, &local);
 		bdr_fetch_sysid_via_node_id(remote_node_id, &remote);
@@ -1379,9 +1396,8 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 
 		/*
 		 * We don't log whether we used timestamp, sysid or timeline id to
-		 * decide which tuple to retain. That'll be in the log record
-		 * anyway, so we can reconstruct the decision from the log record
-		 * later.
+		 * decide which tuple to retain. That'll be in the log record anyway,
+		 * so we can reconstruct the decision from the log record later.
 		 */
 		if (*perform_update)
 		{
@@ -1410,10 +1426,10 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 static void
 check_apply_update(BdrConflictType conflict_type,
 				   RepOriginId local_node_id, TimestampTz local_ts,
-				   BDRRelation *rel, HeapTuple local_tuple,
+				   BDRRelation * rel, HeapTuple local_tuple,
 				   HeapTuple remote_tuple, HeapTuple *new_tuple,
 				   bool *perform_update, bool *log_update,
-				   BdrConflictResolution *resolution)
+				   BdrConflictResolution * resolution)
 {
 	int			microsecs;
 	long		secs;
@@ -1445,19 +1461,17 @@ check_apply_update(BdrConflictType conflict_type,
 	 * Decide whether to keep the remote or local tuple based on a conflict
 	 * trigger (if defined) or last-update-wins.
 	 *
-	 * If the caller doesn't provide storage for the conflict handler to
-	 * store a new tuple in, don't fire any conflict triggers.
+	 * If the caller doesn't provide storage for the conflict handler to store
+	 * a new tuple in, don't fire any conflict triggers.
 	 */
 
 	if (new_tuple)
 	{
 		/*
-		 * --------------
-		 * Conflict trigger conflict handling - let the user decide whether to:
-		 * - Ignore the remote update;
-		 * - Supply a new tuple to replace the current tuple; or
-		 * - Take no action and fall through to the next handling option
-		 * --------------
+		 * -------------- Conflict trigger conflict handling - let the user
+		 * decide whether to: - Ignore the remote update; - Supply a new tuple
+		 * to replace the current tuple; or - Take no action and fall through
+		 * to the next handling option --------------
 		 */
 
 		abs_timestamp_difference(replorigin_session_origin_timestamp, local_ts,
@@ -1527,14 +1541,14 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 
 	guc_nestlevel = NewGUCNestLevel();
 
-    /* Force everything in the query to be fully qualified. */
+	/* Force everything in the query to be fully qualified. */
 	(void) set_config_option("search_path", search_path,
 							 PGC_USERSET, PGC_S_SESSION,
 							 GUC_ACTION_SAVE, true, 0
 #if PG_VERSION_NUM >= 90500
-							 , false
+							 ,false
 #endif
-							 );
+		);
 
 	commands = pg_parse_query(cmdstr);
 
@@ -1542,8 +1556,8 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 
 	/*
 	 * Do a limited amount of safety checking against CONCURRENTLY commands
-	 * executed in situations where they aren't allowed. The sender side should
-	 * provide protection, but better be safe than sorry.
+	 * executed in situations where they aren't allowed. The sender side
+	 * should provide protection, but better be safe than sorry.
 	 */
 	isTopLevel = (list_length(commands) == 1) && tx_just_started;
 
@@ -1551,7 +1565,7 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 	{
 		List	   *plantree_list;
 		List	   *querytree_list;
-		RawStmt	   *command = lfirst_node(RawStmt, command_i);
+		RawStmt    *command = lfirst_node(RawStmt, command_i);
 		const char *commandTag;
 		Portal		portal;
 		DestReceiver *receiver;
@@ -1570,10 +1584,10 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 		commandTag = CreateCommandTag(command->stmt);
 
 		querytree_list = pg_analyze_and_rewrite(
-			command, cmdstr, NULL, 0, NULL);
+												command, cmdstr, NULL, 0, NULL);
 
 		plantree_list = pg_plan_queries(
-			querytree_list, 0, NULL);
+										querytree_list, 0, NULL);
 
 		PopActiveSnapshot();
 
@@ -1599,8 +1613,8 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 	}
 
 	/*
-	 * To protect against stack resets during CONCURRENTLY processing,
-	 * only restore the errcontext if it's how we left it.
+	 * To protect against stack resets during CONCURRENTLY processing, only
+	 * restore the errcontext if it's how we left it.
 	 */
 	if (error_context_stack == &errcallback)
 		error_context_stack = errcallback.previous;
@@ -1619,7 +1633,7 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 	char	   *command_tag;
 	char	   *cmdstr;
 	bool		isnull;
-	char       *perpetrator;
+	char	   *perpetrator;
 	char	   *search_path;
 	MemoryContext oldcontext;
 
@@ -1668,8 +1682,8 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 	if (isnull)
 	{
 		/*
-		 * Older BDR versions didn't have search_path and we can't UPDATE
-		 * old rows, so there will be nulls. Those prior versions also forced
+		 * Older BDR versions didn't have search_path and we can't UPDATE old
+		 * rows, so there will be nulls. Those prior versions also forced
 		 * search_path to '' so we can safely assume as much.
 		 */
 		search_path = "";
@@ -1707,7 +1721,7 @@ struct ObjectAddresses
 static void
 format_drop_objectlist(StringInfo si, ObjectAddresses *addrs)
 {
-	int i;
+	int			i;
 
 	for (i = addrs->numrefs - 1; i >= 0; i--)
 	{
@@ -1722,6 +1736,7 @@ queued_drop_error_callback(void *arg)
 {
 	ObjectAddresses *addrs = (ObjectAddresses *) arg;
 	StringInfoData si;
+
 	initStringInfo(&si);
 
 	format_drop_objectlist(&si, addrs);
@@ -1785,15 +1800,15 @@ process_queued_drop(HeapTuple cmdtup)
 
 	for (i = 0; i < nelems; i++)
 	{
-		HeapTupleHeader	elemhdr;
+		HeapTupleHeader elemhdr;
 		HeapTupleData tmptup;
-		ObjectType objtype;
-		Datum	datum;
-		bool	isnull;
-		char   *type;
-		List   *objnames;
-		List   *objargs = NIL;
-		Relation objrel;
+		ObjectType	objtype;
+		Datum		datum;
+		bool		isnull;
+		char	   *type;
+		List	   *objnames;
+		List	   *objargs = NIL;
+		Relation	objrel;
 		ObjectAddress addr;
 
 		elemhdr = (HeapTupleHeader) DatumGetPointer(values[i]);
@@ -1822,11 +1837,11 @@ process_queued_drop(HeapTuple cmdtup)
 		if (objtype == OBJECT_TYPE ||
 			objtype == OBJECT_DOMAIN)
 		{
-			Datum  *values;
-			bool   *nulls;
-			int		nelems;
-			char   *typestring;
-			TypeName *typeName;
+			Datum	   *values;
+			bool	   *nulls;
+			int			nelems;
+			char	   *typestring;
+			TypeName   *typeName;
 
 			datum = heap_getattr(&tmptup, 2, elemdesc, &isnull);
 			if (isnull)
@@ -1847,11 +1862,11 @@ process_queued_drop(HeapTuple cmdtup)
 				 objtype == OBJECT_AGGREGATE ||
 				 objtype == OBJECT_OPERATOR)
 		{
-			Datum  *values;
-			bool   *nulls;
-			int		nelems;
-			int		i;
-			char   *typestring;
+			Datum	   *values;
+			bool	   *nulls;
+			int			nelems;
+			int			i;
+			char	   *typestring;
 
 			/* objname */
 			objnames = NIL;
@@ -1896,10 +1911,10 @@ process_queued_drop(HeapTuple cmdtup)
 		}
 		else
 		{
-			Datum  *values;
-			bool   *nulls;
-			int		nelems;
-			int		i;
+			Datum	   *values;
+			bool	   *nulls;
+			int			nelems;
+			int			i;
 
 			/* objname */
 			objnames = NIL;
@@ -1920,10 +1935,10 @@ process_queued_drop(HeapTuple cmdtup)
 			datum = heap_getattr(&tmptup, 3, elemdesc, &isnull);
 			if (!isnull)
 			{
-				Datum  *values;
-				bool   *nulls;
-				int		nelems;
-				int		i;
+				Datum	   *values;
+				bool	   *nulls;
+				int			nelems;
+				int			i;
 
 				deconstruct_array(DatumGetArrayTypeP(datum),
 								  TEXTOID, -1, false, 'i',
@@ -1944,7 +1959,8 @@ process_queued_drop(HeapTuple cmdtup)
 		/*
 		 * For certain objects, get_object_address returned us an open and
 		 * locked relation.  Close it because we have no use for it; but
-		 * keeping the lock seems easier than figure out lock level to release.
+		 * keeping the lock seems easier than figure out lock level to
+		 * release.
 		 */
 		if (objrel != NULL)
 			relation_close(objrel, NoLock);
@@ -1955,6 +1971,7 @@ process_queued_drop(HeapTuple cmdtup)
 	if (bdr_trace_replay)
 	{
 		StringInfoData si;
+
 		initStringInfo(&si);
 		format_drop_objectlist(&si, addresses);
 		elog(LOG, "TRACE: QUEUED_DROP: %s", si.data);
@@ -1996,7 +2013,7 @@ bdr_performing_work(void)
 }
 
 static void
-check_bdr_wakeups(BDRRelation *rel)
+check_bdr_wakeups(BDRRelation * rel)
 {
 	Oid			schemaoid = RelationGetNamespace(rel->rel);
 	Oid			reloid = RelationGetRelid(rel->rel);
@@ -2013,23 +2030,23 @@ check_bdr_wakeups(BDRRelation *rel)
 }
 
 static void
-read_tuple_parts_error_badatts(BDRRelation *rel, TupleDesc desc, int rnatts)
+read_tuple_parts_error_badatts(BDRRelation * rel, TupleDesc desc, int rnatts)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 			 errmsg("remote tuple has different column count to local table and mismatched columns were not null/dropped"),
-			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node "BDR_NODEID_FORMAT_WITHNAME" vs %u on remote node "BDR_NODEID_FORMAT_WITHNAME,
-						get_namespace_name(RelationGetNamespace(rel->rel)), RelationGetRelationName(rel->rel),
-						RelationGetRelid(rel->rel),
-						desc->natts,
-						BDR_LOCALID_FORMAT_WITHNAME_ARGS,
-						rnatts,
-						BDR_NODEID_FORMAT_WITHNAME_ARGS(origin)),
+			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME,
+					   get_namespace_name(RelationGetNamespace(rel->rel)), RelationGetRelationName(rel->rel),
+					   RelationGetRelid(rel->rel),
+					   desc->natts,
+					   BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+					   rnatts,
+					   BDR_NODEID_FORMAT_WITHNAME_ARGS(origin)),
 			 errhint("This error arises if the number of columns on two nodes differ and BDR cannot right-pad with nulls or ignore extra right-hand nulls. This is most commonly caused by unsafe use of the bdr.skip_ddl_replication and/or bdr.skip_ddl_locking settings.")));
 }
 
 static void
-read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
+read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
 {
 	TupleDesc	desc = RelationGetDescr(rel->rel);
 	int			i;
@@ -2060,20 +2077,20 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 
 		switch (kind)
 		{
-			case 'n': /* null */
+			case 'n':			/* null */
 				/* already marked as null */
 				tup->values[i] = 0xdeadbeef;
 				break;
-			case 'u': /* unchanged column */
+			case 'u':			/* unchanged column */
 				tup->isnull[i] = true;
 				tup->changed[i] = false;
-				tup->values[i] = 0xdeadbeef; /* make bad usage more obvious */
+				tup->values[i] = 0xdeadbeef;	/* make bad usage more obvious */
 
 				break;
 
-			case 'b': /* binary format */
+			case 'b':			/* binary format */
 				tup->isnull[i] = false;
-				len = pq_getmsgint(s, 4); /* read length */
+				len = pq_getmsgint(s, 4);	/* read length */
 
 				data = pq_getmsgbytes(s, len);
 
@@ -2083,14 +2100,14 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 				else
 					tup->values[i] = PointerGetDatum(data);
 				break;
-			case 's': /* send/recv format */
+			case 's':			/* send/recv format */
 				{
-					Oid typreceive;
-					Oid typioparam;
+					Oid			typreceive;
+					Oid			typioparam;
 					StringInfoData buf;
 
 					tup->isnull[i] = false;
-					len = pq_getmsgint(s, 4); /* read length */
+					len = pq_getmsgint(s, 4);	/* read length */
 
 					getTypeBinaryInputInfo(att->atttypid,
 										   &typreceive, &typioparam);
@@ -2101,7 +2118,7 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 					buf.data = (char *) pq_getmsgbytes(s, len);
 					buf.len = len;
 					tup->values[i] = OidReceiveFunctionCall(
-						typreceive, &buf, typioparam, att->atttypmod);
+															typreceive, &buf, typioparam, att->atttypmod);
 
 					if (buf.len != buf.cursor)
 						ereport(ERROR,
@@ -2109,19 +2126,19 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 								 errmsg("incorrect binary data format")));
 					break;
 				}
-			case 't': /* text format */
+			case 't':			/* text format */
 				{
-					Oid typinput;
-					Oid typioparam;
+					Oid			typinput;
+					Oid			typioparam;
 
 					tup->isnull[i] = false;
-					len = pq_getmsgint(s, 4); /* read length */
+					len = pq_getmsgint(s, 4);	/* read length */
 
 					getTypeInputInfo(att->atttypid, &typinput, &typioparam);
 					/* and data */
 					data = (char *) pq_getmsgbytes(s, len);
 					tup->values[i] = OidInputFunctionCall(
-						typinput, (char *) data, typioparam, att->atttypmod);
+														  typinput, (char *) data, typioparam, att->atttypmod);
 				}
 				break;
 			default:
@@ -2143,11 +2160,11 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 		/*
 		 * If the remote-missing attribute(s) are locally dropped or nullable,
 		 * we can right-pad the local tuple with nulls. Attnos can never be
-		 * *inserted* in a Pg table only *appended* so this is ... fairly safe.
-		 * You could get in situations where the same attno meant something
-		 * different on different nodes, but you can do the same when the attno
-		 * count matches, so it's no worse doing the right padding than any
-		 * other time.
+		 * *inserted* in a Pg table only *appended* so this is ... fairly
+		 * safe. You could get in situations where the same attno meant
+		 * something different on different nodes, but you can do the same
+		 * when the attno count matches, so it's no worse doing the right
+		 * padding than any other time.
 		 */
 		if (!att->attisdropped && att->attnotnull)
 		{
@@ -2164,8 +2181,8 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 		}
 
 		/*
-		 * Flag it null, and put some garbage in so we crash clearly if we
-		 * try to use it anyway.
+		 * Flag it null, and put some garbage in so we crash clearly if we try
+		 * to use it anyway.
 		 */
 		tup->isnull[i] = true;
 		tup->values[i] = 0xdeadbeef;
@@ -2174,15 +2191,15 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 	/*
 	 * Discard trailing nulls on a too-wide remote tuple. See RM#2814.
 	 *
-	 * There are too many attributes in the incoming tuple. We can accept
-	 * this if we can confirm that the incoming attributes are all null,
-	 * since we're not discarding anything interesting then, and the outcome
-	 * will be the same when the missing col is added locally since we disallow
-	 * table rewrites like ALTER TABLE ... ADD COLUMN ... DEFAULT .
+	 * There are too many attributes in the incoming tuple. We can accept this
+	 * if we can confirm that the incoming attributes are all null, since
+	 * we're not discarding anything interesting then, and the outcome will be
+	 * the same when the missing col is added locally since we disallow table
+	 * rewrites like ALTER TABLE ... ADD COLUMN ... DEFAULT .
 	 *
-	 * Note that there's no storage for this attribute in 'tup' since it's only
-	 * as wide as the local table. As far as the caller is concerned the extra
-	 * values were never there.
+	 * Note that there's no storage for this attribute in 'tup' since it's
+	 * only as wide as the local table. As far as the caller is concerned the
+	 * extra values were never there.
 	 */
 	for (i = desc->natts; i < rnatts; i++)
 	{
@@ -2192,9 +2209,10 @@ read_tuple_parts(StringInfo s, BDRRelation *rel, BDRTupleData *tup)
 		if (kind != 'n' && bdr_discard_mismatched_row_attributes)
 		{
 			/*
-			 * User has overridden behaviour and forced discarding of row data.
-			 * This can be useful to recover from broken replication, but it's
-			 * a bad idea since it results in divergence on these values.
+			 * User has overridden behaviour and forced discarding of row
+			 * data. This can be useful to recover from broken replication,
+			 * but it's a bad idea since it results in divergence on these
+			 * values.
 			 *
 			 * LOG is stronger than WARNING for server log and this is
 			 * important to record. Log flooding could be an issue, but this
@@ -2222,7 +2240,7 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 {
 	int			relnamelen;
 	int			nspnamelen;
-	RangeVar*	rv;
+	RangeVar   *rv;
 	Oid			relid;
 
 	rv = makeNode(RangeVar);
@@ -2238,9 +2256,9 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 	relid = RangeVarGetRelidExtended(rv, mode, 0, NULL, NULL);
 
 	/*
-	 * Acquire sequencer lock if any of the sequencer relations are
-	 * modified. We used to rely on relation locks, but that had problems with
-	 * deadlocks and interrupting auto-analyze/vacuum.
+	 * Acquire sequencer lock if any of the sequencer relations are modified.
+	 * We used to rely on relation locks, but that had problems with deadlocks
+	 * and interrupting auto-analyze/vacuum.
 	 */
 	if (isBdrGlobalSeqRelId(relid))
 		bdr_sequencer_lock();
@@ -2256,7 +2274,8 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 static void
 bdr_process_remote_action(StringInfo s)
 {
-	char action = pq_getmsgbyte(s);
+	char		action = pq_getmsgbyte(s);
+
 	Assert(CurrentMemoryContext == MessageContext);
 	switch (action)
 	{
@@ -2368,8 +2387,8 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 	static XLogRecPtr last_writepos = InvalidXLogRecPtr;
 	static XLogRecPtr last_flushpos = InvalidXLogRecPtr;
 
-	XLogRecPtr writepos;
-	XLogRecPtr flushpos;
+	XLogRecPtr	writepos;
+	XLogRecPtr	flushpos;
 
 	/* It's legal to not pass a recvpos */
 	if (recvpos < last_recvpos)
@@ -2398,15 +2417,15 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 
 	replybuf[len] = 'r';
 	len += 1;
-	bdr_sendint64(recvpos, &replybuf[len]);			/* write */
+	bdr_sendint64(recvpos, &replybuf[len]); /* write */
 	len += 8;
-	bdr_sendint64(flushpos, &replybuf[len]);		/* flush */
+	bdr_sendint64(flushpos, &replybuf[len]);	/* flush */
 	len += 8;
-	bdr_sendint64(writepos, &replybuf[len]);		/* apply */
+	bdr_sendint64(writepos, &replybuf[len]);	/* apply */
 	len += 8;
-	bdr_sendint64(now, &replybuf[len]);				/* sendTime */
+	bdr_sendint64(now, &replybuf[len]); /* sendTime */
 	len += 8;
-	replybuf[len] = false;							/* replyRequested */
+	replybuf[len] = false;		/* replyRequested */
 	len += 1;
 
 	elog(DEBUG2, "sending feedback (force %d) to recv %X/%X, write %X/%X, flush %X/%X",
@@ -2447,7 +2466,7 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
  */
 static void
 abs_timestamp_difference(TimestampTz start_time, TimestampTz stop_time,
-					long *secs, int *microsecs)
+						 long *secs, int *microsecs)
 {
 	if (TIMESTAMP_NOT_FINITE(start_time) || TIMESTAMP_NOT_FINITE(stop_time))
 	{
@@ -2496,15 +2515,15 @@ bdr_apply_reload_config()
 
 	/* Fetch our config from the DB */
 	new_apply_config = bdr_get_connection_config(
-		&bdr_apply_worker->remote_node,
-		false);
+												 &bdr_apply_worker->remote_node,
+												 false);
 
 	Assert(bdr_nodeid_eq(&new_apply_config->remote_node, &bdr_apply_worker->remote_node));
 
 	/*
-	 * Got default remote connection info, read also local defaults.
-	 * Otherwise we would be using replication sets and apply delay from the
-	 * remote node instead of the local one.
+	 * Got default remote connection info, read also local defaults. Otherwise
+	 * we would be using replication sets and apply delay from the remote node
+	 * instead of the local one.
 	 *
 	 * Note: this is slightly hacky and we should probably use the bdr_nodes
 	 * for this instead.
@@ -2546,7 +2565,7 @@ bdr_apply_reload_config()
  * The actual main loop of a BDR apply worker.
  */
 static void
-bdr_apply_work(PGconn* streamConn)
+bdr_apply_work(PGconn *streamConn)
 {
 	int			fd;
 	char	   *copybuf = NULL;
@@ -2647,7 +2666,7 @@ bdr_apply_work(PGconn* streamConn)
 			}
 			else
 			{
-				int c;
+				int			c;
 				StringInfoData s;
 
 				MemoryContextSwitchTo(MessageContext);
@@ -2678,32 +2697,32 @@ bdr_apply_work(PGconn* streamConn)
 				}
 				else if (c == 'k')
 				{
-					XLogRecPtr endpos;
-					bool reply_requested;
+					XLogRecPtr	endpos;
+					bool		reply_requested;
 
 					/*
 					 * Walsender keepalive/feedback message. We'll get these
 					 * both while idle and while we're replaying a transaction
 					 * data stream, to ensure the walsender knows we're alive
-					 * and kicking.  There's no need for us to schedule our own
-					 * keepalives, the walsender will send one with
-					 * reply-requested when needed, even in the middle of sending
-					 * a single big row or Datum.
+					 * and kicking.  There's no need for us to schedule our
+					 * own keepalives, the walsender will send one with
+					 * reply-requested when needed, even in the middle of
+					 * sending a single big row or Datum.
 					 *
-					 * Keepalives are also sent by the upstream when the server
-					 * is making changes that don't result in logical decoding
-					 * activity, so that it can advance the catalog_xmin and
-					 * restart_lsn of idle slots. It's also important for
-					 * synchronous replication so the upstream can confirm
-					 * commits since our reply tells the upstream we've flushed
-					 * anything we needed to.
+					 * Keepalives are also sent by the upstream when the
+					 * server is making changes that don't result in logical
+					 * decoding activity, so that it can advance the
+					 * catalog_xmin and restart_lsn of idle slots. It's also
+					 * important for synchronous replication so the upstream
+					 * can confirm commits since our reply tells the upstream
+					 * we've flushed anything we needed to.
 					 *
-					 * See:  WalSndKeepaliveIfNecessary(...), WalSndWriteData(...)
-					 * in walsender.c .
+					 * See:  WalSndKeepaliveIfNecessary(...),
+					 * WalSndWriteData(...) in walsender.c .
 					 */
 
 					endpos = pq_getmsgint64(&s);
-					/* timestamp = */ pq_getmsgint64(&s);
+					 /* timestamp = */ pq_getmsgint64(&s);
 					reply_requested = pq_getmsgbyte(&s);
 
 					bdr_send_feedback(streamConn, endpos,
@@ -2720,14 +2739,14 @@ bdr_apply_work(PGconn* streamConn)
 						  GetCurrentTimestamp(), false);
 
 		/*
-		 * If the user has paused replication with bdr_apply_pause(), we
-		 * wait on our procLatch until pg_bdr_apply_resume() unsets the
-		 * flag in shmem. We don't pause until the end of the current
-		 * transaction, to avoid sleeping with locks held.
+		 * If the user has paused replication with bdr_apply_pause(), we wait
+		 * on our procLatch until pg_bdr_apply_resume() unsets the flag in
+		 * shmem. We don't pause until the end of the current transaction, to
+		 * avoid sleeping with locks held.
 		 *
-		 * Sleep for 5 minutes before re-checking. We shouldn't really
-		 * need to since we set the proc latch on resume, but it doesn't
-		 * hurt to be careful.
+		 * Sleep for 5 minutes before re-checking. We shouldn't really need to
+		 * since we set the proc latch on resume, but it doesn't hurt to be
+		 * careful.
 		 */
 		while (BdrWorkerCtl->pause_apply && !IsTransactionState())
 		{
@@ -2742,10 +2761,9 @@ bdr_apply_work(PGconn* streamConn)
 			if (rc & WL_LATCH_SET)
 			{
 				/*
-				 * Setting the apply worker latch causes a recheck
-				 * of pause state, but it could also be an attempt
-				 * to reload the worker's configuration. Check whether
-				 * anything has changed.
+				 * Setting the apply worker latch causes a recheck of pause
+				 * state, but it could also be an attempt to reload the
+				 * worker's configuration. Check whether anything has changed.
 				 */
 				bdr_apply_reload_config();
 			}
@@ -2771,7 +2789,7 @@ bdr_apply_main(Datum main_arg)
 	PGresult   *res;
 	StringInfoData query;
 	char	   *sqlstate;
-	RepOriginId	replication_identifier;
+	RepOriginId replication_identifier;
 	XLogRecPtr	start_from;
 	NameData	slot_name;
 	char		status;
@@ -2787,8 +2805,8 @@ bdr_apply_main(Datum main_arg)
 	/*
 	 * Store our proclatch in our shmem segment.
 	 *
-	 * This must be protected by a lock so that nobody tries to
-	 * set our latch field while we're writing to it.
+	 * This must be protected by a lock so that nobody tries to set our latch
+	 * field while we're writing to it.
 	 */
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	if (BdrWorkerCtl->worker_management_paused)
@@ -2814,7 +2832,7 @@ bdr_apply_main(Datum main_arg)
 		elog(LOG, "unregistering worker, node has been killed");
 		bdr_worker_shmem_free(bdr_worker_slot, NULL);
 		bdr_worker_slot = NULL;
-		proc_exit(0); /* unregister */
+		proc_exit(0);			/* unregister */
 	}
 
 	/* Read our connection configuration from the database */
@@ -2825,14 +2843,14 @@ bdr_apply_main(Datum main_arg)
 	 * the remote name in pg_stat_activity here.
 	 */
 	resetStringInfo(&query);
-	appendStringInfo(&query, "%s:%s", bdr_apply_config->node_name , "apply");
+	appendStringInfo(&query, "%s:%s", bdr_apply_config->node_name, "apply");
 	if (bdr_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");
 
 	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 (uint32)(bdr_apply_worker->replay_stop_lsn >> 32),
-						 (uint32)bdr_apply_worker->replay_stop_lsn);
+						 (uint32) (bdr_apply_worker->replay_stop_lsn >> 32),
+						 (uint32) bdr_apply_worker->replay_stop_lsn);
 
 	SetConfigOption("application_name", query.data, PGC_USERSET, PGC_S_SESSION);
 
@@ -2851,12 +2869,12 @@ bdr_apply_main(Datum main_arg)
 
 	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 (uint32)(bdr_apply_worker->replay_stop_lsn >> 32),
-						 (uint32)bdr_apply_worker->replay_stop_lsn);
+						 (uint32) (bdr_apply_worker->replay_stop_lsn >> 32),
+						 (uint32) bdr_apply_worker->replay_stop_lsn);
 
 	/* Make the replication connection to the remote end */
 	streamConn = bdr_establish_connection_and_slot(bdr_apply_config->dsn,
-		query.data, &slot_name, &origin, &replication_identifier, NULL);
+												   query.data, &slot_name, &origin, &replication_identifier, NULL);
 
 
 	/* initialize stat subsystem, our id won't change further */
@@ -2872,9 +2890,9 @@ bdr_apply_main(Datum main_arg)
 	 * Check whether we already replayed something so we don't replay it
 	 * multiple times.
 	 *
-	 * The replication origin will contain the end of the last flushed
-	 * commit record + 1, which is the startpoint we want for the
-	 * (inclusive) argument to START_REPLICATION.
+	 * The replication origin will contain the end of the last flushed commit
+	 * record + 1, which is the startpoint we want for the (inclusive)
+	 * argument to START_REPLICATION.
 	 */
 	start_from = replorigin_session_get_progress(false);
 

@@ -39,11 +39,12 @@
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
-static int getattno(const char *colname);
-static char* bdr_textarr_to_identliststr(ArrayType *textarray);
+static int	getattno(const char *colname);
+static char *bdr_textarr_to_identliststr(ArrayType *textarray);
 
-Datum bdr_node_status_to_char(PG_FUNCTION_ARGS);
-Datum bdr_node_status_from_char(PG_FUNCTION_ARGS);
+Datum		bdr_node_status_to_char(PG_FUNCTION_ARGS);
+Datum		bdr_node_status_from_char(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_node_status_to_char);
 PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
 
@@ -81,7 +82,7 @@ BdrNodeStatus
 bdr_nodes_get_local_status(const BDRNodeId * const node)
 {
 	int			spi_ret;
-	Oid			argtypes[] = { TEXTOID, OIDOID, OIDOID };
+	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
 	Datum		values[3];
 	bool		isnull;
 	char		status;
@@ -91,30 +92,30 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 	Assert(IsTransactionState());
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	/*
-	 * Determine if BDR is present on this DB. The output plugin can
-	 * be started on a db that doesn't actually have BDR active, but
-	 * we don't want to allow that.
+	 * Determine if BDR is present on this DB. The output plugin can be
+	 * started on a db that doesn't actually have BDR active, but we don't
+	 * want to allow that.
 	 *
 	 * Check for a bdr schema.
 	 */
 	schema_oid = GetSysCacheOid1(NAMESPACENAME, CStringGetDatum("bdr"));
 	if (schema_oid == InvalidOid)
 		ereport(ERROR, (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				errmsg("No bdr schema is present in database %s, cannot create a bdr slot",
-					   get_database_name(MyDatabaseId)),
-				errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries")));
+						errmsg("No bdr schema is present in database %s, cannot create a bdr slot",
+							   get_database_name(MyDatabaseId)),
+						errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries")));
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(node->timeline);
 	values[2] = ObjectIdGetDatum(node->dboid);
 
 	spi_ret = SPI_execute_with_args(
-			"SELECT node_status FROM bdr.bdr_nodes "
-			"WHERE node_sysid = $1 AND node_timeline = $2 AND node_dboid = $3",
-			3, argtypes, values, NULL, false, 1);
+									"SELECT node_status FROM bdr.bdr_nodes "
+									"WHERE node_sysid = $1 AND node_timeline = $2 AND node_dboid = $3",
+									3, argtypes, values, NULL, false, 1);
 
 	if (spi_ret != SPI_OK_SELECT)
 		elog(ERROR, "Unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
@@ -123,12 +124,12 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 		return '\0';
 
 	status = DatumGetChar(SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1,
-						  &isnull));
+										&isnull));
 
 	if (isnull)
 		elog(ERROR, "bdr.bdr_nodes.status NULL; shouldn't happen");
 
-	return (BdrNodeStatus)status;
+	return (BdrNodeStatus) status;
 }
 
 /*
@@ -148,10 +149,10 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	Relation	rel;
 	RangeVar   *rv;
 	SysScanDesc scan;
-	ScanKeyData	key[3];
+	ScanKeyData key[3];
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
 	rel = heap_openrv(rv, RowExclusiveLock);
@@ -181,7 +182,7 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 
 		nodeinfo = palloc0(sizeof(BDRNodeInfo));
 		bdr_nodeid_cpy(&nodeinfo->id, node);
-		nodeinfo->status = (BdrNodeStatus)DatumGetChar(fastgetattr(tuple, 4, desc, &isnull));
+		nodeinfo->status = (BdrNodeStatus) DatumGetChar(fastgetattr(tuple, 4, desc, &isnull));
 		if (isnull)
 			elog(ERROR, "bdr.bdr_nodes.status NULL; shouldn't happen");
 
@@ -229,14 +230,14 @@ bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
 	Relation	rel;
 	RangeVar   *rv;
 	SysScanDesc scan;
-	ScanKeyData	key[1];
+	ScanKeyData key[1];
 	bool		found = false;
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
 	rel = heap_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key[0],
-				5, /* node_name attno */
+				5,				/* node_name attno */
 				BTEqualStrategyNumber, F_TEXTEQ,
 				CStringGetTextDatum(node_name));
 
@@ -263,7 +264,7 @@ bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
 		nodeid->timeline = DatumGetObjectId(fastgetattr(tuple, 2, desc, &isnull));
 		if (isnull)
 			elog(ERROR, "bdr.bdr_nodes.timeline is NULL; shouldn't happen");
-			
+
 		nodeid->dboid = DatumGetObjectId(fastgetattr(tuple, 3, desc, &isnull));
 		if (isnull)
 			elog(ERROR, "bdr.bdr_nodes.dboid is NULL; shouldn't happen");
@@ -279,7 +280,7 @@ bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
 
 /* Free the BDRNodeInfo pointer including its properties. */
 void
-bdr_bdr_node_free(BDRNodeInfo *node)
+bdr_bdr_node_free(BDRNodeInfo * node)
 {
 	if (node == NULL)
 		return;
@@ -314,7 +315,7 @@ void
 bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const int *seq_id)
 {
 	int			spi_ret;
-	Oid			argtypes[] = { CHAROID, TEXTOID, OIDOID, OIDOID, CHAROID, INT4OID };
+	Oid			argtypes[] = {CHAROID, TEXTOID, OIDOID, OIDOID, CHAROID, INT4OID};
 	char		nulls[] = {' ', ' ', ' ', ' ', ' ', ' '};
 	Datum		values[6];
 	char		sysid_str[33];
@@ -337,33 +338,33 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT,
 			 myid.sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
-	values[0] = CharGetDatum((char)status);
+	values[0] = CharGetDatum((char) status);
 	values[1] = CStringGetTextDatum(sysid_str);
 	values[2] = ObjectIdGetDatum(myid.timeline);
 	values[3] = ObjectIdGetDatum(myid.dboid);
-	values[4] = CharGetDatum((char)oldstatus);
+	values[4] = CharGetDatum((char) oldstatus);
 	if (seq_id != NULL)
 		values[5] = Int32GetDatum(*seq_id);
 	else
 		nulls[5] = 'n';
 
 	spi_ret = SPI_execute_with_args(
-							   "UPDATE bdr.bdr_nodes"
-							   "   SET node_status = $1,"
-							   "       node_seq_id = coalesce($6, node_seq_id)"
-							   " WHERE node_sysid = $2"
-							   "   AND node_timeline = $3"
-							   "   AND node_dboid = $4"
-							   "   AND node_status = $5;",
-							   6, argtypes, values, nulls, false, 0);
+									"UPDATE bdr.bdr_nodes"
+									"   SET node_status = $1,"
+									"       node_seq_id = coalesce($6, node_seq_id)"
+									" WHERE node_sysid = $2"
+									"   AND node_timeline = $3"
+									"   AND node_dboid = $4"
+									"   AND node_status = $5;",
+									6, argtypes, values, nulls, false, 0);
 
 	if (spi_ret != SPI_OK_UPDATE)
 		elog(ERROR, "Unable to set status=%c of row (node_sysid="
-					UINT64_FORMAT ", node_timeline=%u, node_dboid=%u) "
-					"in bdr.bdr_nodes: SPI error %d",
-					status, myid.sysid, myid.timeline, myid.dboid, spi_ret);
+			 UINT64_FORMAT ", node_timeline=%u, node_dboid=%u) "
+			 "in bdr.bdr_nodes: SPI error %d",
+			 status, myid.sysid, myid.timeline, myid.dboid, spi_ret);
 
 	SPI_finish();
 	PopActiveSnapshot();
@@ -377,7 +378,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
  * the active DB.
  */
 bool
-bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId *node, bool missing_ok)
+bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId * node, bool missing_ok)
 {
 	if (node_id == InvalidRepOriginId || node_id == DoNotReplicateId)
 	{
@@ -386,9 +387,9 @@ bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId *node, bool 
 	}
 	else
 	{
-		char *riname;
+		char	   *riname;
 
-		Oid local_dboid;
+		Oid			local_dboid;
 
 		replorigin_by_oid(node_id, missing_ok, &riname);
 		if (riname == NULL)
@@ -409,14 +410,14 @@ bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId *node, bool 
 }
 
 void
-bdr_fetch_sysid_via_node_id(RepOriginId node_id, BDRNodeId *node)
+bdr_fetch_sysid_via_node_id(RepOriginId node_id, BDRNodeId * node)
 {
 	(void) bdr_fetch_sysid_via_node_id_ifexists(node_id, node, false);
 }
 
 /*
  * Get node identifiers from a replication identifier (replident, riident) name
- * 
+ *
  * This isn't in bdr_common.c because it uses elog().
  */
 void
@@ -458,7 +459,7 @@ bdr_parse_slot_name(const char *sname, BDRNodeId * remote, Oid *local_dboid)
  *
  * This isn't in bdr_common.c because it uses StringInfo.
  */
-char*
+char *
 bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
 {
 	StringInfoData si;
@@ -466,8 +467,8 @@ bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
 	initStringInfo(&si);
 
 	appendStringInfo(&si, BDR_REPORIGIN_ID_FORMAT,
-			 remote->sysid, remote->timeline, remote->dboid, local_dboid,
-			 EMPTY_REPLICATION_NAME);
+					 remote->sysid, remote->timeline, remote->dboid, local_dboid,
+					 EMPTY_REPLICATION_NAME);
 
 	/* stringinfo's data is palloc'd, can be returned directly */
 	return si.data;
@@ -476,7 +477,7 @@ bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
 RepOriginId
 bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
 {
-	char	*ident;
+	char	   *ident;
 	RepOriginId id;
 
 	ident = bdr_replident_name(node, MyDatabaseId);
@@ -511,18 +512,19 @@ bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
  * until they're ready to accept slot creation. Connections with
  * no corresponding bdr.bdr_nodes row also get ignored.
  */
-List*
+List *
 bdr_read_connection_configs()
 {
-	HeapTuple tuple;
+	HeapTuple	tuple;
 	StringInfoData query;
 	int			i;
 	int			ret;
 	List	   *configs = NIL;
-	MemoryContext caller_ctx, saved_ctx;
+	MemoryContext caller_ctx,
+				saved_ctx;
 	char		sysid_str[33];
 	Datum		values[3];
-	Oid			types[3] = { TEXTOID, OIDOID, OIDOID };
+	Oid			types[3] = {TEXTOID, OIDOID, OIDOID};
 	BDRNodeId	myid;
 
 	bdr_make_my_nodeid(&myid);
@@ -535,38 +537,38 @@ bdr_read_connection_configs()
 	initStringInfo(&query);
 
 	/*
-	 * Find a connections row specific to this origin node or if none
-	 * exists, the default connection data for that node.
+	 * Find a connections row specific to this origin node or if none exists,
+	 * the default connection data for that node.
 	 *
 	 * Configurations for all nodes, including the local node, are read.
 	 */
 	appendStringInfo(&query, "SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
-							 "  conn_sysid, conn_timeline, conn_dboid, "
-							 "  conn_dsn, conn_apply_delay, "
-							 "  conn_replication_sets, "
-							 "  conn_origin_dboid <> 0 AS origin_is_my_id, "
-							 "  node_name "
-							 "FROM bdr.bdr_connections "
-							 "INNER JOIN bdr.bdr_nodes "
-							 "  ON (conn_sysid = node_sysid AND "
-							 "      conn_timeline = node_timeline AND "
-							 "      conn_dboid = node_dboid) "
-							 "WHERE ((conn_origin_sysid = '0' "
-							 "  AND  conn_origin_timeline = 0 "
-							 "  AND  conn_origin_dboid = 0) "
-							 "   OR (conn_origin_sysid = $1 "
-							 "  AND  conn_origin_timeline = $2 "
-							 "  AND  conn_origin_dboid = $3)) "
-							 "  AND node_status <> "BDR_NODE_STATUS_KILLED_S" "
-							 "  AND NOT conn_is_unidirectional "
-							 "ORDER BY conn_sysid, conn_timeline, conn_dboid, "
-							 "         conn_origin_sysid ASC NULLS LAST, "
-							 "         conn_timeline ASC NULLS LAST, "
-							 "         conn_dboid ASC NULLS LAST "
-					 );
+					 "  conn_sysid, conn_timeline, conn_dboid, "
+					 "  conn_dsn, conn_apply_delay, "
+					 "  conn_replication_sets, "
+					 "  conn_origin_dboid <> 0 AS origin_is_my_id, "
+					 "  node_name "
+					 "FROM bdr.bdr_connections "
+					 "INNER JOIN bdr.bdr_nodes "
+					 "  ON (conn_sysid = node_sysid AND "
+					 "      conn_timeline = node_timeline AND "
+					 "      conn_dboid = node_dboid) "
+					 "WHERE ((conn_origin_sysid = '0' "
+					 "  AND  conn_origin_timeline = 0 "
+					 "  AND  conn_origin_dboid = 0) "
+					 "   OR (conn_origin_sysid = $1 "
+					 "  AND  conn_origin_timeline = $2 "
+					 "  AND  conn_origin_dboid = $3)) "
+					 "  AND node_status <> " BDR_NODE_STATUS_KILLED_S " "
+					 "  AND NOT conn_is_unidirectional "
+					 "ORDER BY conn_sysid, conn_timeline, conn_dboid, "
+					 "         conn_origin_sysid ASC NULLS LAST, "
+					 "         conn_timeline ASC NULLS LAST, "
+					 "         conn_dboid ASC NULLS LAST "
+		);
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(&sysid_str[0]);
 	values[1] = ObjectIdGetDatum(myid.timeline);
@@ -585,10 +587,10 @@ bdr_read_connection_configs()
 
 	for (i = 0; i < SPI_processed; i++)
 	{
-		Datum			tmp_datum;
-		bool			isnull;
-		ArrayType	   *conn_replication_sets;
-		char		   *tmp_sysid;
+		Datum		tmp_datum;
+		bool		isnull;
+		ArrayType  *conn_replication_sets;
+		char	   *tmp_sysid;
 
 		BdrConnectionConfig *cfg = palloc(sizeof(BdrConnectionConfig));
 
@@ -626,8 +628,8 @@ bdr_read_connection_configs()
 
 
 		cfg->dsn = SPI_getvalue(tuple,
-											 SPI_tuptable->tupdesc,
-											 getattno("conn_dsn"));
+								SPI_tuptable->tupdesc,
+								getattno("conn_dsn"));
 
 		tmp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								  getattno("conn_apply_delay"), &isnull);
@@ -637,11 +639,11 @@ bdr_read_connection_configs()
 			cfg->apply_delay = DatumGetInt32(tmp_datum);
 
 		/*
-		 * Replication sets are stored in the catalogs as a text[]
-		 * of identifiers, so we'll want to unpack that.
+		 * Replication sets are stored in the catalogs as a text[] of
+		 * identifiers, so we'll want to unpack that.
 		 */
 
-		conn_replication_sets = (ArrayType*)
+		conn_replication_sets = (ArrayType *)
 			SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 						  getattno("conn_replication_sets"), &isnull);
 
@@ -677,7 +679,7 @@ bdr_read_connection_configs()
 }
 
 void
-bdr_free_connection_config(BdrConnectionConfig *cfg)
+bdr_free_connection_config(BdrConnectionConfig * cfg)
 {
 	if (cfg->dsn != NULL)
 		pfree(cfg->dsn);
@@ -688,14 +690,14 @@ bdr_free_connection_config(BdrConnectionConfig *cfg)
 /*
  * Fetch the connection configuration for the specified node
  */
-BdrConnectionConfig*
+BdrConnectionConfig *
 bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 {
-	List *configs;
-	ListCell *lc;
+	List	   *configs;
+	ListCell   *lc;
 	MemoryContext saved_ctx;
 	BdrConnectionConfig *found_config = NULL;
-	bool tx_started = false;
+	bool		tx_started = false;
 
 	Assert(MyDatabaseId != InvalidOid);
 
@@ -712,12 +714,12 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	/*
 	 * TODO DYNCONF Instead of reading all configs and then discarding all but
 	 * the interesting one, we should really be doing a different query that
-	 * returns only the configuration of interest. As this runs only during apply
-	 * worker startup the impact is negligible.
+	 * returns only the configuration of interest. As this runs only during
+	 * apply worker startup the impact is negligible.
 	 */
 	foreach(lc, configs)
 	{
-		BdrConnectionConfig *cfg = (BdrConnectionConfig*) lfirst(lc);
+		BdrConnectionConfig *cfg = (BdrConnectionConfig *) lfirst(lc);
 
 		if (bdr_nodeid_eq(&cfg->remote_node, node))
 		{
@@ -732,10 +734,10 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 
 	if (found_config == NULL && !missing_ok)
 		elog(ERROR, "Failed to find expected bdr.connections row "
-					"(conn_sysid,conn_timeline,conn_dboid) = "
-					"("UINT64_FORMAT",%u,%u) "
-					"in bdr.bdr_connections",
-					node->sysid, node->timeline, node->dboid);
+			 "(conn_sysid,conn_timeline,conn_dboid) = "
+			 "(" UINT64_FORMAT ",%u,%u) "
+			 "in bdr.bdr_connections",
+			 node->sysid, node->timeline, node->dboid);
 
 	if (tx_started)
 		CommitTransactionCommand();
@@ -745,10 +747,11 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	return found_config;
 }
 
-BdrConnectionConfig*
+BdrConnectionConfig *
 bdr_get_my_connection_config(bool missing_ok)
 {
-	BDRNodeId ni;
+	BDRNodeId	ni;
+
 	bdr_make_my_nodeid(&ni);
 
 	return bdr_get_connection_config(&ni, missing_ok);
@@ -758,7 +761,7 @@ bdr_get_my_connection_config(bool missing_ok)
 static int
 getattno(const char *colname)
 {
-	int attno;
+	int			attno;
 
 	attno = SPI_fnumber(SPI_tuptable->tupdesc, colname);
 	if (attno == SPI_ERROR_NOATTRIBUTE)
@@ -772,12 +775,13 @@ getattno(const char *colname)
  * identifier-quoted comma-separated string allocated in the current memory
  * context.
  */
-static char*
+static char *
 bdr_textarr_to_identliststr(ArrayType *textarray)
 {
-	Datum		   *elems;
-	int				nelems, i;
-	StringInfoData	si;
+	Datum	   *elems;
+	int			nelems,
+				i;
+	StringInfoData si;
 
 	deconstruct_array(textarray,
 					  TEXTOID, -1, false, 'i',
@@ -789,17 +793,17 @@ bdr_textarr_to_identliststr(ArrayType *textarray)
 	initStringInfo(&si);
 
 	appendStringInfoString(&si,
-		quote_identifier(TextDatumGetCString(elems[0])));
+						   quote_identifier(TextDatumGetCString(elems[0])));
 	for (i = 1; i < nelems; i++)
 	{
 		appendStringInfoString(&si, ",");
 		appendStringInfoString(&si,
-			quote_identifier(TextDatumGetCString(elems[i])));
+							   quote_identifier(TextDatumGetCString(elems[i])));
 	}
 
 	/*
-	 * The stringinfo is on the stack, but its data element is palloc'd
-	 * in the caller's context and can be returned safely.
+	 * The stringinfo is on the stack, but its data element is palloc'd in the
+	 * caller's context and can be returned safely.
 	 */
 	return si.data;
 
@@ -816,31 +820,32 @@ stringify_node_identity(char *sysid_str, Size sysid_str_size,
 						const BDRNodeId * const nodeid)
 {
 	snprintf(sysid_str, sysid_str_size, UINT64_FORMAT, nodeid->sysid);
-	sysid_str[sysid_str_size-1] = '\0';
+	sysid_str[sysid_str_size - 1] = '\0';
 
 	snprintf(timeline_str, timeline_str_size, "%u", nodeid->timeline);
-	timeline_str[timeline_str_size-1] = '\0';
+	timeline_str[timeline_str_size - 1] = '\0';
 
 	snprintf(dboid_str, dboid_str_size, "%u", nodeid->dboid);
-	dboid_str[dboid_str_size-1] = '\0';
+	dboid_str[dboid_str_size - 1] = '\0';
 }
 
 void
 stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
-						char *timeline_str, Size timeline_str_size,
-						char *dboid_str, Size dboid_str_size)
+						   char *timeline_str, Size timeline_str_size,
+						   char *dboid_str, Size dboid_str_size)
 {
-	BDRNodeId myid;
+	BDRNodeId	myid;
+
 	bdr_make_my_nodeid(&myid);
 	return stringify_node_identity(sysid_str, sysid_str_size, timeline_str,
-			timeline_str_size, dboid_str, dboid_str_size,
-			&myid);
+								   timeline_str_size, dboid_str, dboid_str_size,
+								   &myid);
 }
 
 Datum
 bdr_node_status_from_char(PG_FUNCTION_ARGS)
 {
-	BdrNodeStatus status = (BdrNodeStatus)PG_GETARG_CHAR(0);
+	BdrNodeStatus status = (BdrNodeStatus) PG_GETARG_CHAR(0);
 	const char *result = NULL;
 
 #define BDR_NODE_STATUS_TOSTR(teststatus) \
@@ -850,13 +855,13 @@ bdr_node_status_from_char(PG_FUNCTION_ARGS)
 
 	switch (status)
 	{
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_NONE)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_BEGINNING_INIT)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CATCHUP)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_READY)
-		BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_KILLED)
+			BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_NONE)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_BEGINNING_INIT)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CATCHUP)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_READY)
+				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_KILLED)
 	};
 
 	if (result == NULL)
@@ -868,7 +873,7 @@ bdr_node_status_from_char(PG_FUNCTION_ARGS)
 Datum
 bdr_node_status_to_char(PG_FUNCTION_ARGS)
 {
-	char *status = text_to_cstring(PG_GETARG_TEXT_P(0));
+	char	   *status = text_to_cstring(PG_GETARG_TEXT_P(0));
 	BdrNodeStatus result;
 
 #define BDR_NODE_STATUS_FROMSTR(teststatus) \
@@ -881,18 +886,18 @@ bdr_node_status_to_char(PG_FUNCTION_ARGS)
 	do
 	{
 		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_NONE)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_BEGINNING_INIT)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CATCHUP)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_READY)
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_KILLED)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("The string '%s' isn't recognised as a BDR status", status)));
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_BEGINNING_INIT)
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CATCHUP)
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_READY)
+			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_KILLED)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("The string '%s' isn't recognised as a BDR status", status)));
 	} while (false);
 
-	PG_RETURN_CHAR((char)result);
+	PG_RETURN_CHAR((char) result);
 }
 
 bool
@@ -931,12 +936,13 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 	 * better not have it for a nodeid.
 	 */
 	Assert(ni->sysid != 0);
+
 	/*
-	 * A zero timeline means something's not initialized right,
-	 * since it should be set up before our bgworkers are launched.
+	 * A zero timeline means something's not initialized right, since it
+	 * should be set up before our bgworkers are launched.
 	 *
-	 * If you trip this, you probably tried to access the node identity
-	 * before a bgworker called BackgroundWorkerInitializeConnection.
+	 * If you trip this, you probably tried to access the node identity before
+	 * a bgworker called BackgroundWorkerInitializeConnection.
 	 */
 	Assert(ni->timeline != 0);
 	/* Current database must be known */
