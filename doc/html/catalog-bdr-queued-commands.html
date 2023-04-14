@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>bdr.bdr_queued_commands</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Catalogs and Views"
+HREF="catalogs-views.html"><LINK
+REL="PREVIOUS"
+TITLE="bdr.bdr_global_locks"
+HREF="catalog-bdr-global-locks.html"><LINK
+REL="NEXT"
+TITLE="bdr.bdr_queued_drops"
+HREF="catalog-bdr-queued-drops.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="bdr.bdr_global_locks"
+HREF="catalog-bdr-global-locks.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="catalogs-views.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 13. Catalogs and Views</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="bdr.bdr_queued_drops"
+HREF="catalog-bdr-queued-drops.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CATALOG-BDR-QUEUED-COMMANDS"
+>13.10. bdr.bdr_queued_commands</A
+></H1
+><P
+>   <TT
+CLASS="LITERAL"
+>bdr.bdr_queued_commands</TT
+> is a BDR internal implementation
+   table used for <A
+HREF="ddl-replication.html"
+>DDL replication</A
+>.  Do not modify this table
+   directly.
+  </P
+><P
+>   Every DDL operation (except table/sequence drops) that's captured and
+   replicated is inserted in this table, as is every operation manually queued
+   via <CODE
+CLASS="FUNCTION"
+>bdr.bdr_queue_ddl_commands()</CODE
+>. Inspecting this table
+   can be useful to determine what schema changes were made when and by whom.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="catalog-bdr-global-locks.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="catalog-bdr-queued-drops.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>bdr.bdr_global_locks</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="catalogs-views.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>bdr.bdr_queued_drops</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

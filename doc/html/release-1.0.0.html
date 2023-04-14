@@ -1,0 +1,353 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Release 1.0.0</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Release notes"
+HREF="releasenotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 1.0.1"
+HREF="release-1.0.1.html"><LINK
+REL="NEXT"
+TITLE="Release 0.9.3"
+HREF="release-0.9.3.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 1.0.1"
+HREF="release-1.0.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Release notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Release 0.9.3"
+HREF="release-0.9.3.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="RELEASE-1.0.0"
+>A.9. Release 1.0.0</A
+></H1
+><P
+>   The 1.0.0 release improves schema change DDL locking, the documentation,
+   managment tools, and more. It is <A
+HREF="upgrade.html"
+>a straightforward
+   upgrade for 0.9.x users</A
+>, however they should upgrade to bdr-pg 9.4.9
+   before upgrading to bdr-plugin 1.0.0.
+  </P
+><P
+>   The most important changes are:
+   <P
+></P
+></P><UL
+><LI
+><P
+>improvements to DDL locking to reduce its operational impact by allowing write transactions a grace period before cancellation, blocking new write transactions instead of ERRORing, and allowing many DDL operations to avoid blocking row writes at all</P
+></LI
+><LI
+><P
+>the removal of UDR</P
+></LI
+><LI
+><P
+>a fix for dropped column handling when cloning new nodes via bdr_node_join</P
+></LI
+><LI
+><P
+>global sequence improvements to improve behavior when rapidly consuming sequence values</P
+></LI
+></UL
+><P>
+  </P
+><P
+>   There are important compatibility changes in this release. BDR 1.0 removes
+   UDR. If you need one-way replication on unpatched community PostgreSQL
+   9.4/9.5/9.6, use <A
+HREF="2ndquadrant.com/pglogical"
+TARGET="_top"
+>pglogical</A
+>
+   instead. BDR 1.0 is also fully not interoperable with 0.9.x; it cannot join
+   a 0.9.x group and 0.9.x cannot join a 1.0 group. However individual nodes
+   in the existing 0.9.x cluster can be upgraded to 1.0 one by one, keeping
+   the cluster as a whole available during the process.
+  </P
+><P
+>   Changes in release:
+  </P
+><P
+>   <P
+></P
+></P><UL
+><LI
+><P
+>Fix handling of dropped columns during logical node init to prevent "tuple natts mismatch" errors (git 9323f3, #113, #114)</P
+></LI
+><LI
+><P
+>Remove UDR</P
+></LI
+><LI
+><P
+>Wait up to a minute for new sequence values from an exhausted global sequence before ERRORing (git f7e9b4)</P
+></LI
+><LI
+><P
+>Don't acquire global DDL lock for non-schema-qualified temp table DROPs (#124)</P
+></LI
+><LI
+><P
+>Add a grace period before killing all write transactions when acquiring DDL lock, configured by bdr.max_ddl_lock_delay (git 0e02cc27, 91a0d2505)</P
+></LI
+><LI
+><P
+>Make DML wait when DDL lock held, instead of ERRORing (git b754c0c4)</P
+></LI
+><LI
+><P
+>Add a DDL-lock-specific timeout, bdr.bdr_ddl_lock_timeout (git 91a0d2505)</P
+></LI
+><LI
+><P
+>Add a new DDL lock type that only blocks other DDL, not DML (insert/update/delete) (git 10b331fe, 6d2a09fb)</P
+></LI
+><LI
+><P
+>Cache more values for global sequences, make cache size configurable with cache_chunks reloption (git 071e94)</P
+></LI
+><LI
+><P
+>Ensure sequence cache is never re-used after physical node copy (#101)</P
+></LI
+><LI
+><P
+>Increase default sequence chunk size to 10k (git ff0726)</P
+></LI
+><LI
+><P
+>Expand node part/join sanity checks and error messages (git 6c58df and others)</P
+></LI
+><LI
+><P
+>Permit DML on pg_catalog tables (#102) </P
+></LI
+><LI
+><P
+>Create BDR's internal TRUNCATE triggers as internal triggers (git 0c96b9ff, #62)</P
+></LI
+><LI
+><P
+>Apply workers notice replication set changes and DSN changes without manual termination/restart (git 7faf648e)</P
+></LI
+><LI
+><P
+>Make bdr_apply_resume() take immediate effect (git 72eb77) </P
+></LI
+><LI
+><P
+>Ignore dangling bdr_connections rows without a corresponding bdr_nodes entry (git 509848, #50, #97, #126)</P
+></LI
+><LI
+><P
+>Don't acquire the global DDL lock when creating or dropping indexes on temporary tables (git aebd93, courtesy of Michael Allen) </P
+></LI
+><LI
+><P
+>Fix crash on insert into a table with an expression index (git 06f52b, courtesy of Abdul Yadi)</P
+></LI
+><LI
+><P
+>Make bdr_supervisordb checks less strict to fix vacuumdb -a and other tools (git dba912, #154)</P
+></LI
+><LI
+><P
+>Group multiple replicated TRUNCATEs into a single command to fix TRUNCATE with foreign keys or TRUNCATE CASCADE (git fcdf1b, #48)</P
+></LI
+><LI
+><P
+>Add management functions for connection replication sets</P
+></LI
+><LI
+><P
+>Add low level apply/replay tracing via bdr.trace_replay (git 4feb4004b, #185) </P
+></LI
+><LI
+><P
+>Add DDL lock tracing/logging via bdr.trace_ddl_locks_level (git beee79dd4)</P
+></LI
+><LI
+><P
+>Allow specification of connection options for all BDR connections with bdr.extra_apply_connection_options (git 491f5e90a, #173)</P
+></LI
+><LI
+><P
+>Enable TCP keepalives by default on apply worker (#173)</P
+></LI
+><LI
+><P
+>Backport access to 'pid' and 'confirmed_flush_lsn' columns of pg_replication_slots from 9.5 and 9.6 via new bdr.pg_replication_slots view (#186).</P
+></LI
+><LI
+><P
+>Add functions to terminate apply and walsender workers (bdr_terminate_walsender_workers and bdr_terminate_apply_workers)</P
+></LI
+><LI
+><P
+>Add a function to allow BDR workers to skip over changes (#181)</P
+></LI
+><LI
+><P
+>Add functions to control replication sets configured for a connection</P
+></LI
+><LI
+><P
+>Add a function to completely remove BDR from a node, bdr.remove_bdr_from_local_node()</P
+></LI
+><LI
+><P
+>Extensive documentation updates</P
+></LI
+></UL
+><P>
+  </P
+><P
+>   The biggest changes are around <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>DDL Locking</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-1.0.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="release-0.9.3.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 1.0.1</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Release 0.9.3</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

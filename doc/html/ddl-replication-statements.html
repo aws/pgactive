@@ -1,0 +1,2183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Statement specific DDL replication concerns</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="DDL Replication"
+HREF="ddl-replication.html"><LINK
+REL="PREVIOUS"
+TITLE="Executing DDL on BDR systems"
+HREF="ddl-replication-advice.html"><LINK
+REL="NEXT"
+TITLE="Multi-master conflicts"
+HREF="conflicts.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Executing DDL on BDR systems"
+HREF="ddl-replication-advice.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="ddl-replication.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 8. DDL Replication</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Multi-master conflicts"
+HREF="conflicts.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DDL-REPLICATION-STATEMENTS"
+>8.2. Statement specific DDL replication concerns</A
+></H1
+><P
+>   Not all commands can be replicated automatically. Some are
+   allowed regardless - generally ones that have affect on more than one
+   database. Others are disallowed, and some have limitations and restrictions
+   on what can be used as compared to PostgreSQL without BDR.
+  </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>    Global DDL, like <TT
+CLASS="LITERAL"
+>CREATE ROLE</TT
+>, <TT
+CLASS="LITERAL"
+>CREATE USER</TT
+>
+    etc is <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not replicated</I
+></SPAN
+> and should be applied on each node
+    if the created objects will be referenced by a BDR-enabled database.
+   </P
+></BLOCKQUOTE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1494"
+>8.2.1. Statements with weaker DDL locking</A
+></H2
+><P
+>	Some statements don't require the full <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>DDL lock</A
+> and can proceed
+	with a weaker lock that prohibits other nodes from doing DDL
+	at the same time, but does not restrict concurrent DML
+	(insert, update or delete) operations.
+   </P
+><P
+>    <P
+></P
+></P><UL
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE SCHEMA ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE [TABLE|VIEW] ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE FOREIGN TABLE ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE [AGGREGATE|OPERATOR|TYPE] ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE [OR REPLACE] FUNCTION ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE DOMAIN ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER DEFAULT PRIVILEGES ...</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER ... OWNER TO ...</TT
+></P
+></LI
+></UL
+><P>
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1524"
+>8.2.2. Not replicated DDL statements</A
+></H2
+><P
+>    Some DDL statements, mainly those that affect objects that are
+    PostgreSQL-instance-wide rather than database-sepecific, are not
+    replicated. They are applied on the node that executes them without taking
+    the global DDL lock and are not sent to other nodes.
+   </P
+><P
+>    If you create non-replicated objects that are to be referenced
+    by replicated objects (e.g. creating a role, not replicated, then creating
+    a table, replicated, that's owned by that role) you must ensure that the
+    non-replicated object is created on all <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> nodes. You can do this
+    manually, by running the statement on each node. Or you can use
+    <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-REPLICATE-DDL-COMMAND"
+>bdr.bdr_replicate_ddl_command</A
+> to apply the statement
+    on the local node and manually enqueue it for replication on all nodes.
+   </P
+><P
+>    Using <CODE
+CLASS="FUNCTION"
+>bdr.bdr_replicate_ddl_command</CODE
+> is the recommended
+    approach, e.g.:
+    </P><PRE
+CLASS="PROGRAMLISTING"
+>     SELECT bdr.bdr_replicate_ddl_command('CREATE USER myuser;');
+    </PRE
+><P>
+   </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>     It is not necessary that the definition of objects like roles be the same
+     on all nodes, only that they exist. You can for example
+     <TT
+CLASS="LITERAL"
+>CREATE ROLE somerole WITH NOLOGIN</TT
+> on most nodes, but
+     on one node you can create them <TT
+CLASS="LITERAL"
+>WITH LOGIN</TT
+>.
+    </P
+></BLOCKQUOTE
+></DIV
+><P
+>    The statements that are applied locally but not replicated are:
+
+    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><A
+NAME="DDL-CREATE-INDEX-CONCURRENTLY"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE INDEX CONCURRENTLY</TT
+>
+       </DT
+><DD
+><P
+>		<TT
+CLASS="LITERAL"
+>CREATE INDEX CONCURRENTLY</TT
+> is not replicated. It
+		requires a top-level transaction so it cannot be run via
+		<TT
+CLASS="LITERAL"
+>bdr.bdr_replicate_ddl_command</TT
+>, and is not currently
+		supported for direct DDL capture.
+       </P
+><P
+>		It's best to specify an index name and use the same name on all nodes.
+		Otherwise a later <TT
+CLASS="LITERAL"
+>DROP INDEX</TT
+> on one node may fail to
+		replicate to the other nodes and cause replication to stall.
+       </P
+><P
+>	    Because this command is not replicated, but affects database
+		objects that are, it requires that users explicitly set
+		<TT
+CLASS="LITERAL"
+>bdr.skip_ddl_replication</TT
+>, making it clear that
+		the user/app knows it will not be replicated. This will prevent
+		compatility breaks if in future BDR adds support for replicating
+		the command. Use:
+		</P><PRE
+CLASS="PROGRAMLISTING"
+>		SET bdr.skip_ddl_replication = on;
+		CREATE INDEX CONCURRENTLY idxname ON tblname(cols);
+		RESET bdr.skip_ddl_replication;
+		</PRE
+><P>
+	   </P
+></DD
+><DT
+><A
+NAME="DDL-DROP-INDEX-CONCURRENTLY"
+></A
+><TT
+CLASS="VARNAME"
+>DROP INDEX CONCURRENTLY</TT
+>
+       </DT
+><DD
+><P
+>		<TT
+CLASS="LITERAL"
+>DROP INDEX CONCURRENTLY</TT
+> is not replicated for the
+		same reasons as <TT
+CLASS="LITERAL"
+>CREATE INDEX CONCURRENTLY</TT
+>.  The same
+		requirements and workarounds apply.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-DATABASE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE DATABASE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE DATABASE</TT
+> cannot be
+        replicated because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+        works on a per database level.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-ROLE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE ROLE/USER/GROUP</TT
+>
+       
+       
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE ROLE</TT
+> cannot be replicated
+        because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> works on a
+        per database level. It is possible that a workaround
+        for this will be added.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Not creating roles of the same name (not
+         necessarily with the same access details otherwise
+         though) on all systems can break replication when
+         statements like <TT
+CLASS="LITERAL"
+>ALTER TABLE ...
+          OWNER TO</TT
+> are replicated.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TABLESPACE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TABLESPACE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TABLESPACE</TT
+> cannot be
+        replicated because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+        works on a per database level.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Not creating tablespaces of the same name (not
+         necessarily with the same location though) on all
+         systems can break replication when statements
+         like <TT
+CLASS="LITERAL"
+>ALTER TABLE ... SET
+          TABLESPACE</TT
+> are replicated.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-DROP-DATABASE"
+></A
+><TT
+CLASS="VARNAME"
+>DROP DATABASE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>DROP DATABASE</TT
+> cannot be
+        replicated because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+        works on a per database level.
+       </P
+><P
+>        Note that a database that is configured for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> cannot be
+        dropped while that is the case.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-DROP-TABLESPACE"
+></A
+><TT
+CLASS="VARNAME"
+>DROP TABLESPACE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>DROP TABLESPACE</TT
+> cannot be
+        replicated because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+        works on a per database level.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Dropping tablespaces only on some nodes can cause
+         problems when relations on other nodes are moved
+         into the tablespace that does not exist locally
+         anymore.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-DROP-ROLE"
+></A
+><TT
+CLASS="VARNAME"
+>DROP ROLE/USER/GROUP</TT
+>
+       
+       
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>DROP ROLE</TT
+> cannot be replicated
+        because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> works on a
+        per database level. It is possible that a workaround
+        for this will be added.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Dropping role only on some nodes can cause
+         problems when objects on other nodes are assigned
+         to roles that do not exist locally anymore.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-ALTER-ROLE"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER ROLE/USER/GROUP</TT
+>
+       
+       
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER ROLE</TT
+> cannot be replicated
+        because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> works on a
+        per database level. It is possible that a workaround
+        for this will be added.
+       </P
+><P
+>        Normally all commands but <TT
+CLASS="LITERAL"
+>ALTER ROLE
+         ... RENAME TO ...</TT
+> should be safe to
+        execute in the sense that doing so won't cause
+        replication to break.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Renaming a role only on some nodes can lead to
+         problems due to replicated DDL statements not
+         being able to execute anymore.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-ALTER-DATABASE"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER DATABASE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER DATABASE</TT
+> cannot be replicated
+        because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> works on a
+        per database level.
+       </P
+><P
+>        In practice the primary problematic case is when trying to
+        change settings on a per database basis using <TT
+CLASS="LITERAL"
+>ALTER
+         DATABASE ... SET ...</TT
+>, these have to be executed on
+        every database for now.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Renaming a database can lead to the connection
+         information stored on some of the nodes not being
+         valid anymore.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="DDL-ALTER-TABLESPACE"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER TABLESPACE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER TABLSPACE</TT
+> cannot be replicated
+        because <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> works on a per
+        database level. It is safe to execute on the individual
+        nodes though.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="DDL-REPLICATION-PROHIBITED-COMMANDS"
+>8.2.3. Prohibited DDL statements</A
+></H2
+><P
+>    BDR prevents some DDL statements from running when it is active on a
+    database. This protects the consistency of the system by disallowing
+    statements that cannot be replicated correctly, or for which replication is
+    not yet supported. Statements that are supported with some restrictions
+    are covered in <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-RESTRICTED-COMMANDS"
+>DDL statements with restrictions</A
+>;
+    commands that are entirely disallowed in <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> are covered below.
+   </P
+><P
+>    Generally unsupported statements are prevented from being
+    executed, raising a <TT
+CLASS="LITERAL"
+>feature_not_supported</TT
+>
+    (SQLSTATE <TT
+CLASS="LITERAL"
+>0A000</TT
+>) error.
+   </P
+><P
+>    The following DDL commands are rejected by <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> when <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> is active on a
+    database, and will fail with an <TT
+CLASS="LITERAL"
+>ERROR</TT
+>:
+
+    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><A
+NAME="DDL-CREATE-TABLE-AS"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TABLE AS/SELECT INTO</TT
+>
+       
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TABLE AS/SELECT INTO</TT
+> are
+        prohibited unless <TT
+CLASS="LITERAL"
+>UNLOGGED</TT
+>
+        or <TT
+CLASS="LITERAL"
+>UNLOGGED</TT
+> temporary is specified.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TABLE-OF-TYPE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TABLE ... OF TYPE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TABLE ... OF TYPE</TT
+> is prohibited
+        unless <TT
+CLASS="LITERAL"
+>UNLOGGED</TT
+>
+        or <TT
+CLASS="LITERAL"
+>UNLOGGED</TT
+> temporary is specified.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TEXT-SEARCH-PARSER"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TEXT SEARCH PARSER</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TEXT SEARCH PARSER</TT
+> is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TEXT-SEARCH-DICTIONARY"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TEXT SEARCH DICTIONARY</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TEXT SEARCH DICTIONARY</TT
+> is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-TEXT-SEARCH-DICTIONARY"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER TEXT SEARCH DICTIONARY</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER TEXT SEARCH DICTIONARY</TT
+> is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TEXT-SEARCH-TEMPLATE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TEXT SEARCH TEMPLATE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TEXT SEARCH TEMPLATE</TT
+> is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-TEXT-SEARCH-CONFIGURATION"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TEXT SEARCH CONFIGURATION</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE TEXT SEARCH template</TT
+> is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-TEXT-SEARCH-CONFIGURATION"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER TEXT SEARCH CONFIGURATION</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER TEXT SEARCH template</TT
+> is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-COLLATION"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE COLLATION</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE CREATE COLLATION</TT
+> is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-EXTENSION"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER EXTENSION</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER EXTENSION</TT
+> currently is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-FOREIGN-DATA-WRAPPER"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE FOREIGN DATA WRAPPER</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE FOREIGN DATA WRAPPER</TT
+> currently is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-FOREIGN-DATA-WRAPPER"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER FOREIGN DATA WRAPPER</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER FOREIGN DATA WRAPPER</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-SERVER"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE SERVER</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE SERVER</TT
+> currently is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-SERVER"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER SERVER</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER SERVER</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-USER-MAPPING"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE USER MAPPING</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE USER MAPPING</TT
+> currently is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-USER-MAPPING"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER USER MAPPING</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER USER MAPPING</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-DROP-USER-MAPPING"
+></A
+><TT
+CLASS="VARNAME"
+>DROP USER MAPPING</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>DROP USER MAPPING</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATEH-MATERIALIZED-VIEW"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE MATERIALIZED VIEW</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE MATERIALIZED VIEW</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-REFRESH-MATERIALIZED-VIEW"
+></A
+><TT
+CLASS="VARNAME"
+>REFRESH MATERIALIZED VIEW</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>REFRESH MATERIALIZED VIEW</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-LANGUAGE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE LANGUAGE</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE LANGUAGE</TT
+> currently is
+        prohibited. Note that nearly all procedual languages are
+        available as an extension and <TT
+CLASS="LITERAL"
+>CREATE
+         EXTENSION</TT
+> is supported.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-CONVERSION"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE CONVERSION</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE CONVERSION</TT
+> currently is
+        prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-CAST"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE CAST</TT
+>
+       </DT
+><DD
+><P
+>        </P><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>          <TT
+CLASS="LITERAL"
+>CREATE CAST</TT
+> currently is prohibited. Note
+          that <TT
+CLASS="LITERAL"
+>CREATE CAST</TT
+> inside an extension is
+          supported.
+        </P
+></BLOCKQUOTE
+></DIV
+><P>
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-OPERATOR-FAMILY"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE OPERATOR FAMILY</TT
+>
+       </DT
+><DD
+><P
+>        </P><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>          <TT
+CLASS="LITERAL"
+>CREATE OPERATOR FAMILY</TT
+> currently is prohibited. Note
+          that <TT
+CLASS="LITERAL"
+>CREATE OPERATOR FAMILY</TT
+> inside an extension is
+          supported.
+        </P
+></BLOCKQUOTE
+></DIV
+><P>
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-OPERATOR-FAMILY"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER OPERATOR FAMILY</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>ALTER OPERATOR FAMILY</TT
+> currently is
+        prohibited.
+        </P><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>          Note that <TT
+CLASS="LITERAL"
+>ALTER OPERATOR FAMILY</TT
+> inside an extension is supported.
+        </P
+></BLOCKQUOTE
+></DIV
+><P>
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-OPERATOR-CLASS"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE OPERATOR CLASS</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>CREATE OPERATOR CLASS</TT
+> currently is
+        prohibited.
+        </P><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>          Note that <TT
+CLASS="LITERAL"
+>CREATE OPERATOR CLASS</TT
+> inside
+          an extension is supported.
+        </P
+></BLOCKQUOTE
+></DIV
+><P>
+       </P
+></DD
+><DT
+><A
+NAME="DDL-DROP-OWNED"
+></A
+><TT
+CLASS="VARNAME"
+>DROP OWNED</TT
+>
+       </DT
+><DD
+><P
+>        <TT
+CLASS="LITERAL"
+>DROP OWNED</TT
+> is prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-SECURITY-LABEL"
+></A
+><TT
+CLASS="VARNAME"
+>SECURITY LABEL</TT
+>
+       </DT
+><DD
+><P
+>        Except for some <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> internal use <TT
+CLASS="LITERAL"
+>SECURITY
+         LABEL</TT
+> is prohibited.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="DDL-REPLICATION-RESTRICTED-COMMANDS"
+>8.2.4. DDL statements with restrictions</A
+></H2
+><P
+>    BDR prevents some DDL statements from running when it is active on a
+    database. This protects the consistency of the system by disallowing
+    statements that cannot be replicated correctly, or for which replication is
+    not yet supported. Entirely prohibited statements are covered above in
+    <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-PROHIBITED-COMMANDS"
+>Prohibited DDL statements</A
+>; commands where
+    some subcommands or features are limited are covered below.
+   </P
+><P
+>    If a statement is not permitted under BDR it is often
+    possible to find another way to do the same thing. For
+    example, you can't do a <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+>
+    that'll cause a full table rewrite, but it's generally
+    possible to rephrase that as a series of independent
+    <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> and <TT
+CLASS="LITERAL"
+>UPDATE</TT
+>
+    statements that don't do the full table rewrite.
+    See <A
+HREF="ddl-replication-statements.html#DDL-ALTER-TABLE"
+><I
+CLASS="TERM"
+><TT
+CLASS="VARNAME"
+>ALTER TABLE</TT
+>
+       
+      </I
+></A
+> below for details on
+    that example.
+   </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>	 See <A
+HREF="technotes-ddl-locking.html"
+>DDL locking details</A
+> for additional details on why
+	 DDL locking is required and how it's done.
+	</P
+></BLOCKQUOTE
+></DIV
+><P
+>    Generally unsupported statements are prevented from being
+    executed, raising a <TT
+CLASS="LITERAL"
+>feature_not_supported</TT
+>
+    (SQLSTATE <TT
+CLASS="LITERAL"
+>0A000</TT
+>) error.
+   </P
+><P
+>    The following statements or statement options are not currently
+    permitted when BDR is active on a database:
+
+    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><A
+NAME="DDL-CREATE-TABLE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE TABLE</TT
+>
+       </DT
+><DD
+><P
+>        Generally <TT
+CLASS="LITERAL"
+>CREATE TABLE</TT
+> is allowed. There
+        are a few options/subcommands that are not supported.
+       </P
+><P
+>        Not supported commands are:
+        <P
+></P
+></P><UL
+COMPACT="COMPACT"
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>WITH OIDS</TT
+> - outdated option, not deemed worth to add support for
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>OF TYPE</TT
+> - not supported yet
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>CONSTRAINT ... EXCLUDE</TT
+> - not supported yet
+          </P
+></LI
+></UL
+><P>
+
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-TABLE"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER TABLE</TT
+>
+       </DT
+><DD
+><P
+>        Generally <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> commands are
+        allowed. There are a however several sub-commands that are
+        not supported, mainly those that perform a full-table
+        re-write.
+       </P
+><P
+>        Not supported commands are:
+        <P
+></P
+></P><UL
+COMPACT="COMPACT"
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ADD COLUMN ... DEFAULT</TT
+> - this option
+           can unfortunately not be supported. It is however often
+           possible to rewrite this into a series of supported
+           commands; see <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-HOW"
+>How to work around restricted DDL</A
+>.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ADD CONSTRAINT ... EXCLUDE</TT
+> - exclusion
+           are not supported for now. Exclusion constraints don't
+           make much sense in an asynchronous system and lead to
+           changes that cannot be replayed.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ALTER CONSTRAINT</TT
+> - changing constraint
+           settings is not supported for now.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ALTER COLUMN ... TYPE</TT
+> - changing a
+           column's type is not supported. Changing a column in a way
+           that doesn't require table rewrites may be suppported at
+           some point. See <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-HOW"
+>How to work around restricted DDL</A
+>
+           for how to work around this limitation.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ENABLE .. RULE</TT
+> - is not supported.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>DISABLE .. RULE</TT
+> - is not supported.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>[NO] INHERIT</TT
+> - is not supported.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>[NOT] OF TYPE</TT
+> - is not supported.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>ALTER COLUMN ... SET (..)</TT
+> - is not
+           supported at the moment. Note however that ALTER COLUMN ... SET
+           [NOT] NULL and ALTER COLUMN ... SET DEFAULT are supported.
+          </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>           <TT
+CLASS="LITERAL"
+>SET (..)</TT
+> - is not supported at the
+           moment.
+          </P
+></LI
+></UL
+><P>
+
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-INDEX"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE INDEX</TT
+>
+       </DT
+><DD
+><P
+>        Generally <TT
+CLASS="LITERAL"
+>CREATE INDEX</TT
+> is supported,
+        but <TT
+CLASS="LITERAL"
+>CREATE UNIQUE INDEX ... WHERE</TT
+>,
+        i.e. partial unique indexes are not allowed.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-CREATE-SEQUENCE"
+></A
+><TT
+CLASS="VARNAME"
+>CREATE SEQUENCE</TT
+>
+       </DT
+><DD
+><P
+>        Generally <TT
+CLASS="LITERAL"
+>CREATE SEQUENCE</TT
+> is supported,
+        but when using <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>'s distributed sequences, some options
+        are prohibited.
+       </P
+></DD
+><DT
+><A
+NAME="DDL-ALTER-SEQUENCE"
+></A
+><TT
+CLASS="VARNAME"
+>ALTER SEQUENCE</TT
+>
+       </DT
+><DD
+><P
+>        Generally <TT
+CLASS="LITERAL"
+>ALTER SEQUENCE</TT
+> is supported,
+        but when using <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>'s distributed sequences, some options
+        like <TT
+CLASS="LITERAL"
+>START</TT
+> are prohibited. Several of
+        them, like the aforementioned <TT
+CLASS="LITERAL"
+>START</TT
+> can
+        be specified during <TT
+CLASS="LITERAL"
+>CREATE SEQUENCE</TT
+>.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="DDL-REPLICATION-HOW"
+>8.2.5. How to work around restricted DDL</A
+></H2
+><P
+>    As noted in <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-PROHIBITED-COMMANDS"
+>Prohibited DDL statements</A
+>, BDR
+    limits some kinds of DDL operations. In particular, an <TT
+CLASS="LITERAL"
+>ALTER
+    TABLE</TT
+> that causes a full table rewrite is prohibited.
+   </P
+><P
+>    It's possible to split almost all such operations up into smaller changes,
+    but not always simple. The same decomposition into smaller operations that's done
+    for BDR is what's typically needed for low-lock, low-downtime schema changes on high
+    load systems, though.
+   </P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="DDL-REPLICATION-ADDCOLUMN"
+>8.2.5.1. Adding a column</A
+></H3
+><P
+>     Usually you can just <TT
+CLASS="LITERAL"
+>ALTER TABLE ... ADD COLUMN ...</TT
+>. But you cannot
+     add columns with a <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+>, and therefore cannot add <TT
+CLASS="LITERAL"
+>NOT NULL</TT
+>
+     columns to non-empty tables.
+    </P
+><P
+>     To add a column with a default:
+     <P
+></P
+></P><UL
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>ADD COLUMN</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn coltype</I
+></TT
+><TT
+CLASS="LITERAL"
+>;</TT
+>. Note the lack of a <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+> or <TT
+CLASS="LITERAL"
+>NOT NULL</TT
+>.</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>ALTER COLUMN</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>default-expression</I
+></TT
+><TT
+CLASS="LITERAL"
+>;</TT
+></P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>UPDATE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>SET</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="LITERAL"
+>=</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>default-expression</I
+></TT
+><TT
+CLASS="LITERAL"
+>;</TT
+> . For best results batch the update into chunks so you don't update more than a few tens or hundreds of thousands of rows at once.</P
+></LI
+><LI
+><P
+>If required, <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>ALTER COLUMN</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="LITERAL"
+>NOT NULL;</TT
+></P
+></LI
+></UL
+><P>
+     This splits schema changes and row changes into separate transactions,
+     which performs <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>much</I
+></SPAN
+> better with BDR and avoids the full table
+     rewrite limitations. It's fine to create the column and alter it to add a
+     default in a single transaction, but the update and final alter should be
+     separate transactions.
+    </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="DDL-REPLICATION-ALTERTYPE"
+>8.2.5.2. Changing a column's type</A
+></H3
+><P
+>     Similarly, to change a column's type:
+     <P
+></P
+></P><UL
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>ADD COLUMN</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newtype</I
+></TT
+> a column of the desired type</P
+></LI
+><LI
+><P
+>Create a <TT
+CLASS="LITERAL"
+>BEFORE INSERT OR UPDATE ON</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>FOR EACH ROW ..</TT
+> trigger that assigns <TT
+CLASS="LITERAL"
+>NEW.</TT
+><TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="LITERAL"
+>:= NEW.</TT
+><TT
+CLASS="REPLACEABLE"
+><I
+>oldcolumn</I
+></TT
+> so that new writes to the table update the new column too</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>UPDATE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> the table in batches to copy the value of <TT
+CLASS="REPLACEABLE"
+><I
+>oldcolumn</I
+></TT
+> to <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+>. Batching the work will help reduce replication lag if it's a big table, since BDR replicates strictly in commit order. Updating by range of IDs or whatever method you prefer is fine, or the whole table in one go for smaller tables.</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>CREATE INDEX ...</TT
+> any required indexes on the new column. It's safe to use <TT
+CLASS="LITERAL"
+>CREATE INDEX ... CONCURRENTLY</TT
+> run individually without DDL replication on each node to reduce lock durations.</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER</TT
+> the column to add a <TT
+CLASS="LITERAL"
+>NOT NULL</TT
+> and <TT
+CLASS="LITERAL"
+>CHECK</TT
+> constraints, if required</P
+></LI
+><LI
+><P
+>If the column is <TT
+CLASS="LITERAL"
+>UNIQUE</TT
+> or the <TT
+CLASS="LITERAL"
+>PRIMARY KEY</TT
+> and is the target of one or more <TT
+CLASS="LITERAL"
+>FOREIGN KEY</TT
+> constraints, repeat this process on each referencing table, recursively, such that all related tables have the new column fully populated before you:</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>ALTER</TT
+> the table to add any <TT
+CLASS="LITERAL"
+>FOREIGN KEY</TT
+> constraints that were present on <TT
+CLASS="REPLACEABLE"
+><I
+>oldcolumn</I
+></TT
+>.</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>BEGIN</TT
+> a transaction, <TT
+CLASS="LITERAL"
+>DROP</TT
+> the trigger you added, <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> to add any <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+> required on the column, <TT
+CLASS="LITERAL"
+>DROP</TT
+> the old column, and <TT
+CLASS="LITERAL"
+>ALTER TABLE</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>thetable</I
+></TT
+> <TT
+CLASS="LITERAL"
+>RENAME COLUMN</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>newcolumn</I
+></TT
+> <TT
+CLASS="LITERAL"
+>TO</TT
+> <TT
+CLASS="REPLACEABLE"
+><I
+>oldcolumn</I
+></TT
+>, then <TT
+CLASS="LITERAL"
+>COMMIT</TT
+>. Because you're dropping a column you may have to re-create views, procedures, etc that depend on the table. Be careful if you <TT
+CLASS="LITERAL"
+>CASCADE</TT
+> drop the column, as you'll need to ensure you re-create everything that referred to it.</P
+></LI
+></UL
+><P>
+    </P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="ddl-replication-advice.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Executing DDL on BDR systems</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="ddl-replication.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Multi-master conflicts</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

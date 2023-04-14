@@ -1,0 +1,448 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Installing BDR from source</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Installation"
+HREF="installation.html"><LINK
+REL="PREVIOUS"
+TITLE="Installing BDR from packages"
+HREF="installation-packages.html"><LINK
+REL="NEXT"
+TITLE="Quick-start guide"
+HREF="quickstart.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Installing BDR from packages"
+HREF="installation-packages.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="installation.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 2. Installation</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Quick-start guide"
+HREF="quickstart.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="INSTALLATION-SOURCE"
+>2.3. Installing BDR from source</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="INSTALLATION-SOURCE-EXTENSION"
+>2.3.1. Installation from source for Postgres-BDR 9.6</A
+></H2
+><P
+>   This section discusses installing BDR on PostgreSQL 9.6+. For instructions
+   on installing BDR-Postgres 9.4 and BDR for 9.4, see <A
+HREF="installation-source.html#INSTALLATION-BDR-SOURCE-94"
+>Section 2.3.2.3</A
+>. Confused? See <A
+HREF="install-requirements.html"
+>BDR requirements</A
+>.
+  </P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-SOURCE-PREREQS"
+>2.3.1.1. Prerequisites for installing from source</A
+></H3
+><P
+>    To install BDR on PostgreSQL 9.6, you need PostgreSQL 9.6 installed. If you
+    installed PostgreSQL from packages (either distributor packages or
+    postgresql.org packages) you will also generally need a -dev or -devel
+    package, the name of which depends on your OS and which PostgreSQL packages
+    you installed.
+   </P
+><P
+>    For <A
+HREF="http://apt.postgresql.org/"
+TARGET="_top"
+>apt.postgresql.org</A
+> packages,
+    install <TT
+CLASS="LITERAL"
+>postgresql-server-dev-9.6</TT
+>. For <A
+HREF="http://yum.postgresql.org"
+TARGET="_top"
+>    yum.postgresql.org</A
+> packages, install <TT
+CLASS="LITERAL"
+>postgresql96-devel</TT
+>. (Or just
+    <A
+HREF="installation-packages.html"
+>install BDR from packages</A
+>). For
+    other package origins, see their documentation; you need the package that
+    contains <TT
+CLASS="FILENAME"
+>postgres.h</TT
+> and <TT
+CLASS="FILENAME"
+>pg_config</TT
+>.
+   </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-GET-SOURCE"
+>2.3.1.2. Getting BDR source code</A
+></H3
+><P
+>     Source code can be obtained by unpacking release source tarballs or clone from git.
+      See <A
+HREF="http://2ndquadrant.com/bdr"
+TARGET="_top"
+>http://2ndquadrant.com/bdr</A
+>
+     for more information.
+    </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-BDR-SOURCE"
+>2.3.1.3. Installation of BDR for PostgreSQL 9.6 from source</A
+></H3
+><P
+>    To add the BDR 2.0 extension to your PostgreSQL 9.6 install execute its
+    configure script with the <SPAN
+CLASS="APPLICATION"
+>pg_config</SPAN
+> from
+    PostgreSQL 9.6 in the <TT
+CLASS="LITERAL"
+>PATH</TT
+> environment variable,
+    e.g.:
+    </P><PRE
+CLASS="PROGRAMLISTING"
+>     cd /path/to/bdr-plugin-source/
+     PATH=/path/to/postgres96/install/bin:"$PATH" ./configure
+     make -j4 -s all
+     make -s install
+    </PRE
+><P>
+   </P
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="INSTALLATION-SOURCE-94"
+>2.3.2. Installation from source for Postgres-BDR 9.4</A
+></H2
+><P
+>   This section discusses installing BDR and BDR-Postgres 9.4. This is mainly
+   useful and necessary for users upgrading from BDR 1.0. New BDR users should
+   prefer to <A
+HREF="installation-source.html#INSTALLATION-SOURCE-EXTENSION"
+>install BDR as an
+   extension to PostgreSQL 9.6</A
+>.
+  </P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-SOURCE-PREREQS-94"
+>2.3.2.1. Prerequisites for installing from source</A
+></H3
+><P
+>    To install Postgres-BDR 9.4 and the BDR extension the prerequisites for
+    compiling PostgreSQL must be installed. These are described in PostgreSQL's
+    documentation
+    on <A
+HREF="http://www.postgresql.org/docs/current/install-requirements.html"
+TARGET="_top"
+>build requirements</A
+>
+    and <A
+HREF="http://www.postgresql.org/docs/current/docguide-toolsets.html"
+TARGET="_top"
+>build requirements for documentation</A
+>.
+   </P
+><P
+>    On several systems the prerequisites for compiling Postgres-BDR and the BDR
+    extension can be installed using simple commands.
+
+    <P
+></P
+></P><UL
+COMPACT="COMPACT"
+><LI
+STYLE="list-style-type: disc"
+><P
+>       <TT
+CLASS="LITERAL"
+>Debian</TT
+> and <TT
+CLASS="LITERAL"
+>Ubuntu</TT
+>: First
+       add the <A
+HREF="http://apt.postgresql.org/"
+TARGET="_top"
+>apt.postgresql.org</A
+>
+       repository to your <TT
+CLASS="FILENAME"
+>sources.list</TT
+> if you
+       have not already done so. Then install the pre-requisites for
+       building PostgreSQL with:
+       </P><PRE
+CLASS="PROGRAMLISTING"
+>	sudo apt-get update
+	sudo apt-get build-dep postgresql-9.4
+       </PRE
+><P>
+       </P
+></LI
+><LI
+STYLE="list-style-type: disc"
+><P
+>       <TT
+CLASS="LITERAL"
+>RHEL or CentOS 6.x or 7.x</TT
+>: install the appropriate repository RPM
+       for your system from <A
+HREF="http://yum.postgresql.org/repopackages.php"
+TARGET="_top"
+>       yum.postgresql.org</A
+>. Then install the prerequisites for building
+       PostgreSQL with:
+       </P><PRE
+CLASS="PROGRAMLISTING"
+>	sudo yum check-update
+	sudo yum groupinstall "Development Tools"
+	sudo yum install yum-utils openjade docbook-dtds docbook-style-dsssl docbook-style-xsl
+       sudo yum-builddep postgresql94
+      </PRE
+><P>
+     </P
+></LI
+></UL
+><P>
+  </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-GET-SOURCE-94"
+>2.3.2.2. Getting BDR source code</A
+></H3
+><P
+>     Source code can be obtained by unpacking release source tarballs or clone from git.
+      See <A
+HREF="http://2ndquadrant.com/bdr"
+TARGET="_top"
+>http://2ndquadrant.com/bdr</A
+>
+     for more information.
+    </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="INSTALLATION-BDR-SOURCE-94"
+>2.3.2.3. Installation of BDR for Postgres-BDR 9.4 from source</A
+></H3
+><P
+>   Installing BDR for 9.4 from source consists out of two steps: First
+   compile and install Postgres-BDR 9.4; secondly compile and install the BDR
+   plugin.
+  </P
+><P
+>   The patched PostgreSQL 9.4 required for BDR on 9.4 can be compiled using the
+   <A
+HREF="http://www.postgresql.org/docs/current/static/installation.html"
+TARGET="_top"
+>normal
+   documented procedures</A
+>. That will usually be something
+   like:
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>    cd /path/to/bdr-pg-source/
+    ./configure --prefix=/path/to/install --enable-debug --with-openssl
+    make -j4 -s install-world
+   </PRE
+><P>
+  </P
+><P
+>   To then install BDR execute its configure script with the
+   <SPAN
+CLASS="APPLICATION"
+>pg_config</SPAN
+> installed by the patched PostgreSQL
+   in the <TT
+CLASS="LITERAL"
+>PATH</TT
+> environment variable, e.g.:
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>    cd /path/to/bdr-plugin-source/
+    PATH=/path/to/postgres/install/bin:"$PATH" ./configure
+    make -j4 -s all
+    make -s install
+   </PRE
+><P>
+  </P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="installation-packages.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="quickstart.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Installing BDR from packages</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="installation.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Quick-start guide</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

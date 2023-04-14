@@ -1,0 +1,956 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR specific configuration variables</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Configuration Settings"
+HREF="settings.html"><LINK
+REL="PREVIOUS"
+TITLE="Prerequisite PostgreSQL parameters"
+HREF="settings-prerequisite.html"><LINK
+REL="NEXT"
+TITLE="Node Management"
+HREF="node-management.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Prerequisite PostgreSQL parameters"
+HREF="settings-prerequisite.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="settings.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 4. Configuration Settings</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Node Management"
+HREF="node-management.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="BDR-CONFIGURATION-VARIABLES"
+>4.2. BDR specific configuration variables</A
+></H1
+><P
+>   The BDR extension exposes a number of configuration parameters via
+   PostgreSQL's usual configuration mechanism. You can set these in the same
+   way as any other setting, via <TT
+CLASS="LITERAL"
+>postgresql.conf</TT
+> or using
+   <TT
+CLASS="LITERAL"
+>ALTER SYSTEM</TT
+>. Some variables can also be set per-user,
+   per-database or per-session, but most require a server reload or a full
+   server restart to take effect.
+  </P
+><P
+>   <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><A
+NAME="GUC-BDR-CONFLICT-LOGGING-INCLUDE-TUPLES"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.conflict_logging_include_tuples</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+      </DT
+><DD
+><P
+>       Log whole tuples when logging BDR tuples. Requires a server reload to take effect.
+      </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-LOG-CONFLICTS-TO-TABLE"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.log_conflicts_to_table</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+      </DT
+><DD
+><P
+>       This boolean option controls whether
+       detected BDR conflicts get logged
+       to the bdr.bdr_conflict_history table. See Conflict logging
+       for details. 
+       Requires a server reload to take effect.
+      </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-SYNCHRONOUS-COMMIT"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.synchronous_commit</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+      </DT
+><DD
+><P
+>       This boolean option controls whether the
+       <TT
+CLASS="VARNAME"
+>synchronous_commit</TT
+> setting in <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> apply workers is
+       enabled. It defaults to <TT
+CLASS="LITERAL"
+>off</TT
+>.  If set to
+       <TT
+CLASS="LITERAL"
+>off</TT
+>, <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> apply workers will perform asynchronous
+       commits, allowing <SPAN
+CLASS="PRODUCTNAME"
+>PostgreSQL</SPAN
+> to considerably improve throughput for
+       apply, at the cost of delaying sending of replay confirmations to the
+       upstream.
+      </P
+><P
+>       It it always is safe to have <TT
+CLASS="LITERAL"
+>bdr.synchronous_commit =
+       off</TT
+>. It'll never cause transactions to be lost or skipped.  It
+       <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>only</I
+></SPAN
+> controls how promptly replicated data is
+       flushed to disk on the downstream node and confirmations are sent to the
+       upstream node. If it's off (default), BDR delays sending replay flush
+       confirmations for commits to the upstream until the needed commits get
+       flushed to disk by an unrelated commit, checkpoint, or other periodic
+       work. This usually doesn't matter, but if the upstream has this
+       downstream listed in <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+>,
+       setting <TT
+CLASS="LITERAL"
+>bdr.synchronous_commit = off</TT
+> on the
+       downstream will cause synchronous commits on the upstream to take
+       <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>much</I
+></SPAN
+> longer to report success to the client. So 
+       in this case you should set it to on.
+      </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>        Using <TT
+CLASS="LITERAL"
+>bdr.synchronous_commit = on</TT
+> and putting bdr
+        nodes in <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+> will
+        <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> prevent the replication conflicts that arise
+        with multi-master use of BDR. There is still no locking between nodes
+        and no global snapshot management so concurrent transactions on
+        different nodes can still change the same tuple. Transactions still
+        only start to replicate after they commit on the upstream node.
+        Synchronous commit does <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> make BDR an
+        always-consistent system. See the <A
+HREF="overview.html"
+>Overview</A
+>.
+       </P
+></BLOCKQUOTE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-TEMP-DUMP-DIRECTORY"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.temp_dump_directory</TT
+> (<TT
+CLASS="TYPE"
+>string</TT
+>)
+      </DT
+><DD
+><P
+>       Specifies the path to a temporary storage location, writable
+       by the postgres user, that needs to have enough storage space
+       to contain a complete dump of the a potentially cloned
+       database.
+      </P
+><P
+>       This setting is only used during initial bringup via logical copy.
+       It is not used by <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+>.
+      </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-MAX-DDL-LOCK-DELAY"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.max_ddl_lock_delay</TT
+> (<TT
+CLASS="TYPE"
+>milliseconds</TT
+>)
+       </DT
+><DD
+><P
+>        Controls how long a DDL lock attempt can wait for concurrent write transactions
+	to commit or roll back before it forcibly aborts them.
+	<TT
+CLASS="LITERAL"
+>-1</TT
+> (the default) uses the value of
+	<TT
+CLASS="LITERAL"
+>max_standby_streaming_delay</TT
+>. Can be set with time units
+	like <TT
+CLASS="LITERAL"
+>'10s'</TT
+>. See <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>DDL Locking</A
+>.
+       </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-DDL-LOCK-TIMEOUT"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.ddl_lock_timeout</TT
+> (<TT
+CLASS="TYPE"
+>milliseconds</TT
+>)
+       </DT
+><DD
+><P
+>	Controls how long a DDL lock attempt can wait to acquire the lock. The
+	default value <TT
+CLASS="LITERAL"
+>-1</TT
+> (the default) uses the value of
+	<TT
+CLASS="LITERAL"
+>lock_timeout</TT
+>. Can be set with time units like
+	<TT
+CLASS="LITERAL"
+>'10s'</TT
+>. See <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>DDL Locking</A
+>.
+	Note that once the DDL lock is acquired and the DDL operation begins
+	this timer stops ticking; it doesn't limit the overall duration a DDL
+	lock may be held, only how long a transaction can wait for one to
+	be acquired. To limit overall duration use a
+	<TT
+CLASS="LITERAL"
+>statement_timeout</TT
+>.
+       </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-PERMIT-DDL-LOCKING"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.permit_ddl_locking</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        Allow sessions to run DDL commands that acquire the global DDL lock. See
+        <A
+HREF="ddl-replication.html"
+>DDL replication</A
+> for details on the DDL lock. Setting this
+        to off by default means that unintended DDL that can be disruptive to
+        production is prevented.
+       </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-TRACE-DDL-LOCKS-LEVEL"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.trace_ddl_locks_level</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        Override the default debug log level for BDR DDL locking (used in 
+	<A
+HREF="ddl-replication.html"
+>DDL replication</A
+>) so that
+        DDL-lock related messages are emitted at the LOG debug level instead.
+        This can be used to trace DDL locking activity on the system without
+        having to configure the extremely verbose DEBUG1 or DEBUG2 log levels
+        for the whole server.
+       </P
+><P
+>        In increasing order of verbosity, settings are <TT
+CLASS="LITERAL"
+>none</TT
+>,
+        <TT
+CLASS="LITERAL"
+>statement</TT
+>, <TT
+CLASS="LITERAL"
+>acquire_release</TT
+>,
+        <TT
+CLASS="LITERAL"
+>peers</TT
+> and <TT
+CLASS="LITERAL"
+>debug</TT
+>. At <TT
+CLASS="LITERAL"
+>        none</TT
+> level DDL lock messages are only emitted at DEBUG1 and
+        lower server log levels. <TT
+CLASS="LITERAL"
+>statement</TT
+> adds
+        <TT
+CLASS="LITERAL"
+>LOG</TT
+> output whenever a statement causes an attempt to
+        acquire a DDL lock. <TT
+CLASS="LITERAL"
+>acquire_release</TT
+> also records
+        when the lock is actually acquired and when it's subsequently released,
+        or if it's declined, and records when peer nodes apply a remote DDL lock.
+        <TT
+CLASS="LITERAL"
+>peer</TT
+> adds more detail about the negotiation between
+        peer nodes for DDL locks, and <TT
+CLASS="LITERAL"
+>debug</TT
+> forces everything
+        DDL-lock-related to be logged at <TT
+CLASS="LITERAL"
+>LOG</TT
+> level.
+       </P
+><P
+>        Changes take effect on server configuration reload, a restart is not
+        required.
+       </P
+><P
+>        See also <A
+HREF="monitoring-ddl-lock.html"
+>Monitoring global DDL locks</A
+>.
+       </P
+></DD
+></DL
+></DIV
+><P>
+
+  </P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN783"
+>4.2.1. Less common or internal configuration variables</A
+></H2
+><P
+>    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><A
+NAME="GUC-BDR-DEFAULT-APPLY-DELAY"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.default_apply_delay</TT
+> (<TT
+CLASS="TYPE"
+>integer</TT
+>)
+       </DT
+><DD
+><P
+>        Sets a default apply delay (in milliseconds) for all configured
+        connections that don't have a explicitly configured apply delay in
+        their <TT
+CLASS="LITERAL"
+>bdr.bdr_connections</TT
+> entry as set at node create or
+        join time.
+       </P
+><P
+>        BDR won't replay a transaction on peer nodes until at least the
+        specified number of milliseconds have elapsed since it was committed.
+       </P
+><P
+>        This is primarily useful to simulate a high latency network in a low
+        latency testing environment, mainly to make it easier to create
+        conflicts. For example, if node A and B both have a 500ms apply_delay
+        set, then after INSERTing a value into a table on node A, you have at
+        least 500ms to perform a conflicting INSERT on B. This parameter
+        requires a server reload or restart of the apply workers to take
+        effect.
+       </P
+></DD
+><DT
+><A
+NAME="GUC-BDR-SKIP-DDL-LOCKING"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.skip_ddl_locking</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        Only affects BDR. Prevents acquisiton of the the global
+        DDL lock when executing DDL statement. This is mainly
+        used internally, but can also be useful in other cases.  This
+        option can be set at any time, but only by superusers.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Inconsiderate usage of this option easily allows to break
+         replication setups.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.permit_unsafe_ddl_commands</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>	Only affects BDR. Permits execution of schema changes that cannot
+	safely be replicated and overrides the read-only status of a node. This
+	is primarily used internally, but can also be used in other cases.
+	This option can be set at any time, but only by superusers.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Inconsiderate usage of this option easily allows to break
+         replication setups.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-SKIP-DDL-REPLICATION"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.skip_ddl_replication</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        Only affects BDR. Skips replication of DDL changes
+        made in a session where this option is set to other systems.
+        This is primarily useful
+        for BDR internal use, but also can
+        be used for some intentional schema changes like adding a
+        index only on some nodes. This option can be set at any time,
+        but only by superusers.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Inconsiderate usage of this option easily allows to break
+         replication setups.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-DO-NOT-REPLICATE"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.do_not_replicate</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        This parameter is intended for internal use only. Changes made in a
+        transaction with this parameter set will not be queued for replication
+        to other nodes.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Inconsiderate usage of this option easily allows to break
+         replication setups.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-DISCARD-MISMATCHED-ROW-ATTRIBUTES"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.discard_mismatched_row_attributes</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        This parameter is intended for specialist use only. It is only useful when
+        a problem has arisen where rows on the incoming replication stream have
+        more columns than the local table, and the remote rows have non-null values
+        in them. This setting overrides the error
+	<TT
+CLASS="LITERAL"
+>cannot right-pad mismatched attributes; attno %u is missing in local table and remote row has non-null, non-dropped value for this attribute</TT
+>
+        and allows data divergence to arise to let replication continue. It is
+	better to fix the schema mismatch locally instead with a non-replicated
+        schema change, so the remote rows can apply.
+       </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="90%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>         Inconsiderate usage of this option easily allows to break
+         replication setups.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-TRACE-REPLAY"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.trace_replay</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        When <TT
+CLASS="LITERAL"
+>on</TT
+>, emits a log message for each remote action
+        processed by a BDR downstream apply worker. The message records the
+        change type, the table affected, the number of changes since xact
+        start, the xact's commit lsn, commit time, the upstream node and which
+        node it was forwarded from if any. Queued DDL commands and table drops
+        are also printed. The additional logging has a performance impact and
+        should not be enabled when not required.
+       </P
+><P
+>        Changes take effect on server configuration reload, a restart is not
+        required.
+       </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>         Row field contents are not shown. Recompile BDR with
+         <TT
+CLASS="LITERAL"
+>VERBOSE_INSERT</TT
+>, <TT
+CLASS="LITERAL"
+>VERBOSE_UPDATE</TT
+>
+         and <TT
+CLASS="LITERAL"
+>VERBOSE_DELETE</TT
+> defined if you want row values.
+        </P
+></BLOCKQUOTE
+></DIV
+></DD
+><DT
+><A
+NAME="GUC-BDR-EXTRA-APPLY-CONNECTION-OPTIONS"
+></A
+><TT
+CLASS="VARNAME"
+>bdr.extra_apply_connection_options</TT
+> (<TT
+CLASS="TYPE"
+>boolean</TT
+>)
+       </DT
+><DD
+><P
+>        Add connection parameters to all connections made by BDR nodes to their peers. This is useful
+        for configuring keepalives, SSL modes, etc. Settings given in an individual node's configured
+        connection string will override these options and BDR's built-in connection options. See
+	<A
+HREF="https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING"
+TARGET="_top"
+>	libpq connection strings</A
+>.
+       </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>         BDR automatically sets a fallback application name and enables more
+         aggressive keepalives:
+         </P><PRE
+CLASS="PROGRAMLISTING"
+>connect_timeout=30
+keepalives=1
+keepalives_idle=20
+keepalives_interval=20
+keepalives_count=5
+         </PRE
+><P>
+         You may override these settings with this option, e.g.:
+</P><PRE
+CLASS="PROGRAMLISTING"
+>bdr.extra_apply_connection_options = 'keepalives=0'</PRE
+><P>
+         It is not recommended to turn keepalives off unless you are having
+         problems with apply of a large, long running transaction running to
+         completion on an erratic network.
+        </P
+></BLOCKQUOTE
+></DIV
+><P
+>        Changes take effect on server configuration reload, a restart is not
+        required.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="settings-prerequisite.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="node-management.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Prerequisite <SPAN
+CLASS="PRODUCTNAME"
+>PostgreSQL</SPAN
+> parameters</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="settings.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Node Management</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>n-safe synchronous replication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Node Management"
+HREF="node-management.html"><LINK
+REL="PREVIOUS"
+TITLE="Completely removing BDR"
+HREF="node-management-disabling.html"><LINK
+REL="NEXT"
+TITLE="Command-line Utilities"
+HREF="commands.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Completely removing BDR"
+HREF="node-management-disabling.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="node-management.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 5. Node Management</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Command-line Utilities"
+HREF="commands.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="NODE-MANAGEMENT-SYNCHRONOUS"
+>5.4. n-safe synchronous replication</A
+></H1
+><P
+>   BDR can be configured to use PostgreSQL's 9.6+'s underlying n-safe
+   synchronous replication support. Each node may have a priority-ordered of
+   other nodes set in
+   <A
+HREF="https://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-SYNCHRONOUS-STANDBY-NAMES"
+TARGET="_top"
+><TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+></A
+>
+   along with the minimum number that must confirm replay before the commit
+   is accepted on the upstream. PostgreSQL will delay confirmation of
+   <TT
+CLASS="LITERAL"
+>COMMIT</TT
+> to the client until the highest-priority
+   currently-connected node on the list has confirmed that the commit has been
+   replayed and locally flushed.
+  </P
+><P
+>   When using Postgres-BDR 9.4, only 1-safe synchronous replication is supported
+   using the simple list-of-standby-names syntax for <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+>.
+  </P
+><P
+>   The <A
+HREF="https://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-APPLICATION-NAME"
+TARGET="_top"
+><TT
+CLASS="LITERAL"
+>application_name</TT
+></A
+>
+   of each BDR apply worker's connection to its upstream nodes is
+   <TT
+CLASS="REPLACEABLE"
+><I
+>nodename</I
+></TT
+><TT
+CLASS="LITERAL"
+>:send</TT
+>. This is what
+   appears in <TT
+CLASS="LITERAL"
+>pg_stat_activity</TT
+> for connections from peers and
+   what's used in <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+>. The node name must be
+   <TT
+CLASS="LITERAL"
+>"</TT
+>double quoted<TT
+CLASS="LITERAL"
+>"</TT
+> for use in <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+>.
+  </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>    BDR 1.0 can also support synchronous replication, but the node connection strings
+    in <TT
+CLASS="LITERAL"
+>bdr.bdr_connections</TT
+> must manually be amended to add
+    <TT
+CLASS="LITERAL"
+>application_name=</TT
+><TT
+CLASS="REPLACEABLE"
+><I
+>nodename</I
+></TT
+><TT
+CLASS="LITERAL"
+>:send</TT
+>
+    (replacing <TT
+CLASS="REPLACEABLE"
+><I
+>nodename</I
+></TT
+> with the actual node name).
+   </P
+></BLOCKQUOTE
+></DIV
+><P
+>   A typical configuration is 4 nodes arranged in two mutually synchronous 1-safe
+   pairs. If the nodes names are A, B, C and D and we want A to be synchronous with
+   B and vice versa, and C to be synchronous with D and vice versa, each node's
+   configuration would be:
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>   # on node A:
+   synchronous_standby_names = '1 ("B:send")'
+   bdr.synchronous_commit = on
+   # on node B:
+   synchronous_standby_names = '1 ("A:send")'
+   bdr.synchronous_commit = on
+   # on node C:
+   synchronous_standby_names = '1 ("D:send")'
+   bdr.synchronous_commit = on
+   # on node D:
+   synchronous_standby_names = '1 ("C:send")'
+   bdr.synchronous_commit = on
+   </PRE
+><P>
+   With this configuration, commits on A will hang indefinitely if B goes down
+   or vice versa. If this is not desired, each node can use the other nodes as
+   secondary synchronous options (possibly with higher latency over a WAN),
+   e.g.
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>   # on node A, prefer sync rep to B, but if B is down allow COMMIT
+   # confirmation if either C or D are reachable and caught up:
+   synchronous_standby_names = '1 ("B:send","C:send","D:send")'
+   </PRE
+><P>
+   If confirmation from all three other nodes is required before local
+   commit, use 3-safe:
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>   # Require that B, C and D all confirm commit replay before local commit
+   # on A becomes visible.
+   synchronous_standby_names = '3 ("B:send","C:send","D:send")'
+   </PRE
+><P>
+
+  </P
+><P
+>   See <A
+HREF="https://www.postgresql.org/docs/current/static/warm-standby.html#SYNCHRONOUS-REPLICATION"
+TARGET="_top"
+>   the PostgreSQL manual on synchronous replication</A
+>
+   for a discussion of how synchronous replication works in PostgreSQL. Most of
+   the same principles apply when the other end is a BDR node not a physical
+   standby.
+  </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>    PostgreSQL's synchronous replication commits on the upstream before
+    replicating to the downstream(s), it just hides the commit from other
+    concurrent transactions until the downstreams complete. If the upstream is
+    restarted the hidden commit(s) become visible even if the downstreams have
+    not replied yet, so node restarts effectively momentarily disable
+    synchronous replication.
+   </P
+></BLOCKQUOTE
+></DIV
+><P
+>   It's generally a good idea to set <A
+HREF="bdr-configuration-variables.html#GUC-BDR-SYNCHRONOUS-COMMIT"
+><TT
+CLASS="LITERAL"
+>bdr.synchronous_commit = on</TT
+></A
+>
+   on all peers listed
+   in <TT
+CLASS="LITERAL"
+>synchronous_standby_names</TT
+> if using synchronous replication,
+   since this speeds up acknowledgement of commits by peers and thus helps
+   <TT
+CLASS="LITERAL"
+>COMMIT</TT
+> return with minimal delay.
+  </P
+><P
+>   To reduce the delay in <TT
+CLASS="LITERAL"
+>COMMIT</TT
+> acknowledgement and increase
+   throughput, users may wish to run unimportant transactions with
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>     SET LOCAL synchronous_commit = off;
+   </PRE
+><P>
+   This effectively disables synchronous replication for individual
+   transactions.
+  </P
+><P
+>   Unlike PostgreSQL's physical replication, logical decoding (and therefore
+   BDR) cannot begin replicating a transaction to peer nodes until it has
+   committed on the originating node.  This means that large transactions can
+   be subject to long delays on <TT
+CLASS="LITERAL"
+>COMMIT</TT
+> when synchronous
+   replication is in use. Even if large transactions are run with
+   <TT
+CLASS="LITERAL"
+>synchronous_commit = off</TT
+> they may delay commit confirmation
+   for small synchronous transactions that commit after the big transactions
+   because logical decoding processes transactions in strict commit-order.
+  </P
+><P
+>   Even if synchronous replication is enabled, conflicts are still possible
+   even in a 2-node mutually synchronous configuration since no inter-node
+   locking is performed.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="node-management-disabling.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="commands.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Completely removing BDR</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="node-management.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Command-line Utilities</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

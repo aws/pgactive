@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Monitoring global DDL locks</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Monitoring"
+HREF="monitoring.html"><LINK
+REL="PREVIOUS"
+TITLE="Monitoring replication peers"
+HREF="monitoring-peers.html"><LINK
+REL="NEXT"
+TITLE="Monitoring conflicts"
+HREF="monitoring-conflict-stats.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Monitoring replication peers"
+HREF="monitoring-peers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="monitoring.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. Monitoring</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Monitoring conflicts"
+HREF="monitoring-conflict-stats.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="MONITORING-DDL-LOCK"
+>7.4. Monitoring global DDL locks</A
+></H1
+><P
+>   The global DDL lock, used in <A
+HREF="ddl-replication.html"
+>DDL replication</A
+>, can cancel and/or
+   block concurrent writes and other DDL. So it can be important to determine what
+   is taking the lock, whether it holds it or is still trying to acquire it, and
+   how long it's been trying or has held the lock.
+  </P
+><P
+>   DDL locking activity can be traced using the <A
+HREF="bdr-configuration-variables.html#GUC-BDR-TRACE-DDL-LOCKS-LEVEL"
+>bdr.trace_ddl_locks_level</A
+> setting using the PostgreSQL
+   log files, which provides the most complete and useful way to see DDL
+   locking activity. It is strongly recommended that you enable DDL lock
+   tracing.
+  </P
+><P
+>   The <A
+HREF="catalog-bdr-locks.html"
+>bdr.bdr_locks</A
+> view provides visibility into the
+   current DDL locking state of a node.
+  </P
+><P
+>   See <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>DDL Locking</A
+> for more detail on how the
+   global DDL lock works.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="monitoring-peers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="monitoring-conflict-stats.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Monitoring replication peers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="monitoring.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Monitoring conflicts</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

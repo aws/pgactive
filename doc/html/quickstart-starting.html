@@ -1,0 +1,220 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Starting the BDR-enabled PostgreSQL nodes/instances</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Quick-start guide"
+HREF="quickstart.html"><LINK
+REL="PREVIOUS"
+TITLE="Editing the configuration files to enable BDR"
+HREF="quickstart-editing.html"><LINK
+REL="NEXT"
+TITLE="Creating the demo databases"
+HREF="quickstart-creating.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Editing the configuration files to enable BDR"
+HREF="quickstart-editing.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="quickstart.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 3. Quick-start guide</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Creating the demo databases"
+HREF="quickstart-creating.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="QUICKSTART-STARTING"
+>3.3. Starting the BDR-enabled PostgreSQL nodes/instances</A
+></H1
+><P
+>     Start your nodes/instances from the command line of your operating system:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    pg_ctl -l $HOME/2ndquadrant_bdr/bdr5598.log -D $HOME/2ndquadrant_bdr/bdr5598 -o "-p 5598" -w start
+    pg_ctl -l $HOME/2ndquadrant_bdr/bdr5599.log -D $HOME/2ndquadrant_bdr/bdr5599 -o "-p 5599" -w start
+    </PRE
+><P
+>     Each node/instance will start up and then will run in the background.  You'll see the following:
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>     waiting for server to start.... done
+     server started
+     </PRE
+><P>
+    </P
+><P
+>     If you see an issue with starting your nodes/instances:
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>     waiting for server to start........ stopped waiting
+     pg_ctl: could not start server
+     </PRE
+><P>
+     ... then take a look at the log files (<TT
+CLASS="FILENAME"
+>bdr5598.log</TT
+> or
+     <TT
+CLASS="FILENAME"
+>bdr5599.log</TT
+> depending on which one failed to start.)
+     Most likely you already have a PostgreSQL instance running on the target
+     port. It is also possible that your <TT
+CLASS="LITERAL"
+>$PATH</TT
+> is not set
+     to point to BDR, so you're trying to use binaries from a different PostgreSQL
+     release that won't have the <TT
+CLASS="FILENAME"
+>bdr</TT
+> extension or understand
+     some of the configuration parameters.
+    </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>      Because they were started manually and don't have an init script, these
+      nodes/instances won't start automatically on re-boot.
+     </P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="quickstart-editing.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="quickstart-creating.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Editing the configuration files to enable BDR</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="quickstart.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Creating the demo databases</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Node Replication Control</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Replication Sets"
+HREF="replication-sets.html"><LINK
+REL="PREVIOUS"
+TITLE="Creating replication sets"
+HREF="replication-sets-creation.html"><LINK
+REL="NEXT"
+TITLE="Table Replication Control"
+HREF="replication-sets-tables.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Creating replication sets"
+HREF="replication-sets-creation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="replication-sets.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 11. Replication Sets</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Table Replication Control"
+HREF="replication-sets-tables.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="REPLICATION-SETS-NODES"
+>11.3. Node Replication Control</A
+></H1
+><P
+>   The names of the replications sets of which changes should be received
+   can be set when adding the node to the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> cluster using the (optional)
+   <TT
+CLASS="LITERAL"
+>replication_sets</TT
+> parameter to
+   <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-CREATE"
+>bdr.bdr_group_create</A
+>,
+   <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-JOIN"
+>bdr.bdr_group_join</A
+> and
+   <A
+HREF="functions-node-mgmt.html#FUNCTIONS-NODE-MGMT-SUBSCRIBE"
+>bdr.bdr_subscribe</A
+>.
+   This parameter is an array of replication set names. The replication
+   set do not have to exist to be referenced by
+   <TT
+CLASS="LITERAL"
+>replication_sets</TT
+>.
+  </P
+><P
+>   To change one node's replication sets in a running <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> cluster, the <A
+HREF="functions-replication-sets.html#FUNCTION-BDR-CONNECTION-SET-REP-SETS-BYNAME"
+>bdr.connection_set_replication_sets</A
+> functions
+   should be used. Changes only need to be made on one node, since BDR
+   connection configuration is its self replicated to all other nodes. The
+   global DDL lock is not taken by this operation.
+  </P
+><P
+>   Changes to replication set memberships will generally take effect after the
+   transaction currently being processed by a node. To force the change to take
+   effect immediately it is safe to
+   <CODE
+CLASS="FUNCTION"
+>pg_terminate_backend(...)</CODE
+> the BDR apply workers running
+   on all nodes. They will reconnect and resume work on the last transaction
+   they were working on, with the new replication set configuration enabled.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="replication-sets-creation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="replication-sets-tables.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Creating replication sets</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="replication-sets.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Table Replication Control</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

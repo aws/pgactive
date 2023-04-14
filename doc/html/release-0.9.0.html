@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Release 0.9.0</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Release notes"
+HREF="releasenotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 0.9.1"
+HREF="release-0.9.1.html"><LINK
+REL="NEXT"
+TITLE="Release 0.8.0"
+HREF="release-0.8.0.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 0.9.1"
+HREF="release-0.9.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Release notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Release 0.8.0"
+HREF="release-0.8.0.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="RELEASE-0.9.0"
+>A.13. Release 0.9.0</A
+></H1
+><P
+>   The 0.9.0 release was tagged on Tue Mar 24 2015 as git tag
+   <TT
+CLASS="LITERAL"
+>bdr-plugin/0.9.0</TT
+>. This release requires
+   bdr-Pg <TT
+CLASS="LITERAL"
+>bdr-pg/REL9_4_1-1</TT
+> to support full
+   BDR functionality.
+  </P
+><P
+>    Development of BDR 0.9.0 was performed by the
+    <A
+HREF="http://2ndquadrant.com"
+TARGET="_top"
+>2ndQuadrant</A
+> BDR team.
+    Multiple customers contributed funding and other resources to make this
+    release possible. 2ndQuadrant continues to fund the ongoing development of
+    BDR to meet internal needs and those of customers.
+   </P
+><P
+>   Significant features and improvements to <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> in this release include:
+   <P
+></P
+></P><UL
+><LI
+><P
+>Dynamic SQL-level configuration of connections between nodes</P
+></LI
+><LI
+><P
+>Joining new nodes no longer requires restarting all nodes</P
+></LI
+><LI
+><P
+>Easy node removal</P
+></LI
+><LI
+><P
+><A
+HREF="command-bdr-init-copy.html"
+>bdr_init_copy</A
+> performs its own <SPAN
+CLASS="APPLICATION"
+>pg_basebackup</SPAN
+></P
+></LI
+><LI
+><P
+>Many helper and information functions</P
+></LI
+><LI
+><P
+>Documentation expanded and moved into the source tree</P
+></LI
+><LI
+><P
+>FreeBSD compatibility</P
+></LI
+></UL
+><P>
+  </P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-DYNCONF"
+>A.13.1. Dynamic configuration</A
+></H2
+><P
+>    The biggest change with 0.9.0 is that connections between nodes are now
+    configured using the <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-CREATE"
+>bdr.bdr_group_create</A
+> and
+    <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-JOIN"
+>bdr.bdr_group_join</A
+> SQL function calls. It is no
+    longer necessary to restart any existing nodes when joining a node. Even
+    the newly joining node can join without a restart if it was initially
+    configured with the settings required for running <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> (see
+    <A
+HREF="settings-prerequisite.html"
+>PostgreSQL settings for BDR</A
+>).
+   </P
+><P
+>    <TT
+CLASS="LITERAL"
+>bdr.connections</TT
+> is now unused and ignored. If it
+    remains in <TT
+CLASS="FILENAME"
+>postgresql.conf</TT
+> a warning will be issued
+    in the PostgreSQL log on startup.
+   </P
+><P
+>    For details, see the <A
+HREF="node-management.html"
+>Node management</A
+> chapter.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-NODE-REMOVAL"
+>A.13.2. Easy node removal</A
+></H2
+><P
+>    The new <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-PART-BY-NODE-NAMES"
+>bdr.bdr_part_by_node_names</A
+> function allows easy
+    online node removal. There is no need to restart nodes or to manually
+    delete replication identifiers and slots. Multiple nodes may be
+    removed at once.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-INIT-COPY"
+>A.13.3. <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> makes its own base backup</A
+></H2
+><P
+>    <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> can now make its own base backup
+    of the target node, and does so by default. Its user interface has also
+    been overhauled as part of the update to support dynamic configuration.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-DOCS"
+>A.13.4. Documentation in the source tree</A
+></H2
+><P
+>    Formal documentation has been written and added to the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> source tree
+    to replace the prior ad-hoc wiki based documentation. This allows users
+    to more easily refer to documentation specific to their particular
+    version and permits the documentation to be updated at the same time
+    as the source code.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-FREEBSD"
+>A.13.5. FreeBSD compatibility</A
+></H2
+><P
+>    <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> is now tested and built automatically on FreeBSD.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="RELEASE-0.9.0-FUNCTIONS"
+>A.13.6. New helper functions</A
+></H2
+><P
+>    Many new helper functions have been added, see <A
+HREF="functions.html"
+>SQL functions</A
+>.
+   </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-0.9.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="release-0.8.0.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 0.9.1</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Release 0.8.0</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

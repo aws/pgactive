@@ -1,0 +1,698 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL 9.6</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Upgrading BDR"
+HREF="upgrade.html"><LINK
+REL="PREVIOUS"
+TITLE="Upgrading 2.0.x to 2.0.y releases"
+HREF="x4413.html"><LINK
+REL="NEXT"
+TITLE="Upgrading BDR 0.9.x to 1.0"
+HREF="x4529.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Upgrading 2.0.x to 2.0.y releases"
+HREF="x4413.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="upgrade.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 14. Upgrading <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+></TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Upgrading BDR 0.9.x to 1.0"
+HREF="x4529.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN4416"
+>14.2. Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL 9.6</A
+></H1
+><P
+>   Users of BDR 1.0 running on Postgres-BDR 9.4 should upgrade to BDR 2.0 on
+   Postgres-BDR 9.4, and then to BDR 2.0 on PostgreSQL 9.6.
+  </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>    Do not attempt to upgrade from BDR 1.0 on Postgres-9.4 directly to BDR 2.0
+    on PostgreSQL 9.6. It will not work. There is no support for
+    <SPAN
+CLASS="APPLICATION"
+>pg_upgrade</SPAN
+>'ing Postgres-9.4 to PostgreSQL 9.6, the data
+    directories are not compatible, and BDR 2.0 cannot join a BDR 1.0 group.
+    You must upgrade via BDR 2.0 on Postgres-BDR 9.4.
+   </P
+></BLOCKQUOTE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN4422"
+>14.2.1. Offline upgrade</A
+></H2
+><P
+>    If your deployment does not use BDR 1.0 global sequences, or you plan to adjust
+    your sequence setup after you upgrade to BDR 2.0 on 9.6, you can perform a direct
+    offline upgrade from BDR 1.0 on 9.4 to BDR 2.0 on 9.6 using a dump and reload.
+   </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>     Check to ensure you are not using BDR 1.0 global sequences before
+     upgrading, or at least list them so you know which seqences will need
+     fixing after you upgrade.  See <A
+HREF="global-sequences-bdr10.html"
+>BDR 1.0 Global Sequences</A
+>
+     and <A
+HREF="x4416.html#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES"
+>Converting BDR 1.0 global sequences</A
+>.
+    </P
+></BLOCKQUOTE
+></DIV
+><P
+>    To prepare to upgrade, first tear down BDR and restore your system to a
+    single standalone node using <A
+HREF="node-management-disabling.html"
+><CODE
+CLASS="FUNCTION"
+>bdr.remove_bdr_from_local_node()</CODE
+></A
+>.
+    Make sure you <TT
+CLASS="LITERAL"
+>DROP EXTENSION bdr;</TT
+> and remove <TT
+CLASS="LITERAL"
+>bdr</TT
+>
+    from <TT
+CLASS="LITERAL"
+>shared_preload_libraries</TT
+> and restart the PostgreSQL instance.
+   </P
+><P
+>    Then, like any other nontrivial server migration by dump and reload, you should
+    <TT
+CLASS="LITERAL"
+>pg_dumpall --globals-only</TT
+> then <TT
+CLASS="LITERAL"
+>pg_dump -Fc -T 'bdr.*'</TT
+> each
+    database you wish to migrate.
+   </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>     If you use a dump and reload to upgrade, use the <SPAN
+CLASS="APPLICATION"
+>pg_dump</SPAN
+>
+     and <SPAN
+CLASS="APPLICATION"
+>pg_restore</SPAN
+> from PostgreSQL 9.6, <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> the
+     ones from Postgres-BDR 9.4.
+    </P
+></BLOCKQUOTE
+></DIV
+><P
+>    Once your database is restored to PostgreSQL 9.6, bring up BDR as if this
+    were a new setup, join new nodes, then make any required fixes to your
+    sequences such as switching <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+>s on your tables to use
+    <A
+HREF="global-sequences.html"
+>bdr.global_seq_nextval(...)</A
+> or setting
+    up step/offset sequences on your nodes.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN4446"
+>14.2.2. Online upgrade</A
+></H2
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="AEN4448"
+>14.2.2.1. Online upgrade limitations</A
+></H3
+><P
+>     While the 1.0 to 2.0 upgrade does not require extended downtime, a restart
+     of each node is absolutely <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>required</I
+></SPAN
+>.
+    </P
+><P
+>     It is recommended that all nodes be upgraded at roughly the same time,
+     because the 1.0 and 2.0 catalogs are not entirely compatible so nodes
+     cannot part or join while the BDR group contains a mixture of 1.0 and 2.0
+     nodes, DDL replication won't work, etc.
+    </P
+><P
+>     If a user or application attempts to enqueue DDL from a 1.0 node after some
+     nodes have been upgraded to 2.0, the 2.0 nodes will be unable to replay the
+     DDL. To protect against this it is <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>strongly</I
+></SPAN
+> recommended that
+     the option <A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-DDL-LOCKING"
+><TT
+CLASS="LITERAL"
+>bdr.permit_ddl_locking =
+     on</TT
+></A
+> be set in <TT
+CLASS="LITERAL"
+>postgresql.conf</TT
+> so that attempts to execute
+     DDL will fail. Don't forget to <TT
+CLASS="LITERAL"
+>SELECT pg_reload_conf()</TT
+>
+     or <TT
+CLASS="LITERAL"
+>pg_ctl reload</TT
+> after changing the setting.
+    </P
+><P
+>     A mixed BDR 1.0 and BDR 2.0 group can be operated safely for a transition
+     period so long as no nodes need to part or join, and no DDL needs to be
+     performed. (It is <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> safe to mix in 2.0 nodes running on
+     PostgreSQL 9.6 if global sequences are in use, though).
+    </P
+><P
+>     There is no support for BDR 2.0 nodes joining a 1.0 group or vice versa.
+     If you require such support it is possible to add it as an update to BDR
+     1.0.  <A
+HREF="http://2ndquadrant.com"
+TARGET="_top"
+>Contact 2ndQuadrant</A
+> if this
+     important to your business.
+    </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="UPGRADE-20-UPGRADE-EXTENSION"
+>14.2.2.2. Upgrading the BDR extension from 1.x to 2.0</A
+></H3
+><P
+>     To online-upgrade the BDR extension on each node, simply install the 2.0
+     extension into your PostgreSQL instance the same way you installed 1.0.
+     This may be from source code, rpm/deb package, etc. Then <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>restart
+     PostgreSQL</I
+></SPAN
+>. Do <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>NOT</I
+></SPAN
+> attempt to <TT
+CLASS="LITERAL"
+>ALTER EXTENSION bdr
+     UPDATE</TT
+>. 
+    </P
+><P
+>     BDR will notice the new extension files and update the extension. To confirm,
+     check the output of:
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>       SELECT extname, extversion FROM pg_extension WHERE extname = 'bdr'
+     </PRE
+><P>
+     and
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>       SELECT bdr.vdr_version();
+     </PRE
+><P>
+    </P
+><P
+>     Once all nodes are upgraded, run the post-upgrade script on <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>one</I
+></SPAN
+>
+     node. It does not matter which node.
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>       SELECT bdr.upgrade_to_200();
+     </PRE
+><P>
+    </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES"
+>14.2.2.3. Converting BDR 1.0 global sequences</A
+></H3
+><P
+>     BDR 1.0-style global sequences, created with the <TT
+CLASS="LITERAL"
+>USING bdr</TT
+>
+     syntax to <TT
+CLASS="LITERAL"
+>CREATE SEQUENCE</TT
+>, are <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> supported by
+     BDR 2.0 on PostgreSQL 9.6. Nor are they likely to be supported by future
+     PostgreSQL releases, as the underlying functionality required to intercept
+     sequence operations and redirect them was not incorporated into community
+     PostgreSQL.
+    </P
+><P
+>     To check whether you are using BDR 1.0 global sequences, and where, see
+     <A
+HREF="global-sequences-bdr10.html"
+>BDR 1.0 Global Sequences</A
+>.
+    </P
+><P
+>     BDR 2.0 continues to support BDR 1.0-style global sequences on BDR-Postgres
+     9.4. However, users are advised to convert to BDR 2.0 global sequences
+     because unlike the 1.0-style sequences they are immune to network partition
+     related faults and they cannot suffer temporary exhaustion when consumed
+     too fast. There are downsides too, so make sure to read the
+     <A
+HREF="global-sequences.html"
+>global sequences</A
+> chapter.
+     <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Application changes or configuration may be necessary.</I
+></SPAN
+>
+    </P
+><P
+>     BDR 2.0 global sequences require <TT
+CLASS="LITERAL"
+>bigint</TT
+> storage. So the first
+     step is to widen any <TT
+CLASS="TYPE"
+>integer</TT
+> columns to <TT
+CLASS="TYPE"
+>bigint</TT
+>. This
+     requires multiple steps and <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+><A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-RESTRICTED-COMMANDS"
+>cannot be done with
+     <TT
+CLASS="LITERAL"
+>ALTER TABLE ... ALTER COLUMN ... TYPE ...</TT
+></A
+></I
+></SPAN
+>.
+     See <A
+HREF="ddl-replication-statements.html#DDL-REPLICATION-ALTERTYPE"
+>Changing a column's type</A
+>. Alternately, you may
+     choose to <A
+HREF="global-sequences-alternatives.html"
+>use step/offset
+     sequences</A
+>, which do not require <TT
+CLASS="TYPE"
+>bigint</TT
+> storage, but need manual
+     setup when nodes are added or removed.
+    </P
+><P
+>     BDR 2.0 global sequences use a time-based generation algorithm. The start
+     values are not directly configurable, but will be greater than any likely
+     allocations from BDR 1.0 sequences in all but the most extreme cases.
+     Check to make sure your tables do not contain values greater than those
+     returned by the new sequences. If they do, you may need to use an
+     alternative method of sequence generation.
+    </P
+><P
+>     For each BDR 1.0 sequence, begin a transaction and
+     </P><PRE
+CLASS="PROGRAMLISTING"
+>     LOCK TABLE table_with_sequence IN EXCLUSIVE MODE;
+     ALTER SEQUENCE the_sequence USING local;
+     ALTER SEQUENCE the_sequence RESTART WITH 1;
+     ALTER TABLE table_with_sequence ALTER COLUMN column_with_sequence DEFAULT bdr.global_seq_nextval('the_sequence');
+     </PRE
+><P>
+     then commit.
+    </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>      Verify that the new values generated by
+      <CODE
+CLASS="FUNCTION"
+>bdr.global_seq_nextval</CODE
+> are greater than any that currently
+      exist in the table before resuming normal operation. Make sure the
+      application does not directly call <CODE
+CLASS="FUNCTION"
+>nextval</CODE
+> on the sequence,
+      and that no other <TT
+CLASS="LITERAL"
+>DEFAULT</TT
+>s elsewhere refer to the sequence.
+     </P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="AEN4505"
+>14.2.2.4. Online-upgrading BDR 2.0 from Postgres-BDR 9.4 to PostgreSQL 9.6</A
+></H3
+><P
+>     When all nodes are running BDR 2.0 on Postgres-BDR 9.4 and all use of
+     BDR 1.0 global sequences has been retired, it is possible to upgrade
+     BDR to run on PostgreSQL 9.6. The PostgreSQL version upgrade is an online
+     upgrade performed while the BDR group continues to process normal loads -
+     but DDL should be avoided if possible.
+    </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>      A BDR 2.0 instance running on PostgreSQL 9.6 will refuse to join a
+      BDR-Postgres 9.4 based group if any BDR 1.0 global sequences are found.
+      Make sure you convert your sequences first.
+     </P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>     There is no <SPAN
+CLASS="APPLICATION"
+>pg_upgrade</SPAN
+> support for upgrading Postgres-BDR
+     9.4 to PostgreSQL 9.6. Upgrades are accomplished by joining new 9.6-based
+     BDR nodes to the BDR group, then parting the old 9.4-based nodes.
+    </P
+><P
+>     DDL performed on 9.6 nodes may not apply correctly on 9.4 nodes, since new
+     features have been added to PostgreSQL 9.6. For that reason it is
+     recommended that <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>at least</I
+></SPAN
+> on the 9.6 nodes, <A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-DDL-LOCKING"
+><TT
+CLASS="LITERAL"
+>bdr.permit_ddl_locking =
+     on</TT
+></A
+> is set until the last 9.4 node has been parted.
+    </P
+><P
+>     Because <SPAN
+CLASS="APPLICATION"
+>bdr_init_replica</SPAN
+> does a physical copy with
+     <SPAN
+CLASS="APPLICATION"
+>pg_basebackup</SPAN
+> it cannot be used to join the first 9.6 node
+     to a running 9.4 BDR group. A logical join using <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-JOIN"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_join</CODE
+></A
+> must
+     be performed. See <A
+HREF="node-management-joining.html"
+>Joining a node</A
+>.
+    </P
+><P
+>     Once the first 9.6 node is joined, subsequent 9.6 nodes may be added to
+     replace 9.4 nodes either by using <CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_join</CODE
+> targeting
+     any node (9.4 or 9.6), or by using <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> targeting
+     a 9.6 node. Which is the best choice for you depends on your network.
+    </P
+><P
+>     An upgrade may be done on a rolling basis, by adding a 9.6 node then
+     removing the corresponding 9.4 node. Or it may be done by adding all 9.6
+     nodes then parting all 9.4 nodes. Which is the best choice depends on your
+     network.
+    </P
+><P
+>     It may be possible to add <SPAN
+CLASS="APPLICATION"
+>pg_upgrade</SPAN
+> support for upgrading
+     Postgres-BDR 9.4 to PostgreSQL 9.6 in-place. If this is important for your
+     deployment, please <A
+HREF="http://2ndquadrant.com"
+TARGET="_top"
+>contact
+     2ndQuadrant</A
+>.
+    </P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x4413.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x4529.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Upgrading 2.0.x to 2.0.y releases</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="upgrade.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Upgrading BDR 0.9.x to 1.0</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

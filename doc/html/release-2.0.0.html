@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Release 2.0.0</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Release notes"
+HREF="releasenotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 2.0.1"
+HREF="release-2.0.1.html"><LINK
+REL="NEXT"
+TITLE="Release 1.0.2"
+HREF="release-1.0.2.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 2.0.1"
+HREF="release-2.0.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Release notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Release 1.0.2"
+HREF="release-1.0.2.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="RELEASE-2.0.0"
+>A.6. Release 2.0.0</A
+></H1
+><P
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Fri Jun 16, 2017</I
+></SPAN
+></P
+><P
+>   BDR 2.0 is a major update that brings compatibility with unmodified community
+   PostgreSQL 9.6, a new DDL replication model, a new implementation of global
+   sequences, and more.
+  </P
+><P
+>   It it <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>crucial</I
+></SPAN
+> that BDR 1.0 users read the <A
+HREF="upgrade.html"
+>   documentation on upgrading from BDR 1.0.</A
+>.
+  </P
+><P
+>   Notable release highlights are:
+   <P
+></P
+></P><UL
+><LI
+><P
+>Compatibility with community PostgreSQL 9.6</P
+></LI
+><LI
+><P
+>Still compatible with Postgres-BDR 9.4 for existing users</P
+></LI
+><LI
+><P
+>Runs as an extension on PostgreSQL 9.6, no patched PostgreSQL required</P
+></LI
+><LI
+><P
+>New global sequences implementation that doesn't experience exhaustion under load or network partitions</P
+></LI
+><LI
+><P
+>New DDL replication implementation for PostgreSQL 9.6 compatibility. This brings a different set of limitations and benefits.</P
+></LI
+><LI
+><P
+>Retains compatibility with BDR-Postgres 9.4</P
+></LI
+><LI
+><P
+>Support for joining new nodes concurrently</P
+></LI
+></UL
+><P>
+  </P
+><P
+>   There are some important compatibility changes between BDR 1.0 and 2.0 when
+   run on PostgreSQL 9.6, due to functionality present in Postgres-BDR 9.4 that
+   is not available in community PostgreSQL 9.6. Specifically:
+   <P
+></P
+></P><UL
+><LI
+><P
+>      Transparent DDL replication is not (yet) supported by BDR 2.0 on
+      PostgreSQL 9.6. All DDL must be wrapped in <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-REPLICATE-DDL-COMMAND"
+><TT
+CLASS="LITERAL"
+>bdr.bdr_replicate_ddl_command(...)</TT
+></A
+>
+      calls.
+     </P
+></LI
+><LI
+><P
+>      BDR 1.0-style global sequences created with <TT
+CLASS="LITERAL"
+>USING bdr</TT
+> or
+      <TT
+CLASS="LITERAL"
+>default_sequenceam = 'bdr'</TT
+> are <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> supported by
+      BDR 2.0 on PostgreSQL 9.6. An <A
+HREF="global-sequences.html"
+>alternate
+      global sequences implementation</A
+> is provided for BDR 2.0. Users on
+      Postgres-BDR 9.4 are also encouraged to switch to the new global
+      sequences model to ease future upgrades and because the new model is more
+      resilient against network partitions.
+     </P
+></LI
+><LI
+><P
+>      Nodes are now read-only while joining, and only become read/write once
+      fully joined.
+     </P
+></LI
+></UL
+><P>
+  </P
+><P
+>   There is some more information about compatibility in <A
+HREF="upgrade.html"
+>Upgrading BDR</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-2.0.1.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="release-1.0.2.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 2.0.1</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Release 1.0.2</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

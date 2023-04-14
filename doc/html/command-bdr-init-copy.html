@@ -1,0 +1,751 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>bdr_init_copy</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Command-line Utilities"
+HREF="commands.html"><LINK
+REL="PREVIOUS"
+TITLE="Command-line Utilities"
+HREF="commands.html"><LINK
+REL="NEXT"
+TITLE="bdr_initial_load"
+HREF="command-bdr-initial-load.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Command-line Utilities"
+HREF="commands.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="commands.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 6. Command-line Utilities</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="bdr_initial_load"
+HREF="command-bdr-initial-load.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="COMMAND-BDR-INIT-COPY"
+>6.1. bdr_init_copy</A
+></H1
+><P
+>   The <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> command is used to initialize a new
+   <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> node by making physical copy of an existing node and
+   establishing a connection to the node that the clone was made from.
+  </P
+><P
+>   Using <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> will clone all databases
+   from the origin server. All BDR-enabled databases on the cloned peer will
+   be bought up for BDR on the downstream.
+  </P
+><P
+>   See <A
+HREF="node-management.html"
+>Node management</A
+> for more information about node
+   creation.
+  </P
+><P
+>   By default <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> clones the source BDR
+   node using <SPAN
+CLASS="APPLICATION"
+>pg_basebackup</SPAN
+>. However, if the data
+   directory already contains a physical backup (clone) of the source database
+   it will be converted into a BDR node instead. The backup must be taken by
+   <SPAN
+CLASS="APPLICATION"
+>pg_basebackup</SPAN
+> or some other safe cloning method
+   like <TT
+CLASS="LITERAL"
+>pg_start_backup()</TT
+> + <SPAN
+CLASS="APPLICATION"
+>rsync</SPAN
+>
+   + <TT
+CLASS="LITERAL"
+>pg_stop_backup()</TT
+> + WAL archive replay or streaming. It
+   backup must have a <TT
+CLASS="FILENAME"
+>recovery.conf</TT
+> that causes it to
+   stream changes from the upstream server's WAL archive via
+   <TT
+CLASS="LITERAL"
+>restore_command</TT
+> or <TT
+CLASS="LITERAL"
+>primary_conninfo</TT
+> so
+   it can continue to replay from the source node as a streaming replica when
+   it is started up. The backup must not already be running.
+   <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> will override any existing recovery
+   target set in <TT
+CLASS="FILENAME"
+>recovery.conf</TT
+>. See <A
+HREF="https://www.postgresql.org/docs/current/static/continuous-archiving.html#BACKUP-LOWLEVEL-BASE-BACKUP"
+TARGET="_top"
+>   the PostgreSQL manual</A
+> for information on creating base backups.
+  </P
+><P
+><TT
+CLASS="COMMAND"
+>bdr_init_copy</TT
+> [<TT
+CLASS="REPLACEABLE"
+><I
+>option</I
+></TT
+>...]</P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="COMMANDS-BDR-INIT-COPY-OPTIONS"
+>6.1.1. Options</A
+></H2
+><P
+>    The following command-line options control the behaviour of
+    <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+>.
+   </P
+><P
+>    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><TT
+CLASS="OPTION"
+>-D <TT
+CLASS="REPLACEABLE"
+><I
+>directory</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--pgdata=<TT
+CLASS="REPLACEABLE"
+><I
+>directory</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Data directory of the new node.
+       </P
+><P
+>        This can be either a postgres data directory backed up from the source
+        node (as discussed above) or an empty directory. In case of empty
+        directory, the full backup of the source node will be made using
+        <SPAN
+CLASS="APPLICATION"
+>pg_basebackup</SPAN
+>.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>-n <TT
+CLASS="REPLACEABLE"
+><I
+>nodename</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--node-name=<TT
+CLASS="REPLACEABLE"
+><I
+>nodename</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Name of the new node.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--replication-sets=<TT
+CLASS="REPLACEABLE"
+><I
+>sets</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Comma separated list of replication set names to use.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>-s</TT
+></DT
+><DD
+><P
+>        Stop the node after creation. The default behavior is to start the new
+        node once it's setup.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--postgresql-conf=<TT
+CLASS="REPLACEABLE"
+><I
+>postgresql.conf</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Path to postgresql.conf file which will be used by the new node. If not
+        specified, the postgresql.conf will be copied from the source node.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--hba-conf=<TT
+CLASS="REPLACEABLE"
+><I
+>hba.conf</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Path to hba.conf file which will be used by the new node. If not
+        specified, the hba.conf will be copied from the source node.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--recovery-conf=<TT
+CLASS="REPLACEABLE"
+><I
+>recovery.conf</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Path to recovery.conf template file which will be used during the
+        physical initialization of the node.
+       </P
+><P
+>        This parameter is useful if you can't use streaming replication for
+        initial synchronization and you want to use <TT
+CLASS="VARNAME"
+>archive_command</TT
+>
+        instead.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--log-file=<TT
+CLASS="REPLACEABLE"
+><I
+>bdr_init_copy_postgres.log</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Path to the log file that bdr_init_copy will write <TT
+CLASS="COMMAND"
+>postgres</TT
+>
+        output to when it starts temporary postgres instances during setup. Defaults
+        to <TT
+CLASS="LITERAL"
+>bdr_init_copy_postgres.log</TT
+> in the current directory.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--apply-delay=<TT
+CLASS="REPLACEABLE"
+><I
+>0</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        This option is the same as the <TT
+CLASS="REPLACEABLE"
+><I
+>apply_delay</I
+></TT
+> option to
+        <CODE
+CLASS="FUNCTION"
+><A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-GROUP-JOIN"
+>bdr_group_join</A
+></CODE
+>.
+        It is mainly useful for testing - including crude latency simulation -
+        and debugging.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+><P
+>    The following command-line options specify the source node to connect to.
+
+    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><TT
+CLASS="OPTION"
+>-d <TT
+CLASS="REPLACEABLE"
+><I
+>dbname</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--remote-dbname=<TT
+CLASS="REPLACEABLE"
+><I
+>dbname</I
+></TT
+></TT
+></DT
+><DD
+><P
+>       Specifies the name of the database to connect to. This is
+       equivalent to specifying <TT
+CLASS="REPLACEABLE"
+><I
+>dbname</I
+></TT
+> as the first non-option
+       argument on the command line.
+      </P
+><P
+>       If this parameter contains an <TT
+CLASS="SYMBOL"
+>=</TT
+> sign or starts
+       with a valid <ACRONYM
+CLASS="ACRONYM"
+>URI</ACRONYM
+> prefix
+       (<TT
+CLASS="LITERAL"
+>postgresql://</TT
+>
+       or <TT
+CLASS="LITERAL"
+>postgres://</TT
+>), it is treated as a
+       <TT
+CLASS="PARAMETER"
+>conninfo</TT
+> string.
+      </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>-h <TT
+CLASS="REPLACEABLE"
+><I
+>host</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--remote-host=<TT
+CLASS="REPLACEABLE"
+><I
+>host</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Specifies the host name of the machine on which the server is
+        running.  If the value begins with a slash, it is used as the
+        directory for the Unix domain socket. The default is taken
+        from the <TT
+CLASS="ENVAR"
+>PGHOST</TT
+> environment variable, if set,
+        else a Unix domain socket connection is attempted.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>-p <TT
+CLASS="REPLACEABLE"
+><I
+>port</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--remote-port=<TT
+CLASS="REPLACEABLE"
+><I
+>port</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Specifies the TCP port or local Unix domain socket file
+        extension on which the server is listening for connections.
+        Defaults to the <TT
+CLASS="ENVAR"
+>PGPORT</TT
+> environment variable, if
+        set, or a compiled-in default.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>-U <TT
+CLASS="REPLACEABLE"
+><I
+>username</I
+></TT
+></TT
+><BR><TT
+CLASS="OPTION"
+>--remote-user=<TT
+CLASS="REPLACEABLE"
+><I
+>username</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        User name to connect as.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+><P
+>    The following command-line options specify local connection to the newly
+    created node.
+
+    <P
+></P
+></P><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><TT
+CLASS="OPTION"
+>--local-dbname=<TT
+CLASS="REPLACEABLE"
+><I
+>dbname</I
+></TT
+></TT
+></DT
+><DD
+><P
+>       Specifies the name of the database to connect to. This is
+       equivalent to specifying <TT
+CLASS="REPLACEABLE"
+><I
+>dbname</I
+></TT
+> as the first non-option
+       argument on the command line.
+      </P
+><P
+>       If this parameter contains an <TT
+CLASS="SYMBOL"
+>=</TT
+> sign or starts
+       with a valid <ACRONYM
+CLASS="ACRONYM"
+>URI</ACRONYM
+> prefix
+       (<TT
+CLASS="LITERAL"
+>postgresql://</TT
+>
+       or <TT
+CLASS="LITERAL"
+>postgres://</TT
+>), it is treated as a
+       <TT
+CLASS="PARAMETER"
+>conninfo</TT
+> string.
+      </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--local-host=<TT
+CLASS="REPLACEABLE"
+><I
+>host</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Specifies the host name of the machine on which the server is
+        running.  If the value begins with a slash, it is used as the
+        directory for the Unix domain socket. The default is taken
+        from the <TT
+CLASS="ENVAR"
+>PGHOST</TT
+> environment variable, if set,
+        else a Unix domain socket connection is attempted.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--local-port=<TT
+CLASS="REPLACEABLE"
+><I
+>port</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        Specifies the TCP port or local Unix domain socket file
+        extension on which the server is listening for connections.
+        Defaults to the <TT
+CLASS="ENVAR"
+>PGPORT</TT
+> environment variable, if
+        set, or a compiled-in default.
+       </P
+><P
+>        <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> does <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+>
+        modify <TT
+CLASS="FILENAME"
+>postgresql.conf</TT
+> on the new node to use this
+        port. If it is different to the remote port (e.g. when local and remote
+        nodes are on the same machine and would otherwise have conflicting
+        ports), supply a modified configuration with
+        <TT
+CLASS="LITERAL"
+>--postgresql-conf</TT
+>.
+       </P
+></DD
+><DT
+><TT
+CLASS="OPTION"
+>--local-user=<TT
+CLASS="REPLACEABLE"
+><I
+>username</I
+></TT
+></TT
+></DT
+><DD
+><P
+>        User name to connect as.
+       </P
+></DD
+></DL
+></DIV
+><P>
+   </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="commands.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="command-bdr-initial-load.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Command-line Utilities</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="commands.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>bdr_initial_load</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>User defined conflict handlers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Multi-master conflicts"
+HREF="conflicts.html"><LINK
+REL="PREVIOUS"
+TITLE="Avoiding or tolerating conflicts"
+HREF="conflicts-avoidance.html"><LINK
+REL="NEXT"
+TITLE="Conflict logging"
+HREF="conflicts-logging.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Avoiding or tolerating conflicts"
+HREF="conflicts-avoidance.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 9. Multi-master conflicts</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Conflict logging"
+HREF="conflicts-logging.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CONFLICTS-USER-DEFINED-HANDLERS"
+>9.4. User defined conflict handlers</A
+></H1
+><P
+>   <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> provides facilities for users to override the default last-update-wins
+   data row conflict resolution strategy on row key conflicts.
+  </P
+><P
+>   A user defined conflict handler, if provided, is called before default
+   row conflict resolution is performed. The user defined handler may choose
+   to ignore the new row and keep the original local row, to apply the new
+   row, or to generate a new row (possibly merging old and new) and apply
+   that instead of the new incoming row. A conflict handler may also
+   choose to <TT
+CLASS="LITERAL"
+>ERROR</TT
+> out, which can be useful if it wishes
+   to abort apply of a transaction and retry it later.
+  </P
+><P
+>   Conflict handlers cannot skip whole transactions.
+  </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>    User-defined conflict handlers do not have access to both the old and new
+    versions of the remote row, so they cannot tell which field(s) in the
+    remote incoming tuple changed. It is thus not possible to do reliable row
+    merging. Attempts to so for the general case will usually prove to be
+    incorrect in an asynchronous replication envirionment. It's possible in
+    some application-specific situations where the app "knows" more about
+    the data.
+   </P
+></BLOCKQUOTE
+></DIV
+><P
+>   See also: <A
+HREF="functions-conflict-handlers.html"
+>Conflict handler management functions</A
+>
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts-avoidance.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="conflicts-logging.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Avoiding or tolerating conflicts</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Conflict logging</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

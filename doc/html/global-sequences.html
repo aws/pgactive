@@ -1,0 +1,278 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Global Sequences</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="BDR administration manual"
+HREF="manual.html"><LINK
+REL="PREVIOUS"
+TITLE="Conflict logging"
+HREF="conflicts-logging.html"><LINK
+REL="NEXT"
+TITLE="Purpose of global sequences"
+HREF="global-sequences-purpose.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="CHAPTER"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Conflict logging"
+HREF="conflicts-logging.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="manual.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Purpose of global sequences"
+HREF="global-sequences-purpose.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="CHAPTER"
+><H1
+><A
+NAME="GLOBAL-SEQUENCES"
+></A
+>Chapter 10. Global Sequences</H1
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>10.1. <A
+HREF="global-sequences-purpose.html"
+>Purpose of global sequences</A
+></DT
+><DT
+>10.2. <A
+HREF="global-sequences-when.html"
+>When to use global sequences</A
+></DT
+><DT
+>10.3. <A
+HREF="global-sequence-usage.html"
+>Using global sequences</A
+></DT
+><DT
+>10.4. <A
+HREF="global-sequence-limitations.html"
+>Global sequence limitations</A
+></DT
+><DT
+>10.5. <A
+HREF="global-sequences-orms.html"
+>Global sequences and ORMs</A
+></DT
+><DT
+>10.6. <A
+HREF="global-sequence-voting.html"
+>Global sequence voting</A
+></DT
+><DT
+>10.7. <A
+HREF="global-sequences-alternatives.html"
+>Traditional approaches to sequences in distributed DBs</A
+></DT
+><DD
+><DL
+><DT
+>10.7.1. <A
+HREF="global-sequences-alternatives.html#GLOBAL-SEQUENCES-ALTERNATIVE-STEPOFFSET"
+>Step/offset sequences</A
+></DT
+><DT
+>10.7.2. <A
+HREF="global-sequences-alternatives.html#GLOBAL-SEQUENCES-ALTERNATIVE-COMPOSITE"
+>Composite keys</A
+></DT
+><DT
+>10.7.3. <A
+HREF="global-sequences-alternatives.html#GLOBAL-SEQUENCES-ALTERNATIVE-UUID"
+>UUIDs</A
+></DT
+></DL
+></DD
+><DT
+>10.8. <A
+HREF="global-sequences-bdr10.html"
+>BDR 1.0 global sequences</A
+></DT
+></DL
+></DIV
+><P
+>  BDR global sequences provide an easy way for applications to use the
+  database to generate unique synthetic keys in an asynchronous distributed
+  system.
+ </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>   This chapter refers to the global sequences implementation in BDR 2.0 and
+   newer. See the BDR 1.0 documentation and the upgrade guide for details on
+   the quite different global sequences implementation in BDR 1.0.
+  </P
+></BLOCKQUOTE
+></DIV
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>   Object-relational mappers and applications that hardcode calls to the
+   <TT
+CLASS="LITERAL"
+>nextval</TT
+> function may require special configuration to work with
+   BDR 2.0 global sequences.
+  </P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts-logging.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="global-sequences-purpose.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Conflict logging</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="manual.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Purpose of global sequences</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

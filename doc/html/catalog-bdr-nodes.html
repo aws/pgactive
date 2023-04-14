@@ -1,0 +1,465 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>bdr.bdr_nodes</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Catalogs and Views"
+HREF="catalogs-views.html"><LINK
+REL="PREVIOUS"
+TITLE="Catalogs and Views"
+HREF="catalogs-views.html"><LINK
+REL="NEXT"
+TITLE="bdr.bdr_connections"
+HREF="catalog-bdr-connections.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Catalogs and Views"
+HREF="catalogs-views.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="catalogs-views.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 13. Catalogs and Views</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="bdr.bdr_connections"
+HREF="catalog-bdr-connections.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CATALOG-BDR-NODES"
+>13.1. bdr.bdr_nodes</A
+></H1
+><P
+>   The <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+> table keeps track of a node's
+   membership in a <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group.  A row is inserted or updated in the table
+   during the node join process, and during node removal.
+  </P
+><P
+>   The 'status' column may have the following values, which are subject to change:
+   <P
+></P
+></P><UL
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>r</TT
+>- Ready: The node can function fully. Slots may be created on this node and it can participate with the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group.  </P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>b</TT
+>- Joining: The node is bootstrapping. This state occurs when join has been initiated but a copy has not yet been begun.</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>i</TT
+>- Joining: The node is doing initial slot creation or an initial dump and load</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>c</TT
+>- Joining: The node is catching up to the target node and is not yet ready to participate with the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group.  </P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>o</TT
+>- Joining: The node has caught up with the target node and is waiting for all inbound and outbound slots to be created.  </P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>k</TT
+>- Parting/Parted: The node has been 'killed' or removed by the user with the function <TT
+CLASS="LITERAL"
+>bdr.bdr_part_by_node_names</TT
+>.</P
+></LI
+></UL
+><P>
+  </P
+><P
+>   Note that the status doesn't indicate whether the node is actually up right
+   now. A node may be shut down, isolated from the network, or crashed and still
+   appear as <TT
+CLASS="LITERAL"
+>r</TT
+> in <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+> because it's
+   still conceptually part of the BDR group. Check
+   <A
+HREF="http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW"
+TARGET="_top"
+>pg_stat_replication</A
+>
+   and
+   <A
+HREF="http://www.postgresql.org/docs/current/static/catalog-pg-replication-slots.html"
+TARGET="_top"
+>pg_replication_slots</A
+>
+   for the connection and replay status of a node. See <A
+HREF="monitoring.html"
+>Monitoring</A
+>.
+  </P
+><P
+>   Avoid directly modifying <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+>. Use the provided
+   node management functions instead. See <A
+HREF="functions-node-mgmt.html"
+>Node management functions</A
+>.
+   It is safe to delete nodes entries that have <TT
+CLASS="LITERAL"
+>node_state</TT
+>
+   <TT
+CLASS="LITERAL"
+>'k'</TT
+> to re-use their node names.
+  </P
+><DIV
+CLASS="TABLE"
+><A
+NAME="AEN3456"
+></A
+><P
+><B
+>Table 13-1. <TT
+CLASS="STRUCTNAME"
+>bdr.bdr_nodes</TT
+> Columns</B
+></P
+><TABLE
+BORDER="1"
+CLASS="CALSTABLE"
+><COL><COL><COL><COL><THEAD
+><TR
+><TH
+>Name</TH
+><TH
+>Type</TH
+><TH
+>References</TH
+><TH
+>Description</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_sysid</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>text</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>system_identifier from the control file of the node</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_timeline</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>oid</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>timeline ID of this node</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_dboid</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>oid</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>local database oid on the cluster (node_sysid, node_timeline)</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_status</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>char</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>Readiness of the node: [b]eginning setup, [i]nitializing, [c]atchup, creating [o]utbound slots, [r]eady, [k]illed. Doesn't indicate connected/disconnected.</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_name</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>text</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>Name of the node</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_local_dsn</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>text</TT
+></TD
+><TD
+><TT
+CLASS="STRUCTNAME"
+>Node management function:</TT
+><TT
+CLASS="STRUCTFIELD"
+>node_local_dsn</TT
+></TD
+><TD
+>A local loopback or unix socket connection string that the node can use to connect to its self; this is only used during initial setup to make the database restore faster.</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_init_from_dsn</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>text</TT
+></TD
+><TD
+><TT
+CLASS="STRUCTNAME"
+>Node management function:</TT
+><TT
+CLASS="STRUCTFIELD"
+>node_external_dsn</TT
+></TD
+><TD
+>Connection string of the node chosen as join target. Not used after we've joined the node.</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_read_only</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>boolean</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>False unless read-only mode for a node is turned ON.</TD
+></TR
+><TR
+><TD
+><TT
+CLASS="STRUCTFIELD"
+>node_seq_id</TT
+></TD
+><TD
+><TT
+CLASS="TYPE"
+>smallint</TT
+></TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="catalogs-views.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="catalog-bdr-connections.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Catalogs and Views</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="catalogs-views.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>bdr.bdr_connections</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

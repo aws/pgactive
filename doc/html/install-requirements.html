@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR requirements</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Installation"
+HREF="installation.html"><LINK
+REL="PREVIOUS"
+TITLE="Installation"
+HREF="installation.html"><LINK
+REL="NEXT"
+TITLE="Installing BDR from packages"
+HREF="installation-packages.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Installation"
+HREF="installation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="installation.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 2. Installation</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Installing BDR from packages"
+HREF="installation-packages.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="INSTALL-REQUIREMENTS"
+>2.1. BDR requirements</A
+></H1
+><P
+>   BDR runs on unmodified PostgreSQL 9.6 as distributed by the PostgreSQL
+   Development Group (PGDG), i.e. postgresql.org. The source code will also
+   work with any largely unmodified re-distribution like those by Ubuntu, Red
+   Hat, etc, though 2ndQuadrant only provides packages for PGDG releases.
+  </P
+><P
+>   BDR is also compatible with BDR-Postgres 9.4, a modified PostgreSQL 9.4 that
+   was required by BDR 1.x releases. New installs should use PostgreSQL 9.6.
+   Support for BDR-Postgres 9.4 is mainly for existing deployments and for
+   upgrades. See <A
+HREF="upgrade.html"
+>Upgrading BDR</A
+>&#62; and
+   <A
+HREF="install-requirements.html#INSTALL-REQUIREMENTS-94"
+>BDR requirements (9.4)</A
+>.
+  </P
+><P
+>   PostgreSQL 9.5 is not supported and will never be supported. Nor is
+   unmodified community PostgreSQL 9.4, or any older version of PostgreSQL.
+  </P
+><P
+>   As of the time of writing, Microsoft Windows is not yet a supported
+   platform for BDR. Support may be added
+   in later releases. If Windows support is important to you, check 
+   <A
+HREF="http://2ndquadrant.com/BDR"
+TARGET="_top"
+>BDR website</A
+> for
+   the latest information.
+  </P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="INSTALL-REQUIREMENTS-94"
+>2.1.1. BDR Requirements (BDR-Postgres 9.4)</A
+></H2
+><P
+>    To run on PostgreSQL 9.4, BDR requires a modified PostgreSQL called
+    BDR-Postgres 9.4. The modified PostgreSQL adds functionality BDR needs to
+    support DDL replication, multi-master conflict resolution, user-defined
+    conflict handlers, etc. It is available from the BDR download page
+    alongside the extension in both package and source form. This requirement
+    means that <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>you can't use BDR on unmodified PostgreSQL
+    9.4</I
+></SPAN
+>.
+   </P
+><P
+>    Some of these modifications make small changes to PostgreSQL data
+    directory. As a result the modified PostgreSQL 9.4 used by BDR can't
+    load data directories from unmodified PostgreSQL and vice versa. Users
+    must dump and reload their database(s) to switch to a BDR-capable
+    PostgreSQL 9.4. See <A
+HREF="installation.html"
+>Installation</A
+>.
+   </P
+><P
+>    This is not the case for BDR running on PostgreSQL 9.6, where no modified
+    PostgreSQL is required.
+   </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="installation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="installation-packages.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Installation</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="installation.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Installing BDR from packages</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

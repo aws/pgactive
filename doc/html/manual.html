@@ -1,0 +1,558 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR administration manual</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Testing your BDR-enabled system"
+HREF="quickstart-testing.html"><LINK
+REL="NEXT"
+TITLE="Configuration Settings"
+HREF="settings.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="PART"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Testing your BDR-enabled system"
+HREF="quickstart-testing.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Configuration Settings"
+HREF="settings.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="PART"
+><A
+NAME="MANUAL"
+></A
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+>II. BDR administration manual</H1
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>4. <A
+HREF="settings.html"
+>Configuration Settings</A
+></DT
+><DD
+><DL
+><DT
+>4.1. <A
+HREF="settings-prerequisite.html"
+>Prerequisite <SPAN
+CLASS="PRODUCTNAME"
+>PostgreSQL</SPAN
+> parameters</A
+></DT
+><DT
+>4.2. <A
+HREF="bdr-configuration-variables.html"
+>BDR specific configuration variables</A
+></DT
+></DL
+></DD
+><DT
+>5. <A
+HREF="node-management.html"
+>Node Management</A
+></DT
+><DD
+><DL
+><DT
+>5.1. <A
+HREF="node-management-joining.html"
+>Joining a node</A
+></DT
+><DT
+>5.2. <A
+HREF="node-management-removing.html"
+>Parting (removing) a node</A
+></DT
+><DT
+>5.3. <A
+HREF="node-management-disabling.html"
+>Completely removing BDR</A
+></DT
+><DT
+>5.4. <A
+HREF="node-management-synchronous.html"
+>n-safe synchronous replication</A
+></DT
+></DL
+></DD
+><DT
+>6. <A
+HREF="commands.html"
+>Command-line Utilities</A
+></DT
+><DD
+><DL
+><DT
+>6.1. <A
+HREF="command-bdr-init-copy.html"
+>bdr_init_copy</A
+></DT
+><DT
+>6.2. <A
+HREF="command-bdr-initial-load.html"
+>bdr_initial_load</A
+></DT
+></DL
+></DD
+><DT
+>7. <A
+HREF="monitoring.html"
+>Monitoring</A
+></DT
+><DD
+><DL
+><DT
+>7.1. <A
+HREF="monitoring-why.html"
+>Why monitoring matters</A
+></DT
+><DT
+>7.2. <A
+HREF="monitoring-node-join-remove.html"
+>Monitoring node join/removal</A
+></DT
+><DT
+>7.3. <A
+HREF="monitoring-peers.html"
+>Monitoring replication peers</A
+></DT
+><DT
+>7.4. <A
+HREF="monitoring-ddl-lock.html"
+>Monitoring global DDL locks</A
+></DT
+><DT
+>7.5. <A
+HREF="monitoring-conflict-stats.html"
+>Monitoring conflicts</A
+></DT
+><DT
+>7.6. <A
+HREF="monitoring-postgres-stats.html"
+>PostgreSQL statistics views</A
+></DT
+></DL
+></DD
+><DT
+>8. <A
+HREF="ddl-replication.html"
+>DDL Replication</A
+></DT
+><DD
+><DL
+><DT
+>8.1. <A
+HREF="ddl-replication-advice.html"
+>Executing DDL on BDR systems</A
+></DT
+><DT
+>8.2. <A
+HREF="ddl-replication-statements.html"
+>Statement specific DDL replication concerns</A
+></DT
+></DL
+></DD
+><DT
+>9. <A
+HREF="conflicts.html"
+>Multi-master conflicts</A
+></DT
+><DD
+><DL
+><DT
+>9.1. <A
+HREF="conflicts-how.html"
+>How conflicts happen</A
+></DT
+><DT
+>9.2. <A
+HREF="conflicts-types.html"
+>Types of conflict</A
+></DT
+><DT
+>9.3. <A
+HREF="conflicts-avoidance.html"
+>Avoiding or tolerating conflicts</A
+></DT
+><DT
+>9.4. <A
+HREF="conflicts-user-defined-handlers.html"
+>User defined conflict handlers</A
+></DT
+><DT
+>9.5. <A
+HREF="conflicts-logging.html"
+>Conflict logging</A
+></DT
+></DL
+></DD
+><DT
+>10. <A
+HREF="global-sequences.html"
+>Global Sequences</A
+></DT
+><DD
+><DL
+><DT
+>10.1. <A
+HREF="global-sequences-purpose.html"
+>Purpose of global sequences</A
+></DT
+><DT
+>10.2. <A
+HREF="global-sequences-when.html"
+>When to use global sequences</A
+></DT
+><DT
+>10.3. <A
+HREF="global-sequence-usage.html"
+>Using global sequences</A
+></DT
+><DT
+>10.4. <A
+HREF="global-sequence-limitations.html"
+>Global sequence limitations</A
+></DT
+><DT
+>10.5. <A
+HREF="global-sequences-orms.html"
+>Global sequences and ORMs</A
+></DT
+><DT
+>10.6. <A
+HREF="global-sequence-voting.html"
+>Global sequence voting</A
+></DT
+><DT
+>10.7. <A
+HREF="global-sequences-alternatives.html"
+>Traditional approaches to sequences in distributed DBs</A
+></DT
+><DT
+>10.8. <A
+HREF="global-sequences-bdr10.html"
+>BDR 1.0 global sequences</A
+></DT
+></DL
+></DD
+><DT
+>11. <A
+HREF="replication-sets.html"
+>Replication Sets</A
+></DT
+><DD
+><DL
+><DT
+>11.1. <A
+HREF="replication-sets-concepts.html"
+>Replication Set Concepts</A
+></DT
+><DT
+>11.2. <A
+HREF="replication-sets-creation.html"
+>Creating replication sets</A
+></DT
+><DT
+>11.3. <A
+HREF="replication-sets-nodes.html"
+>Node Replication Control</A
+></DT
+><DT
+>11.4. <A
+HREF="replication-sets-tables.html"
+>Table Replication Control</A
+></DT
+><DT
+>11.5. <A
+HREF="replication-sets-changetype.html"
+>Change-type replication sets</A
+></DT
+></DL
+></DD
+><DT
+>12. <A
+HREF="functions.html"
+>Functions</A
+></DT
+><DD
+><DL
+><DT
+>12.1. <A
+HREF="functions-node-mgmt.html"
+>Node management functions</A
+></DT
+><DT
+>12.2. <A
+HREF="functions-replication-sets.html"
+>Replication Set functions</A
+></DT
+><DT
+>12.3. <A
+HREF="functions-conflict-handlers.html"
+>Conflict handler management functions</A
+></DT
+><DT
+>12.4. <A
+HREF="functions-information.html"
+>Information functions</A
+></DT
+><DT
+>12.5. <A
+HREF="functions-upgrade.html"
+>Upgrade functions</A
+></DT
+></DL
+></DD
+><DT
+>13. <A
+HREF="catalogs-views.html"
+>Catalogs and Views</A
+></DT
+><DD
+><DL
+><DT
+>13.1. <A
+HREF="catalog-bdr-nodes.html"
+>bdr.bdr_nodes</A
+></DT
+><DT
+>13.2. <A
+HREF="catalog-bdr-connections.html"
+>bdr.bdr_connections</A
+></DT
+><DT
+>13.3. <A
+HREF="catalog-bdr-node-slots.html"
+>bdr.bdr_node_slots</A
+></DT
+><DT
+>13.4. <A
+HREF="catalog-pg-stat-bdr.html"
+>bdr.pg_stat_bdr</A
+></DT
+><DT
+>13.5. <A
+HREF="catalog-bdr-conflict-history.html"
+>bdr.bdr_conflict_history</A
+></DT
+><DT
+>13.6. <A
+HREF="catalog-bdr-replication-set-config.html"
+>bdr.bdr_replication_set_config</A
+></DT
+><DT
+>13.7. <A
+HREF="catalog-bdr-conflict-handlers.html"
+>bdr.bdr_conflict_handlers</A
+></DT
+><DT
+>13.8. <A
+HREF="catalog-bdr-locks.html"
+>bdr.bdr_locks</A
+></DT
+><DT
+>13.9. <A
+HREF="catalog-bdr-global-locks.html"
+>bdr.bdr_global_locks</A
+></DT
+><DT
+>13.10. <A
+HREF="catalog-bdr-queued-commands.html"
+>bdr.bdr_queued_commands</A
+></DT
+><DT
+>13.11. <A
+HREF="catalog-bdr-queued-drops.html"
+>bdr.bdr_queued_drops</A
+></DT
+><DT
+>13.12. <A
+HREF="catalog-bdr-sequence-values.html"
+>bdr.bdr_sequence_values</A
+></DT
+><DT
+>13.13. <A
+HREF="catalog-bdr-sequence-elections.html"
+>bdr.bdr_sequence_elections</A
+></DT
+><DT
+>13.14. <A
+HREF="catalog-bdr-votes.html"
+>bdr.bdr_votes</A
+></DT
+></DL
+></DD
+><DT
+>14. <A
+HREF="upgrade.html"
+>Upgrading <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+></A
+></DT
+><DD
+><DL
+><DT
+>14.1. <A
+HREF="x4413.html"
+>Upgrading 2.0.x to 2.0.y releases</A
+></DT
+><DT
+>14.2. <A
+HREF="x4416.html"
+>Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL 9.6</A
+></DT
+><DT
+>14.3. <A
+HREF="x4529.html"
+>Upgrading BDR 0.9.x to 1.0</A
+></DT
+><DT
+>14.4. <A
+HREF="x4533.html"
+>Upgrading 0.8.x to 1.0</A
+></DT
+></DL
+></DD
+></DL
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="quickstart-testing.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="settings.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Testing your BDR-enabled system</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Configuration Settings</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

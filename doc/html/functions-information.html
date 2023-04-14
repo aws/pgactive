@@ -1,0 +1,374 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Information functions</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Functions"
+HREF="functions.html"><LINK
+REL="PREVIOUS"
+TITLE="Conflict handler management functions"
+HREF="functions-conflict-handlers.html"><LINK
+REL="NEXT"
+TITLE="Upgrade functions"
+HREF="functions-upgrade.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Conflict handler management functions"
+HREF="functions-conflict-handlers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="functions.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 12. Functions</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Upgrade functions"
+HREF="functions-upgrade.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FUNCTIONS-INFORMATION"
+>12.4. Information functions</A
+></H1
+><P
+>   The following functions provide information about a BDR node:
+
+   <DIV
+CLASS="TABLE"
+><A
+NAME="AEN3302"
+></A
+><P
+><B
+>Table 12-4. Node information functions</B
+></P
+><TABLE
+BORDER="1"
+CLASS="CALSTABLE"
+><COL><COL><COL><THEAD
+><TR
+><TH
+>Function</TH
+><TH
+>Return Type</TH
+><TH
+>Description</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_version()</CODE
+></TT
+>
+       </TD
+><TD
+>text</TD
+><TD
+>Report the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> version in human-readable <TT
+CLASS="REPLACEABLE"
+><I
+>major.minor.rev-yyyy-mm-dd-gitrev</I
+></TT
+> text form, with build date and git revision, e.g. <TT
+CLASS="LITERAL"
+>0.9.0-2015-02-08-3f3fb7c</TT
+>.</TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_version_num()</CODE
+></TT
+>
+       </TD
+><TD
+>integer</TD
+><TD
+>Report just the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> version number in numeric AAAABBCC form, (A: major, B: minor, C: rev) e.g. <TT
+CLASS="LITERAL"
+>0.9.0</TT
+> is <TT
+CLASS="LITERAL"
+>900</TT
+> (00000900).</TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_min_remote_version_num()</CODE
+></TT
+>
+       </TD
+><TD
+>integer</TD
+><TD
+>Return the oldest version of the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> extension that this node can compatibly receive streamed changes from.</TD
+></TR
+><TR
+><A
+NAME="FUNCTIONS-BDR-GET-LOCAL-NODE-NAME"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_get_local_node_name()</CODE
+></TT
+>
+       </TD
+><TD
+>text</TD
+><TD
+>Look up the local node in <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+> and return the node name - or null if the node is not a <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> peer</TD
+></TR
+><TR
+><A
+NAME="FUNCTIONS-BDR-GET-LOCAL-NODE-ID"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_get_local_nodeid()</CODE
+></TT
+>
+       </TD
+><TD
+>record</TD
+><TD
+>Returns a tuple containing the local node's <TT
+CLASS="LITERAL"
+>sysid</TT
+>, <TT
+CLASS="LITERAL"
+>timeline</TT
+>, and <TT
+CLASS="LITERAL"
+>dboid</TT
+>.</TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_get_remote_nodeinfo(<TT
+CLASS="REPLACEABLE"
+><I
+>peer_dsn</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>record</TD
+><TD
+>Connect to a remote node and interrogate it for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> information. This function is primarily for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> internal use during setup and connection establishment.</TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_test_remote_connectback(<TT
+CLASS="REPLACEABLE"
+><I
+>peer_dsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>local_dsn</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>record</TD
+><TD
+>Ask a remote node to connect back to this node. This function is primarily for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> internal use during setup and connection establishment.</TD
+></TR
+></TBODY
+></TABLE
+></DIV
+>
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="functions-conflict-handlers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="functions-upgrade.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Conflict handler management functions</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="functions.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Upgrade functions</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

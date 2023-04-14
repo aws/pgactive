@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Verifying digital signatures</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 0.7.0"
+HREF="release-0.7.html"><LINK
+REL="NEXT"
+TITLE="Technical notes"
+HREF="technotes.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="APPENDIX"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 0.7.0"
+HREF="release-0.7.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Technical notes"
+HREF="technotes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="APPENDIX"
+><H1
+><A
+NAME="APPENDIX-SIGNATURES"
+></A
+>Appendix B. Verifying digital signatures</H1
+><P
+>  The signing key ID used for source code and RPM releases of BDR versions
+  based on PostgreSQL 9.4 is <A
+HREF="http://packages.2ndquadrant.com/postgresql-bdr94-2ndquadrant/RPM-GPG-KEY-2NDQ-BDR-94"
+TARGET="_top"
+>  the key <TT
+CLASS="LITERAL"
+>0x6E192B0E</TT
+></A
+>.
+ </P
+><P
+>  To download the BDR 9.4 RPM repository key to your computer:
+  </P><PRE
+CLASS="PROGRAMLISTING"
+>   curl -s http://packages.2ndquadrant.com/postgresql-bdr94-2ndquadrant/RPM-GPG-KEY-2NDQ-BDR-94 | gpg --import
+   gpg --fingerprint 0x6E192B0E
+  </PRE
+><P>
+  then verify that the fingerprint is the expected value:
+  </P><PRE
+CLASS="PROGRAMLISTING"
+>   9793 74C1 0580 940E 9611  1BE3 A879 B734 6E19 2B0E
+  </PRE
+><P>
+ </P
+><P
+>  The BDR / 9.4 RPM releases key is in turn signed by
+  <A
+HREF="http://packages.2ndquadrant.com/2NDQUADRANT-PACKAGING-MASTER-KEY.asc"
+TARGET="_top"
+>  the 2ndQuadrant master packaging/releases key with key ID
+  <TT
+CLASS="LITERAL"
+>0x2B11E054</TT
+></A
+>. You can <A
+HREF="http://2ndquadrant.com/signing-keys"
+TARGET="_top"
+> verify the fingerprint
+  of the master packaging key on the 2ndQuadrant website.</A
+>
+ </P
+><P
+>  For checking tarballs, download the BDR release signing key as
+  shown above, then use
+  <SPAN
+CLASS="APPLICATION"
+>gpg</SPAN
+> directly to verify, e.g.:
+  </P><PRE
+CLASS="PROGRAMLISTING"
+>   gpg --verify bdr-0.8.0.tar.gz.asc
+  </PRE
+><P>
+ </P
+><P
+>  To check a repository RPM, use <SPAN
+CLASS="APPLICATION"
+>rpmkeys</SPAN
+> to load the
+  master packaging signing key into the RPM database then use <TT
+CLASS="LITERAL"
+>rpm -K</TT
+>, e.g.:
+  </P><PRE
+CLASS="PROGRAMLISTING"
+>   sudo rpmkeys --import http://packages.2ndquadrant.com/2NDQUADRANT-PACKAGING-MASTER-KEY.asc
+   rpm -K postgresql-bdr94-2ndquadrant-redhat-1.0-2.noarch.rpm
+  </PRE
+><P>
+ </P
+><P
+>  If you want to manually verify individual RPMs you will need to load the
+  repository key. This is usually installed for you when you install
+  the repository RPM, then <SPAN
+CLASS="APPLICATION"
+>yum</SPAN
+> checks the
+  package signatures after download. So it is <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+>
+  typically necessary to manually verify signatures so long as you
+  verified the repository RPM.
+  </P><PRE
+CLASS="PROGRAMLISTING"
+>   sudo rpmkeys --import http://packages.2ndquadrant.com/postgresql-bdr94-2ndquadrant/RPM-GPG-KEY-2NDQ-BDR-94
+   rpm -K some-bdr-rpm.rpm
+  </PRE
+><P>
+ </P
+><P
+>  The packaging master key also signs the repository key for the Debian and
+  Ubuntu packages. The current repository key ID for the apt repository
+  is <TT
+CLASS="LITERAL"
+>0xAA7A6805</TT
+> and can be downloaded from
+  <A
+HREF="http://packages.2ndquadrant.com/bdr/apt/AA7A6805.asc"
+TARGET="_top"
+>  the repository site</A
+>.
+ </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-0.7.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="technotes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 0.7.0</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Technical notes</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

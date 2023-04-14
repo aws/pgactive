@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR 1.0 global sequences</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Global Sequences"
+HREF="global-sequences.html"><LINK
+REL="PREVIOUS"
+TITLE="Traditional approaches to sequences in distributed DBs"
+HREF="global-sequences-alternatives.html"><LINK
+REL="NEXT"
+TITLE="Replication Sets"
+HREF="replication-sets.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Traditional approaches to sequences in distributed DBs"
+HREF="global-sequences-alternatives.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="global-sequences.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 10. Global Sequences</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Replication Sets"
+HREF="replication-sets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="GLOBAL-SEQUENCES-BDR10"
+>10.8. BDR 1.0 global sequences</A
+></H1
+><P
+>   BDR 1.0 provided a different implementatoin of global sequences. They
+   intercepted <CODE
+CLASS="FUNCTION"
+>nextval(...)</CODE
+> function calls and negotiated
+   between nodes to ensure that values were unique across the whole BDR group.
+   They were created with the syntax
+   <TT
+CLASS="LITERAL"
+>CREATE SEQUENCE ... USING bdr</TT
+>
+   and used with <TT
+CLASS="LITERAL"
+>nextval(...)</TT
+> like any other
+   sequence.
+  </P
+><P
+>   This funtionality relied on modifications to Postgres-BDR 9.4 that were not
+   included in PostgreSQL 9.6. So the feature is not available on 9.6. It also
+   tolerated extended network partitions poorly. New applications should avoid
+   using them.
+  </P
+><P
+>   The old implementation is retained in BDR 2.0 for applications migrating
+   from BDR 1.0 that are still on BDR-Postgres 9.4. For details on the old
+   global sequences implementation see the BDR 1.0 manual.
+  </P
+><P
+>   To find out whether you are using BDR 1.0 global sequences and if so where,
+   query:
+   </P><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT oid::regclass
+    FROM pg_class
+    WHERE relkind = 'S' AND
+          pg_class.relam = (SELECT oid FROM pg_seqam WHERE seqamname = 'bdr');
+   </PRE
+><P>
+   to list sequences. You can self-join on <TT
+CLASS="LITERAL"
+>pg_class.relowner</TT
+>
+   to find the associated table for each sequence.
+  </P
+><P
+>   For upgrade and conversion advice see <A
+HREF="x4416.html#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES"
+>Converting BDR 1.0 global sequences</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="global-sequences-alternatives.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="replication-sets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Traditional approaches to sequences in distributed DBs</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="global-sequences.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Replication Sets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

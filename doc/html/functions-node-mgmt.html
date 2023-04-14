@@ -1,0 +1,1401 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Node management functions</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Functions"
+HREF="functions.html"><LINK
+REL="PREVIOUS"
+TITLE="Functions"
+HREF="functions.html"><LINK
+REL="NEXT"
+TITLE="Replication Set functions"
+HREF="functions-replication-sets.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Functions"
+HREF="functions.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="functions.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 12. Functions</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Replication Set functions"
+HREF="functions-replication-sets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FUNCTIONS-NODE-MGMT"
+>12.1. Node management functions</A
+></H1
+><P
+>   <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> uses functions to manage the addition and removal
+   of nodes and related replication control functions. See
+   <A
+HREF="node-management.html"
+>Node management</A
+> for more on how to manage <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>.
+  </P
+><P
+>   The following functions exist to manage nodes:
+
+   <DIV
+CLASS="TABLE"
+><A
+NAME="AEN2819"
+></A
+><P
+><B
+>Table 12-1. Node management functions</B
+></P
+><TABLE
+BORDER="1"
+CLASS="CALSTABLE"
+><COL><COL><COL><THEAD
+><TR
+><TH
+>Function</TH
+><TH
+>Return Type</TH
+><TH
+>Description</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><A
+NAME="FUNCTION-BDR-GROUP-CREATE"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_create(<TT
+CLASS="REPLACEABLE"
+><I
+>local_node_name</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>node_external_dsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>node_local_dsn DEFAULT NULL</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>apply_delay integer DEFAULT NULL</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>replication_sets text[] DEFAULT ARRAY['default']</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>	Create the first node in a future cluster of bdr nodes. May be run on
+	an empty database or one with existing data. An existing database may
+	be a previously standalone normal PostgreSQL databaseor an ex-BDR
+	database cleaned with <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE"
+>bdr.remove_bdr_from_local_node</A
+>.
+	The "dsn" (data source name) parameters are <A
+HREF="https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING"
+TARGET="_top"
+>libpq
+	connection strings</A
+>.
+	<TT
+CLASS="REPLACEABLE"
+><I
+>node_external_dsn</I
+></TT
+> is an arbitrary node name,
+	which must be unique across the BDR group.
+	<TT
+CLASS="REPLACEABLE"
+><I
+>node_external_dsn</I
+></TT
+> must be a connection
+	string other nodes can use to connect to this node. It must embed any
+	required passwords unless passwordless authentication is required or a
+	suitable <TT
+CLASS="FILENAME"
+>.pgpass</TT
+> file is created in the postgres
+	home directory. If specified, <TT
+CLASS="REPLACEABLE"
+><I
+>node_local_dsn</I
+></TT
+>
+	should be a local loopback or unix socket connection string that the
+	node can use to connect to its self; this is only used during initial
+	setup to make the database restore faster. <TT
+CLASS="REPLACEABLE"
+><I
+>apply_delay</I
+></TT
+>
+	allows you to slow down transaction apply, and is mainly for debugging.
+	<TT
+CLASS="REPLACEABLE"
+><I
+>replication_sets</I
+></TT
+> is the collection of replication
+	sets this node should receive.
+	See <A
+HREF="node-management-joining.html"
+>Joining a node</A
+> for details on node
+	joining and creation, and <A
+HREF="replication-sets.html"
+>Replication Sets</A
+> for more on
+	how replication sets work.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-GROUP-JOIN"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_join(<TT
+CLASS="REPLACEABLE"
+><I
+>local_node_name</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>node_external_dsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>join_using_dsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>node_local_dsn DEFAULT NULL</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>apply_delay integer DEFAULT NULL</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>replication_sets text[] DEFAULT ARRAY['default']</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>	Join this database to a cluster of existing bdr nodes. This will
+	initiate connections to and from all nother nodes. The function returns
+	immediately, without waiting for the join process to complete, and only
+	starts work when the calling transaction commits.
+	<A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-NODE-JOIN-WAIT-FOR-READY"
+>bdr.bdr_node_join_wait_for_ready</A
+> may be used to
+	wait until join completes. If there are problems with the join, check
+	the PostgreSQL logs on both systems for more information. The parameters
+	are the same as <CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_create()</CODE
+> except for
+	the additional required parameter <TT
+CLASS="REPLACEABLE"
+><I
+>join_using_dsn</I
+></TT
+>.
+	This must be the libpq connection string of the node to initialize from,
+	i.e. the other node's <TT
+CLASS="REPLACEABLE"
+><I
+>node_external_dsn</I
+></TT
+>.
+	Any node may be chosen as the join target, but if possible a node with
+	a fast and reliable network link to the new node should be preferred.
+	Note that <CODE
+CLASS="FUNCTION"
+>bdr.bdr_group_join()</CODE
+> can <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+>
+	"re-join" a node you removed with <CODE
+CLASS="FUNCTION"
+>bdr.bdr_part_by_node_names()</CODE
+>.
+	See <A
+HREF="node-management-joining.html"
+>Joining a node</A
+> for details on node
+	joining and creation, and <A
+HREF="replication-sets.html"
+>Replication Sets</A
+> for more on
+	how replication sets work.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-PART-BY-NODE-NAMES"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_part_by_node_names(<TT
+CLASS="REPLACEABLE"
+><I
+>p_nodes text[]</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Removes all the nodes - identified by the node names in the
+        array. All the remaining nodes in the cluster have to be
+        reachable for this to succeed. This function must be run
+        on a node that is not being removed. There is no way to re-join
+        a node once removed; a new node must be created and joined
+        to replace the parted one if required.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.remove_bdr_from_local_node(<TT
+CLASS="REPLACEABLE"
+><I
+>force boolean</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>convert_global_sequences boolean</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Remove BDR slots, replication identifiers, security labels including
+        replication sets, etc from a BDR-enabled database, so the BDR extension
+        can be dropped and the database used for normal PostgreSQL. Will refuse to run on a
+        node that hasn't already been parted from the cluster unless
+        <TT
+CLASS="LITERAL"
+>force</TT
+> is true. Global sequences are converted into
+        local sequences unless <TT
+CLASS="LITERAL"
+>convert_global_sequences</TT
+> is
+        false. See <A
+HREF="node-management-disabling.html"
+>Turning a BDR node back into a normal database</A
+> for details, including important
+        caveats with conversion of sequences.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-NODE-JOIN-WAIT-FOR-READY"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_node_join_wait_for_ready()</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Wait till all in-progress node joins have completed.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-IS-ACTIVE-IN-DB"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_is_active_in_db()</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Report whether the current database has BDR active. Will be true if BDR is
+        configured, whether or not there are active connections or any peer nodes
+        added yet. Also true on a parted node until/unless
+        <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE"
+>bdr.remove_bdr_from_local_node</A
+> is called.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_pause()</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Temporarily stop applying changes from remote nodes to the local node,
+        until resume is requested with
+        <CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_resume()</CODE
+>.
+        Connections to the remote node(s) are retained but no data is read from
+        them. The effects of pausing apply are not persistent, so replay will
+        resume if PostgreSQL is restarted or the postmaster does crash recovery
+        after a backend crash. Terminating individual backends using
+        <CODE
+CLASS="FUNCTION"
+>pg_terminate_backend</CODE
+> will not
+        cause replay to resume; nor will reloading the postmaster without a full
+        restart. There is no option to pause replay from only one peer node.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_resume()</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Resume replaying changes from peer nodes after replay has been paused
+        by <CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_pause()</CODE
+>.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-APPLY-IS-PAUSED"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_is_paused()</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Report whether replay is paused (e.g. with
+        <CODE
+CLASS="FUNCTION"
+>bdr.bdr_apply_pause()</CODE
+>). A false return
+        does not mean replay is actually progressing, only that
+        it's not intentionally paused.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <CODE
+CLASS="FUNCTION"
+><TT
+CLASS="LITERAL"
+>bdr.bdr_node_set_read_only(</TT
+><TT
+CLASS="REPLACEABLE"
+><I
+>node_name</I
+></TT
+> <TT
+CLASS="LITERAL"
+>text</TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>read_only</I
+></TT
+> <TT
+CLASS="LITERAL"
+>boolean</TT
+>)</CODE
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Turn read-only mode for a node on or off. A read-only node rejects all
+        direct local writes to replicateable tables, only allowing writes via
+        replication from other nodes. Read-only mode may be set or unset from
+        any node. If not set directly on the local node it takes effect as soon
+        as the peer node replicates the transaction that made it read-only from
+        the peer that asked it to become read-only. Writes to <TT
+CLASS="LITERAL"
+>UNLOGGED</TT
+>
+        and <TT
+CLASS="LITERAL"
+>TEMPORARY</TT
+> tables are still permitted on read-only nodes,
+        it's only tables that can be replicated (whether or not they are actually
+        in a replication set) that have writes restricted. Note that read-only
+        mode is persistent across restarts. <TT
+CLASS="LITERAL"
+>bdr.bdr_get_local_node_name()</TT
+>
+        can be used to supply the node name of the local node.
+	<A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS"
+>bdr.permit_unsafe_ddl_commands</A
+> can override
+	read-only mode on a per-session basis.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-REPLICATE-DDL-COMMAND"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.bdr_replicate_ddl_command(<TT
+CLASS="REPLACEABLE"
+><I
+>cmd text</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        <P
+>         Execute the <ACRONYM
+CLASS="ACRONYM"
+>SQL</ACRONYM
+> (usually <ACRONYM
+CLASS="ACRONYM"
+>DDL</ACRONYM
+>)
+         <TT
+CLASS="REPLACEABLE"
+><I
+>cmd</I
+></TT
+> on the local node and queue it for
+         extension on all peer nodes. The same limitations apply to this
+         function as to DDL run directly
+         by the user, except that DDL not normally replicated by <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+         will be replicated if run with this function; see
+         <A
+HREF="ddl-replication.html"
+>DDL replication</A
+>.
+        </P
+>
+        <P
+>         References to objects in DDL must be fully schema-qualified (e.g.
+         <TT
+CLASS="LITERAL"
+>public.mytable</TT
+> not just
+         <TT
+CLASS="LITERAL"
+>mytable</TT
+>), otherwise the error <TT
+CLASS="LITERAL"
+>no schema
+         has been selected to create in</TT
+> will be emitted.
+         Alternately, it is safe to prefix the DDL command block with
+         <TT
+CLASS="LITERAL"
+>SET LOCAL search_path = 'public';</TT
+> or similar, then
+         use unqualified names.
+        </P
+>
+        <P
+>         BDR disallows DML (<TT
+CLASS="LITERAL"
+>INSERT</TT
+>, <TT
+CLASS="LITERAL"
+>UPDATE</TT
+>
+         and <TT
+CLASS="LITERAL"
+>DELETE</TT
+>) within
+         <CODE
+CLASS="FUNCTION"
+>bdr.bdr_replicate_ddl_command</CODE
+>. That's because their
+         effects would get replicated twice - once as a statement, and once as
+         rows. Possibly with different or conflicting results. If intermixed
+         with DDL you can also break replication completely.
+        </P
+>
+        <P
+>         Wrap individual DDL commands in
+         <CODE
+CLASS="FUNCTION"
+>bdr.bdr_replicate_ddl_command</CODE
+>, rather than entire
+         scripts.
+        </P
+>
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-ACQUIRE-GLOBAL-LOCK"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.acquire_global_lock(<TT
+CLASS="REPLACEABLE"
+><I
+>mode text</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Acquire the <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+>global DDL lock</A
+>
+        in <TT
+CLASS="REPLACEABLE"
+><I
+>mode</I
+></TT
+> and block until the lock is fully
+        acquired. Raises an <TT
+CLASS="LITERAL"
+>ERROR</TT
+> if lock acqusition cannot succeed
+        at this time. May block indefinitely if a node is down/unreachable or
+        extremely lagged, so consider setting a <TT
+CLASS="LITERAL"
+>statement_timeout</TT
+>.
+        The lock is released when the acquiring transaction commits or rolls
+        back (and not before). BDR automatically acquires this lock when required,
+        so this function is mostly useful for test and diagnostic purposes.
+        Possible lock modes are <TT
+CLASS="LITERAL"
+>ddl_lock</TT
+> and <TT
+CLASS="LITERAL"
+>write_lock</TT
+>.
+        See also <A
+HREF="catalog-bdr-locks.html"
+>bdr.bdr_locks</A
+>.
+       </TD
+></TR
+><TR
+><A
+NAME="FUNCTION-BDR-WAIT-SLOT-CONFIRM-LSN"
+></A
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.wait_slot_confirm_lsn(<TT
+CLASS="REPLACEABLE"
+><I
+>slotname name</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>upto pg_lsn</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        <P
+>         Wait until <TT
+CLASS="REPLACEABLE"
+><I
+>slotname</I
+></TT
+> (or all slots, if
+         <TT
+CLASS="LITERAL"
+>NULL</TT
+>) has passed specified
+         <TT
+CLASS="REPLACEABLE"
+><I
+>upto</I
+></TT
+> lsn (or the local server's current
+         xlog insert lsn, if <TT
+CLASS="LITERAL"
+>NULL</TT
+>).
+        </P
+>
+        <P
+>         This function is mosty typically used as <TT
+CLASS="LITERAL"
+>SELECT
+         bdr.wait_slot_confirm_lsn(NULL, NULL)</TT
+> to wait for all peers
+         to catch up to the last committed state of the local node.
+        </P
+>
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>pg_xlog_wait_remote_apply(<TT
+CLASS="REPLACEABLE"
+><I
+>lsn pg_lsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>pid integer</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        <P
+>         Present in Postgres-BDR 9.4 only. Deprecated. Use <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-WAIT-SLOT-CONFIRM-LSN"
+><CODE
+CLASS="FUNCTION"
+>bdr.wait_slot_confirm_lsn</CODE
+></A
+>
+         instead.
+        </P
+>
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>pg_xlog_wait_remote_receive(<TT
+CLASS="REPLACEABLE"
+><I
+>lsn pg_lsn</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>pid integer</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        Same as <CODE
+CLASS="FUNCTION"
+>pg_xlog_wait_remote_apply(...)</CODE
+>, but
+        returns as soon as the remote confirms it has received the changes, not
+        necessarily applied them.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.terminate_apply_workers(<TT
+CLASS="REPLACEABLE"
+><I
+>sysid text</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>timeline oid</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>dboid oid</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Terminate any downstream (apply) BDR workers that are connected to
+        the upstream peer with the identified
+        (<TT
+CLASS="LITERAL"
+>sysid</TT
+>,<TT
+CLASS="LITERAL"
+>timeline</TT
+>,<TT
+CLASS="LITERAL"
+>dboid</TT
+>)
+        tuple. Returns true if a terminate signal was successfully sent. The worker may not
+        yet have exited; check <TT
+CLASS="LITERAL"
+>pg_stat_activity</TT
+>.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.terminate_walsender_workers(<TT
+CLASS="REPLACEABLE"
+><I
+>sysid text</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>timeline oid</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>dboid oid</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Terminate any upstream (walsender) BDR workers that are connected to
+        the downstream peer with the identified
+        (<TT
+CLASS="LITERAL"
+>sysid</TT
+>,<TT
+CLASS="LITERAL"
+>timeline</TT
+>,<TT
+CLASS="LITERAL"
+>dboid</TT
+>)
+        tuple. Returns true if a terminate signal was successfully sent. The worker may not
+        yet have exited; check <TT
+CLASS="LITERAL"
+>pg_stat_activity</TT
+>.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.terminate_apply_workers(<TT
+CLASS="REPLACEABLE"
+><I
+>node_name text</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Same as <TT
+CLASS="LITERAL"
+>bdr.terminate_apply_workers(text,oid,oid)</TT
+> but instead of a node
+        identity tuple this function looks up the node in <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+> by node
+        name.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.terminate_walsender_workers(<TT
+CLASS="REPLACEABLE"
+><I
+>node_name text</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>boolean</TD
+><TD
+>        Same as <TT
+CLASS="LITERAL"
+>bdr.terminate_walsender_workers(text,oid,oid)</TT
+> but instead of a node
+        identity tuple this function looks up the node in <TT
+CLASS="LITERAL"
+>bdr.bdr_nodes</TT
+> by node
+        name.
+       </TD
+></TR
+><TR
+><TD
+>        
+        <TT
+CLASS="LITERAL"
+><CODE
+CLASS="FUNCTION"
+>bdr.skip_changes_upto(<TT
+CLASS="REPLACEABLE"
+><I
+>sysid text</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>timeline oid</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>dboid oid</I
+></TT
+>, <TT
+CLASS="REPLACEABLE"
+><I
+>skip_to_lsn pg_lsn</I
+></TT
+>)</CODE
+></TT
+>
+       </TD
+><TD
+>void</TD
+><TD
+>        <P
+>         Discard (skip over) changes in the replication stream. Used for recovering from replication failures.
+         See <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-SKIP-CHANGES-UPTO"
+>details below</A
+>.
+        </P
+>
+       </TD
+></TR
+></TBODY
+></TABLE
+></DIV
+>
+  </P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="FUNCTION-BDR-SKIP-CHANGES-UPTO"
+>12.1.1. <TT
+CLASS="LITERAL"
+>bdr.skip_changes_upto</TT
+></A
+></H2
+><P
+>    Discard (skip over) changes not yet replayed from the peer with identity
+    (<TT
+CLASS="REPLACEABLE"
+><I
+>sysid</I
+></TT
+>,<TT
+CLASS="REPLACEABLE"
+><I
+>timeline</I
+></TT
+>,<TT
+CLASS="REPLACEABLE"
+><I
+>dboid</I
+></TT
+>),
+    resuming replay at the first commit that begins after
+    <TT
+CLASS="REPLACEABLE"
+><I
+>skip_to_lsn</I
+></TT
+>. A commit that begins exactly
+    at the specified LSN is skipped, not replayed.
+   </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+BORDER="1"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="CENTER"
+><B
+>Warning</B
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+><P
+>     This function is <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>very dangerous</I
+></SPAN
+>. Improper use can completely break your
+     replication setup, and almost any use will cause your cluster nodes to become inconsistent
+     with each other. It is intended only for recovery from situations where replication is broken
+     by un-replayable DDL or similar.
+    </P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>    Use the <A
+HREF="bdr-configuration-variables.html#GUC-BDR-TRACE-REPLAY"
+><TT
+CLASS="LITERAL"
+>bdr.trace_replay</TT
+></A
+>
+    setting to enable replay tracing and find the problem change to skip,
+    or look at the error context emitted in log messages if there's an
+    error. You may need to set <TT
+CLASS="LITERAL"
+>log_error_verbosity =
+    verbose</TT
+> in <TT
+CLASS="FILENAME"
+>postgresql.conf</TT
+> to see the
+    full error context. Skip to the commit LSN reported in the error, like
+    <TT
+CLASS="LITERAL"
+>"in commit 0123/ABCD0123"</TT
+>.
+   </P
+><P
+>    Because the change is still committed on the node it originated from
+    and possibly on other nodes, to restore consistency you'll have to
+    perform some transactions manually with <A
+HREF="bdr-configuration-variables.html#GUC-BDR-DO-NOT-REPLICATE"
+><TT
+CLASS="LITERAL"
+>bdr.do_not_replicate</TT
+></A
+>,
+    <A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS"
+><TT
+CLASS="LITERAL"
+>bdr.permit_unsafe_ddl_commands</TT
+></A
+>
+    and/or <A
+HREF="bdr-configuration-variables.html#GUC-BDR-SKIP-DDL-REPLICATION"
+><TT
+CLASS="LITERAL"
+>bdr.skip_ddl_replication</TT
+></A
+>
+    options set to restore consistency by manually undoing the operations
+    on some nodes or manually applying them on the other nodes.
+   </P
+><DIV
+CLASS="NOTE"
+><BLOCKQUOTE
+CLASS="NOTE"
+><P
+><B
+>Note: </B
+>     BDR still cares about dropped columns in tables, so if you dropped a
+     column in one node then skipped the drop in another, you
+     <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>must</I
+></SPAN
+> manually drop the column in the one you
+     skipped it in; adding the column back on the other side does
+     <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>not</I
+></SPAN
+> have the same effect because BDR uses the
+     underlying column attribute numbers from
+     <TT
+CLASS="LITERAL"
+>pg_catalog.pg_attribute</TT
+>, not column names, to
+     replicate... and those numbers change when you drop and re-create a
+     column.
+    </P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="FUNCTIONS-NODE-MGMT-SUBSCRIBE"
+>12.1.2. <CODE
+CLASS="FUNCTION"
+>bdr.bdr_subscribe</CODE
+></A
+></H2
+><P
+>    The function <CODE
+CLASS="FUNCTION"
+>bdr.bdr_subscribe</CODE
+> has been removed from BDR. For
+    uni-directional replication, look at the
+    <A
+HREF="http://2ndquadrant.com/pglogical"
+TARGET="_top"
+>pglogical project</A
+>
+    project or tools like Londiste.
+   </P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="FUNCTIONS-NODE-MGMT-EXAMPLES"
+>12.1.3. Node management function examples</A
+></H2
+><P
+>   These examples show libpq connection strings without a host or hostadd.
+   </P
+><P
+>   To create a <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group on 'node1':
+   </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_group_create(
+       local_node_name := 'node1',
+       node_external_dsn := 'port=5598 dbname=bdrdemo');
+   </PRE
+><P
+>   To join 'node2' to <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group created above:
+   </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_group_join(
+       local_node_name := 'node2',
+       node_external_dsn := 'port=5559 dbname=bdrdemo',
+       join_using_dsn := 'port=5558 dbname=bdrdemo');
+   </PRE
+><P
+>&#13;   To remove 'node2' from the <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group created above:
+   </P
+><PRE
+CLASS="PROGRAMLISTING"
+>   SELECT bdr.bdr_part_by_node_names('{node2}');
+   </PRE
+><P
+>   To see if your node is ready for replication (if you see a NULL result set, your node is ready):
+   </P
+><PRE
+CLASS="PROGRAMLISTING"
+>   SELECT bdr.bdr_node_join_wait_for_ready();
+   </PRE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="functions.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="functions-replication-sets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Functions</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="functions.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Replication Set functions</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

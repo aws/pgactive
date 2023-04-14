@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Enabling BDR in SQL sessions for both of your nodes/instances</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Quick-start guide"
+HREF="quickstart.html"><LINK
+REL="PREVIOUS"
+TITLE="Creating the demo databases"
+HREF="quickstart-creating.html"><LINK
+REL="NEXT"
+TITLE="Testing your BDR-enabled system"
+HREF="quickstart-testing.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Creating the demo databases"
+HREF="quickstart-creating.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="quickstart.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 3. Quick-start guide</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Testing your BDR-enabled system"
+HREF="quickstart-testing.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="QUICKSTART-ENABLING"
+>3.5. Enabling BDR in SQL sessions for both of your nodes/instances</A
+></H1
+><P
+>    On the first node/instance in database <SPAN
+CLASS="QUOTE"
+>"bdrdemo"</SPAN
+> as postgreSQL superuser, create the extensions necessary for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    psql -p 5598 -U postgres bdrdemo
+
+       CREATE EXTENSION btree_gist;
+       CREATE EXTENSION bdr;
+    </PRE
+><P
+>    Then you run a function that identifies a <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group that delineates a connection string for other nodes to communicate with (for the first node, we will use port 5598) from the same SQL session as above on port 5598:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_group_create(
+      local_node_name := 'node1',
+      node_external_dsn := 'port=5598 dbname=bdrdemo host=localhost'
+);
+    </PRE
+><P
+>    To ensure that the node is ready to replicate, run this function from the same SQL session as above on port 5598:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_node_join_wait_for_ready();
+    </PRE
+><P
+>    On the second node/instance on port 5599 in database <SPAN
+CLASS="QUOTE"
+>"bdrdemo"</SPAN
+> as postgreSQL superuser, create the extensions necessary for <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    psql -p 5599 -U postgres bdrdemo
+
+       CREATE EXTENSION btree_gist;
+       CREATE EXTENSION bdr;
+    </PRE
+><P
+>    Then run a function that joins this node/instance to your <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> group you created above (for the second node, we will use port 5599) from the same SQL session as above on port 5599:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_group_join(
+      local_node_name := 'node2',
+      node_external_dsn := 'port=5599 dbname=bdrdemo host=localhost',
+      join_using_dsn := 'port=5598 dbname=bdrdemo host=localhost'
+);
+    </PRE
+><P
+>    To ensure that the node/instance is ready to replicate, run this function from the same SQL session as above on port 5599:
+    </P
+><PRE
+CLASS="PROGRAMLISTING"
+>    SELECT bdr.bdr_node_join_wait_for_ready();
+    </PRE
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="quickstart-creating.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="quickstart-testing.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Creating the demo databases</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="quickstart.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Testing your BDR-enabled system</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

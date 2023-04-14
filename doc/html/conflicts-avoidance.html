@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Avoiding or tolerating conflicts</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Multi-master conflicts"
+HREF="conflicts.html"><LINK
+REL="PREVIOUS"
+TITLE="Types of conflict"
+HREF="conflicts-types.html"><LINK
+REL="NEXT"
+TITLE="User defined conflict handlers"
+HREF="conflicts-user-defined-handlers.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Types of conflict"
+HREF="conflicts-types.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 9. Multi-master conflicts</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="User defined conflict handlers"
+HREF="conflicts-user-defined-handlers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CONFLICTS-AVOIDANCE"
+>9.3. Avoiding or tolerating conflicts</A
+></H1
+><P
+>   In most cases appropriate application design can be used to avoid conflicts
+   and/or the application can be made tolerant of conflicts.
+  </P
+><P
+>   Conflicts can only happen if there are things happening at the same time on
+   multiple nodes, so the simplest way to avoid conflicts is to only ever write
+   to one node, or to only ever write to independent subsets of the database on
+   each node. For example, each node might have a separate schema, and while
+   they all exchange data with each other, writes are only ever performed on
+   the node that "owns" a given schema.
+  </P
+><P
+>   For <TT
+CLASS="LITERAL"
+>INSERT</TT
+> vs <TT
+CLASS="LITERAL"
+>INSERT</TT
+> conflicts, use of
+   <A
+HREF="global-sequences.html"
+>Global sequences</A
+> can completely prevent conflicts.
+  </P
+><P
+>   BDR users may sometimes find it useful to perform distributed locking at the
+   application level in cases where conflicts are not acceptable.
+  </P
+><P
+>   The best course of action is frequently to allow conflicts to occur and
+   design the application to work with <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>'s conflict resolution
+   mechansisms to cope with the conflict. See <A
+HREF="conflicts-types.html"
+>Types of conflict</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts-types.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="conflicts-user-defined-handlers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Types of conflict</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User defined conflict handlers</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Release 0.9.1</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Release notes"
+HREF="releasenotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 0.9.2"
+HREF="release-0.9.2.html"><LINK
+REL="NEXT"
+TITLE="Release 0.9.0"
+HREF="release-0.9.0.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 0.9.2"
+HREF="release-0.9.2.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Release notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Release 0.9.0"
+HREF="release-0.9.0.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="RELEASE-0.9.1"
+>A.12. Release 0.9.1</A
+></H1
+><P
+>   Version 0.9.1 is a maintenance release focused on stability
+   and performance.
+  </P
+><DIV
+CLASS="IMPORTANT"
+><BLOCKQUOTE
+CLASS="IMPORTANT"
+><P
+><B
+>Important: </B
+>    There is a minor incompatible bug fix in this release. The direction of
+    replication sets is reversed between nodes whose set memberships differ.
+    Previously, if node A was a member of set x, and node B was a member of set
+    y, then a table that is part of set x would be replicated from A=&#62;B but not
+    B=&#62;A. That is reversed as of BDR 0.9.1 so that nodes receive data on tables
+    that are part of their replication sets.
+   </P
+></BLOCKQUOTE
+></DIV
+><P
+>   Significant improvements to <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> in this release include:
+   <P
+></P
+></P><UL
+><LI
+><P
+>Fix direction of replication sets (see above)</P
+></LI
+><LI
+><P
+>Fix PK detection on inherited tables (BDR)</P
+></LI
+><LI
+><P
+>Fix bdr.bdr_replication_identifier table definition (UDR)</P
+></LI
+><LI
+><P
+>Don't acquire table locks in command filter (BDR/UDR)</P
+></LI
+><LI
+><P
+>Rename 'bdr' reserved db to 'bdr_supervisordb', prevent users from connecting, and protect against drop (BDR/UDR, #60)</P
+></LI
+><LI
+><P
+>Bug fixes in <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> handling of connection strings (BDR/UDR, #61)</P
+></LI
+><LI
+><P
+>Fixes for UNLOGGED tables in the command filter (BDR/UDR, #44)</P
+></LI
+><LI
+><P
+>Permit fast shutdown when replication is paused (BDR/UDR, #58)</P
+></LI
+><LI
+><P
+>Introduce <A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-DDL-LOCKING"
+>bdr.permit_ddl_locking</A
+> to help prevent unintended global DDL locks</P
+></LI
+><LI
+><P
+>Remove slots when parting a node (BDR, #73)</P
+></LI
+><LI
+><P
+><TT
+CLASS="LITERAL"
+>bdr.table_set_replication_sets</TT
+> no longer requires <TT
+CLASS="LITERAL"
+>permit_unsafe_ddl_commands</TT
+> (UDR, #67)</P
+></LI
+><LI
+><P
+>Improve sequencer locking and pgstat reporting (BDR/UDR)</P
+></LI
+><LI
+><P
+>Add <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-APPLY-IS-PAUSED"
+>bdr.bdr_apply_is_paused()</A
+> information function</P
+></LI
+></UL
+><P>
+   Where available a github bug number follows the release entry. Additional
+   details are available from the changelog in git.
+  </P
+><P
+>   Two changes add minor new functionality:
+  </P
+><P
+>   As of 0.9.1 it is now possible for sessions to <TT
+CLASS="LITERAL"
+>SET
+   bdr.permit_ddl_locking = false</TT
+> to cause commands that would
+   require the global DDL lock to be acquired to instead fail with an ERROR.
+   Administrators may choose to set this in <TT
+CLASS="LITERAL"
+>postgresql.conf</TT
+>
+   then have sessions that intend to do DDL override it. See <A
+HREF="bdr-configuration-variables.html#GUC-BDR-PERMIT-DDL-LOCKING"
+>bdr.permit_ddl_locking</A
+> and <A
+HREF="ddl-replication.html"
+>DDL replication</A
+> for more information.
+  </P
+><P
+>   The new information function <A
+HREF="functions-node-mgmt.html#FUNCTION-BDR-APPLY-IS-PAUSED"
+>bdr.bdr_apply_is_paused()</A
+>
+   can be called on a node to determine whether replay from peer nodes is
+   paused on that node.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-0.9.2.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="release-0.9.0.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 0.9.2</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Release 0.9.0</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

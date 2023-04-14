@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR network structure</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Technical notes"
+HREF="technotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Technical notes"
+HREF="technotes.html"><LINK
+REL="NEXT"
+TITLE="DDL locking details"
+HREF="technotes-ddl-locking.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Technical notes"
+HREF="technotes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="technotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix C. Technical notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="DDL locking details"
+HREF="technotes-ddl-locking.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="TECHNOTES-MESH"
+>C.1. BDR network structure</A
+></H1
+><P
+>   BDR uses a mesh topology, where every node can communicate directly with
+   every other node. It doesn't support circular replication, forwarding,
+   cascading, etc.
+  </P
+><P
+>   Each pair of nodes communicates over a pair of (mostly) uni-directional
+   channels, one to stream data from node A=&#62;B and one to stream data from node
+   B=&#62;A. This means each node must be able to connect directly to each other
+   node. Firewalls, NAT, etc must be configured accordingly.
+  </P
+><P
+>   Every BDR node must have a <A
+HREF="https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html"
+TARGET="_top"
+>replication
+   slot</A
+> on every other BDR node so it can replay changes from the node, and
+   every node must have a replication origin for each other node so it can keep
+   track of replay progress.  If nodes were allowed to join while another was
+   offline or unreachable due to a network partition, it would have no way to
+   replay any changes made on that node and the BDR group would get out of
+   sync. Since bdr does no change forwarding during normal operation, that
+   desynchronisation would not get fixed.
+  </P
+><P
+>   The addition of enhanced change forwarding support could allow for cascading
+   nodes isolated from the rest of the mesh, allow new nodes to join and lazily
+   switch over to directly receiving data from a node when it becomes
+   reachable, etc. It's not fundamentally necessary for all nodes to be
+   reachable during node join, it's just a requirement for the current
+   implementation. There's already limited change forwarding support
+   in place and used for initial node clone.
+  </P
+><P
+>   DDL locking enhancements would also be required; see <A
+HREF="ddl-replication.html"
+>DDL replication</A
+>
+   and <A
+HREF="technotes-ddl-locking.html"
+>DDL locking details</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="technotes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="technotes-ddl-locking.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Technical notes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="technotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>DDL locking details</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

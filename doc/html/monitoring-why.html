@@ -1,0 +1,310 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Why monitoring matters</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Monitoring"
+HREF="monitoring.html"><LINK
+REL="PREVIOUS"
+TITLE="Monitoring"
+HREF="monitoring.html"><LINK
+REL="NEXT"
+TITLE="Monitoring node join/removal"
+HREF="monitoring-node-join-remove.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Monitoring"
+HREF="monitoring.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="monitoring.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. Monitoring</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Monitoring node join/removal"
+HREF="monitoring-node-join-remove.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="MONITORING-WHY"
+>7.1. Why monitoring matters</A
+></H1
+><P
+>   If one or more nodes are down in a BDR group then <A
+HREF="ddl-replication-advice.html#DDL-REPLICATION-LOCKING"
+><ACRONYM
+CLASS="ACRONYM"
+>DDL</ACRONYM
+> locking</A
+> for
+   <A
+HREF="ddl-replication.html"
+>DDL replication</A
+> will wait indefinitely or until cancelled.
+   <ACRONYM
+CLASS="ACRONYM"
+>DDL</ACRONYM
+> locking requires <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>consensus</I
+></SPAN
+>
+   across all nodes, not just a quorum, so it must be able to reach all nodes.
+   So it's important to monitor for node outages, especially since a stuck
+   DDL locking attempt will cause all queries to wait until it fails
+   or completes.
+  </P
+><P
+>   Because <ACRONYM
+CLASS="ACRONYM"
+>DDL</ACRONYM
+> locking inserts messages into the replication
+   stream, a node that is extremely behind on replay will cause similar
+   disruption to one that is entirely down.
+  </P
+><P
+>   Protracted node outages can also cause disk space exhaustion, resulting in
+   other nodes rejecting writes or performing emergency shutdowns.  Because
+   every node connects to every other node there is a replication slot for every
+   downstream peer node on each node. Replication slots ensure that an upstream
+   (sending) server will retain enough write-ahead log (<ACRONYM
+CLASS="ACRONYM"
+>WAL</ACRONYM
+>)
+   in <TT
+CLASS="FILENAME"
+>pg_xlog</TT
+> to resume replay from point the downstream
+   peer (receiver) last replayed on that slot. If a peer stops consuming data on
+   a slot or falls increasingly behind on replay then the server that has that
+   slot will accumulate <ACRONYM
+CLASS="ACRONYM"
+>WAL</ACRONYM
+> until it runs out of disk space
+   on <TT
+CLASS="FILENAME"
+>pg_xlog</TT
+>. This can happen even if the downstream peer
+   is online and replaying if it isn't able to receive and replay changes as
+   fast as the upstream node generates them. WAL archiving cannot (yet) be used
+   for logical replication, so the WAL segments must remain in <TT
+CLASS="FILENAME"
+>pg_xlog</TT
+>
+   until all nodes are done with them.
+  </P
+><P
+>   A less significant side effect of a lagging peer node is that <TT
+CLASS="LITERAL"
+>VACUUM</TT
+>
+   cannot remove old rows (deleted rows, or old versions of updated rows) in
+   <TT
+CLASS="LITERAL"
+>pg_catalog</TT
+> tables or user-catalogs until every replica has replayed
+   up to the transaction that deleted or replaced that row. This can be an issue
+   in deployments that use lots of temporary tables, as it can cause significant
+   bloat in <TT
+CLASS="LITERAL"
+>pg_class</TT
+> and <TT
+CLASS="LITERAL"
+>pg_attribute</TT
+>.
+  </P
+><P
+>   It is important to have automated monitoring in place to ensure that if
+   replication slots start falling badly behind the admin is alerted and can
+   take proactive action. BDR does not provide monitoring, but can be integrated
+   into tools like:
+   <P
+></P
+></P><UL
+><LI
+><P
+><A
+HREF="https://collectd.org/"
+TARGET="_top"
+>collectd</A
+></P
+></LI
+><LI
+><P
+><A
+HREF="http://munin-monitoring.org/"
+TARGET="_top"
+>Munin</A
+> or <A
+HREF="http://www.cacti.net/"
+TARGET="_top"
+>Cacti</A
+></P
+></LI
+><LI
+><P
+><A
+HREF="https://www.icinga.com/"
+TARGET="_top"
+>Icinga</A
+> or <A
+HREF="https://www.nagios.com/"
+TARGET="_top"
+>Nagios</A
+></P
+></LI
+><LI
+><P
+><A
+HREF="http://www.zabbix.com/"
+TARGET="_top"
+>Zabbix</A
+></P
+></LI
+><LI
+><P
+>... and numerous extensible commercial solutions</P
+></LI
+></UL
+><P>
+   If there isn't a plugin available for your chosen platform, feel free to
+   <A
+HREF="http://2ndQuadrant.com"
+TARGET="_top"
+>get in touch with 2ndQuadrant</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="monitoring.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="monitoring-node-join-remove.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Monitoring</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="monitoring.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Monitoring node join/removal</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

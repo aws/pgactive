@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Release 0.9.2</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Release notes"
+HREF="releasenotes.html"><LINK
+REL="PREVIOUS"
+TITLE="Release 0.9.3"
+HREF="release-0.9.3.html"><LINK
+REL="NEXT"
+TITLE="Release 0.9.1"
+HREF="release-0.9.1.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="Release 0.9.3"
+HREF="release-0.9.3.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Release notes</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Release 0.9.1"
+HREF="release-0.9.1.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="RELEASE-0.9.2"
+>A.11. Release 0.9.2</A
+></H1
+><P
+>   Version 0.9.2 is a maintenance release focused on stability
+   and usability, specially in <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+>.
+  </P
+><P
+>   Significant improvements to <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+> in this release include:
+   <P
+></P
+></P><UL
+><LI
+><P
+>New nodes created by <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> could re-use global sequence values (#101)</P
+></LI
+><LI
+><P
+>Permit DML on <TT
+CLASS="LITERAL"
+>pg_catalog</TT
+> tables (#102)</P
+></LI
+><LI
+><P
+>Check exit code of utilities lauched by <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> (#100)</P
+></LI
+><LI
+><P
+>Ensure log locations are writeable before <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> (#99)</P
+></LI
+><LI
+><P
+>add <TT
+CLASS="LITERAL"
+>--replication_sets</TT
+> option for <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+></P
+></LI
+><LI
+><P
+>sanity check existing data directory before doing <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> (#91)</P
+></LI
+><LI
+><P
+>handle multiple remote BDR databases correctly with <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> (#88)</P
+></LI
+><LI
+><P
+>set <TT
+CLASS="LITERAL"
+>node_local_dsn</TT
+> and <TT
+CLASS="LITERAL"
+>node_name</TT
+> correctly in <SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+></P
+></LI
+><LI
+><P
+><SPAN
+CLASS="APPLICATION"
+>bdr_init_copy</SPAN
+> fixes for connection string parsing</P
+></LI
+><LI
+><P
+>be less strict about version string matching for <SPAN
+CLASS="APPLICATION"
+>pg_dump</SPAN
+>, etc (#89, #75)</P
+></LI
+><LI
+><P
+>improve error message on apply failures caused by multiple unique indexes</P
+></LI
+><LI
+><P
+>Make sequence pernode cache configurable</P
+></LI
+></UL
+><P>
+  </P
+><P
+>   There are no compatibility-affecting changes in this release.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="release-0.9.3.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="release-0.9.1.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Release 0.9.3</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="releasenotes.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Release 0.9.1</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

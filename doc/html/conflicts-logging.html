@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Conflict logging</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="HOME"
+TITLE="BDR 2.0.6 Documentation"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Multi-master conflicts"
+HREF="conflicts.html"><LINK
+REL="PREVIOUS"
+TITLE="User defined conflict handlers"
+HREF="conflicts-user-defined-handlers.html"><LINK
+REL="NEXT"
+TITLE="Global Sequences"
+HREF="global-sequences.html"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="SECT1"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="4"
+ALIGN="center"
+VALIGN="bottom"
+><A
+HREF="index.html"
+>BDR 2.0.6 Documentation</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+TITLE="User defined conflict handlers"
+HREF="conflicts-user-defined-handlers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="60%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 9. Multi-master conflicts</TD
+><TD
+WIDTH="20%"
+ALIGN="right"
+VALIGN="top"
+><A
+TITLE="Global Sequences"
+HREF="global-sequences.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CONFLICTS-LOGGING"
+>9.5. Conflict logging</A
+></H1
+><P
+>   To make diagnosis and handling of multi-master conflicts easier, <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+>
+   supports logging of each conflict incident in a <A
+HREF="catalog-bdr-conflict-history.html"
+>bdr.bdr_conflict_history</A
+> table.
+  </P
+><P
+>   Conflict logging to this table is only enabled when <A
+HREF="bdr-configuration-variables.html#GUC-BDR-LOG-CONFLICTS-TO-TABLE"
+>bdr.log_conflicts_to_table</A
+> is
+   <TT
+CLASS="LITERAL"
+>true</TT
+>. BDR also logs conflicts to the PostgreSQL
+   log file if <TT
+CLASS="LITERAL"
+>log_min_messages</TT
+> is <TT
+CLASS="LITERAL"
+>LOG</TT
+>
+   or lower, irrespective of the value of <TT
+CLASS="LITERAL"
+>bdr.log_conflicts_to_table</TT
+>.
+  </P
+><P
+>   You can use the conflict history table to determine how rapidly your
+   application creates conflicts and where those conflicts occur, allowing you to
+   improve the application to reduce conflict rates. It also helps detect cases
+   where conflict resolutions may not have produced the desired results, allowing
+   you to identify places where a user defined conflict trigger or an application
+   design change may be desirable.
+  </P
+><P
+>   Row values may optionally be logged for row conflicts. This is controlled by
+   the global database-wide option <A
+HREF="bdr-configuration-variables.html#GUC-BDR-LOG-CONFLICTS-TO-TABLE"
+>bdr.log_conflicts_to_table</A
+>.
+   There is no per-table control over row value logging at this time. Nor is
+   there any limit applied on the number of fields a row may have, number of
+   elements dumped in arrays, length of fields, etc, so it may not be wise to
+   enable this if you regularly work with multi-megabyte rows that may trigger
+   conflicts.
+  </P
+><P
+>   Because the conflict history table contains data on every table in the
+   database so each row's schema might be different, if row values are logged
+   they are stored as json fields. The json is created with
+   <CODE
+CLASS="FUNCTION"
+>row_to_json</CODE
+>, just like if you'd called it on the row
+   yourself from SQL. There is no corresponding
+   <CODE
+CLASS="FUNCTION"
+>json_to_row</CODE
+> function in PostgreSQL at this time, so
+   you'll need table-specific code (pl/pgsql, pl/python, pl/perl, whatever) if
+   you want to reconstruct a composite-typed tuple from the logged json.
+  </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="conflicts-user-defined-handlers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="global-sequences.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User defined conflict handlers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="conflicts.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Global Sequences</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

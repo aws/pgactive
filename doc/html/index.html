@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>BDR 2.0.6 Documentation</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REV="MADE"
+HREF="mailto: bdr-list@2ndquadrant.com"><LINK
+REL="NEXT"
+TITLE="Getting started"
+HREF="getting-started.html"><META
+NAME="KEYWORD"
+CONTENT="BDR"><META
+NAME="KEYWORD"
+CONTENT="PostgreSQL"><META
+NAME="KEYWORD"
+CONTENT="replication"><META
+NAME="KEYWORD"
+CONTENT="asynchronous"><META
+NAME="KEYWORD"
+CONTENT="multi-master"><META
+NAME="KEYWORD"
+CONTENT="high-availability"><META
+NAME="KEYWORD"
+CONTENT="scalability"><LINK
+REL="STYLESHEET"
+TYPE="text/css"
+HREF="website-docs.css"><META
+HTTP-EQUIV="Content-Type"
+CONTENT="text/html; charset=ISO-8859-1"><META
+NAME="creation"
+CONTENT="2023-04-11T13:16:52"></HEAD
+><BODY
+CLASS="BOOK"
+><DIV
+CLASS="BOOK"
+><A
+NAME="BDR"
+></A
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="BDR"
+>BDR 2.0.6 Documentation</A
+></H1
+><H3
+CLASS="CORPAUTHOR"
+>2ndQuadrant Ltd</H3
+><P
+CLASS="COPYRIGHT"
+><A
+HREF="LEGALNOTICE.html"
+>Copyright</A
+> &copy; 1996-2016 The PostgreSQL Global Development Group</P
+><DIV
+><DIV
+CLASS="ABSTRACT"
+><P
+></P
+><A
+NAME="AEN23"
+></A
+><P
+>   This book is the official documentation of BDR 2.0.6 for
+   use with PostgreSQL 9.6 or with a modified version of PostgreSQL 9.4.
+   It has been written by the <SPAN
+CLASS="PRODUCTNAME"
+>PostgreSQL</SPAN
+> and BDR developers and other
+   volunteers in parallel to the development of the BDR software.  It
+   describes all the functionality that the current version of BDR officially
+   supports.
+   </P
+><P
+>    BDR was developed by
+    <A
+HREF="http://2ndquadrant.com"
+TARGET="_top"
+>2ndQuadrant</A
+>
+    along with contributions from other individuals and companies.
+    Contributions from the community are appreciated and welcome - get
+    in touch via <A
+HREF="http://github.com/2ndQuadrant/bdr"
+TARGET="_top"
+>github</A
+>
+    or <A
+HREF="https://groups.google.com/a/2ndquadrant.com/forum/#!forum/bdr-list"
+TARGET="_top"
+>the mailing list/forum</A
+>.
+    Multiple 2ndQuadrant customers contribute funding
+    to make BDR development possible.
+   </P
+><P
+>    2ndQuadrant, a Platinum sponsor of the PostgreSQL project,
+    continues to develop BDR to meet internal needs and those of customers.
+    2ndQuadrant is also working actively with the PostgreSQL community
+    to integrate BDR into PostgreSQL.
+    Other companies as well as individual developers
+    are welcome to participate in the efforts.
+   </P
+><P
+>    Multiple technologies emerging from BDR development
+    have already become integral part of core PostgreSQL, such as
+     <A
+HREF="https://www.postgresql.org/docs/current/static/event-triggers.html"
+TARGET="_top"
+>Event Triggers</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/current/static/logicaldecoding.html"
+TARGET="_top"
+>Logical Decoding</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS"
+TARGET="_top"
+>Replication Slots</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/current/static/bgworker.html"
+TARGET="_top"
+>Background Workers</A
+>,
+     <A
+HREF="https://wiki.postgresql.org/wiki/What's_new_in_PostgreSQL_9.5#Commit_timestamp_tracking"
+TARGET="_top"
+>Commit Timestamps</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/9.5/static/replication-origins.html"
+TARGET="_top"
+>Replication Origins</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/9.5/static/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS"
+TARGET="_top"
+>DDL event capture</A
+>,
+     <A
+HREF="https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-REPLICATION-TABLE"
+TARGET="_top"
+>generic WAL messages for logical decoding</A
+>.
+   </P
+><P
+></P
+></DIV
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>I. <A
+HREF="getting-started.html"
+>Getting started</A
+></DT
+><DD
+><DL
+><DT
+>1. <A
+HREF="overview.html"
+>BDR overview</A
+></DT
+><DT
+>2. <A
+HREF="installation.html"
+>Installation</A
+></DT
+><DT
+>3. <A
+HREF="quickstart.html"
+>Quick-start guide</A
+></DT
+></DL
+></DD
+><DT
+>II. <A
+HREF="manual.html"
+>BDR administration manual</A
+></DT
+><DD
+><DL
+><DT
+>4. <A
+HREF="settings.html"
+>Configuration Settings</A
+></DT
+><DT
+>5. <A
+HREF="node-management.html"
+>Node Management</A
+></DT
+><DT
+>6. <A
+HREF="commands.html"
+>Command-line Utilities</A
+></DT
+><DT
+>7. <A
+HREF="monitoring.html"
+>Monitoring</A
+></DT
+><DT
+>8. <A
+HREF="ddl-replication.html"
+>DDL Replication</A
+></DT
+><DT
+>9. <A
+HREF="conflicts.html"
+>Multi-master conflicts</A
+></DT
+><DT
+>10. <A
+HREF="global-sequences.html"
+>Global Sequences</A
+></DT
+><DT
+>11. <A
+HREF="replication-sets.html"
+>Replication Sets</A
+></DT
+><DT
+>12. <A
+HREF="functions.html"
+>Functions</A
+></DT
+><DT
+>13. <A
+HREF="catalogs-views.html"
+>Catalogs and Views</A
+></DT
+><DT
+>14. <A
+HREF="upgrade.html"
+>Upgrading <SPAN
+CLASS="PRODUCTNAME"
+>BDR</SPAN
+></A
+></DT
+></DL
+></DD
+><DT
+>A. <A
+HREF="releasenotes.html"
+>Release notes</A
+></DT
+><DD
+><DL
+><DT
+>A.1. <A
+HREF="release-2.0.5.html"
+>Release 2.0.5</A
+></DT
+><DT
+>A.2. <A
+HREF="release-2.0.4.html"
+>Release 2.0.4</A
+></DT
+><DT
+>A.3. <A
+HREF="release-2.0.3.html"
+>Release 2.0.3</A
+></DT
+><DT
+>A.4. <A
+HREF="release-2.0.2.html"
+>Release 2.0.2</A
+></DT
+><DT
+>A.5. <A
+HREF="release-2.0.1.html"
+>Release 2.0.1</A
+></DT
+><DT
+>A.6. <A
+HREF="release-2.0.0.html"
+>Release 2.0.0</A
+></DT
+><DT
+>A.7. <A
+HREF="release-1.0.2.html"
+>Release 1.0.2</A
+></DT
+><DT
+>A.8. <A
+HREF="release-1.0.1.html"
+>Release 1.0.1</A
+></DT
+><DT
+>A.9. <A
+HREF="release-1.0.0.html"
+>Release 1.0.0</A
+></DT
+><DT
+>A.10. <A
+HREF="release-0.9.3.html"
+>Release 0.9.3</A
+></DT
+><DT
+>A.11. <A
+HREF="release-0.9.2.html"
+>Release 0.9.2</A
+></DT
+><DT
+>A.12. <A
+HREF="release-0.9.1.html"
+>Release 0.9.1</A
+></DT
+><DT
+>A.13. <A
+HREF="release-0.9.0.html"
+>Release 0.9.0</A
+></DT
+><DT
+>A.14. <A
+HREF="release-0.8.0.html"
+>Release 0.8.0</A
+></DT
+><DT
+>A.15. <A
+HREF="release-0.7.html"
+>Release 0.7.0</A
+></DT
+></DL
+></DD
+><DT
+>B. <A
+HREF="appendix-signatures.html"
+>Verifying digital signatures</A
+></DT
+><DT
+>C. <A
+HREF="technotes.html"
+>Technical notes</A
+></DT
+><DD
+><DL
+><DT
+>C.1. <A
+HREF="technotes-mesh.html"
+>BDR network structure</A
+></DT
+><DT
+>C.2. <A
+HREF="technotes-ddl-locking.html"
+>DDL locking details</A
+></DT
+><DT
+>C.3. <A
+HREF="technotes-rewrites.html"
+>Full table rewrites</A
+></DT
+></DL
+></DD
+><DT
+><A
+HREF="bookindex.html"
+>Index</A
+></DT
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="getting-started.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Getting started</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>
