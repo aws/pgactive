@@ -121,23 +121,6 @@ static void pg_decode_message(LogicalDecodingContext *ctx,
 							  Size sz,
 							  const char *message);
 
-#if PG_VERSION_NUM < 90600
-/*
- * We need an adapter from 9.6's logical messages to those in 9.4bdr, which lack
- * a prefix and have a different signature.
- */
-static void pg_decode_message_94bdr(LogicalDecodingContext *ctx,
-							  ReorderBufferTXN *txn, XLogRecPtr message_lsn,
-							  bool transactional, Size sz,
-							  const char *message)
-{
-	/* Call the 9.6 callback, faking up the prefix */
-	pg_decode_message(ctx, txn, message_lsn,
-					  transactional, BDR_LOGICAL_MSG_PREFIX, sz, message);
-}
-
-#endif /* PG_VERSION_NUM < 90600 */
-
 /* private prototypes */
 static void write_rel(StringInfo out, Relation rel);
 static void write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
@@ -155,11 +138,7 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 	cb->begin_cb = pg_decode_begin_txn;
 	cb->change_cb = pg_decode_change;
 	cb->commit_cb = pg_decode_commit_txn;
-#if PG_VERSION_NUM < 90600
-	cb->message_cb = pg_decode_message_94bdr;
-#else
 	cb->message_cb = pg_decode_message;
-#endif
 	cb->shutdown_cb = pg_decode_shutdown;
 
 	Assert(ThisTimeLineID > 0);
