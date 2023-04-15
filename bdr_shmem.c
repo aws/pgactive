@@ -123,8 +123,8 @@ bdr_worker_shmem_init(void)
 
 	/*
 	 * We'll need to be able to take exclusive locks so only one per-db
-	 * backend tries to allocate or free blocks from this array at once.
-	 * There won't be enough contention to make anything fancier worth doing.
+	 * backend tries to allocate or free blocks from this array at once. There
+	 * won't be enough contention to make anything fancier worth doing.
 	 */
 	RequestNamedLWLockTranche("bdr_shmem", 1);
 
