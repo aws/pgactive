@@ -313,7 +313,7 @@ pipe_read_line(char *cmd, char *line, int maxsize)
 	CloseHandle(childstdoutrddup);
 
 	return retval;
-#endif   /* WIN32 */
+#endif							/* WIN32 */
 }
 
 /*

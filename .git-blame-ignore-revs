@@ -1,0 +1,18 @@
+# As of git 2.23, git-blame supports ignoring specific commits.  This is useful
+# with commits that make bulk formatting changes without truly changing any
+# code.
+#
+# This file lists ignorable pgindent, pgperltidy, and reformat-dat-files
+# related commits only.  Please don't add commits that are not in this
+# category.
+#
+# You can use the ignore list file by running:
+#
+# $ git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Add new entries by adding the output of the following to the top of the file:
+#
+# $ git log --pretty=format:"%H # %cd%n# %s" $PGINDENTGITHASH -1 --date=iso
+
+155e9235c85cb9a82d08158733630b095db61cba # 2023-04-13 10:04:28 +0000
+# Run pgindent over all source files

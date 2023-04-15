@@ -302,19 +302,19 @@ main(int argc, char *argv[])
 				}
 				break;
 
-            case 's':
-                if (sscanf(optarg, UINT64_FORMAT, &set_sysid) != 1)
-                {
-                    fprintf(stderr, _("%s: invalid argument for option -s\n"), progname);
-                    fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
-                    exit(1);
-                }
+			case 's':
+				if (sscanf(optarg, UINT64_FORMAT, &set_sysid) != 1)
+				{
+					fprintf(stderr, _("%s: invalid argument for option -s\n"), progname);
+					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
+					exit(1);
+				}
 				if (set_sysid == 0)
 				{
 					fprintf(stderr, _("%s: system identifier (-s) must not be 0\n"), progname);
 					exit(1);
 				}
-                break;
+				break;
 
 			case 'l':
 				if (strspn(optarg, "01234567890ABCDEFabcdef") != XLOG_FNAME_LEN)

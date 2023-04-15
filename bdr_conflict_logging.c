@@ -41,12 +41,12 @@
 
 
 /* GUCs */
-bool bdr_log_conflicts_to_table = false;
-bool bdr_conflict_logging_include_tuples = false;
+bool		bdr_log_conflicts_to_table = false;
+bool		bdr_conflict_logging_include_tuples = false;
 
-static Oid BdrConflictTypeOid = InvalidOid;
-static Oid BdrConflictResolutionOid = InvalidOid;
-static Oid BdrConflictHistorySeqId = InvalidOid;
+static Oid	BdrConflictTypeOid = InvalidOid;
+static Oid	BdrConflictResolutionOid = InvalidOid;
+static Oid	BdrConflictHistorySeqId = InvalidOid;
 
 #define BDR_CONFLICT_HISTORY_COLS 35
 #define SYSID_DIGITS 33
@@ -66,26 +66,26 @@ MemoryContext conflict_log_context;
 void
 bdr_conflict_logging_startup()
 {
-	Oid schema_oid;
+	Oid			schema_oid;
 
 	conflict_log_context = AllocSetContextCreate(CurrentMemoryContext,
-		"bdr_log_conflict_ctx", ALLOCSET_DEFAULT_MINSIZE,
-		ALLOCSET_DEFAULT_INITSIZE, ALLOCSET_DEFAULT_MAXSIZE);
+												 "bdr_log_conflict_ctx", ALLOCSET_DEFAULT_MINSIZE,
+												 ALLOCSET_DEFAULT_INITSIZE, ALLOCSET_DEFAULT_MAXSIZE);
 
 	StartTransactionCommand();
 
 	schema_oid = get_namespace_oid("bdr", false);
 
 	BdrConflictTypeOid = GetSysCacheOidError2(TYPENAMENSP,
-		CStringGetDatum("bdr_conflict_type"), ObjectIdGetDatum(schema_oid));
+											  CStringGetDatum("bdr_conflict_type"), ObjectIdGetDatum(schema_oid));
 
 	BdrConflictResolutionOid = GetSysCacheOidError2(TYPENAMENSP,
-		CStringGetDatum("bdr_conflict_resolution"),
-		ObjectIdGetDatum(schema_oid));
+													CStringGetDatum("bdr_conflict_resolution"),
+													ObjectIdGetDatum(schema_oid));
 
 	BdrConflictHistorySeqId = GetSysCacheOidError2(RELNAMENSP,
-		CStringGetDatum("bdr_conflict_history_id_seq"),
-		ObjectIdGetDatum(schema_oid));
+												   CStringGetDatum("bdr_conflict_history_id_seq"),
+												   ObjectIdGetDatum(schema_oid));
 
 	CommitTransactionCommand();
 }
@@ -105,10 +105,10 @@ bdr_conflict_logging_cleanup(void)
 static Datum
 bdr_conflict_type_get_datum(BdrConflictType conflict_type)
 {
-	Oid conflict_type_oid;
-	char *enumname = NULL;
+	Oid			conflict_type_oid;
+	char	   *enumname = NULL;
 
-	switch(conflict_type)
+	switch (conflict_type)
 	{
 		case BdrConflictType_InsertInsert:
 			enumname = "insert_insert";
@@ -131,7 +131,7 @@ bdr_conflict_type_get_datum(BdrConflictType conflict_type)
 	}
 	Assert(enumname != NULL);
 	conflict_type_oid = GetSysCacheOid2(ENUMTYPOIDNAME,
-		BdrConflictTypeOid, CStringGetDatum(enumname));
+										BdrConflictTypeOid, CStringGetDatum(enumname));
 	if (conflict_type_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "bdr.bdr_conflict_type failed", enumname);
@@ -142,7 +142,7 @@ bdr_conflict_type_get_datum(BdrConflictType conflict_type)
 static char *
 bdr_conflict_resolution_get_name(BdrConflictResolution conflict_resolution)
 {
-	char *enumname = NULL;
+	char	   *enumname = NULL;
 
 	switch (conflict_resolution)
 	{
@@ -177,12 +177,12 @@ bdr_conflict_resolution_get_name(BdrConflictResolution conflict_resolution)
 static Datum
 bdr_conflict_resolution_get_datum(BdrConflictResolution conflict_resolution)
 {
-	Oid conflict_resolution_oid;
+	Oid			conflict_resolution_oid;
 
-	char *enumname = bdr_conflict_resolution_get_name(conflict_resolution);
+	char	   *enumname = bdr_conflict_resolution_get_name(conflict_resolution);
 
 	conflict_resolution_oid = GetSysCacheOid2(ENUMTYPOIDNAME,
-		BdrConflictResolutionOid, CStringGetDatum(enumname));
+											  BdrConflictResolutionOid, CStringGetDatum(enumname));
 	if (conflict_resolution_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "bdr.bdr_conflict_resolution failed", enumname);
@@ -195,7 +195,8 @@ bdr_conflict_resolution_get_datum(BdrConflictResolution conflict_resolution)
 static Datum
 bdr_conflict_row_to_json(Datum row, bool row_isnull, bool *ret_isnull)
 {
-	Datum row_json;
+	Datum		row_json;
+
 	if (row_isnull)
 	{
 		row_json = (Datum) 0;
@@ -204,11 +205,11 @@ bdr_conflict_row_to_json(Datum row, bool row_isnull, bool *ret_isnull)
 	else
 	{
 		/*
-		 * We don't handle errors with a PG_TRY / PG_CATCH here, because that's
-		 * not sufficient to make the transaction usable given that we might
-		 * fail in user defined casts, etc. We'd need a full savepoint, which
-		 * is too expensive. So if this fails we'll just propagate the exception
-		 * and abort the apply transaction.
+		 * We don't handle errors with a PG_TRY / PG_CATCH here, because
+		 * that's not sufficient to make the transaction usable given that we
+		 * might fail in user defined casts, etc. We'd need a full savepoint,
+		 * which is too expensive. So if this fails we'll just propagate the
+		 * exception and abort the apply transaction.
 		 *
 		 * It shouldn't fail unless something's pretty broken anyway.
 		 */
@@ -286,7 +287,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 		/* get Datum from tuple */
 		origval = heap_getattr(tuple, natt + 1, tupdesc, &isnull);
 
-		val = (Datum)0;
+		val = (Datum) 0;
 		if (isnull)
 			outputstr = "(null)";
 		else if (typisvarlena && VARATT_IS_EXTERNAL_ONDISK(origval))
@@ -356,21 +357,22 @@ bdr_conflict_strtodatum(bool *nulls, Datum *values, int idx,
  * The change will then be replicated to other nodes.
  */
 void
-bdr_conflict_log_table(BdrApplyConflict *conflict)
+bdr_conflict_log_table(BdrApplyConflict * conflict)
 {
-	Datum		 	values[BDR_CONFLICT_HISTORY_COLS];
-	bool			nulls[BDR_CONFLICT_HISTORY_COLS];
-	int				attno;
-	int				object_schema_attno, object_name_attno;
-	char			sqlstate[12];
-	Relation		log_rel;
-	HeapTuple		log_tup;
+	Datum		values[BDR_CONFLICT_HISTORY_COLS];
+	bool		nulls[BDR_CONFLICT_HISTORY_COLS];
+	int			attno;
+	int			object_schema_attno,
+				object_name_attno;
+	char		sqlstate[12];
+	Relation	log_rel;
+	HeapTuple	log_tup;
 	TupleTableSlot *log_slot;
-	EState		   *log_estate;
-	char			local_sysid[SYSID_DIGITS];
-	char			remote_sysid[SYSID_DIGITS];
-	char			origin_sysid[SYSID_DIGITS];
-	BDRNodeId		myid;
+	EState	   *log_estate;
+	char		local_sysid[SYSID_DIGITS];
+	char		remote_sysid[SYSID_DIGITS];
+	char		origin_sysid[SYSID_DIGITS];
+	BDRNodeId	myid;
 
 	bdr_make_my_nodeid(&myid);
 
@@ -403,7 +405,7 @@ bdr_conflict_log_table(BdrApplyConflict *conflict)
 	/* Begin forming the tuple. See the extension SQL file for field info. */
 	attno = 0;
 	values[attno++] = DirectFunctionCall1(nextval_oid,
-		BdrConflictHistorySeqId);
+										  BdrConflictHistorySeqId);
 	values[attno++] = CStringGetTextDatum(local_sysid);
 	values[attno++] = TransactionIdGetDatum(conflict->local_conflict_txid);
 	values[attno++] = LSNGetDatum(conflict->local_conflict_lsn);
@@ -430,11 +432,11 @@ bdr_conflict_log_table(BdrApplyConflict *conflict)
 		bdr_conflict_resolution_get_datum(conflict->conflict_resolution);
 
 	values[attno] = bdr_conflict_row_to_json(conflict->local_tuple,
-		conflict->local_tuple_null, &nulls[attno]);
+											 conflict->local_tuple_null, &nulls[attno]);
 	attno++;
 
 	values[attno] = bdr_conflict_row_to_json(conflict->remote_tuple,
-		conflict->remote_tuple_null, &nulls[attno]);
+											 conflict->remote_tuple_null, &nulls[attno]);
 	attno++;
 
 	if (conflict->local_tuple_xmin != InvalidTransactionId)
@@ -461,29 +463,30 @@ bdr_conflict_log_table(BdrApplyConflict *conflict)
 		 * There's error data to log. We don't attempt to log it selectively,
 		 * as bdr apply errors are not supposed to be routine anyway.
 		 *
-		 * WARNING: in practice we'll never hit this code, since we can't
-		 * trap errors reliably then continue to write to the DB. It's not as
+		 * WARNING: in practice we'll never hit this code, since we can't trap
+		 * errors reliably then continue to write to the DB. It's not as
 		 * simple as PG_TRY / PG_CATCH(). We have to do a bunch of work like
 		 * that done by PostgresMain. It really needs bgworker infrastructure
-		 * improvements before we can do this unless we use IPC to a helper proc.
+		 * improvements before we can do this unless we use IPC to a helper
+		 * proc.
 		 */
-		ErrorData *edata = conflict->apply_error;
+		ErrorData  *edata = conflict->apply_error;
 
 		bdr_conflict_strtodatum(nulls, values, attno++, edata->message);
 
 		/*
-		 * Always log the SQLSTATE. If it's ERRCODE_INTERNAL_ERROR - like after
-		 * an elog(...) - we'll just be writing XX0000, but that's still better
-		 * than nothing.
+		 * Always log the SQLSTATE. If it's ERRCODE_INTERNAL_ERROR - like
+		 * after an elog(...) - we'll just be writing XX0000, but that's still
+		 * better than nothing.
 		 */
 		strncpy(sqlstate, unpack_sql_state(edata->sqlerrcode), 12);
-		sqlstate[sizeof(sqlstate)-1] = '\0';
+		sqlstate[sizeof(sqlstate) - 1] = '\0';
 		values[attno] = CStringGetTextDatum(sqlstate);
 
 		/*
-		 * We'd like to log the statement running at the time of the ERROR (for
-		 * DDL apply errors) but have no reliable way to acquire it yet. So for
-		 * now...
+		 * We'd like to log the statement running at the time of the ERROR
+		 * (for DDL apply errors) but have no reliable way to acquire it yet.
+		 * So for now...
 		 */
 		nulls[attno] = 1;
 		attno++;
@@ -514,8 +517,8 @@ bdr_conflict_log_table(BdrApplyConflict *conflict)
 	}
 
 	/*
-	 * BDR 2.0 extends the conflict history with each node's dboid
-	 * and timeline to give complete node IDs.
+	 * BDR 2.0 extends the conflict history with each node's dboid and
+	 * timeline to give complete node IDs.
 	 */
 	if (conflict->remote_node.sysid != 0)
 		values[attno] = ObjectIdGetDatum(conflict->remote_node.timeline);
@@ -577,10 +580,10 @@ bdr_conflict_log_table(BdrApplyConflict *conflict)
  * Log a BDR apply conflict to the postgreql log.
  */
 void
-bdr_conflict_log_serverlog(BdrApplyConflict *conflict)
+bdr_conflict_log_serverlog(BdrApplyConflict * conflict)
 {
-	StringInfoData	s_key;
-	char		   *resolution_name;
+	StringInfoData s_key;
+	char	   *resolution_name;
 
 #define CONFLICT_MSG_PREFIX "CONFLICT: remote %s:"
 
@@ -591,14 +594,14 @@ bdr_conflict_log_serverlog(BdrApplyConflict *conflict)
 
 	resolution_name = bdr_conflict_resolution_get_name(conflict->conflict_resolution);
 
-	switch(conflict->conflict_type)
+	switch (conflict->conflict_type)
 	{
 		case BdrConflictType_InsertInsert:
 		case BdrConflictType_UpdateUpdate:
 		case BdrConflictType_InsertUpdate:
 			ereport(LOG,
 					(errcode(ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION),
-					 errmsg(CONFLICT_MSG_PREFIX " row was previously %s at node "BDR_NODEID_FORMAT_WITHNAME". Resolution: %s; PKEY:%s",
+					 errmsg(CONFLICT_MSG_PREFIX " row was previously %s at node " BDR_NODEID_FORMAT_WITHNAME ". Resolution: %s; PKEY:%s",
 							conflict->conflict_type == BdrConflictType_UpdateUpdate ? "UPDATE" : "INSERT",
 							conflict->conflict_type == BdrConflictType_InsertInsert ? "INSERTed" : "UPDATEd",
 							BDR_NODEID_FORMAT_WITHNAME_ARGS(conflict->local_tuple_origin_node),
@@ -637,14 +640,14 @@ BdrApplyConflict *
 bdr_make_apply_conflict(BdrConflictType conflict_type,
 						BdrConflictResolution resolution,
 						TransactionId remote_txid,
-						BDRRelation *conflict_relation,
+						BDRRelation * conflict_relation,
 						TupleTableSlot *local_tuple,
 						RepOriginId local_tuple_origin_id,
 						TupleTableSlot *remote_tuple,
 						TimestampTz local_commit_ts,
 						ErrorData *apply_error)
 {
-	MemoryContext	old_context;
+	MemoryContext old_context;
 	BdrApplyConflict *conflict;
 
 	old_context = MemoryContextSwitchTo(conflict_log_context);

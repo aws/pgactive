@@ -29,5 +29,5 @@ bdr_slot_name(Name slot_name, const BDRNodeId * const remote_node, Oid local_dbo
 	snprintf(NameStr(*slot_name), NAMEDATALEN, BDR_SLOT_NAME_FORMAT,
 			 local_dboid, remote_node->sysid, remote_node->timeline, remote_node->dboid,
 			 EMPTY_REPLICATION_NAME);
-	NameStr(*slot_name)[NAMEDATALEN-1] = '\0';
+	NameStr(*slot_name)[NAMEDATALEN - 1] = '\0';
 }

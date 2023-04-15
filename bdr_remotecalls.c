@@ -60,11 +60,11 @@ PG_FUNCTION_INFO_V1(bdr_drop_remote_slot);
 /*
  * Make standard postgres connection, ERROR on failure.
  */
-PGconn*
+PGconn *
 bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 {
-	PGconn			*nonrepl_conn;
-	StringInfoData	dsn;
+	PGconn	   *nonrepl_conn;
+	StringInfoData dsn;
 
 	initStringInfo(&dsn);
 	appendStringInfoString(&dsn, bdr_default_apply_connection_options);
@@ -73,8 +73,8 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 	appendStringInfoChar(&dsn, ' ');
 	appendStringInfoString(&dsn, connstring);
 	appendStringInfo(&dsn,
-					" application_name='%s:%s'",
-					bdr_get_my_cached_node_name(), appnamesuffix);
+					 " application_name='%s:%s'",
+					 bdr_get_my_cached_node_name(), appnamesuffix);
 
 	/*
 	 * Test to see if there's an entry in the remote's bdr.bdr_nodes for our
@@ -101,10 +101,10 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 void
 bdr_cleanup_conn_close(int code, Datum connptr)
 {
-	PGconn **conn_p;
-	PGconn *conn;
+	PGconn	  **conn_p;
+	PGconn	   *conn;
 
-	conn_p = (PGconn**) DatumGetPointer(connptr);
+	conn_p = (PGconn **) DatumGetPointer(connptr);
 	Assert(conn_p != NULL);
 	conn = *conn_p;
 
@@ -119,7 +119,7 @@ bdr_cleanup_conn_close(int code, Datum connptr)
  * Frees contents of a remote_node_info (but not the struct its self)
  */
 void
-free_remote_node_info(remote_node_info *ri)
+free_remote_node_info(remote_node_info * ri)
 {
 	if (ri->sysid_str != NULL)
 		pfree(ri->sysid_str);
@@ -149,12 +149,13 @@ free_remote_node_info(remote_node_info *ri)
  */
 void
 bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
-		const char * copyfrom_query, const char *copyto_query)
+			  const char *copyfrom_query, const char *copyto_query)
 {
-	PGresult *copyfrom_result;
-	PGresult *copyto_result;
-	int	copyinresult, copyoutresult;
-	char * copybuf;
+	PGresult   *copyfrom_result;
+	PGresult   *copyto_result;
+	int			copyinresult,
+				copyoutresult;
+	char	   *copybuf;
 
 	copyfrom_result = PQexec(copyfrom_conn, copyfrom_query);
 	if (PQresultStatus(copyfrom_result) != PGRES_COPY_OUT)
@@ -162,7 +163,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 		ereport(ERROR,
 				(errmsg("execution of COPY ... TO stdout failed"),
 				 errdetail("Query '%s': %s", copyfrom_query,
-					 PQerrorMessage(copyfrom_conn))));
+						   PQerrorMessage(copyfrom_conn))));
 	}
 
 	copyto_result = PQexec(copyto_conn, copyto_query);
@@ -171,7 +172,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 		ereport(ERROR,
 				(errmsg("execution of COPY ... FROM stdout failed"),
 				 errdetail("Query '%s': %s", copyto_query,
-					 PQerrorMessage(copyto_conn))));
+						   PQerrorMessage(copyto_conn))));
 	}
 
 	while ((copyoutresult = PQgetCopyData(copyfrom_conn, &copybuf, false)) > 0)
@@ -181,7 +182,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 			ereport(ERROR,
 					(errmsg("writing to destination table failed"),
 					 errdetail("destination connection reported: %s",
-						 PQerrorMessage(copyto_conn))));
+							   PQerrorMessage(copyto_conn))));
 		}
 		PQfreemem(copybuf);
 	}
@@ -191,16 +192,16 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 		ereport(ERROR,
 				(errmsg("reading from origin table/query failed"),
 				 errdetail("source connection returned %d: %s",
-					copyoutresult, PQerrorMessage(copyfrom_conn))));
+						   copyoutresult, PQerrorMessage(copyfrom_conn))));
 	}
 
-	// Send local finish
+	/* Send local finish */
 	if (PQputCopyEnd(copyto_conn, NULL) != 1)
 	{
 		ereport(ERROR,
 				(errmsg("sending copy-completion to destination connection failed"),
 				 errdetail("destination connection reported: %s",
-					 PQerrorMessage(copyto_conn))));
+						   PQerrorMessage(copyto_conn))));
 	}
 }
 
@@ -210,12 +211,13 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 Datum
 bdr_copytable_test(PG_FUNCTION_ARGS)
 {
-	const char * fromdsn = PG_GETARG_CSTRING(0);
-	const char * todsn = PG_GETARG_CSTRING(1);
-	const char * fromquery = PG_GETARG_CSTRING(2);
-	const char * toquery = PG_GETARG_CSTRING(3);
+	const char *fromdsn = PG_GETARG_CSTRING(0);
+	const char *todsn = PG_GETARG_CSTRING(1);
+	const char *fromquery = PG_GETARG_CSTRING(2);
+	const char *toquery = PG_GETARG_CSTRING(3);
 
-	PGconn *fromconn, *toconn;
+	PGconn	   *fromconn,
+			   *toconn;
 
 	fromconn = PQconnectdb(fromdsn);
 	if (PQstatus(fromconn) != CONNECTION_OK)
@@ -236,17 +238,17 @@ bdr_copytable_test(PG_FUNCTION_ARGS)
 static bool
 bdr_remote_has_bdr_func(PGconn *conn, const char *funcname)
 {
-	PGresult *res;
-	const char * params[1];
-	bool found;
+	PGresult   *res;
+	const char *params[1];
+	bool		found;
 
 	params[0] = funcname;
 
 	/* Check if a function is defined in the bdr namespace in pg_proc */
 	res = PQexecParams(conn, "SELECT 1 FROM pg_proc p "
-							 "INNER JOIN pg_namespace n ON (p.pronamespace = n.oid) "
-							 "WHERE n.nspname = 'bdr' AND p.proname = $1;",
-							 1, NULL, params, NULL, NULL, 0);
+					   "INNER JOIN pg_namespace n ON (p.pronamespace = n.oid) "
+					   "WHERE n.nspname = 'bdr' AND p.proname = $1;",
+					   1, NULL, params, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -272,21 +274,21 @@ bdr_remote_has_bdr_func(PGconn *conn, const char *funcname)
 void
 bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 {
-	PGresult		*res;
-	int				i;
-	char			*remote_bdr_version_str;
-	int				parsed_version_num;
+	PGresult   *res;
+	int			i;
+	char	   *remote_bdr_version_str;
+	int			parsed_version_num;
 
 	/* Make sure BDR is actually present and active on the remote */
 	bdr_ensure_ext_installed(conn);
 
 	/*
-	 * Acquire remote version string. Present since 0.7.x. This lets us
-	 * decide if we're going to ask for more info. Can also safely find
-	 * out if we're superuser at this point.
+	 * Acquire remote version string. Present since 0.7.x. This lets us decide
+	 * if we're going to ask for more info. Can also safely find out if we're
+	 * superuser at this point.
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
-					   "       current_setting('is_superuser') AS issuper");
+				 "       current_setting('is_superuser') AS issuper");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -301,14 +303,14 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
 	ri->is_superuser = DatumGetBool(
-			DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 1))));
+									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 1))));
 
 	PQclear(res);
 
 	/*
 	 * Even though we should be able to get it from bdr_version_num, always
-	 * parse the BDR version so that the parse code gets sanity checked,
-	 * and so that we notice if the remote version is too old to have
+	 * parse the BDR version so that the parse code gets sanity checked, and
+	 * so that we notice if the remote version is too old to have
 	 * bdr_version_num.
 	 */
 	parsed_version_num = bdr_parse_version(remote_bdr_version_str, NULL, NULL,
@@ -319,14 +321,14 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	if (bdr_remote_has_bdr_func(conn, "bdr_version_num"))
 	{
 		/*
-		 * Can safely query for numeric version and min remote version.
-		 * They were added at the same time. The variant is also available;
-		 * while it was added earlier, in reality nobody's going to be
-		 * using it or caring.
+		 * Can safely query for numeric version and min remote version. They
+		 * were added at the same time. The variant is also available; while
+		 * it was added earlier, in reality nobody's going to be using it or
+		 * caring.
 		 */
 		res = PQexec(conn, "SELECT bdr.bdr_version_num(), "
-						   "       bdr.bdr_variant() AS variant, "
-						   "       bdr.bdr_min_remote_version_num();");
+					 "       bdr.bdr_variant() AS variant, "
+					 "       bdr.bdr_min_remote_version_num();");
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
@@ -376,14 +378,14 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	{
 		/* Acquire sysid, timeline, dboid */
 		res = PQexec(conn, "SELECT sysid, timeline, dboid "
-						   "FROM bdr.bdr_get_local_nodeid()");
+					 "FROM bdr.bdr_get_local_nodeid()");
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
 			ereport(ERROR,
 					(errmsg("getting remote node id failed"),
-					errdetail("SELECT sysid, timeline, dboid FROM bdr.bdr_get_local_nodeid() failed with: %s",
-						PQerrorMessage(conn))));
+					 errdetail("SELECT sysid, timeline, dboid FROM bdr.bdr_get_local_nodeid() failed with: %s",
+							   PQerrorMessage(conn))));
 		}
 
 		Assert(PQnfields(res) == 3);
@@ -403,9 +405,9 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 			elog(ERROR, "could not parse remote sysid %s", ri->sysid_str);
 
 		ri->nodeid.timeline = DatumGetObjectId(
-				DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
+											   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
 		ri->nodeid.dboid = DatumGetObjectId(
-				DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
+											DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
 
 		PQclear(res);
 	}
@@ -414,9 +416,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		/*
 		 * No way to know the node id on old versions.
 		 *
-		 * Indicate this with a null sysid and invalid timeline
-		 * and dboid. We can actually get the dboid from the
-		 * peer but there's no point.
+		 * Indicate this with a null sysid and invalid timeline and dboid. We
+		 * can actually get the dboid from the peer but there's no point.
 		 */
 		ri->sysid_str = NULL;
 		ri->nodeid.sysid = 0;
@@ -436,8 +437,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		{
 			ereport(ERROR,
 					(errmsg("getting remote node status failed"),
-					errdetail("with: %s",
-						PQerrorMessage(conn))));
+					 errdetail("with: %s",
+							   PQerrorMessage(conn))));
 		}
 
 		Assert(PQnfields(res) == 1);
@@ -454,7 +455,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 			ri->node_status = PQgetvalue(res, 0, 0)[0];
 		}
 		else
-			elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid"); /* shouldn't happen */
+			elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
 
 		PQclear(res);
 	}
@@ -469,7 +470,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 	bool		isnull[9] = {false, false, false, false, false, false, false, false, false};
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
-	PGconn		*conn;
+	PGconn	   *conn;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
@@ -492,11 +493,11 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		else
 		{
 			/* Old peer version lacks sysid info */
-			values[0] = (Datum)0;
+			values[0] = (Datum) 0;
 			isnull[0] = true;
-			values[1] = (Datum)0;
+			values[1] = (Datum) 0;
 			isnull[1] = true;
-			values[2] = (Datum)0;
+			values[2] = (Datum) 0;
 			isnull[2] = true;
 		}
 		values[3] = CStringGetTextDatum(ri.variant);
@@ -514,7 +515,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		free_remote_node_info(&ri);
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
-							PointerGetDatum(&conn));
+								PointerGetDatum(&conn));
 
 	PQfinish(conn);
 
@@ -531,10 +532,10 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 Datum
 bdr_test_replication_connection(PG_FUNCTION_ARGS)
 {
-	const char	*conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
+	const char *conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
-	PGconn		*conn;
+	PGconn	   *conn;
 	NameData	appname;
 	BDRNodeId	remote;
 	Datum		values[3];
@@ -549,7 +550,7 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	conn = bdr_connect(conninfo, &appname, &remote);
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, remote.sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(remote.timeline);
@@ -564,11 +565,11 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 
 void
 bdr_test_remote_connectback_internal(PGconn *conn,
-		struct remote_node_info *ri, const char *my_dsn)
+									 struct remote_node_info *ri, const char *my_dsn)
 {
-	PGresult		*res;
-	const char *	mydsn_values[1];
-	Oid				mydsn_types[1] = { TEXTOID };
+	PGresult   *res;
+	const char *mydsn_values[1];
+	Oid			mydsn_types[1] = {TEXTOID};
 
 	mydsn_values[0] = my_dsn;
 
@@ -576,11 +577,11 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 	bdr_ensure_ext_installed(conn);
 
 	/*
-	 * Ask the remote to connect back to us in replication mode, then
-	 * discard the results.
+	 * Ask the remote to connect back to us in replication mode, then discard
+	 * the results.
 	 */
 	res = PQexecParams(conn, "SELECT sysid, timeline, dboid "
-							 "FROM bdr.bdr_test_replication_connection($1)",
+					   "FROM bdr.bdr_test_replication_connection($1)",
 					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -588,7 +589,7 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 		/* TODO clone remote error to local */
 		ereport(ERROR,
 				(errmsg("connection from remote back to local in replication mode failed"),
-				errdetail("remote reported: %s", PQerrorMessage(conn))));
+				 errdetail("remote reported: %s", PQerrorMessage(conn))));
 	}
 
 	PQclear(res);
@@ -598,8 +599,8 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 	 * node to connect back to us.
 	 */
 	res = PQexecParams(conn, "SELECT sysid, timeline, dboid, variant, version, "
-							 "       version_num, min_remote_version_num, is_superuser "
-							 "FROM bdr.bdr_get_remote_nodeinfo($1)",
+					   "       version_num, min_remote_version_num, is_superuser "
+					   "FROM bdr.bdr_get_remote_nodeinfo($1)",
 					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -607,7 +608,7 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 		/* TODO clone remote error to local */
 		ereport(ERROR,
 				(errmsg("connection from remote back to local failed"),
-				errdetail("remote reported: %s", PQerrorMessage(conn))));
+				 errdetail("remote reported: %s", PQerrorMessage(conn))));
 	}
 
 	Assert(PQnfields(res) == 8);
@@ -636,13 +637,13 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 	if (!PQgetisnull(res, 0, 1))
 	{
 		ri->nodeid.timeline = DatumGetObjectId(
-				DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
+											   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
 	}
 
 	if (!PQgetisnull(res, 0, 2))
 	{
 		ri->nodeid.dboid = DatumGetObjectId(
-				DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
+											DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
 	}
 
 	if (PQgetisnull(res, 0, 3))
@@ -656,11 +657,11 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 		ri->version_num = atoi(PQgetvalue(res, 0, 5));
 
 	if (!PQgetisnull(res, 0, 6))
-		ri->min_remote_version_num =  atoi(PQgetvalue(res, 0, 6));
+		ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 6));
 
 	if (!PQgetisnull(res, 0, 7))
 		ri->is_superuser = DatumGetBool(
-				DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
+										DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
 
 	PQclear(res);
 }
@@ -683,7 +684,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	bool		isnull[8] = {false, false, false, false, false, false, false, false};
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
-	PGconn		*conn;
+	PGconn	   *conn;
 
 	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
 		elog(ERROR, "both arguments must be non-null");
@@ -764,7 +765,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 	PGresult   *res;
 	NameData	slotname;
 	BdrConnectionConfig *cfg;
-	BDRNodeId remote;
+	BDRNodeId	remote;
 
 	remote.timeline = PG_GETARG_OID(1);
 	remote.dboid = PG_GETARG_OID(2);
@@ -780,9 +781,9 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 							PointerGetDatum(&conn));
 	{
 		struct remote_node_info ri;
-		const char *	values[1];
-		Oid				types[1] = { TEXTOID };
-		BDRNodeId		myid;
+		const char *values[1];
+		Oid			types[1] = {TEXTOID};
+		BDRNodeId	myid;
 
 		bdr_make_my_nodeid(&myid);
 
@@ -804,8 +805,8 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 		{
 			ereport(ERROR,
 					(errmsg("getting remote slot info failed"),
-					errdetail("SELECT FROM pg_catalog.pg_replication_slots failed with: %s",
-						PQerrorMessage(conn))));
+					 errdetail("SELECT FROM pg_catalog.pg_replication_slots failed with: %s",
+							   PQerrorMessage(conn))));
 		}
 
 		/* Slot not found return false */
@@ -831,8 +832,8 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 		{
 			ereport(ERROR,
 					(errmsg("remote slot drop failed"),
-					errdetail("SELECT pg_drop_replication_slot() failed with: %s",
-						PQerrorMessage(conn))));
+					 errdetail("SELECT pg_drop_replication_slot() failed with: %s",
+							   PQerrorMessage(conn))));
 		}
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,

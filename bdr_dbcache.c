@@ -34,11 +34,11 @@
 /* Cache entry. */
 typedef struct BDRDatabaseCacheEntry
 {
-	Oid		oid; /* cache key, needs to be first */
+	Oid			oid;			/* cache key, needs to be first */
 	const char *dbname;
-	bool	valid;
-	bool	bdr_activated;
-} BDRDatabaseCacheEntry;
+	bool		valid;
+	bool		bdr_activated;
+}			BDRDatabaseCacheEntry;
 
 static HTAB *BDRDatabaseCacheHash = NULL;
 
@@ -82,7 +82,7 @@ bdr_dbcache_initialize()
 	ctl.hcxt = CacheMemoryContext;
 
 	BDRDatabaseCacheHash = hash_create("BDR database cache", 128, &ctl,
-								  HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+									   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
 	CacheRegisterSyscacheCallback(DATABASEOID, bdr_dbcache_invalidate_entry, (Datum) 0);
@@ -102,7 +102,7 @@ bdr_parse_database_options(const char *label, bool *is_active)
 		return;
 
 	data = DatumGetJsonbP(
-		DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
+						  DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
 
 	if (!JB_ROOT_IS_OBJECT(data))
 		elog(ERROR, "root needs to be an object");
