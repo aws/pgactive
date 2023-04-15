@@ -144,7 +144,8 @@ bdr_conflict_handlers_check_access(Oid reloid)
 Datum
 bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 {
-	Oid			proc_oid, reloid;
+	Oid			proc_oid,
+				reloid;
 	int			ret;
 	Oid			argtypes[5];
 	Datum		values[5];
@@ -168,13 +169,12 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	guc_nestlevel = NewGUCNestLevel();
 
 	/*
-	 * Force everything in the query to be fully qualified
-	 * so that when we generate SQL to replicate we don't
-	 * rely on the search_path.
+	 * Force everything in the query to be fully qualified so that when we
+	 * generate SQL to replicate we don't rely on the search_path.
 	 */
 	(void) set_config_option("search_path", "",
-					PGC_USERSET, PGC_S_SESSION,
-					GUC_ACTION_SAVE, true, 0, false);
+					                 PGC_USERSET, PGC_S_SESSION,
+					                 GUC_ACTION_SAVE, true, 0, false);
 
 	reloid = PG_GETARG_OID(0);
 	proc_oid = PG_GETARG_OID(2);
@@ -213,7 +213,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	if (PG_ARGISNULL(4))
 	{
 		nulls[4] = 'n';
-		values[4] = (Datum)0;
+		values[4] = (Datum) 0;
 	}
 	else
 	{
@@ -236,7 +236,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 		elog(ERROR, "expected SPI state %u, got %u", SPI_OK_INSERT, ret);
 
 	if (SPI_processed != 1)
-		elog(ERROR, "expected one processed row, got "UINT64_FORMAT, (uint64)SPI_processed);
+		elog(ERROR, "expected one processed row, got " UINT64_FORMAT, (uint64) SPI_processed);
 
 	/*
 	 * set up the dependency relation with ourselves as "dependent"
@@ -256,16 +256,17 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	CacheInvalidateRelcacheByRelid(reloid);
 
 	/*
-	 * INSERT to queued_commands for replication if we are not not replaying
-	 * a queued command.
+	 * INSERT to queued_commands for replication if we are not not replaying a
+	 * queued command.
 	 */
 	if (replorigin_session_origin == InvalidRepOriginId)
 	{
 		/*
-		 * Re-use the SPI arguments from creating the handler and let Pg handle quoting
-		 * with format(..) so we don't have to dance with stringification etc.
+		 * Re-use the SPI arguments from creating the handler and let Pg
+		 * handle quoting with format(..) so we don't have to dance with
+		 * stringification etc.
 		 */
-		const char * const insert_query =
+		const char *const insert_query =
 			"INSERT INTO bdr.bdr_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
 			"   VALUES (pg_current_wal_lsn(), NOW(), CURRENT_USER, 'SELECT',\n"
 			"           format('SELECT bdr.bdr_create_conflict_handler(%L, %L, %L, %L, %L)', $1, $2, $3, $4, $5));";
@@ -276,7 +277,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 		if (ret != SPI_OK_INSERT)
 			elog(ERROR, "expected SPI state %u, got %u", SPI_OK_INSERT, ret);
 		if (SPI_processed != 1)
-			elog(ERROR, "expected one processed row, got "UINT64_FORMAT, (uint64)SPI_processed);
+			elog(ERROR, "expected one processed row, got " UINT64_FORMAT, (uint64) SPI_processed);
 	}
 
 	if (SPI_finish() != SPI_OK_FINISH)
@@ -327,13 +328,12 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	guc_nestlevel = NewGUCNestLevel();
 
 	/*
-	 * Force everything in the query to be fully qualified
-	 * so that when we generate SQL to replicate we don't
-	 * rely on the search_path.
+	 * Force everything in the query to be fully qualified so that when we
+	 * generate SQL to replicate we don't rely on the search_path.
 	 */
 	(void) set_config_option("search_path", "",
-					PGC_USERSET, PGC_S_SESSION,
-					GUC_ACTION_SAVE, true, 0, false);
+					                 PGC_USERSET, PGC_S_SESSION,
+					                 GUC_ACTION_SAVE, true, 0, false);
 
 	argtypes[0] = REGCLASSOID;
 	values[0] = PG_GETARG_DATUM(0);
@@ -395,7 +395,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	if (replorigin_session_origin == InvalidRepOriginId)
 	{
 
-		const char * const query =
+		const char *const query =
 			"INSERT INTO bdr.bdr_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
 			"   VALUES (pg_current_wal_lsn(), NOW(), CURRENT_USER, 'SELECT', "
 			"           format('SELECT bdr.bdr_drop_conflict_handler(%L, %L)', $1, $2));";
@@ -656,7 +656,7 @@ bdr_conflict_handlers_event_type_name(BdrConflictType event_type)
 		default:
 			elog(ERROR,
 				 "wrong value for event type, possibly corrupted memory: %d",
-				event_type);
+				 event_type);
 	}
 
 	return "(unknown)";
@@ -742,7 +742,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 		tup_header = DatumGetHeapTupleHeader(retval);
 
 		fun_tup = SearchSysCache1(PROCOID,
-					ObjectIdGetDatum(rel->conflict_handlers[i].handler_oid));
+								  ObjectIdGetDatum(rel->conflict_handlers[i].handler_oid));
 		if (!HeapTupleIsValid(fun_tup))
 			elog(ERROR, "cache lookup failed for function %u",
 				 rel->conflict_handlers[i].handler_oid);
@@ -772,7 +772,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 
 			tup_header = DatumGetHeapTupleHeader(val);
 
-			if(HeapTupleHeaderGetTypeId(tup_header) != rel->rel->rd_rel->reltype)
+			if (HeapTupleHeaderGetTypeId(tup_header) != rel->rel->rd_rel->reltype)
 				elog(ERROR, "Handler %d returned unexpected tuple type %d",
 					 rel->conflict_handlers[i].handler_oid,
 					 retdesc->attrs[0].atttypid);

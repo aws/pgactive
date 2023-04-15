@@ -34,9 +34,10 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 
-bool in_bdr_replicate_ddl_command = false;
+bool		in_bdr_replicate_ddl_command = false;
 
 PGDLLEXPORT Datum bdr_replicate_ddl_command(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_replicate_ddl_command);
 
 /*
@@ -47,13 +48,13 @@ PG_FUNCTION_INFO_V1(bdr_replicate_ddl_command);
 void
 bdr_queue_ddl_command(const char *command_tag, const char *command, const char *search_path)
 {
-	EState		   *estate;
+	EState	   *estate;
 	TupleTableSlot *slot;
-	RangeVar	   *rv;
-	Relation		queuedcmds;
-	HeapTuple		newtup = NULL;
-	Datum			values[6];
-	bool			nulls[6];
+	RangeVar   *rv;
+	Relation	queuedcmds;
+	HeapTuple	newtup = NULL;
+	Datum		values[6];
+	bool		nulls[6];
 
 	elog(DEBUG2, "node %s enqueuing DDL command \"%s\" "
 		 "with search_path \"%s\"",
@@ -102,16 +103,16 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 Datum
 bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 {
-	text    *command = PG_GETARG_TEXT_PP(0);
-	char    *query = text_to_cstring(command);
-	int		nestlevel = -1;
+	text	   *command = PG_GETARG_TEXT_PP(0);
+	char	   *query = text_to_cstring(command);
+	int			nestlevel = -1;
 
 	nestlevel = NewGUCNestLevel();
 
-    /* Force everything in the query to be fully qualified. */
+	/* Force everything in the query to be fully qualified. */
 	(void) set_config_option("search_path", "",
-							 PGC_USERSET, PGC_S_SESSION,
-							 GUC_ACTION_SAVE, true, 0, false);
+							             PGC_USERSET, PGC_S_SESSION,
+							             GUC_ACTION_SAVE, true, 0, false);
 
 	/* Execute the query locally. */
 	in_bdr_replicate_ddl_command = true;
@@ -122,7 +123,7 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 		bdr_queue_ddl_command("SQL", query, NULL);
 
 		/* Execute the query locally. */
-		bdr_execute_ddl_command(query, GetUserNameFromId(GetUserId(), false), "" /*search_path*/, false);
+		bdr_execute_ddl_command(query, GetUserNameFromId(GetUserId(), false), "" /* search_path */ , false);
 	}
 	PG_CATCH();
 	{
@@ -179,72 +180,72 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
  */
 void
 bdr_capture_ddl(Node *parsetree, const char *queryString,
-                               ProcessUtilityContext context, ParamListInfo params,
-                               DestReceiver *dest, const char *completionTag)
+				ProcessUtilityContext context, ParamListInfo params,
+				DestReceiver *dest, const char *completionTag)
 {
-       ListCell *lc;
-       StringInfoData si;
-       List *active_search_path;
-       const char *tag = completionTag;
-       const char *skip_ddl;
-       bool first;
+	ListCell   *lc;
+	StringInfoData si;
+	List	   *active_search_path;
+	const char *tag = completionTag;
+	const char *skip_ddl;
+	bool		first;
 
-       initStringInfo(&si);
+	initStringInfo(&si);
 
-       /*
-        * If the call comes from DDL executed by bdr_replicate_ddl_command,
-        * don't queue it as it would insert duplicate commands into the queue.
-        */
-       if (in_bdr_replicate_ddl_command)
-               return;
+	/*
+	 * If the call comes from DDL executed by bdr_replicate_ddl_command, don't
+	 * queue it as it would insert duplicate commands into the queue.
+	 */
+	if (in_bdr_replicate_ddl_command)
+		return;
 
-       /*
-        * If we're currently replaying something from a remote node, don't queue
-        * the commands; that would cause recursion.
-        */
-       if (replorigin_session_origin != InvalidRepOriginId)
-               return;
+	/*
+	 * If we're currently replaying something from a remote node, don't queue
+	 * the commands; that would cause recursion.
+	 */
+	if (replorigin_session_origin != InvalidRepOriginId)
+		return;
 
-       /*
-        * Similarly, if configured to skip queueing DDL, don't queue.  This is
-        * mostly used when pg_restore brings a remote node state, so all objects
-        * will be copied over in the dump anyway.
-        */
-       skip_ddl = GetConfigOptionByName("bdr.skip_ddl_replication", NULL, false);
-       if (strcmp(skip_ddl, "on") == 0)
-               return;
+	/*
+	 * Similarly, if configured to skip queueing DDL, don't queue.  This is
+	 * mostly used when pg_restore brings a remote node state, so all objects
+	 * will be copied over in the dump anyway.
+	 */
+	skip_ddl = GetConfigOptionByName("bdr.skip_ddl_replication", NULL, false);
+	if (strcmp(skip_ddl, "on") == 0)
+		return;
 
-       /*
-        * We can't use namespace_search_path since there might be an override
-        * search path active right now, so:
-        */
-       active_search_path = fetch_search_path(true);
+	/*
+	 * We can't use namespace_search_path since there might be an override
+	 * search path active right now, so:
+	 */
+	active_search_path = fetch_search_path(true);
 
-       /*
-        * We have to look up each namespace name by oid and reconstruct
-        * a search_path string. It's lucky DDL is already expensive.
-        *
-        * Note that this means we'll ignore search_path entries that
-        * don't exist on the upstream since they never made it onto
-        * active_search_path.
-        */
-       first = true;
-       foreach(lc, active_search_path)
-       {
-               Oid nspid = lfirst_oid(lc);
-               char *nspname;
-               if (IsSystemNamespace(nspid) || IsToastNamespace(nspid) || isTempOrTempToastNamespace(nspid))
-                       continue;
-               nspname = get_namespace_name(nspid);
-               if (!first)
-                       appendStringInfoString(&si, ",");
-               appendStringInfoString(&si, quote_identifier(nspname));
-       }
+	/*
+	 * We have to look up each namespace name by oid and reconstruct a
+	 * search_path string. It's lucky DDL is already expensive.
+	 *
+	 * Note that this means we'll ignore search_path entries that don't exist
+	 * on the upstream since they never made it onto active_search_path.
+	 */
+	first = true;
+	foreach(lc, active_search_path)
+	{
+		Oid			nspid = lfirst_oid(lc);
+		char	   *nspname;
 
-       if (tag == NULL)
-               tag = CreateCommandTag(parsetree);
+		if (IsSystemNamespace(nspid) || IsToastNamespace(nspid) || isTempOrTempToastNamespace(nspid))
+			continue;
+		nspname = get_namespace_name(nspid);
+		if (!first)
+			appendStringInfoString(&si, ",");
+		appendStringInfoString(&si, quote_identifier(nspname));
+	}
 
-       bdr_queue_ddl_command(tag, queryString, si.data);
+	if (tag == NULL)
+		tag = CreateCommandTag(parsetree);
 
-       resetStringInfo(&si);
+	bdr_queue_ddl_command(tag, queryString, si.data);
+
+	resetStringInfo(&si);
 }

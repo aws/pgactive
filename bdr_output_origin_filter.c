@@ -33,16 +33,16 @@ typedef struct BdrOriginCacheEntry
 {
 	RepOriginId origin;
 	/* Entry is valid and not due to be purged */
-	bool is_valid;
+	bool		is_valid;
 	/* If this is a peer BDR node (and not us) */
-	bool is_bdr_peer;
-} BdrOriginCacheEntry;
+	bool		is_bdr_peer;
+}			BdrOriginCacheEntry;
 
 static HTAB *BdrOriginCache = NULL;
-static int InvalidBdrOriginCacheCnt = 0;
+static int	InvalidBdrOriginCacheCnt = 0;
 
-static BdrOriginCacheEntry *bdrorigincache_get_node(RepOriginId origin);
-static void bdr_lookup_origin(RepOriginId origin_id, BdrOriginCacheEntry *entry);
+static BdrOriginCacheEntry * bdrorigincache_get_node(RepOriginId origin);
+static void bdr_lookup_origin(RepOriginId origin_id, BdrOriginCacheEntry * entry);
 
 /*
  * Invalidation of the origin cache for when an origin is dropped or
@@ -50,17 +50,17 @@ static void bdr_lookup_origin(RepOriginId origin_id, BdrOriginCacheEntry *entry)
  */
 static void
 bdrorigincache_invalidation_cb(Datum arg, int cacheid, uint32 origin_id)
- {
+{
 	struct BdrOriginCacheEntry *hentry;
-	RepOriginId origin = (RepOriginId)origin_id;
+	RepOriginId origin = (RepOriginId) origin_id;
 
-	Assert (BdrOriginCache != NULL);
-	Assert (cacheid == REPLORIGIDENT);
+	Assert(BdrOriginCache != NULL);
+	Assert(cacheid == REPLORIGIDENT);
 
 	/*
-	 * We can't immediately delete entries as invalidations can
-	 * arrive while we're in the middle of using one. So we must
-	 * mark it invalid and purge it later.
+	 * We can't immediately delete entries as invalidations can arrive while
+	 * we're in the middle of using one. So we must mark it invalid and purge
+	 * it later.
 	 */
 	hentry = (struct BdrOriginCacheEntry *)
 		hash_search(BdrOriginCache, &origin, HASH_FIND, NULL);
@@ -95,9 +95,9 @@ bdrorigincache_init(MemoryContext decoding_context)
 		 * us by default.
 		 */
 		BdrOriginCache = hash_create("bdr reporigin to node cache",
-								   128,
-								   &ctl,
-								   HASH_ELEM | HASH_BLOBS);
+								                 128,
+								                 &ctl,
+                                 HASH_ELEM | HASH_BLOBS);
 
 		Assert(BdrOriginCache != NULL);
 
@@ -106,7 +106,7 @@ bdrorigincache_init(MemoryContext decoding_context)
 			   TopMemoryContext);
 
 		CacheRegisterSyscacheCallback(REPLORIGIDENT,
-			bdrorigincache_invalidation_cb, (Datum)0);
+									  bdrorigincache_invalidation_cb, (Datum) 0);
 	}
 }
 
@@ -121,8 +121,8 @@ bdrorigincache_get_node(RepOriginId origin)
 
 	/* Find cached function info, creating if not found */
 	hentry = (struct BdrOriginCacheEntry*) hash_search(BdrOriginCache,
-										 &origin,
-										 HASH_ENTER, &found);
+										                                 &origin,
+										                                 HASH_ENTER, &found);
 
 	if (!found || !hentry->is_valid)
 		bdr_lookup_origin(origin, hentry);
@@ -147,7 +147,7 @@ bdrorigincache_destroy(void)
 	{
 		hash_seq_init(&status, BdrOriginCache);
 
-		while ((hentry = (struct BdrOriginCacheEntry*) hash_seq_search(&status)) != NULL)
+		while ((hentry = (struct BdrOriginCacheEntry *) hash_seq_search(&status)) != NULL)
 		{
 			if (hash_search(BdrOriginCache,
 							(void *) &hentry->origin,
@@ -167,10 +167,10 @@ bdrorigincache_destroy(void)
  * having a memory context for it.
  */
 static void
-bdr_lookup_origin(RepOriginId origin_id, BdrOriginCacheEntry *entry)
+bdr_lookup_origin(RepOriginId origin_id, BdrOriginCacheEntry * entry)
 {
-	bool txn_started = false;
-	char *origin_name;
+	bool		txn_started = false;
+	char	   *origin_name;
 
 	Assert(origin_id != InvalidRepOriginId);
 	Assert(origin_id != DoNotReplicateId);
@@ -196,6 +196,7 @@ bool
 bdr_origin_in_same_nodegroup(RepOriginId origin_id)
 {
 	BdrOriginCacheEntry *entry;
+
 	Assert(origin_id != InvalidRepOriginId);
 	Assert(origin_id != DoNotReplicateId);
 	entry = bdrorigincache_get_node(origin_id);

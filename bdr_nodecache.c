@@ -30,14 +30,14 @@
  * node's name, to bypass the usual nodecache machinery and provide quick, safe
  * access when not in a txn.
  */
-static const char * my_node_name = NULL;
+static const char *my_node_name = NULL;
 
 /*
  * To make sure cached name calls are for the correct node id and don't produce
  * confusing results, check node id each call.
  */
 static BDRNodeId remote_node_id;
-static const char * remote_node_name = NULL;
+static const char *remote_node_name = NULL;
 
 static HTAB *BDRNodeCacheHash = NULL;
 
@@ -82,7 +82,7 @@ bdr_nodecache_invalidate_callback(Datum arg, Oid relid)
 		relid == BdrNodesRelid)
 	{
 		HASH_SEQ_STATUS status;
-		BDRNodeInfo	   *entry;
+		BDRNodeInfo *entry;
 
 		hash_seq_init(&status, BDRNodeCacheHash);
 
@@ -114,22 +114,21 @@ bdr_nodecache_initialize()
 								   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/*
-	 * Watch for invalidation events.
-	 * XXX: This breaks if the table is dropped and recreated, during the
-	 * lifetime of this backend.
+	 * Watch for invalidation events. XXX: This breaks if the table is dropped
+	 * and recreated, during the lifetime of this backend.
 	 */
 	BdrNodesRelid = bdr_get_relname_relid("bdr", "bdr_nodes");
 	CacheRegisterRelcacheCallback(bdr_nodecache_invalidate_callback,
 								  (Datum) 0);
 }
 
-static BDRNodeInfo*
+static BDRNodeInfo *
 bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
 {
-	BDRNodeInfo	   *entry,
-				   *nodeinfo;
-	bool			found;
-	MemoryContext	saved_ctx;
+	BDRNodeInfo *entry,
+			   *nodeinfo;
+	bool		found;
+	MemoryContext saved_ctx;
 
 	/*
 	 * We potentially need to access syscaches, but it's not safe to start a
@@ -182,7 +181,7 @@ bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
 	{
 		Assert(IsTransactionState());
 		if (!missing_ok)
-			elog(ERROR, "could not find node "BDR_NODEID_FORMAT,
+			elog(ERROR, "could not find node " BDR_NODEID_FORMAT,
 				 BDR_NODEID_FORMAT_ARGS(*nodeid));
 		else
 			return NULL;
@@ -222,8 +221,8 @@ bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
 const char *
 bdr_local_node_name(void)
 {
-	BDRNodeId		nodeid;
-	BDRNodeInfo	   *node;
+	BDRNodeId	nodeid;
+	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
 	node = bdr_nodecache_lookup(&nodeid, true);
@@ -237,8 +236,8 @@ bdr_local_node_name(void)
 bool
 bdr_local_node_read_only(void)
 {
-	BDRNodeId		nodeid;
-	BDRNodeInfo	   *node;
+	BDRNodeId	nodeid;
+	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
 	node = bdr_nodecache_lookup(&nodeid, true);
@@ -252,8 +251,8 @@ bdr_local_node_read_only(void)
 char
 bdr_local_node_status(void)
 {
-	BDRNodeId		nodeid;
-	BDRNodeInfo	   *node;
+	BDRNodeId	nodeid;
+	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
 	node = bdr_nodecache_lookup(&nodeid, true);
@@ -271,8 +270,8 @@ bdr_local_node_status(void)
 int32
 bdr_local_node_seq_id(void)
 {
-	BDRNodeId		nodeid;
-	BDRNodeInfo	   *node;
+	BDRNodeId	nodeid;
+	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
 	node = bdr_nodecache_lookup(&nodeid, true);
@@ -290,9 +289,11 @@ bdr_local_node_seq_id(void)
  *
  * Return value is owned by the cache and must not be free'd.
  */
-const char * bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok)
+const char *
+bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok)
 {
-	BDRNodeInfo * const nodeinfo = bdr_nodecache_lookup(node, missing_ok);
+	BDRNodeInfo *const nodeinfo = bdr_nodecache_lookup(node, missing_ok);
+
 	return nodeinfo == NULL || nodeinfo->name == NULL ? "(none)" : nodeinfo->name;
 }
 
@@ -316,7 +317,7 @@ const char * bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok)
 void
 bdr_setup_my_cached_node_names()
 {
-	BDRNodeId myid;
+	BDRNodeId	myid;
 
 	Assert(IsTransactionState());
 	bdr_make_my_nodeid(&myid);
@@ -345,7 +346,7 @@ bdr_get_my_cached_node_name()
 	}
 	else
 		return "(unknown)";
-		
+
 }
 
 const char *

@@ -37,13 +37,14 @@
 #define MAX_SEQ_ID		((1 << SEQUENCE_BITS) - 1)
 #define MAX_TIMESTAMP	(((int64)1 << TIMESTAMP_BITS) - 1)
 
-/* Cache for nodeid so we don't have to read it for every nextval call. */
-static int16	seq_nodeid = -1;
+ /* Cache for nodeid so we don't have to read it for every nextval call. */
+static int16 seq_nodeid = -1;
+
 static Oid	seq_nodeid_dboid = InvalidOid;
 
 static int16 global_seq_get_nodeid(void);
 
-Datum global_seq_nextval_oid(PG_FUNCTION_ARGS);
+Datum		global_seq_nextval_oid(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(global_seq_nextval_oid);
 
 /*
@@ -64,39 +65,42 @@ PG_FUNCTION_INFO_V1(global_seq_nextval_oid);
 Datum
 global_seq_nextval_oid(PG_FUNCTION_ARGS)
 {
-	Oid		seqoid = PG_GETARG_OID(0);
-	Datum	sequenced;
-	int64	sequence;
-	int64	nodeid;
-	int64	timestamp;
-	int64	res;
-	const int64 seq_ts_epoch = 529111339634; /* Oct 7, 2016, when this code was written, in ms */
-	int64	current_ts = GetCurrentTimestamp();
+	Oid			seqoid = PG_GETARG_OID(0);
+	Datum		sequenced;
+	int64		sequence;
+	int64		nodeid;
+	int64		timestamp;
+	int64		res;
+
+	/* Oct 7, 2016, when this code was written, in ms */
+	const int64 seq_ts_epoch = 529111339634;
+
+	int64		current_ts = GetCurrentTimestamp();
 
 	if (PG_NARGS() >= 2)
 	{
 		/*
-		 * We allow an override timestamp to be passed for testing
-		 * purposes using an alternate function signature. We've
-		 * received one.
+		 * We allow an override timestamp to be passed for testing purposes
+		 * using an alternate function signature. We've received one.
 		 */
 		current_ts = PG_GETARG_INT64(1);
 	}
 
 	/* timestamp is in milliseconds */
-	timestamp = (current_ts/1000) - seq_ts_epoch;
+	timestamp = (current_ts / 1000) - seq_ts_epoch;
+
 	nodeid = global_seq_get_nodeid();
 	sequenced = DirectFunctionCall1(nextval_oid, seqoid);
 	sequence = DatumGetInt64(sequenced) % MAX_SEQ_ID;
 
 	/*
-	 * This is mainly a failsafe so that we don't generate corrupted
-	 * sequence numbers if machine date is incorrect (or if somebody
-	 * is still using this code after ~2042).
+	 * This is mainly a failsafe so that we don't generate corrupted sequence
+	 * numbers if machine date is incorrect (or if somebody is still using this
+	 * code after ~2042).
 	 */
 	if (timestamp < 0 || timestamp > MAX_TIMESTAMP)
-		elog(ERROR, "cannot generate sequence, timestamp "UINT64_FORMAT" out of range 0 .. "UINT64_FORMAT,
-			timestamp, MAX_TIMESTAMP);
+		elog(ERROR, "cannot generate sequence, timestamp " UINT64_FORMAT " out of range 0 .. " UINT64_FORMAT,
+			 timestamp, MAX_TIMESTAMP);
 
 	if (nodeid < 0 || nodeid > MAX_NODE_ID)
 		elog(ERROR, "nodeid must be in range 0 .. %d", MAX_NODE_ID);
@@ -109,13 +113,15 @@ global_seq_nextval_oid(PG_FUNCTION_ARGS)
 						   get_rel_name(seqoid))));
 
 	Assert(sequence >= 0 && sequence < MAX_SEQ_ID);
+
 	/* static assertions against programmer error: */
 	Assert((MAX_SEQ_ID + 1) % 2 == 0);
+
 	Assert(TIMESTAMP_BITS + NODEID_BITS + SEQUENCE_BITS == 64);
 
 	res = (timestamp << (64 - TIMESTAMP_BITS)) |
 		  (nodeid << (64 - TIMESTAMP_BITS - NODEID_BITS)) |
-		  sequence;
+		   sequence;
 
 	PG_RETURN_INT64(res);
 }
@@ -126,7 +132,7 @@ global_seq_nextval_oid(PG_FUNCTION_ARGS)
 static int16
 global_seq_read_nodeid(void)
 {
-	int seq_id = bdr_local_node_seq_id();
+	int			seq_id = bdr_local_node_seq_id();
 
 	if (seq_id == -1)
 		ereport(ERROR,
@@ -138,7 +144,7 @@ global_seq_read_nodeid(void)
 	if (seq_id < 0 || seq_id > MAX_NODE_ID)
 		elog(ERROR, "node sequence ID out of range 0 .. %d", MAX_NODE_ID);
 
-	return (int16)seq_id;
+	return (int16) seq_id;
 }
 
 /*

@@ -54,30 +54,31 @@ typedef struct BdrSequencerSlot
 	Oid			database_oid;
 	int			nnodes;
 	Latch	   *proclatch;
-} BdrSequencerSlot;
+}			BdrSequencerSlot;
 
 typedef struct BdrSequencerControl
 {
-	int	        next_slot;
+	int			next_slot;
 	BdrSequencerSlot slots[FLEXIBLE_ARRAY_MEMBER];
-} BdrSequencerControl;
+}			BdrSequencerControl;
 
-typedef struct BdrSequenceValues {
+typedef struct BdrSequenceValues
+{
 	int64		start_value;
 	int64		next_value;
 	int64		end_value;
-} BdrSequenceValues;
+}			BdrSequenceValues;
 
 /* global sequence relids */
-Oid	BdrSeqamOid = InvalidOid;
-Oid	BdrSequenceValuesRelid;		/* bdr_sequence_values */
-Oid	BdrSequenceElectionsRelid;	/* bdr_sequence_elections */
-Oid	BdrVotesRelid;				/* bdr_votes */
+Oid			BdrSeqamOid = InvalidOid;
+Oid			BdrSequenceValuesRelid; /* bdr_sequence_values */
+Oid			BdrSequenceElectionsRelid;	/* bdr_sequence_elections */
+Oid			BdrVotesRelid;		/* bdr_votes */
 
 /* Our offset within the shared memory array of registered sequence managers */
-static int  seq_slot = -1;
+static int	seq_slot = -1;
 
-static BdrSequencerControl *BdrSequencerCtl = NULL;
+static BdrSequencerControl * BdrSequencerCtl = NULL;
 
 /* how many nodes have we built shmem for */
 static size_t bdr_seq_nsequencers = 0;
@@ -89,7 +90,7 @@ static bool bdr_seq_pending_wakeup = false;
 static relopt_kind bdr_seq_relopt_kind = RELOPT_KIND_SEQUENCE;
 
 /* vote, the logic is in a function */
-const char* vote_sql = ""
+const char *vote_sql = ""
 "SELECT bdr.bdr_sequencer_vote($1, $2, $3, $4);\n";
 
 const char *start_elections_sql =
@@ -230,7 +231,7 @@ const char *start_elections_sql =
 "    confirmed,\n"
 "    emptied,\n"
 "    seqrange\n"
-;
+		   ;
 
 const char *tally_elections_sql =
 "WITH tallied_votes AS (\n"
@@ -346,7 +347,7 @@ const char *tally_elections_sql =
 "    'pending'::text\n"
 "FROM tallied_votes\n"
 "WHERE NOT sufficient\n"
-;
+		   ;
 
 const char *fill_sequences_sql =
 "SELECT\n"
@@ -360,7 +361,7 @@ const char *fill_sequences_sql =
 "    relkind = 'S'\n"
 "    AND seqamname = 'bdr'\n"
 "ORDER BY pg_class.oid\n"
-;
+		   ;
 
 
 const char *get_chunk_sql =
@@ -404,7 +405,7 @@ const char *get_chunk_sql =
 "RETURNING\n"
 "    lower(seqrange),\n"
 "    upper(seqrange)\n"
-;
+		   ;
 
 static Size
 bdr_sequencer_shmem_size(void)
@@ -421,6 +422,7 @@ static void
 bdr_sequencer_shmem_shutdown(int code, Datum arg)
 {
 	BdrSequencerSlot *slot;
+
 	if (seq_slot < 0)
 		return;
 
@@ -449,10 +451,10 @@ bdr_sequencer_shmem_startup(void)
 	{
 		/* initialize */
 		memset(BdrSequencerCtl, 0, bdr_sequencer_shmem_size());
+
 		/*
-		 * next_slot allows perdb workers to allocate seq slots.
-		 * The sequencer will likely be separated into a different
-		 * worker later.
+		 * next_slot allows perdb workers to allocate seq slots. The sequencer
+		 * will likely be separated into a different worker later.
 		 */
 		BdrSequencerCtl->next_slot = 0;
 	}
@@ -474,8 +476,8 @@ bdr_sequencer_shmem_init(int sequencers)
 	shmem_startup_hook = bdr_sequencer_shmem_startup;
 
 	/*
-	 * We do the reloptions initialization here because this function is called
-	 * at startup for every backend.
+	 * We do the reloptions initialization here because this function is
+	 * called at startup for every backend.
 	 */
 	bdr_seq_relopt_kind = add_reloption_kind();
 	add_int_reloption(bdr_seq_relopt_kind, "cache_chunks",
@@ -493,13 +495,13 @@ bdr_sequencer_shmem_init(int sequencers)
 int
 bdr_sequencer_get_next_free_slot(void)
 {
-	return BdrSequencerCtl->next_slot ++;
+	return BdrSequencerCtl->next_slot++;
 }
 
 void
 bdr_sequencer_wakeup(void)
 {
-	size_t off;
+	size_t		off;
 	BdrSequencerSlot *slot;
 
 
@@ -559,6 +561,7 @@ void
 bdr_sequencer_set_nnodes(int nnodes)
 {
 	BdrSequencerSlot *slot = &BdrSequencerCtl->slots[seq_slot];
+
 	Assert(nnodes >= 0);
 	slot->nnodes = nnodes;
 }
@@ -802,8 +805,8 @@ bdr_sequencer_tally(void)
 static int
 bdr_sequence_value_cmp(const void *a, const void *b)
 {
-	const BdrSequenceValues *left = a;
-	const BdrSequenceValues *right = b;
+	const		BdrSequenceValues *left = a;
+	const		BdrSequenceValues *right = b;
 
 	if (left->start_value < right->start_value)
 		return -1;
@@ -820,7 +823,7 @@ bdr_sequence_value_cmp(const void *a, const void *b)
  */
 static bool
 bdr_sequencer_fill_chunk(Oid seqoid, char *seqschema, char *seqname,
-						 BdrSequenceValues *curval)
+						 BdrSequenceValues * curval)
 {
 	static SPIPlanPtr plan;
 	Oid			argtypes[6];
@@ -828,7 +831,8 @@ bdr_sequencer_fill_chunk(Oid seqoid, char *seqschema, char *seqname,
 	char		nulls[6];
 	char		local_sysid[32];
 	int			ret;
-	int64		lower, upper;
+	int64		lower,
+				upper;
 	bool		success;
 
 	SPI_push();
@@ -882,7 +886,7 @@ bdr_sequencer_fill_chunk(Oid seqoid, char *seqschema, char *seqname,
 	}
 	else
 	{
-		HeapTuple   tup = SPI_tuptable->vals[0];
+		HeapTuple	tup = SPI_tuptable->vals[0];
 		bool		isnull;
 
 		lower = DatumGetInt64(SPI_getbinval(tup, SPI_tuptable->tupdesc, 1, &isnull));
@@ -917,10 +921,12 @@ bdr_sequencer_fill_sequence(Oid seqoid, char *seqschema, char *seqname)
 	Datum		values[SEQ_COL_LASTCOL];
 	bool		nulls[SEQ_COL_LASTCOL];
 	HeapTuple	newtup;
-	Page		page, temppage;
-	BdrSequenceValues *curval, *firstval;
-	int i;
-	bool acquired_new = false;
+	Page		page,
+				temppage;
+	BdrSequenceValues *curval,
+			   *firstval;
+	int			i;
+	bool		acquired_new = false;
 	LockRelId	heaprelid;
 	LOCKTAG		heaplocktag;
 	VirtualTransactionId *lockholders;
@@ -937,6 +943,7 @@ bdr_sequencer_fill_sequence(Oid seqoid, char *seqschema, char *seqname)
 	if (nulls[SEQ_COL_AMDATA - 1])
 	{
 		struct varlena *vl = palloc0(VARHDRSZ + sizeof(BdrSequenceValues) * 10);
+
 		SET_VARSIZE(vl, VARHDRSZ + sizeof(BdrSequenceValues) * 10);
 		nulls[SEQ_COL_AMDATA - 1] = false;
 		values[SEQ_COL_AMDATA - 1] = PointerGetDatum(vl);
@@ -946,7 +953,7 @@ bdr_sequencer_fill_sequence(Oid seqoid, char *seqschema, char *seqname)
 		VARDATA_ANY(DatumGetByteaP(values[SEQ_COL_AMDATA - 1]));
 	curval = firstval;
 
-	for (i = 0; i < 10; i ++)
+	for (i = 0; i < 10; i++)
 	{
 		if (curval->next_value == curval->end_value)
 		{
@@ -1068,7 +1075,7 @@ bdr_sequencer_fill_sequences(void)
 
 	while (SPI_processed > 0)
 	{
-		HeapTuple   tup = SPI_tuptable->vals[0];
+		HeapTuple	tup = SPI_tuptable->vals[0];
 		bool		isnull;
 		Datum		seqoid;
 		Datum		seqschema;
@@ -1122,7 +1129,7 @@ bdr_sequence_alloc(PG_FUNCTION_ARGS)
 				last;
 	int64		result = 0;
 	int64		next;
-	Datum	    values;
+	Datum		values;
 	bool		isnull;
 	BdrSequenceValues *curval;
 	int			i;
@@ -1167,9 +1174,9 @@ retry:
 	/*
 	 * try to fetch cache [+ log ] numbers, check all 10 possible chunks
 	 */
-	for (i = 0; i < 10; i ++)
+	for (i = 0; i < 10; i++)
 	{
-		/* redo recovered after crash*/
+		/* redo recovered after crash */
 		if (seq->last_value >= curval->next_value &&
 			seq->last_value < curval->end_value)
 		{
@@ -1211,8 +1218,8 @@ retry:
 
 	/*
 	 * XXX: This is hacky and only works with current bdr-pg but we'll need
-	 * sequence rewrite to do things properly anyway so we'll live with it
-	 * for now.
+	 * sequence rewrite to do things properly anyway so we'll live with it for
+	 * now.
 	 */
 	if (result == 0)
 	{
@@ -1244,8 +1251,8 @@ retry:
 		seqtuple->t_len = ItemIdGetLength(lp);
 
 		/*
-		 * No point in trying this forever. We waited for a minute by now
-		 * so let's bail.
+		 * No point in trying this forever. We waited for a minute by now so
+		 * let's bail.
 		 */
 		if (retries++ > 5)
 		{
@@ -1281,8 +1288,8 @@ retry:
 	/*
 	 * We must mark the buffer dirty before doing XLogInsert(); see notes in
 	 * SyncOneBuffer().  However, we don't apply the desired changes just yet.
-	 * This looks like a violation of the buffer update protocol, but it is
-	 * in fact safe because we hold exclusive lock on the buffer.  Any other
+	 * This looks like a violation of the buffer update protocol, but it is in
+	 * fact safe because we hold exclusive lock on the buffer.  Any other
 	 * process, including a checkpoint, that tries to examine the buffer
 	 * contents will block until we release the lock, and then will see the
 	 * final state that we install below.
@@ -1304,9 +1311,9 @@ retry:
 	}
 
 	/* Now update sequence tuple to the intended final state */
-	seq->last_value = elm->last; /* last fetched number */
+	seq->last_value = elm->last;	/* last fetched number */
 	seq->is_called = true;
-	seq->log_cnt = log-1; /* how much is logged */
+	seq->log_cnt = log - 1;		/* how much is logged */
 
 	result = elm->last;
 
@@ -1370,13 +1377,13 @@ typedef struct BDRSeqOptions
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int			cache_chunks;
-} BDRSeqOptions;
+}			BDRSeqOptions;
 
 Datum
 bdr_sequence_options(PG_FUNCTION_ARGS)
 {
-	Datum       reloptions = PG_GETARG_DATUM(0);
-	bool        validate = PG_GETARG_BOOL(1);
+	Datum		reloptions = PG_GETARG_DATUM(0);
+	bool		validate = PG_GETARG_BOOL(1);
 	relopt_value *options;
 	BDRSeqOptions *sopts;
 	int			numoptions;
@@ -1402,7 +1409,7 @@ bdr_sequence_options(PG_FUNCTION_ARGS)
 	bdr_schedule_eoxact_sequencer_wakeup();
 
 	if (sopts)
-		PG_RETURN_BYTEA_P((bytea *)sopts);
+		PG_RETURN_BYTEA_P((bytea *) sopts);
 
 	PG_RETURN_NULL();
 }
@@ -1426,7 +1433,8 @@ bdr_internal_sequence_reset_cache(PG_FUNCTION_ARGS)
 	Datum		values[SEQ_COL_LASTCOL];
 	bool		nulls[SEQ_COL_LASTCOL];
 	HeapTuple	newtup;
-	Page		page, temppage;
+	Page		page,
+				temppage;
 
 	/* lock page, fill heaptup */
 	init_sequence(seqoid, &elm, &rel);
@@ -1494,7 +1502,7 @@ done_with_sequence:
 void
 filter_CreateBdrSeqStmt(CreateSeqStmt *stmt)
 {
-	ListCell	   *param;
+	ListCell   *param;
 
 	if (stmt->accessMethod == NULL || strcmp(stmt->accessMethod, "bdr") != 0)
 		return;
@@ -1502,22 +1510,23 @@ filter_CreateBdrSeqStmt(CreateSeqStmt *stmt)
 	foreach(param, stmt->options)
 	{
 		DefElem    *defel = (DefElem *) lfirst(param);
+
 		if (strcmp(defel->defname, "owned_by") != 0 &&
 			strcmp(defel->defname, "start") != 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("CREATE SEQUENCE ... %s is not supported for bdr sequences",
-					defel->defname)));
+							defel->defname)));
 	}
 }
 
 void
 filter_AlterBdrSeqStmt(AlterSeqStmt *stmt, Oid seqoid)
 {
-	Oid				seqamid;
-	Form_pg_class	pgcform;
-	ListCell	   *param;
-	HeapTuple		ctup;
+	Oid			seqamid;
+	Form_pg_class pgcform;
+	ListCell   *param;
+	HeapTuple	ctup;
 
 	seqamid = get_seqam_oid("bdr", true);
 
@@ -1529,7 +1538,7 @@ filter_AlterBdrSeqStmt(AlterSeqStmt *stmt, Oid seqoid)
 	ctup = SearchSysCache1(RELOID, ObjectIdGetDatum(seqoid));
 	if (!HeapTupleIsValid(ctup))
 		elog(ERROR, "pg_class entry for sequence %u unavailable",
-						seqoid);
+			 seqoid);
 	pgcform = (Form_pg_class) GETSTRUCT(ctup);
 
 	/* Not bdr sequence */
@@ -1544,11 +1553,12 @@ filter_AlterBdrSeqStmt(AlterSeqStmt *stmt, Oid seqoid)
 	foreach(param, stmt->options)
 	{
 		DefElem    *defel = (DefElem *) lfirst(param);
+
 		if (strcmp(defel->defname, "owned_by") != 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("ALTER SEQUENCE ... %s is not supported for bdr sequences",
-					defel->defname)));
+							defel->defname)));
 	}
 }
 

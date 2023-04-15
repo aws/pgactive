@@ -63,9 +63,11 @@
 #include "utils/tqual.h"
 
 PGDLLEXPORT Datum bdr_queue_ddl_commands(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_queue_ddl_commands);
 
 PGDLLEXPORT Datum bdr_queue_dropped_objects(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_queue_dropped_objects);
 
 /*
@@ -78,11 +80,11 @@ PG_FUNCTION_INFO_V1(bdr_queue_dropped_objects);
 Datum
 bdr_queue_ddl_commands(PG_FUNCTION_ARGS)
 {
-	char   *skip_ddl;
-	int		res;
-	int		i;
-	MemoryContext	tupcxt;
-	uint32	nprocessed;
+	char	   *skip_ddl;
+	int			res;
+	int			i;
+	MemoryContext tupcxt;
+	uint32		nprocessed;
 	SPITupleTable *tuptable;
 
 	if (!CALLED_AS_EVENT_TRIGGER(fcinfo))
@@ -95,14 +97,14 @@ bdr_queue_ddl_commands(PG_FUNCTION_ARGS)
 	 * don't queue it as it would insert duplicate commands into the queue.
 	 */
 	if (in_bdr_replicate_ddl_command)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/*
 	 * If we're currently replaying something from a remote node, don't queue
 	 * the commands; that would cause recursion.
 	 */
 	if (replorigin_session_origin != InvalidRepOriginId)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/*
 	 * Similarly, if configured to skip queueing DDL, don't queue.  This is
@@ -116,9 +118,9 @@ bdr_queue_ddl_commands(PG_FUNCTION_ARGS)
 	/*
 	 * Connect to SPI early, so that all memory allocated in this routine is
 	 * released when we disconnect.  Also create a memory context that's reset
-	 * for each iteration, to avoid per-tuple leakage.  Normally there would be
-	 * very few tuples, but it's possible to create larger commands and it's
-	 * pretty easy to fix the issue anyway.
+	 * for each iteration, to avoid per-tuple leakage.  Normally there would
+	 * be very few tuples, but it's possible to create larger commands and
+	 * it's pretty easy to fix the issue anyway.
 	 */
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
@@ -140,9 +142,9 @@ bdr_queue_ddl_commands(PG_FUNCTION_ARGS)
 		elog(ERROR, "SPI query failed: %d", res);
 
 	/*
-	 * For each command row reported by the event trigger facility, insert zero
-	 * or one row in the BDR queued commands table specifying how to replicate
-	 * it.
+	 * For each command row reported by the event trigger facility, insert
+	 * zero or one row in the BDR queued commands table specifying how to
+	 * replicate it.
 	 */
 	MemoryContextSwitchTo(tupcxt);
 	nprocessed = SPI_processed;
@@ -202,7 +204,7 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 	uint32		nprocessed;
 	SPITupleTable *tuptable;
 
-	if (!CALLED_AS_EVENT_TRIGGER(fcinfo))  /* internal error */
+	if (!CALLED_AS_EVENT_TRIGGER(fcinfo))	/* internal error */
 		elog(ERROR, "%s: not fired by event trigger manager",
 			 "bdr_queue_dropped_objects");
 
@@ -211,14 +213,14 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 	 * don't queue it as it would insert duplicate commands into the queue.
 	 */
 	if (in_bdr_replicate_ddl_command)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/*
 	 * If we're currently replaying something from a remote node, don't queue
 	 * the commands; that would cause recursion.
 	 */
 	if (replorigin_session_origin != InvalidRepOriginId)
-		PG_RETURN_VOID();	/* XXX return type? */
+		PG_RETURN_VOID();		/* XXX return type? */
 
 	/*
 	 * Similarly, if configured to skip queueing DDL, don't queue.  This is
@@ -230,15 +232,15 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 		PG_RETURN_VOID();
 
 	/*
-	 * We don't support DDL replication on bdr9.6 alpha yet. At all. So we should
-	 * not replicate drops either.
+	 * We don't support DDL replication on bdr9.6 alpha yet. At all. So we
+	 * should not replicate drops either.
 	 *
 	 * XXX TODO
 	 */
 	if (PG_VERSION_NUM >= 90600)
 	{
 		ereport(DEBUG1,
-			    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("DROP not replicated due to missing replication support"),
 				 errhint("Use bdr.bdr_replicate_ddl_command(...) instead")));
 		PG_RETURN_VOID();
@@ -257,7 +259,7 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 #if PG_VERSION_NUM >= 90600
 					  "WHERE !is_temporary"
 #endif
-					  , false, 0);
+					  ,false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "SPI query failed: %d", res);
 
@@ -322,19 +324,19 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 	 * Insert the dropped object(s) info into the bdr_queued_drops table
 	 */
 	{
-		EState		   *estate;
+		EState	   *estate;
 		TupleTableSlot *slot;
-		RangeVar	   *rv;
-		Relation		queuedcmds;
-		HeapTuple		newtup = NULL;
-		Datum			values[5];
-		bool			nulls[5];
+		RangeVar   *rv;
+		Relation	queuedcmds;
+		HeapTuple	newtup = NULL;
+		Datum		values[5];
+		bool		nulls[5];
 
 		/*
-		 * Prepare bdr.bdr_queued_drops for insert.
-		 * Can't use preloaded table oid since this method is executed under
-		 * normal backends and not inside BDR worker.
-		 * The tuple slot here is only needed for updating indexes.
+		 * Prepare bdr.bdr_queued_drops for insert. Can't use preloaded table
+		 * oid since this method is executed under normal backends and not
+		 * inside BDR worker. The tuple slot here is only needed for updating
+		 * indexes.
 		 */
 		rv = makeRangeVar("bdr", "bdr_queued_drops", -1);
 		queuedcmds = heap_openrv(rv, RowExclusiveLock);
@@ -360,4 +362,3 @@ bdr_queue_dropped_objects(PG_FUNCTION_ARGS)
 
 	PG_RETURN_VOID();
 }
-

@@ -65,53 +65,53 @@
 
 #include "bdr_output_origin_filter.h"
 
-extern void		_PG_output_plugin_init(OutputPluginCallbacks *cb);
+extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
 
 typedef struct
 {
 	MemoryContext context;
 
-	BDRNodeId remote_node;
+	BDRNodeId	remote_node;
 
-	bool allow_binary_protocol;
-	bool allow_sendrecv_protocol;
-	bool int_datetime_mismatch;
-	bool forward_changesets;
+	bool		allow_binary_protocol;
+	bool		allow_sendrecv_protocol;
+	bool		int_datetime_mismatch;
+	bool		forward_changesets;
 
-	uint32 client_pg_version;
-	uint32 client_pg_catversion;
-	uint32 client_bdr_version;
-	char *client_bdr_variant;
-	uint32 client_min_bdr_version;
-	size_t client_sizeof_int;
-	size_t client_sizeof_long;
-	size_t client_sizeof_datum;
-	size_t client_maxalign;
-	bool client_bigendian;
-	bool client_float4_byval;
-	bool client_float8_byval;
-	bool client_int_datetime;
-	char *client_db_encoding;
-	Oid bdr_schema_oid;
-	Oid bdr_conflict_handlers_reloid;
-	Oid bdr_locks_reloid;
-	Oid bdr_conflict_history_reloid;
+	uint32		client_pg_version;
+	uint32		client_pg_catversion;
+	uint32		client_bdr_version;
+	char	   *client_bdr_variant;
+	uint32		client_min_bdr_version;
+	size_t		client_sizeof_int;
+	size_t		client_sizeof_long;
+	size_t		client_sizeof_datum;
+	size_t		client_maxalign;
+	bool		client_bigendian;
+	bool		client_float4_byval;
+	bool		client_float8_byval;
+	bool		client_int_datetime;
+	char	   *client_db_encoding;
+	Oid			bdr_schema_oid;
+	Oid			bdr_conflict_handlers_reloid;
+	Oid			bdr_locks_reloid;
+	Oid			bdr_conflict_history_reloid;
 
-	int num_replication_sets;
-	char **replication_sets;
-} BdrOutputData;
+	int			num_replication_sets;
+	char	  **replication_sets;
+}			BdrOutputData;
 
 /* These must be available to pg_dlsym() */
-static void pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt,
+static void pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
 							  bool is_init);
-static void pg_decode_shutdown(LogicalDecodingContext * ctx);
+static void pg_decode_shutdown(LogicalDecodingContext *ctx);
 static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
-					ReorderBufferTXN *txn);
+								ReorderBufferTXN *txn);
 static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
-					 ReorderBufferTXN *txn, XLogRecPtr commit_lsn);
+								 ReorderBufferTXN *txn, XLogRecPtr commit_lsn);
 static void pg_decode_change(LogicalDecodingContext *ctx,
-				 ReorderBufferTXN *txn, Relation rel,
-				 ReorderBufferChange *change);
+							 ReorderBufferTXN *txn, Relation rel,
+							 ReorderBufferChange *change);
 
 static void pg_decode_message(LogicalDecodingContext *ctx,
 							  ReorderBufferTXN *txn,
@@ -123,7 +123,7 @@ static void pg_decode_message(LogicalDecodingContext *ctx,
 
 /* private prototypes */
 static void write_rel(StringInfo out, Relation rel);
-static void write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
+static void write_tuple(BdrOutputData * data, StringInfo out, Relation rel,
 						HeapTuple tuple);
 
 static void pglReorderBufferCleanSerializedTXNs(const char *slotname);
@@ -152,7 +152,7 @@ bdr_parse_notnull(DefElem *elem, const char *paramtype)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("%s parameter \"%s\" had no value",
-				 paramtype, elem->defname)));
+						paramtype, elem->defname)));
 }
 
 
@@ -204,7 +204,7 @@ bdr_parse_identifier_list_arr(DefElem *elem, char ***list, int *len)
 	bdr_parse_notnull(elem, "list");
 
 	if (!SplitIdentifierString(pstrdup(strVal(elem->arg)),
-							  ',', &namelist))
+							   ',', &namelist))
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -248,23 +248,23 @@ bdr_req_param(const char *param)
  * If this function returns it's safe to begin replay.
  */
 static void
-bdr_ensure_node_ready(BdrOutputData *data)
+bdr_ensure_node_ready(BdrOutputData * data)
 {
-	int spi_ret;
-	char our_status;
+	int			spi_ret;
+	char		our_status;
 	BdrNodeStatus remote_status;
-	NameData dbname;
-	char *tmp_dbname;
+	NameData	dbname;
+	char	   *tmp_dbname;
 
 	/* We need dbname valid outside this transaction, so copy it */
 	tmp_dbname = get_database_name(MyDatabaseId);
 	strncpy(NameStr(dbname), tmp_dbname, NAMEDATALEN);
-	NameStr(dbname)[NAMEDATALEN-1] = '\0';
+	NameStr(dbname)[NAMEDATALEN - 1] = '\0';
 	pfree(tmp_dbname);
 
 	/*
-	 * Refuse to begin replication if the local node isn't yet ready to
-	 * send data. Check the status in bdr.bdr_nodes.
+	 * Refuse to begin replication if the local node isn't yet ready to send
+	 * data. Check the status in bdr.bdr_nodes.
 	 */
 	spi_ret = SPI_connect();
 	if (spi_ret != SPI_OK_CONNECT)
@@ -275,6 +275,7 @@ bdr_ensure_node_ready(BdrOutputData *data)
 
 	{
 		BDRNodeInfo *remote_nodeinfo;
+
 		remote_nodeinfo = bdr_nodes_get_local_info(&data->remote_node);
 		remote_status = remote_nodeinfo == NULL ? '\0' : remote_nodeinfo->status;
 		bdr_bdr_node_free(remote_nodeinfo);
@@ -297,37 +298,39 @@ bdr_ensure_node_ready(BdrOutputData *data)
 	{
 		case BDR_NODE_STATUS_READY:
 		case BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS:
-			break; /* node ready or creating outbound slots */
+			break;				/* node ready or creating outbound slots */
 		case BDR_NODE_STATUS_NONE:
 		case BDR_NODE_STATUS_BEGINNING_INIT:
 			/* This isn't a BDR node yet. */
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr output plugin: slot creation rejected, bdr.bdr_nodes entry for local node "BDR_NODEID_FORMAT" does not exist",
+					 errmsg("bdr output plugin: slot creation rejected, bdr.bdr_nodes entry for local node " BDR_NODEID_FORMAT " does not exist",
 							BDR_LOCALID_FORMAT_ARGS),
 					 errdetail("BDR is not active on this database."),
 					 errhint("Add bdr to shared_preload_libraries and check logs for bdr startup errors.")));
 			break;
 		case BDR_NODE_STATUS_CATCHUP:
+
 			/*
-			 * When in catchup mode we write rows with their true origin,
-			 * so it's safe to create and use a slot now. Just to be
-			 * careful the join code will refuse to use an upstream that
-			 * isn't in 'r'eady state.
+			 * When in catchup mode we write rows with their true origin, so
+			 * it's safe to create and use a slot now. Just to be careful the
+			 * join code will refuse to use an upstream that isn't in 'r'eady
+			 * state.
 			 *
-			 * Locally originated changes will still be replayed to peers
-			 * (but we should set readonly mode to prevent them entirely).
+			 * Locally originated changes will still be replayed to peers (but
+			 * we should set readonly mode to prevent them entirely).
 			 */
 			break;
 		case BDR_NODE_STATUS_COPYING_INITIAL_DATA:
+
 			/*
-			 * We used to refuse to create a slot before/during apply of
-			 * base backup. Now we have bdr.do_not_replicate set
-			 * DoNotReplicateId when restoring so it's safe to do so since
-			 * we can't replicate the backup to peers anymore.
+			 * We used to refuse to create a slot before/during apply of base
+			 * backup. Now we have bdr.do_not_replicate set DoNotReplicateId
+			 * when restoring so it's safe to do so since we can't replicate
+			 * the backup to peers anymore.
 			 *
-			 * Locally originated changes will still be replayed to peers
-			 * (but we should set readonly mode to prevent them entirely).
+			 * Locally originated changes will still be replayed to peers (but
+			 * we should set readonly mode to prevent them entirely).
 			 */
 			break;
 		case BDR_NODE_STATUS_KILLED:
@@ -343,13 +346,13 @@ bdr_ensure_node_ready(BdrOutputData *data)
 
 /* initialize this plugin */
 static void
-pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool is_init)
+pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is_init)
 {
-	ListCell	   *option;
-	BdrOutputData  *data;
-	Oid				schema_oid;
-	bool			tx_started = false;
-	Oid				local_dboid;
+	ListCell   *option;
+	BdrOutputData *data;
+	Oid			schema_oid;
+	bool		tx_started = false;
+	Oid			local_dboid;
 
 	data = palloc0(sizeof(BdrOutputData));
 	data->context = AllocSetContextCreate(TopMemoryContext,
@@ -412,14 +415,15 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 			bdr_parse_bool(elem, &data->forward_changesets);
 		else if (strcmp(elem->defname, "unidirectional") == 0)
 		{
-			bool is_unidirectional;
+			bool		is_unidirectional;
+
 			bdr_parse_bool(elem, &is_unidirectional);
 			if (is_unidirectional)
 				elog(ERROR, "support for unidirectional connections has been removed");
 		}
 		else if (strcmp(elem->defname, "replication_sets") == 0)
 		{
-			int i;
+			int			i;
 
 			/* parse list */
 			bdr_parse_identifier_list_arr(elem,
@@ -472,13 +476,13 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 	if (!is_init)
 	{
 		/*
-		 * There's a potential corruption bug in PostgreSQL 10.1, 9.6.6, 9.5.10
-		 * and 9.4.15 that can cause reorder buffers to accumulate duplicated
-		 * transactions. See
-		 *   https://www.postgresql.org/message-id/CAMsr+YHdX=XECbZshDZ2CZNWGTyw-taYBnzqVfx4JzM4ExP5xg@mail.gmail.com
+		 * There's a potential corruption bug in PostgreSQL 10.1, 9.6.6,
+		 * 9.5.10 and 9.4.15 that can cause reorder buffers to accumulate
+		 * duplicated transactions. See
+		 * https://www.postgresql.org/message-id/CAMsr+YHdX=XECbZshDZ2CZNWGTyw-taYBnzqVfx4JzM4ExP5xg@mail.gmail.com
 		 *
-		 * We can defend against this by doing our own cleanup of any serialized
-		 * txns in the reorder buffer on startup.
+		 * We can defend against this by doing our own cleanup of any
+		 * serialized txns in the reorder buffer on startup.
 		 */
 		pglReorderBufferCleanSerializedTXNs(NameStr(MyReplicationSlot->data.name));
 	}
@@ -489,9 +493,9 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 	 * We must prevent slot creation before the BDR extension is created,
 	 * otherwise the event trigger for DDL replication will record the
 	 * extension's creation in bdr.bdr_queued_commands and the slot position
-	 * will be before then, causing CREATE EXTENSION to be replayed. Since
-	 * the other end already has the BDR extension (obviously) this will
-	 * cause replay to fail.
+	 * will be before then, causing CREATE EXTENSION to be replayed. Since the
+	 * other end already has the BDR extension (obviously) this will cause
+	 * replay to fail.
 	 *
 	 * TODO: Should really test for the extension its self, but this is faster
 	 * and easier...
@@ -507,7 +511,7 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("bdr extension does not exist on "BDR_NODEID_FORMAT,
+				 errmsg("bdr extension does not exist on " BDR_NODEID_FORMAT,
 						BDR_LOCALID_FORMAT_ARGS),
 				 errdetail("Cannot create a BDR slot without the BDR extension installed")));
 	}
@@ -586,10 +590,10 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 
 
 		/*
-		 * Don't use the send/recv protocol if there are version
-		 * differences. There currently isn't any guarantee for cross version
-		 * compatibility of the send/recv representations. But there actually
-		 * *is* a compat. guarantee for architecture differences...
+		 * Don't use the send/recv protocol if there are version differences.
+		 * There currently isn't any guarantee for cross version compatibility
+		 * of the send/recv representations. But there actually *is* a compat.
+		 * guarantee for architecture differences...
 		 *
 		 * XXX: We could easily do better by doing per datatype considerations
 		 * if there are known incompatibilities.
@@ -643,7 +647,8 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 	 * Everything looks ok. Acquire a shmem slot to represent us running.
 	 */
 	{
-		uint32 worker_idx;
+		uint32		worker_idx;
+
 		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
 		if (BdrWorkerCtl->worker_management_paused)
@@ -668,7 +673,7 @@ pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions *opt, bool i
 }
 
 static void
-pg_decode_shutdown(LogicalDecodingContext * ctx)
+pg_decode_shutdown(LogicalDecodingContext *ctx)
 {
 	bdrorigincache_destroy();
 
@@ -684,7 +689,7 @@ static inline bool
 should_forward_changeset(LogicalDecodingContext *ctx,
 						 RepOriginId origin_id)
 {
-	BdrOutputData * const data = ctx->output_plugin_private;
+	BdrOutputData *const data = ctx->output_plugin_private;
 
 	if (origin_id == InvalidRepOriginId || data->forward_changesets)
 		return true;
@@ -692,8 +697,8 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 		return false;
 
 	/*
-	 * We used to forward unconditionally here. Now we try to forward only if the changes came
-	 * from BDR not something else.
+	 * We used to forward unconditionally here. Now we try to forward only if
+	 * the changes came from BDR not something else.
 	 *
 	 * XXX use bdr_origin_in_same_nodegroup on 94, and in 96 filter in
 	 * bdr_filter_by_origin_cb and assert then bail out here instead.
@@ -702,8 +707,8 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 }
 
 static inline bool
-should_forward_change(LogicalDecodingContext *ctx, BdrOutputData *data,
-					  BDRRelation *r, enum ReorderBufferChangeType change)
+should_forward_change(LogicalDecodingContext *ctx, BdrOutputData * data,
+					  BDRRelation * r, enum ReorderBufferChangeType change)
 {
 	/* internal bdr relations that may not be replicated */
 	if (RelationGetRelid(r->rel) == data->bdr_conflict_handlers_reloid ||
@@ -751,7 +756,7 @@ void
 pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 {
 	BdrOutputData *data = ctx->output_plugin_private;
-	int flags = 0;
+	int			flags = 0;
 
 	AssertVariableIsOfType(&pg_decode_begin_txn, LogicalDecodeBeginCB);
 
@@ -759,7 +764,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 		return;
 
 	OutputPluginPrepareWrite(ctx, true);
-	pq_sendbyte(ctx->out, 'B');		/* BEGIN */
+	pq_sendbyte(ctx->out, 'B'); /* BEGIN */
 
 
 	/*
@@ -773,11 +778,11 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	pq_sendint(ctx->out, flags, 4);
 
 	/* fixed fields */
+
 	/*
 	 * BDR 1.0 sent the commit start lsn here, but that has issues with
-	 * progress tracking; see bdr_apply for details. Instead send LSN of
-	 * end of commit + 1 so that's what gets recorded in replication
-	 * origins.
+	 * progress tracking; see bdr_apply for details. Instead send LSN of end
+	 * of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
 	pq_sendint64(ctx->out, txn->commit_time);
@@ -789,8 +794,8 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 		/*
 		 * The RepOriginId in txn->origin_id is our local identifier for the
 		 * origin node, but it's not valid outside our node. It must be
-		 * converted into the (sysid, tlid, dboid) that uniquely identifies the
-		 * node globally so that can be sent.
+		 * converted into the (sysid, tlid, dboid) that uniquely identifies
+		 * the node globally so that can be sent.
 		 */
 		BDRNodeId	origin;
 
@@ -821,21 +826,26 @@ void
 pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 					 XLogRecPtr commit_lsn)
 {
-	int flags = 0;
+	int			flags = 0;
 
 	if (!should_forward_changeset(ctx, txn->origin_id))
 		return;
 
 	OutputPluginPrepareWrite(ctx, true);
-	pq_sendbyte(ctx->out, 'C');		/* sending COMMIT */
+	pq_sendbyte(ctx->out, 'C'); /* sending COMMIT */
 
 	/* send the flags field its self */
 	pq_sendint(ctx->out, flags, 4);
 
 	/* Send fixed fields */
-	Assert(commit_lsn == txn->final_lsn); /* why do we pass this to the CB separately? */
+	Assert(commit_lsn == txn->final_lsn);	/* why do we pass this to the CB
+											 * separately? */
 	pq_sendint64(ctx->out, commit_lsn);
-	/* end_lsn is end of commit + 1, which is what's used in replorigin and feedback msgs */
+
+	/*
+	 * end_lsn is end of commit + 1, which is what's used in replorigin and
+	 * feedback msgs
+	 */
 	Assert(txn->end_lsn != InvalidXLogRecPtr);
 	pq_sendint64(ctx->out, txn->end_lsn);
 	pq_sendint64(ctx->out, txn->commit_time);
@@ -869,35 +879,35 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	switch (change->action)
 	{
 		case REORDER_BUFFER_CHANGE_INSERT:
-			pq_sendbyte(ctx->out, 'I');		/* action INSERT */
+			pq_sendbyte(ctx->out, 'I'); /* action INSERT */
 			write_rel(ctx->out, relation);
-			pq_sendbyte(ctx->out, 'N');		/* new tuple follows */
+			pq_sendbyte(ctx->out, 'N'); /* new tuple follows */
 			write_tuple(data, ctx->out, relation, &change->data.tp.newtuple->tuple);
 			break;
 		case REORDER_BUFFER_CHANGE_UPDATE:
-			pq_sendbyte(ctx->out, 'U');		/* action UPDATE */
+			pq_sendbyte(ctx->out, 'U'); /* action UPDATE */
 			write_rel(ctx->out, relation);
 			if (change->data.tp.oldtuple != NULL)
 			{
-				pq_sendbyte(ctx->out, 'K');	/* old key follows */
+				pq_sendbyte(ctx->out, 'K'); /* old key follows */
 				write_tuple(data, ctx->out, relation,
 							&change->data.tp.oldtuple->tuple);
 			}
-			pq_sendbyte(ctx->out, 'N');		/* new tuple follows */
+			pq_sendbyte(ctx->out, 'N'); /* new tuple follows */
 			write_tuple(data, ctx->out, relation,
 						&change->data.tp.newtuple->tuple);
 			break;
 		case REORDER_BUFFER_CHANGE_DELETE:
-			pq_sendbyte(ctx->out, 'D');		/* action DELETE */
+			pq_sendbyte(ctx->out, 'D'); /* action DELETE */
 			write_rel(ctx->out, relation);
 			if (change->data.tp.oldtuple != NULL)
 			{
-				pq_sendbyte(ctx->out, 'K');	/* old key follows */
+				pq_sendbyte(ctx->out, 'K'); /* old key follows */
 				write_tuple(data, ctx->out, relation,
 							&change->data.tp.oldtuple->tuple);
 			}
 			else
-				pq_sendbyte(ctx->out, 'E');	/* empty */
+				pq_sendbyte(ctx->out, 'E'); /* empty */
 			break;
 		default:
 			Assert(false);
@@ -931,10 +941,10 @@ write_rel(StringInfo out, Relation rel)
 	relname = NameStr(rel->rd_rel->relname);
 	relnamelen = strlen(relname) + 1;
 
-	pq_sendint(out, nspnamelen, 2);		/* schema name length */
+	pq_sendint(out, nspnamelen, 2); /* schema name length */
 	appendBinaryStringInfo(out, nspname, nspnamelen);
 
-	pq_sendint(out, relnamelen, 2);		/* table name length */
+	pq_sendint(out, relnamelen, 2); /* table name length */
 	appendBinaryStringInfo(out, relname, relnamelen);
 }
 
@@ -942,7 +952,7 @@ write_rel(StringInfo out, Relation rel)
  * Make the executive decision about which protocol to use.
  */
 static void
-decide_datum_transfer(BdrOutputData *data,
+decide_datum_transfer(BdrOutputData * data,
 					  Form_pg_attribute att, Form_pg_type typclass,
 					  bool *use_binary, bool *use_sendrecv)
 {
@@ -954,16 +964,18 @@ decide_datum_transfer(BdrOutputData *data,
 		*use_binary = false;
 		*use_sendrecv = false;
 	}
+
 	/*
 	 * Use the binary protocol, if allowed, for builtin & plain datatypes.
 	 */
 	else if (data->allow_binary_protocol &&
-		typclass->typtype == 'b' &&
-		att->atttypid < FirstNormalObjectId &&
-		typclass->typelem == InvalidOid)
+			 typclass->typtype == 'b' &&
+			 att->atttypid < FirstNormalObjectId &&
+			 typclass->typelem == InvalidOid)
 	{
 		*use_binary = true;
 	}
+
 	/*
 	 * Use send/recv, if allowed, if the type is plain or builtin.
 	 *
@@ -983,7 +995,7 @@ decide_datum_transfer(BdrOutputData *data,
  * Write a tuple to the outputstream, in the most efficient format possible.
  */
 static void
-write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
+write_tuple(BdrOutputData * data, StringInfo out, Relation rel,
 			HeapTuple tuple)
 {
 	TupleDesc	desc;
@@ -993,13 +1005,13 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 
 	desc = RelationGetDescr(rel);
 
-	pq_sendbyte(out, 'T');			/* tuple follows */
+	pq_sendbyte(out, 'T');		/* tuple follows */
 
-	pq_sendint(out, desc->natts, 4);		/* number of attributes */
+	pq_sendint(out, desc->natts, 4);	/* number of attributes */
 
 	/* try to allocate enough memory from the get go */
 	enlargeStringInfo(out, tuple->t_len +
-					  desc->natts * ( 1 + 4));
+					  desc->natts * (1 + 4));
 
 	/*
 	 * XXX: should this prove to be a relevant bottleneck, it might be
@@ -1015,8 +1027,8 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 
 		Form_pg_attribute att = &desc->attrs[i];
 
-		bool use_binary = false;
-		bool use_sendrecv = false;
+		bool		use_binary = false;
+		bool		use_sendrecv = false;
 
 		if (isnull[i] || att->attisdropped)
 		{
@@ -1043,7 +1055,7 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 			/* pass by value */
 			if (att->attbyval)
 			{
-				pq_sendint(out, att->attlen, 4); /* length */
+				pq_sendint(out, att->attlen, 4);	/* length */
 
 				enlargeStringInfo(out, att->attlen);
 				store_att_byval(out->data + out->len, values[i], att->attlen);
@@ -1053,7 +1065,7 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 			/* fixed length non-varlena pass-by-reference type */
 			else if (att->attlen > 0)
 			{
-				pq_sendint(out, att->attlen, 4); /* length */
+				pq_sendint(out, att->attlen, 4);	/* length */
 
 				appendBinaryStringInfo(out, DatumGetPointer(values[i]),
 									   att->attlen);
@@ -1061,19 +1073,20 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 			/* varlena type */
 			else if (att->attlen == -1)
 			{
-				char *data = DatumGetPointer(values[i]);
+				char	   *data = DatumGetPointer(values[i]);
 
 				/* send indirect datums inline */
 				if (VARATT_IS_EXTERNAL_INDIRECT(values[i]))
 				{
 					struct varatt_indirect redirect;
+
 					VARATT_EXTERNAL_GET_POINTER(redirect, data);
 					data = (char *) redirect.pointer;
 				}
 
 				Assert(!VARATT_IS_EXTERNAL(data));
 
-				pq_sendint(out, VARSIZE_ANY(data), 4); /* length */
+				pq_sendint(out, VARSIZE_ANY(data), 4);	/* length */
 
 				appendBinaryStringInfo(out, data,
 									   VARSIZE_ANY(data));
@@ -1093,13 +1106,13 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 				OidSendFunctionCall(typclass->typsend, values[i]);
 
 			len = VARSIZE(outputbytes) - VARHDRSZ;
-			pq_sendint(out, len, 4); /* length */
-			pq_sendbytes(out, VARDATA(outputbytes), len); /* data */
+			pq_sendint(out, len, 4);	/* length */
+			pq_sendbytes(out, VARDATA(outputbytes), len);	/* data */
 			pfree(outputbytes);
 		}
 		else
 		{
-			char   	   *outputstr;
+			char	   *outputstr;
 			int			len;
 
 			pq_sendbyte(out, 't');	/* 'text' data follows */
@@ -1107,8 +1120,8 @@ write_tuple(BdrOutputData *data, StringInfo out, Relation rel,
 			outputstr =
 				OidOutputFunctionCall(typclass->typoutput, values[i]);
 			len = strlen(outputstr) + 1;
-			pq_sendint(out, len, 4); /* length */
-			appendBinaryStringInfo(out, outputstr, len); /* data */
+			pq_sendint(out, len, 4);	/* length */
+			appendBinaryStringInfo(out, outputstr, len);	/* data */
 			pfree(outputstr);
 		}
 
@@ -1125,7 +1138,7 @@ pg_decode_message(LogicalDecodingContext *ctx,
 	if (strcmp(prefix, BDR_LOGICAL_MSG_PREFIX) == 0)
 	{
 		OutputPluginPrepareWrite(ctx, true);
-		pq_sendbyte(ctx->out, 'M');	/* message follows */
+		pq_sendbyte(ctx->out, 'M'); /* message follows */
 		pq_sendbyte(ctx->out, transactional);
 		pq_sendint64(ctx->out, lsn);
 		pq_sendint(ctx->out, sz, 4);
