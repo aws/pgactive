@@ -77,7 +77,7 @@ FAILING_TESTS :=
 endif
 
 ifeq ($(HAVE_SEQAM),1)
-OBJS += bdr_seq.o bdr_ddlrep_deparse.o
+OBJS += bdr_seq.o
 REGRESS_COMPAT :=
 DDLTESTS := \
 	ddl_enable_ddl \
