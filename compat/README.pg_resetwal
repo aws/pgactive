@@ -1,13 +1,29 @@
 Note that the bdr_resetwal tool is nothing but pg_resetwal of core postgres
-with an option to reset the system_identifier. While porting BDR to higher
-postgres versions, just apply the following diff to pg_resetwal of that
-particular postgres version and place it under bdr/compat/PG_VERSION/
-directory.
+plus additional changes shown as diff in this README file.
+
+While porting BDR to higher postgres versions:
+1. Copy pg_resetwal source code files from postgres src/bin/pg_resetwal
+directory to compat/PG_VERSION/pg_resetwal directory.
+2. Apply the diff (search for the diff code in the previous versions of
+pg_resetwal code in compat/PG_VERSION-previous/pg_resetwal to understand where
+the code fits in newer versions) shown in this README file to respective files
+under compat/PG_VERSION/pg_resetwal directory.
+
+XXX: It might be worth doing this a bit differently - either a dedicated tool
+for BDR that sets system_identifier and other needed fields or a compile-time
+script that pulls in the pg_resetwal.c from postgres source directory and
+applies the diff builds (but a caveat here - BDR will lose self-reliance,
+meaning, one can't build BDR source code without postgres source code
+specified) or we might as well push system_identifier setting to upstream
+pg_resetwal (but a caveat here - it's a bit hard to build the case and even if
+we do so, no backporting). Hence, a better way as of this writing is a
+dedicated BDR tool that works across postgres versions, but that's for another
+day.
 
 bdr_resetwal diff from core pg_resetwal:
 ========================================
---- /postgres/src/bin/pg_resetwal/pg_resetwal.c     2023-03-30 05:11:14.514161314 +0000
-+++ compat/11/bdr_resetwal.c    2023-03-30 10:30:27.527248532 +0000
+--- postgres/src/bin/pg_resetwal/pg_resetwal.c     2023-03-30 05:11:14.514161314 +0000
++++ bdr/compat/11/pg_resetwal/pg_resetwal.c    2023-03-30 10:30:27.527248532 +0000
 @@ -33,6 +33,11 @@
   * backend-only stuff in the XLOG include files we need.  But we need a
   * frontend-ish environment otherwise.  Hence this ugly hack.
