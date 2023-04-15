@@ -111,8 +111,8 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 
 	/* Force everything in the query to be fully qualified. */
 	(void) set_config_option("search_path", "",
-							             PGC_USERSET, PGC_S_SESSION,
-							             GUC_ACTION_SAVE, true, 0, false);
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	/* Execute the query locally. */
 	in_bdr_replicate_ddl_command = true;

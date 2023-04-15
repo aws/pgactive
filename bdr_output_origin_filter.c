@@ -84,7 +84,7 @@ bdrorigincache_init(MemoryContext decoding_context)
 
 	if (BdrOriginCache == NULL)
 	{
-		HASHCTL	ctl;
+		HASHCTL		ctl;
 
 		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = sizeof(Oid);
@@ -95,9 +95,9 @@ bdrorigincache_init(MemoryContext decoding_context)
 		 * us by default.
 		 */
 		BdrOriginCache = hash_create("bdr reporigin to node cache",
-								                 128,
-								                 &ctl,
-                                 HASH_ELEM | HASH_BLOBS);
+									 128,
+									 &ctl,
+									 HASH_ELEM | HASH_BLOBS);
 
 		Assert(BdrOriginCache != NULL);
 
@@ -117,12 +117,12 @@ static BdrOriginCacheEntry *
 bdrorigincache_get_node(RepOriginId origin)
 {
 	struct BdrOriginCacheEntry *hentry;
-	bool found;
+	bool		found;
 
 	/* Find cached function info, creating if not found */
-	hentry = (struct BdrOriginCacheEntry*) hash_search(BdrOriginCache,
-										                                 &origin,
-										                                 HASH_ENTER, &found);
+	hentry = (struct BdrOriginCacheEntry *) hash_search(BdrOriginCache,
+														&origin,
+														HASH_ENTER, &found);
 
 	if (!found || !hentry->is_valid)
 		bdr_lookup_origin(origin, hentry);

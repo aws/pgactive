@@ -173,8 +173,8 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	 * generate SQL to replicate we don't rely on the search_path.
 	 */
 	(void) set_config_option("search_path", "",
-					                 PGC_USERSET, PGC_S_SESSION,
-					                 GUC_ACTION_SAVE, true, 0, false);
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	reloid = PG_GETARG_OID(0);
 	proc_oid = PG_GETARG_OID(2);
@@ -332,8 +332,8 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	 * generate SQL to replicate we don't rely on the search_path.
 	 */
 	(void) set_config_option("search_path", "",
-					                 PGC_USERSET, PGC_S_SESSION,
-					                 GUC_ACTION_SAVE, true, 0, false);
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	argtypes[0] = REGCLASSOID;
 	values[0] = PG_GETARG_DATUM(0);

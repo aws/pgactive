@@ -1543,8 +1543,8 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 
 	/* Force everything in the query to be fully qualified. */
 	(void) set_config_option("search_path", search_path,
-							             PGC_USERSET, PGC_S_SESSION,
-							             GUC_ACTION_SAVE, true, 0, false);
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	commands = pg_parse_query(cmdstr);
 

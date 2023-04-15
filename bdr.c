@@ -959,8 +959,8 @@ bdr_maintain_schema(bool update_extensions)
 	PushActiveSnapshot(GetTransactionSnapshot());
 
 	set_config_option("bdr.skip_ddl_replication", "true",
-	                  PGC_SUSET, PGC_S_OVERRIDE, GUC_ACTION_LOCAL,
-					          true, 0, false);
+					  PGC_SUSET, PGC_S_OVERRIDE, GUC_ACTION_LOCAL,
+					  true, 0, false);
 
 	/* make sure we're operating without other bdr workers interfering */
 	extrel = heap_open(ExtensionRelationId, ShareUpdateExclusiveLock);
