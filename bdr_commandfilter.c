@@ -1008,10 +1008,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		case T_DropStmt:
 			prevent_drop_extension_bdr((DropStmt *) parsetree);
 			break;
-		case T_RenameStmt:
-			break;
-		case T_AlterObjectSchemaStmt:
-			break;
 		case T_AlterOwnerStmt:
 			lock_type = BDR_LOCK_DDL;
 			break;
