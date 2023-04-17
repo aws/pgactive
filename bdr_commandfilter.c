@@ -350,7 +350,6 @@ filter_AlterTableStmt(Node *parsetree,
 					break;
 
 				case AT_AddIndexConstraint:
-					/* no deparse support */
 					error_on_persistent_rv(astmt->relation,
 										   "ALTER TABLE ... ADD CONSTRAINT USING INDEX",
 										   lockmode,
@@ -793,9 +792,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				  ParamListInfo params,
 				  QueryEnvironment *queryEnv,
 				  DestReceiver *dest,
-#ifdef XCP
-				  bool sentToRemote,
-#endif
 				  char *completionTag)
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -1010,46 +1006,11 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	switch (nodeTag(parsetree))
 	{
 		case T_DropStmt:
-			{
-				DropStmt   *stmt = (DropStmt *) parsetree;
-
-				prevent_drop_extension_bdr(stmt);
-
-				if (PG_VERSION_NUM >= 90600 || EventTriggerSupportsObjectType(stmt->removeType))
-					break;
-				else
-					goto done;
-			}
-		case T_RenameStmt:
-			{
-				RenameStmt *stmt = (RenameStmt *) parsetree;
-
-				if (PG_VERSION_NUM >= 90600 || EventTriggerSupportsObjectType(stmt->renameType))
-					break;
-				else
-					goto done;
-			}
-		case T_AlterObjectSchemaStmt:
-			{
-				AlterObjectSchemaStmt *stmt = (AlterObjectSchemaStmt *) parsetree;
-
-				if (PG_VERSION_NUM >= 90600 || EventTriggerSupportsObjectType(stmt->objectType))
-					break;
-				else
-					goto done;
-			}
+			prevent_drop_extension_bdr((DropStmt *) parsetree);
+			break;
 		case T_AlterOwnerStmt:
-			{
-				AlterOwnerStmt *stmt = (AlterOwnerStmt *) parsetree;
-
-				lock_type = BDR_LOCK_DDL;
-
-				if (PG_VERSION_NUM >= 90600 || EventTriggerSupportsObjectType(stmt->objectType))
-					break;
-				else
-					goto done;
-			}
-
+			lock_type = BDR_LOCK_DDL;
+			break;
 		default:
 			break;
 	}
@@ -1105,8 +1066,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 				stmt = (IndexStmt *) parsetree;
 
-#if PG_VERSION_NUM >= 90600
-
 				/*
 				 * Only allow CONCURRENTLY when not wrapped in
 				 * bdr.replicate_ddl_command; see 2ndQuadrant/bdr-private#124
@@ -1129,7 +1088,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 											   "CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set",
 											   AccessExclusiveLock, false);
 				}
-#endif
 
 				if (stmt->whereClause && stmt->unique && !bdr_permit_unsafe_commands)
 					error_on_persistent_rv(stmt->relation,
@@ -1229,7 +1187,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_DropStmt:
-#if PG_VERSION_NUM >= 90600
 
 			/*
 			 * DROP INDEX CONCURRENTLY is currently only safe when run outside
@@ -1254,7 +1211,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 								 errmsg("DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set")));
 				}
 			}
-#endif
 			break;
 
 		case T_RenameStmt:
@@ -1306,25 +1262,13 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				break;
 			}
 
-			/*
-			 * Can't replicate on 9.4 due to lack of deparse support, could
-			 * replicate on 9.6. Does not need DDL lock.
-			 */
 		case T_CommentStmt:
 		case T_ReassignOwnedStmt:
-#if PG_VERSION_NUM >= 90600
 			lock_type = BDR_LOCK_NOLOCK;
 			break;
-#else
-			goto done;
-#endif
 
 		case T_GrantStmt:
-#if PG_VERSION_NUM >= 90600
 			break;
-#else
-			goto done;
-#endif
 
 		default:
 
@@ -1359,11 +1303,11 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		!bdr_in_extension && !in_bdr_replicate_ddl_command &&
 		bdr_ddl_nestlevel == 0)
 	{
-		if (PG_VERSION_NUM >= 90600 && context != PROCESS_UTILITY_TOPLEVEL)
+		if (context != PROCESS_UTILITY_TOPLEVEL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("DDL command attempted inside function or multi-statement string"),
-					 errdetail("9.6BDR does not support transparent DDL replication for "
+					 errdetail("BDR does not support transparent DDL replication for "
 							   "multi-statement strings or function bodies containing DDL "
 							   "commands. Problem statement has tag [%s] in SQL string: %s",
 							   CreateCommandTag(parsetree), queryString),
@@ -1371,27 +1315,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 		Assert(bdr_ddl_nestlevel >= 0);
 
-		/*
-		 * On 9.4bdr calling next_ProcessUtility_hook will execute the DDL,
-		 * which will fire an event trigger, which in turn calls
-		 * bdr_queue_ddl_commands(...) to queue the command.
-		 *
-		 * On 9.6 we expect users to explicitly use
-		 * bdr.replicate_ddl_command(...) in which case we won't get here.
-		 */
-
-		/* if (!affects_only_nonpermanent && PG_VERSION_NUM >= 90600) */
-		/* ereport(ERROR, */
-		/* (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), */
-
-		/*
-		 * errmsg("Direct DDL commands are not supported while BDR is
-		 * active"),
-		 */
-		/* errhint("Use bdr.bdr_replicate_ddl_command(...)"))); */
-
-		if (PG_VERSION_NUM >= 90600)
-			bdr_capture_ddl(parsetree, queryString, context, params, dest, CreateCommandTag(parsetree));
+		bdr_capture_ddl(parsetree, queryString, context, params, dest, CreateCommandTag(parsetree));
 
 		elog(DEBUG3, "DDLREP: Entering level %d DDL block. Toplevel command is %s", bdr_ddl_nestlevel, queryString);
 		incremented_nestlevel = true;

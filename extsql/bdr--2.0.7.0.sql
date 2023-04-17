@@ -447,35 +447,6 @@ LANGUAGE C
 AS 'MODULE_PATHNAME'
 ;
 
-DO
-LANGUAGE plpgsql
-$$
-BEGIN
-	IF (current_setting('server_version_num')::int / 100) = 904 THEN
-		-- We only use the event trigger on 9.4bdr, since 9.6 lacks
-		-- ddl deparse.
-		CREATE OR REPLACE FUNCTION bdr.bdr_queue_ddl_commands()
-		RETURNS event_trigger
-		LANGUAGE C
-		AS 'MODULE_PATHNAME';
-
-		CREATE EVENT TRIGGER bdr_queue_ddl_commands
-		ON ddl_command_end
-		EXECUTE PROCEDURE bdr.bdr_queue_ddl_commands();
-
-		CREATE OR REPLACE FUNCTION bdr.queue_dropped_objects()
-		RETURNS event_trigger
-		LANGUAGE C
-		AS 'MODULE_PATHNAME', 'bdr_queue_dropped_objects';
-
-		CREATE EVENT TRIGGER queue_drops
-		ON sql_drop
-		EXECUTE PROCEDURE bdr.queue_dropped_objects();
-	END IF;
-
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION bdr.bdr_truncate_trigger_add()
 RETURNS event_trigger
 LANGUAGE C
