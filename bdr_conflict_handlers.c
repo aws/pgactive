@@ -174,13 +174,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	 */
 	(void) set_config_option("search_path", "",
 							 PGC_USERSET, PGC_S_SESSION,
-							 GUC_ACTION_SAVE, true, 0
-#if PG_VERSION_NUM >= 90500
-							 ,false
-#endif
-		);
-
-
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	reloid = PG_GETARG_OID(0);
 	proc_oid = PG_GETARG_OID(2);
@@ -339,11 +333,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	 */
 	(void) set_config_option("search_path", "",
 							 PGC_USERSET, PGC_S_SESSION,
-							 GUC_ACTION_SAVE, true, 0
-#if PG_VERSION_NUM >= 90500
-							 ,false
-#endif
-		);
+							 GUC_ACTION_SAVE, true, 0, false);
 
 	argtypes[0] = REGCLASSOID;
 	values[0] = PG_GETARG_DATUM(0);

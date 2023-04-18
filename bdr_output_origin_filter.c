@@ -38,7 +38,6 @@ typedef struct BdrOriginCacheEntry
 	bool		is_bdr_peer;
 }			BdrOriginCacheEntry;
 
-#define BDRORIGINCACHE_INITIAL_SIZE 128
 static HTAB *BdrOriginCache = NULL;
 static int	InvalidBdrOriginCacheCnt = 0;
 
@@ -81,46 +80,30 @@ bdrorigincache_invalidation_cb(Datum arg, int cacheid, uint32 origin_id)
 void
 bdrorigincache_init(MemoryContext decoding_context)
 {
-	HASHCTL		ctl;
-
 	InvalidBdrOriginCacheCnt = 0;
 
 	if (BdrOriginCache == NULL)
 	{
-		MemoryContext old_ctxt;
-		int			hashflags;
+		HASHCTL		ctl;
 
 		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = sizeof(Oid);
 		ctl.entrysize = sizeof(struct BdrOriginCacheEntry);
-		ctl.hcxt = TopMemoryContext;
-
-		hashflags = HASH_ELEM | HASH_CONTEXT;
-#if PG_VERSION_NUM < 90500
 
 		/*
-		 * Handle the old hash API in PostgreSQL 9.4. Note, this assumes that
-		 * Oid is uint32 which is the case for 9.4 anyway.
-		 *
-		 * See postgres commit:
-		 *
-		 * 4a14f13a0ab Improve hash_create's API for selecting
-		 * simple-binary-key hash functions.
+		 * Allocate cache under TopMemoryContext. hash_create() does that for
+		 * us by default.
 		 */
-		ctl.hash = oid_hash;
-		hashflags |= HASH_FUNCTION;
-#else
-		hashflags |= HASH_BLOBS;
-#endif
-
-		old_ctxt = MemoryContextSwitchTo(TopMemoryContext);
 		BdrOriginCache = hash_create("bdr reporigin to node cache",
-									 BDRORIGINCACHE_INITIAL_SIZE,
+									 128,
 									 &ctl,
-									 hashflags);
-		(void) MemoryContextSwitchTo(old_ctxt);
+									 HASH_ELEM | HASH_BLOBS);
 
 		Assert(BdrOriginCache != NULL);
+
+		/* Assert that hash table has been created under TopMemoryContext. */
+		Assert(MemoryContextGetParent(GetMemoryChunkContext(BdrOriginCache)) ==
+			   TopMemoryContext);
 
 		CacheRegisterSyscacheCallback(REPLORIGIDENT,
 									  bdrorigincache_invalidation_cb, (Datum) 0);
@@ -135,14 +118,11 @@ bdrorigincache_get_node(RepOriginId origin)
 {
 	struct BdrOriginCacheEntry *hentry;
 	bool		found;
-	MemoryContext old_mctx;
 
 	/* Find cached function info, creating if not found */
-	old_mctx = MemoryContextSwitchTo(TopMemoryContext);
 	hentry = (struct BdrOriginCacheEntry *) hash_search(BdrOriginCache,
 														&origin,
 														HASH_ENTER, &found);
-	(void) MemoryContextSwitchTo(old_mctx);
 
 	if (!found || !hentry->is_valid)
 		bdr_lookup_origin(origin, hentry);
