@@ -51,10 +51,12 @@
  * the first connection is added for a database.
  */
 static void
-bdr_register_perdb_worker(const char *dbname)
+bdr_register_perdb_worker(const char *dbname, Oid dboid)
 {
 	BackgroundWorkerHandle *bgw_handle;
 	BackgroundWorker bgw = {0};
+	BgwHandleStatus	status;
+	pid_t	pid;
 	BdrWorker  *worker;
 	BdrPerdbWorker *perdb;
 	unsigned int worker_slot_number;
@@ -89,7 +91,8 @@ bdr_register_perdb_worker(const char *dbname)
 	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
 	strncpy(bgw.bgw_function_name, "bdr_perdb_worker_main", BGW_MAXLEN);
 	bgw.bgw_restart_time = 5;
-	bgw.bgw_notify_pid = 0;
+	/* We want supervisor to be notified when the worker is started */
+	bgw.bgw_notify_pid = MyProcPid;
 	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr worker for \"%s\" database", dbname);
 	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr worker");
 
@@ -103,13 +106,97 @@ bdr_register_perdb_worker(const char *dbname)
 	bgw.bgw_main_arg = Int32GetDatum(worker_arg);
 
 	if (!RegisterDynamicBackgroundWorker(&bgw, &bgw_handle))
-	{
 		ereport(ERROR,
-				(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
-				 errmsg("Registering BDR worker failed, check prior log messages for details")));
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 errmsg("registering bdr per-db dynamic background worker failed"),
+				 errhint("Consider increasing configuration parameter \"max_worker_processes\".")));
+
+	elog(DEBUG2, "successfully registered bdr per-db worker for database \"%s\"", dbname);
+
+	/*
+	 * Here, supervisor must ensure the per-db worker registered above is
+	 * started by postmaster and updated database oid in its shared memory
+	 * slot. This is to avoid a race condition.
+	 *
+	 * Steps that can otherwise lead to the race condition are:
+	 *
+	 * 1. Supervisor registers per-db worker while holding BdrWorkerCtl->lock
+	 * in bdr_supervisor_rescan_dbs().
+	 *
+	 * 2. Started per-db worker needs BdrWorkerCtl->lock to update database oid
+	 * in its shared memory slot and thus adds itself to lock's wait queue.
+	 * Unless per-db worker updates database oid, supervisor cannot consider it
+	 * started in find_perdb_worker_slot().
+	 *
+	 * 3. Supervisor releases the lock, but a waiter other than per-db worker
+	 * acquires the lock. Meanwhile, the supervisor adds itself to the lock's
+	 * wait queue, thanks to SetLatch() in bdr_perdb_xact_callback().
+	 *
+	 * 4. Supervisor acquires the lock again before the first per-db worker and
+	 * fails to find the first per-db worker in find_perdb_worker_slot() as it
+	 * hasn't yet got a chance to update database oid in the shared memory
+	 * slot. This makes supervisor register another per-db worker for the same
+	 * BDR-enabled database causing multiple per-db workers (and so multiple
+	 * apply workers - each per-db worker starts an apply worker) to coexist.
+	 * These multiple per-db workers don't let nodes joining the BDR group to
+	 * come out from catchup state to ready state.
+	 *
+	 * We fix this race condition by making supervisor register per-db worker,
+	 * wait until postmaster starts it, give it a chance to update database oid
+	 * in its shared memory slot and continue to scan for other BDR-enabled
+	 * databases. An assert-enabled function check_for_multiple_perdb_workers()
+	 * helps to validate the fix.
+	 */
+	status = WaitForBackgroundWorkerStartup(bgw_handle, &pid);
+	if (status != BGWH_STARTED)
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 errmsg("could not start per-db worker for %s", dbname),
+				 errhint("More details may be available in the server log.")));
+
+	/*
+	 * Wait for per-db worker to register itself in the worker's shared memory
+	 * slot.
+	 */
+	for (;;)
+	{
+		int			rc;
+
+		LWLockRelease(BdrWorkerCtl->lock);
+
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   100L, PG_WAIT_EXTENSION);
+
+		ResetLatch(&MyProc->procLatch);
+
+		/* emergency bailout if postmaster has died */
+		if (rc & WL_POSTMASTER_DEATH)
+			proc_exit(1);
+
+		if (got_SIGHUP)
+		{
+			got_SIGHUP = false;
+			ProcessConfigFile(PGC_SIGHUP);
+		}
+
+		CHECK_FOR_INTERRUPTS();
+
+		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+
+		if (perdb->proclatch != NULL && perdb->database_oid == dboid)
+		{
+			LWLockRelease(BdrWorkerCtl->lock);
+			break;
+		}
 	}
 
-	elog(DEBUG2, "Registered per-db worker for %s successfully", dbname);
+	Assert(!LWLockHeldByMe(BdrWorkerCtl->lock));
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+
+	elog(DEBUG2, "successfully started bdr per-db worker for database \"%s\", perdb->proclatch %p, perdb->database_oid %d",
+		 dbname, perdb->proclatch, perdb->database_oid);
 }
 
 /*
@@ -220,7 +307,8 @@ bdr_supervisor_rescan_dbs()
 		if (find_perdb_worker_slot(sec->objoid, NULL) == -1)
 		{
 			/* No perdb worker exists for this DB, make one */
-			bdr_register_perdb_worker(label_dbname);
+			bdr_register_perdb_worker(label_dbname, sec->objoid);
+			Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 			n_new_workers++;
 		}
 		else
@@ -323,6 +411,64 @@ bdr_get_supervisordb_oid(bool missingok)
 	return dboid;
 }
 
+#ifdef USE_ASSERT_CHECKING
+/*
+ * Verify that each BDR-enabled database has exactly one per-db worker.
+ * Presence of more than one per-db worker is indicative of a race condition we
+ * try to prevent in bdr_register_perdb_worker().
+ */
+static void
+check_for_multiple_perdb_workers(void)
+{
+	int		i;
+	bool	exists = false;
+	List   *perdb_w = NIL;
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+
+	for (i = 0; i < bdr_max_workers; i++)
+	{
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+
+		/* unused slot */
+		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+			continue;
+
+		/* unconnected slot */
+		if (w->worker_proc == NULL)
+			continue;
+
+		if (w->worker_type == BDR_WORKER_PERDB)
+		{
+			BdrPerdbWorker *pw = &w->data.perdb;
+			Oid dboid = pw->database_oid;
+
+			if (!OidIsValid(dboid))
+				continue;
+
+			if (!list_member_oid(perdb_w, dboid))
+				perdb_w = lappend_oid(perdb_w, dboid);
+			else
+			{
+				ereport(LOG,
+						(errmsg("more than one per-db worker exists for database %d",
+								dboid),
+						 errdetail("One of the workers' PID is %d",
+								   w->worker_pid)));
+				exists = true;
+			}
+		}
+	}
+
+	LWLockRelease(BdrWorkerCtl->lock);
+
+	if (exists)
+		elog(PANIC, "cannot have more than one per-db worker for a single BDR-enabled database");
+
+	list_free(perdb_w);
+}
+#endif
+
 /*
  * The BDR supervisor is a static bgworker that serves as the master/supervisor
  * for all BDR workers. It exists so that BDR can be enabled and disabled
@@ -411,6 +557,16 @@ bdr_supervisor_worker_main(Datum main_arg)
 	while (!got_SIGTERM)
 	{
 		int			rc;
+		long		timeout = 180000L;
+
+#ifdef USE_ASSERT_CHECKING
+		/*
+		 * In assert-enabled build, supervisor needs to frequently call
+		 * check_for_multiple_perdb_workers(), so keep a lower value for
+		 * timeout.
+		 */
+		timeout = 10000L;
+#endif
 
 		/*
 		 * After startup the supervisor doesn't currently have anything to do,
@@ -420,7 +576,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 		 */
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   180000L, PG_WAIT_EXTENSION);
+					   timeout, PG_WAIT_EXTENSION);
 
 		ResetLatch(&MyProc->procLatch);
 
@@ -444,6 +600,10 @@ bdr_supervisor_worker_main(Datum main_arg)
 		}
 
 		CHECK_FOR_INTERRUPTS();
+
+#ifdef USE_ASSERT_CHECKING
+		check_for_multiple_perdb_workers();
+#endif
 	}
 
 	proc_exit(0);
