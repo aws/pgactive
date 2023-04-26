@@ -54,7 +54,7 @@ static void
 bdr_register_perdb_worker(const char *dbname)
 {
 	BackgroundWorkerHandle *bgw_handle;
-	BackgroundWorker bgw;
+	BackgroundWorker bgw = {0};
 	BdrWorker  *worker;
 	BdrPerdbWorker *perdb;
 	unsigned int worker_slot_number;
@@ -86,13 +86,12 @@ bdr_register_perdb_worker(const char *dbname)
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	/* bgw.bgw_main = NULL; */
 	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
 	strncpy(bgw.bgw_function_name, "bdr_perdb_worker_main", BGW_MAXLEN);
 	bgw.bgw_restart_time = 5;
 	bgw.bgw_notify_pid = 0;
-	snprintf(bgw.bgw_name, BGW_MAXLEN,
-			 "bdr db: %s", dbname);
+	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr worker for \"%s\" database", dbname);
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr worker");
 
 	/*
 	 * The main arg is composed of two uint16 parts - the worker generation
@@ -465,7 +464,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 void
 bdr_supervisor_register()
 {
-	BackgroundWorker bgw;
+	BackgroundWorker bgw = {0};
 
 	Assert(IsPostmasterEnvironment && !IsUnderPostmaster);
 
@@ -477,13 +476,12 @@ bdr_supervisor_register()
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	/* bgw.bgw_main = NULL; */
 	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
 	strncpy(bgw.bgw_function_name, "bdr_supervisor_worker_main", BGW_MAXLEN);
 	bgw.bgw_restart_time = 1;
 	bgw.bgw_notify_pid = 0;
-	snprintf(bgw.bgw_name, BGW_MAXLEN,
-			 "bdr supervisor");
+	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr supervisor");
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr supervisor");
 	bgw.bgw_main_arg = Int32GetDatum(0);	/* unused */
 
 	RegisterBackgroundWorker(&bgw);

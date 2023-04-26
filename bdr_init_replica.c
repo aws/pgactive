@@ -1382,7 +1382,7 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 							Int32GetDatum(worker_shmem_idx));
 	{
 		BgwHandleStatus bgw_status;
-		BackgroundWorker bgw;
+		BackgroundWorker bgw = {0};
 		BackgroundWorkerHandle *bgw_handle;
 		pid_t		bgw_pid;
 		pid_t		prev_bgw_pid = 0;
@@ -1396,13 +1396,11 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 		bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 			BGWORKER_BACKEND_DATABASE_CONNECTION;
 		bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-		/* bgw.bgw_main = NULL; */
 		strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
 		strncpy(bgw.bgw_function_name, "bdr_apply_main", BGW_MAXLEN);
 
 		bgw.bgw_restart_time = BGW_NEVER_RESTART;
-		Assert(MyProc->pid != 0);
-		bgw.bgw_notify_pid = MyProc->pid;
+		bgw.bgw_notify_pid = MyProcPid;
 
 		Assert(worker_shmem_idx <= UINT16_MAX);
 		worker_arg = (((uint32) BdrWorkerCtl->worker_generation) << 16) | (uint32) worker_shmem_idx;
@@ -1412,6 +1410,7 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 				 "bdr: catchup apply to %X/%X",
 				 (uint32) (target_lsn >> 32), (uint32) target_lsn);
 		bgw.bgw_name[BGW_MAXLEN - 1] = '\0';
+		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply");
 
 		/* Launch the catchup worker and wait for it to start */
 		RegisterDynamicBackgroundWorker(&bgw, &bgw_handle);
