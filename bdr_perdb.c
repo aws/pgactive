@@ -251,7 +251,7 @@ bdr_maintain_db_workers(void)
 	List	   *nodes_to_forget = NIL;
 	ListCell   *lcparted;
 	ListCell   *lcforget;
-	bool		found_alive_worker = false;
+	bool		at_least_one_worker_terminated = false;
 
 	bdr_make_my_nodeid(&myid);
 
@@ -430,7 +430,7 @@ bdr_maintain_db_workers(void)
 
 		if (found_alive)
 		{
-			found_alive_worker = true;
+			at_least_one_worker_terminated = true;
 
 			/*
 			 * and treat as still alive for DDL locking purposes, since if it
@@ -509,7 +509,7 @@ bdr_maintain_db_workers(void)
 	 * or ConditionVariableSleep() (called via ReplicationSlotDrop() ->
 	 * ReplicationSlotAcquire()) making per-db worker go into long wait.
 	 */
-	if (found_alive_worker)
+	if (at_least_one_worker_terminated)
 		SetLatch(&MyProc->procLatch);
 
 	PopActiveSnapshot();
