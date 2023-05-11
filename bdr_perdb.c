@@ -251,6 +251,7 @@ bdr_maintain_db_workers(void)
 	List	   *nodes_to_forget = NIL;
 	ListCell   *lcparted;
 	ListCell   *lcforget;
+	bool		at_least_one_worker_terminated = false;
 
 	bdr_make_my_nodeid(&myid);
 
@@ -429,8 +430,7 @@ bdr_maintain_db_workers(void)
 
 		if (found_alive)
 		{
-			/* check again next time round, soon please */
-			SetLatch(&MyProc->procLatch);
+			at_least_one_worker_terminated = true;
 
 			/*
 			 * and treat as still alive for DDL locking purposes, since if it
@@ -498,6 +498,19 @@ bdr_maintain_db_workers(void)
 			(void) MemoryContextSwitchTo(oldcontext);
 		}
 	}
+
+	/*
+	 * If at least one worker was found alive and killed in the above for loop,
+	 * we check again next time for dropping replication slots of the parted
+	 * peers. However, we want to do this soon, so setting the latch ensures
+	 * the per-db worker doesn't go into long wait in its main loop. And, we
+	 * set the latch specifically after ReplicationSlotDrop() call in the above
+	 * for loop, because it can get reset by ConditionVariablePrepareToSleep()
+	 * or ConditionVariableSleep() (called via ReplicationSlotDrop() ->
+	 * ReplicationSlotAcquire()) making per-db worker go into long wait.
+	 */
+	if (at_least_one_worker_terminated)
+		SetLatch(&MyProc->procLatch);
 
 	PopActiveSnapshot();
 	SPI_finish();

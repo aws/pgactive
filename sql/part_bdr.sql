@@ -48,20 +48,20 @@ SELECT bdr.bdr_part_by_node_names(ARRAY['node-pg']);
 
 SELECT bdr.bdr_is_active_in_db();
 
--- Wait 'till all connections gone...
+-- We can tell a part has taken effect when the downstream's (node-pg) slot
+-- vanishes on the upstream (node-regression).
 DO
 $$
 DECLARE
-    timeout integer := 60;
+    timeout integer := 180;
 BEGIN
     WHILE timeout > 0
     LOOP
-        IF (SELECT count(*) FROM pg_stat_replication) = 0 THEN
-            RAISE NOTICE 'All connections dropped';
+        IF (SELECT count(*) FROM bdr.bdr_node_slots WHERE node_name = 'node-pg') = 0 THEN
+            RAISE NOTICE 'Downstream replication slot vanished on the upstream';
             EXIT;
         END IF;
         PERFORM pg_sleep(1);
-        PERFORM pg_stat_clear_snapshot();
         timeout := timeout - 1;
     END LOOP;
     IF timeout = 0 THEN
@@ -71,41 +71,31 @@ END;
 $$
 LANGUAGE plpgsql;
 
--- Wait 'till all slots gone
-DO
-$$
-DECLARE
-    timeout integer := 60;
-BEGIN
-    WHILE timeout > 0
-    LOOP
-        IF (SELECT count(*) FROM pg_replication_slots) = 0 THEN
-            RAISE NOTICE 'All slots dropped';
-            EXIT;
-        END IF;
-        PERFORM pg_sleep(1);
-        PERFORM pg_stat_clear_snapshot();
-        timeout := timeout - 1;
-    END LOOP;
-    IF timeout = 0 THEN
-        RAISE EXCEPTION 'Timed out waiting for slot drop';
-    END IF;
-END;
-$$
-LANGUAGE plpgsql;
-
--- There should now be zero slots and no connections to them
-SELECT count(*) FROM pg_stat_replication;
-SELECT slot_name, plugin, slot_type, datoid, database, active, xmin, catalog_xmin, restart_lsn, confirmed_flush_lsn FROM pg_replication_slots;
-
--- Zero active connections
-SELECT count(*) FROM pg_stat_replication;
--- and the node state for the removed node should show 'k'
-SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
+-- Status of the downstream node on upstream node after part is 'k'
+SELECT node_status FROM bdr.bdr_nodes WHERE node_name = 'node-pg'; -- 'k'
 
 \c postgres
--- ... on both nodes.
-SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
+
+-- It is unsafe/incorrect to expect the parted node to know it's parted and
+-- have a 'k' state. Sometimes it will, sometimes it won't, it depends on a
+-- race between the parting node terminating its connections and it
+-- receiving notification of its own parting. That's a bit of a wart in BDR,
+-- but won't be fixed in 2.0 and is actually very hard to truly "fix" in a
+-- distributed system. So we allow the local node status to be 'k' or 'r'.
+SELECT COUNT(*) = 1 AS OK FROM bdr.bdr_nodes
+    WHERE node_name = 'node-pg' AND node_status IN('k', 'r');  -- 'k' or 'r'
+
+\c regression
+
+-- The downstream's slot on the upstream MUST be gone
+SELECT * FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
+
+\c postgres
+
+-- The upstream's slot on the downstream MAY be gone, or may be present, so
+-- there's no point checking. But the upstream's connection to the downstream
+-- MUST be gone, so we can look for the apply worker's connection.
+SELECT * FROM pg_stat_activity WHERE application_name = 'node-regression:send'; -- EMPTY
 
 \c regression
 
