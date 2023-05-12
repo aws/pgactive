@@ -1017,7 +1017,7 @@ bdr_sequencer_fill_sequence(Oid seqoid, char *seqschema, char *seqname)
 done_with_sequence:
 
 	UnlockReleaseBuffer(buf);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	/*
 	 * Check for backends who have the sequence open, they might be waiting
@@ -1490,7 +1490,7 @@ bdr_internal_sequence_reset_cache(PG_FUNCTION_ARGS)
 done_with_sequence:
 
 	UnlockReleaseBuffer(buf);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	bdr_sequencer_wakeup();
 	bdr_schedule_eoxact_sequencer_wakeup();

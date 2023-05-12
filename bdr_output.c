@@ -22,7 +22,11 @@
 #include "miscadmin.h"
 
 #include "access/sysattr.h"
+#if PG_VERSION_NUM >= 130000
+#include "access/detoast.h"
+#else
 #include "access/tuptoaster.h"
+#endif
 #include "access/xact.h"
 
 #include "catalog/catversion.h"
@@ -141,7 +145,11 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 	cb->message_cb = pg_decode_message;
 	cb->shutdown_cb = pg_decode_shutdown;
 
-	Assert(ThisTimeLineID > 0);
+#if PG_VERSION_NUM >= 150000
+	Assert(GetTimeLineID() >= 0);
+#else
+	Assert(GetTimeLineID() > 0);
+#endif
 }
 
 /* Ensure a bdr_parse_... arg is non-null */
@@ -785,7 +793,11 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	 * of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
+#if PG_VERSION_NUM >= 150000
+	pq_sendint64(ctx->out, txn->xact_time.commit_time);
+#else
 	pq_sendint64(ctx->out, txn->commit_time);
+#endif
 	pq_sendint(ctx->out, txn->xid, 4);
 
 	/* and optional data selected above */
@@ -848,7 +860,11 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	 */
 	Assert(txn->end_lsn != InvalidXLogRecPtr);
 	pq_sendint64(ctx->out, txn->end_lsn);
+#if PG_VERSION_NUM >= 150000
+	pq_sendint64(ctx->out, txn->xact_time.commit_time);
+#else
 	pq_sendint64(ctx->out, txn->commit_time);
+#endif
 
 	OutputPluginWrite(ctx, true);
 }
@@ -861,7 +877,8 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	MemoryContext old;
 	BDRRelation *bdr_relation;
 
-	bdr_relation = bdr_heap_open(RelationGetRelid(relation), NoLock);
+	/* RowExclusiveLock to avoid Assert on src/backend/access/common/relation.c:68 */
+	bdr_relation = bdr_table_open(RelationGetRelid(relation), RowExclusiveLock);
 
 	data = ctx->output_plugin_private;
 
@@ -918,7 +935,7 @@ skip:
 	MemoryContextSwitchTo(old);
 	MemoryContextReset(data->context);
 
-	bdr_heap_close(bdr_relation, NoLock);
+	bdr_table_close(bdr_relation, NoLock);
 }
 
 /*

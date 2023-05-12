@@ -11,8 +11,8 @@ use 5.8.0;
 use Exporter;
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
@@ -44,7 +44,7 @@ sub insert_into_table_sequence {
 
     if (not defined $no_node_join_check) {
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     if ( not defined $no_of_inserts ) {
@@ -75,7 +75,7 @@ sub join_under_sequence_write_load {
 
     my ( $h, $stdout, $stderr, $query ) = start_insert( $upstream_node, $table_with_sequence, 200 );
 
-    my $node = get_new_node('node_join_under_write_load');
+    my $node = PostgreSQL::Test::Cluster->new('node_join_under_write_load');
 
     if ( $type eq 'logical' ) {
         initandstart_logicaljoin_node( $node, $upstream_node );

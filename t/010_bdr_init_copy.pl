@@ -8,17 +8,17 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
-my $tempdir = TestLib::tempdir;
+my $tempdir = PostgreSQL::Test::Utils::tempdir;
 
-my $node_a = get_new_node('node-a');
+my $node_a = PostgreSQL::Test::Cluster->new('node-a');
 initandstart_node($node_a, $bdr_test_dbname, extra_init_opts => { has_archiving => 1 });
 
-my $node_b = get_new_node('node-b');
+my $node_b = PostgreSQL::Test::Cluster->new('node-b');
 
 command_fails(['bdr_init_copy'],
 	'bdr_init_copy needs target directory specified');
@@ -39,7 +39,7 @@ command_fails(
 create_bdr_group($node_a);
 
 $node_a->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
 # PostgresNode doesn't know we started the node since we didn't
 # use any of its methods, so we'd better tell it to check. Otherwise
@@ -91,9 +91,9 @@ my $bdr_version = $node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_version()
 note "BDR version $bdr_version";
 
 $node_a->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_b->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
 # PostgresNode doesn't know we started the node since we didn't
 # use any of its methods, so we'd better tell it to check. Otherwise

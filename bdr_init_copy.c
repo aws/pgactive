@@ -132,7 +132,7 @@ static uint64 GenerateSystemIdentifier(void);
 static uint64 read_sysid(const char *data_dir);
 static void set_sysid(uint64 sysid);
 
-static void WriteRecoveryConf(PQExpBuffer contents);
+static void WriteConfFile(PQExpBuffer contents);
 static void CopyConfFile(char *fromfile, char *tofile);
 
 char	   *get_connstr(char *connstr, char *dbname, char *dbhost, char *dbport, char *dbuser);
@@ -189,8 +189,10 @@ main(int argc, char **argv)
 			   *remote_dbport = NULL,
 			   *remote_dbuser = NULL;
 	char	   *postgresql_conf = NULL,
-			   *pg_hba_conf = NULL,
-			   *recovery_conf = NULL;
+			   *pg_hba_conf = NULL;
+#if PG_VERSION_NUM < 150000
+	char	   *recovery_conf = NULL;
+#endif
 	char	   *replication_sets = NULL;
 	bool		use_existing_data_dir;
 	int			pg_ctl_ret,
@@ -214,9 +216,13 @@ main(int argc, char **argv)
 		{"log-file", required_argument, NULL, 'l'},
 		{"postgresql-conf", required_argument, NULL, 6},
 		{"hba-conf", required_argument, NULL, 7},
+#if PG_VERSION_NUM < 150000
 		{"recovery-conf", required_argument, NULL, 8},
-		{"stop", no_argument, NULL, 's'},
 		{"replication-sets", required_argument, NULL, 9},
+#else
+		{"replication-sets", required_argument, NULL, 8},
+#endif
+		{"stop", no_argument, NULL, 's'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -304,6 +310,7 @@ main(int argc, char **argv)
 						die(_("The specified pg_hba.conf file does not exist."));
 					break;
 				}
+#if PG_VERSION_NUM < 150000
 			case 8:
 				{
 					recovery_conf = pg_strdup(optarg);
@@ -314,6 +321,11 @@ main(int argc, char **argv)
 			case 9:
 				replication_sets = validate_replication_set_input(optarg);
 				break;
+#else
+			case 8:
+				replication_sets = validate_replication_set_input(optarg);
+				break;
+#endif
 			case 's':
 				stop = true;
 				break;
@@ -479,7 +491,9 @@ main(int argc, char **argv)
 
 	if (!path_file_exists(data_dir, "recovery.conf"))
 	{
+#if PG_VERSION_NUM < 150000
 		appendPQExpBuffer(recoveryconfcontents, "standby_mode = 'on'\n");
+#endif
 		appendPQExpBuffer(recoveryconfcontents, "primary_conninfo = '%s'\n",
 						  escape_single_quotes_ascii(remote_connstr));
 	}
@@ -488,9 +502,9 @@ main(int argc, char **argv)
 
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_name = '%s'\n", restore_point_name);
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_inclusive = true\n");
-	appendPQExpBuffer(recoveryconfcontents, "recovery_target_action = promote");
+	appendPQExpBuffer(recoveryconfcontents, "recovery_target_action = promote\n");
 
-	WriteRecoveryConf(recoveryconfcontents);
+	WriteConfFile(recoveryconfcontents);
 
 	/*
 	 * Start local node with BDR disabled, and wait until it starts accepting
@@ -651,7 +665,9 @@ usage(void)
 	printf(_("\nConfiguration files override:\n"));
 	printf(_("  --hba-conf              path to the new pg_hba.conf\n"));
 	printf(_("  --postgresql-conf       path to the new postgresql.conf\n"));
+#if PG_VERSION_NUM < 150000
 	printf(_("  --recovery-conf         path to the template recovery.conf\n"));
+#endif
 	printf(_("\nConnection options:\n"));
 	printf(_("  -d, --remote-dbname=CONNSTR\n"));
 	printf(_("                          dbname or connection string for remote node\n"));
@@ -1551,15 +1567,24 @@ read_sysid(const char *data_dir)
 }
 
 /*
- * Write contents of recovery.conf
+ * Write contents of recovery.conf or postgresql.conf
  */
 static void
-WriteRecoveryConf(PQExpBuffer contents)
+WriteConfFile(PQExpBuffer contents)
 {
 	char		filename[MAXPGPATH];
 	FILE	   *cf;
 
+#if PG_VERSION_NUM < 150000
 	sprintf(filename, "%s/recovery.conf", data_dir);
+#else
+	FILE	   *sf;
+	char		standbyfilename[MAXPGPATH];
+	sprintf(filename, "%s/postgresql.conf", data_dir);
+	sprintf(standbyfilename, "%s/standby.signal", data_dir);
+	sf = fopen(standbyfilename, "a");
+	fclose(sf);
+#endif
 
 	cf = fopen(filename, "a");
 	if (cf == NULL)

@@ -43,6 +43,8 @@
 #include "utils/syscache.h"
 #include "utils/rel.h"
 #include "utils/regproc.h"
+#include "catalog/pg_enum.h"
+#include "utils/acl.h"
 
 PG_FUNCTION_INFO_V1(bdr_create_conflict_handler);
 PG_FUNCTION_INFO_V1(bdr_drop_conflict_handler);
@@ -55,7 +57,7 @@ const char *create_handler_sql =
 const char *drop_handler_sql =
 "DELETE FROM bdr.bdr_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
-const char *drop_handler_get_tbl_oid_sql =
+const char *conflict_handlers_get_tbl_oid_sql =
 "SELECT oid FROM bdr.bdr_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
 const char *get_conflict_handlers_for_table_sql =
@@ -85,23 +87,23 @@ bdr_conflict_handlers_init(void)
 		elog(ERROR, "cache lookup failed for relation bdr.bdr_conflict_handlers");
 
 	bdr_conflict_handler_type_oid =
-		GetSysCacheOidError2(TYPENAMENSP, PointerGetDatum("bdr_conflict_type"),
+		GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid, PointerGetDatum("bdr_conflict_type"),
 							 ObjectIdGetDatum(schema_oid));
 
 	bdr_conflict_handler_action_oid =
-		GetSysCacheOidError2(TYPENAMENSP, PointerGetDatum("bdr_conflict_handler_action"),
+		GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid, PointerGetDatum("bdr_conflict_handler_action"),
 							 ObjectIdGetDatum(schema_oid));
 
 	bdr_conflict_handler_action_ignore_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, bdr_conflict_handler_action_oid,
+		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
 							 CStringGetDatum("IGNORE"));
 
 	bdr_conflict_handler_action_row_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, bdr_conflict_handler_action_oid,
+		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
 							 CStringGetDatum("ROW"));
 
 	bdr_conflict_handler_action_skip_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, bdr_conflict_handler_action_oid,
+		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
 							 CStringGetDatum("SKIP"));
 }
 
@@ -145,12 +147,20 @@ Datum
 bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 {
 	Oid			proc_oid,
-				reloid;
+				reloid,
+				rowoid;
 	int			ret;
 	Oid			argtypes[5];
-	Datum		values[5];
+	Datum		values[5],
+				dat;
 	char		nulls[5] = {' ', ' ', ' ', ' ', 'n'};
 	int			guc_nestlevel;
+
+	HeapTuple   spi_rslt;
+	TupleDesc   spi_rslt_desc;
+	int         col_oid;
+	Name		ch_name;
+	bool		isnull;
 
 	ObjectAddress myself,
 				rel_object;
@@ -177,6 +187,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 							 GUC_ACTION_SAVE, true, 0, false);
 
 	reloid = PG_GETARG_OID(0);
+	ch_name = PG_GETARG_NAME(1);
 	proc_oid = PG_GETARG_OID(2);
 
 	bdr_conflict_handlers_check_access(reloid);
@@ -187,7 +198,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	 *
 	 * XXX why SUE?  Wouldn't AccessShare be sufficient for that?
 	 */
-	rel = heap_open(reloid, ShareUpdateExclusiveLock);
+	rel = table_open(reloid, ShareUpdateExclusiveLock);
 
 	/* ensure that handler function is good */
 	bdr_conflict_handlers_check_handler_fun(rel, proc_oid);
@@ -242,8 +253,26 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	 * set up the dependency relation with ourselves as "dependent"
 	 */
 
+	/* get inserted OID */
+	ret = SPI_execute_with_args(conflict_handlers_get_tbl_oid_sql, 2, argtypes,
+								values, nulls, false, 0);
+
+	if (ret != SPI_OK_SELECT)
+		elog(ERROR, "expected SPI state %u, got %u", SPI_OK_SELECT, ret);
+
+	if (SPI_processed != 1)
+		elog(ERROR, "handler %s for relation with oid %u not found", NameStr(*ch_name), reloid);
+
+	spi_rslt = SPI_tuptable->vals[0];
+	spi_rslt_desc = SPI_tuptable->tupdesc;
+
+	col_oid = SPI_fnumber(spi_rslt_desc, "oid");
+
+	dat = SPI_getbinval(spi_rslt, spi_rslt_desc, col_oid, &isnull);
+	rowoid = DatumGetObjectId(dat);
+
 	myself.classId = bdr_conflict_handler_table_oid;
-	myself.objectId = SPI_lastoid;
+	myself.objectId = rowoid;
 	myself.objectSubId = 0;
 
 	rel_object.classId = RelationRelationId;
@@ -284,7 +313,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
 
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	AtEOXact_GUC(false, guc_nestlevel);
 
@@ -345,7 +374,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 
 	bdr_conflict_handlers_check_access(ch_relid);
 
-	rel = heap_open(ch_relid, ShareUpdateExclusiveLock);
+	rel = table_open(ch_relid, ShareUpdateExclusiveLock);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -354,7 +383,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	/*
 	 * get the bdr.bdr_conflict_handlers row oid to remove the dependency
 	 */
-	ret = SPI_execute_with_args(drop_handler_get_tbl_oid_sql, 2, argtypes,
+	ret = SPI_execute_with_args(conflict_handlers_get_tbl_oid_sql, 2, argtypes,
 								values, nulls, false, 0);
 
 	if (ret != SPI_OK_SELECT)
@@ -411,7 +440,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
 
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	AtEOXact_GUC(false, guc_nestlevel);
 
@@ -674,7 +703,11 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 {
 	size_t		i;
 	Datum		retval;
+#if PG_VERSION_NUM >= 120000
+	FunctionCallInfoBaseData fcinfo;
+#else
 	FunctionCallInfoData fcinfo;
+#endif
 	FmgrInfo	finfo;
 	HeapTuple	fun_tup;
 	HeapTupleData result_tup;
@@ -689,7 +722,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 
 	bdr_get_conflict_handlers(rel);
 
-	event_oid = GetSysCacheOidError2(ENUMTYPOIDNAME,
+	event_oid = GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
 									 bdr_conflict_handler_type_oid,
 									 CStringGetDatum(event));
 
@@ -707,9 +740,39 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 		fmgr_info(rel->conflict_handlers[i].handler_oid, &finfo);
 		InitFunctionCallInfoData(fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
 
+#if PG_VERSION_NUM >= 120000
 		if (local != NULL)
 		{
-			fcinfo.arg[0] =
+			fcinfo.args[0].value =
+				heap_copy_tuple_as_datum(local, RelationGetDescr(rel->rel));
+			fcinfo.args[0].isnull = false;
+		}
+		else
+			fcinfo.args[0].isnull = true;
+
+		if (remote != NULL)
+		{
+			fcinfo.args[1].value =
+				heap_copy_tuple_as_datum(remote, RelationGetDescr(rel->rel));
+			fcinfo.args[1].isnull = false;
+		}
+		else
+			fcinfo.args[1].isnull = true;
+
+		fcinfo.args[2].value = CStringGetTextDatum(command_tag);
+		fcinfo.args[3].value = ObjectIdGetDatum(RelationGetRelid(rel->rel));
+		fcinfo.args[4].value = event_oid;
+
+		retval = FunctionCallInvoke(&fcinfo);
+
+		if (!fcinfo.args[0].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[0].value));
+		if (!fcinfo.args[1].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[1].value));
+#else
+		if (local != NULL)
+		{
+			fcinfo.arg[0]=
 				heap_copy_tuple_as_datum(local, RelationGetDescr(rel->rel));
 			fcinfo.argnull[0] = false;
 		}
@@ -735,7 +798,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.arg[0]));
 		if (!fcinfo.argnull[1])
 			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.arg[1]));
-
+#endif
 		if (fcinfo.isnull)
 			elog(ERROR, "handler return value is NULL");
 

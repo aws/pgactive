@@ -9,8 +9,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
@@ -24,7 +24,7 @@ my $node_2 = $nodes->[2];
 # we keep holding it until we commit/abort.
 my ($psql_stdin, $psql_stdout, $psql_stderr) = ('','', '');
 note "Acquiring global ddl lock on node_1";
-my $timer = IPC::Run::timeout($TestLib::timeout_default);
+my $timer = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default);
 my $handle = start_acquire_ddl_lock($node_1, 'ddl_lock', $timer);
 note "waiting for lock acqusition";
 wait_acquire_ddl_lock($handle);

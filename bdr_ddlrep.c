@@ -52,6 +52,7 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 	TupleTableSlot *slot;
 	RangeVar   *rv;
 	Relation	queuedcmds;
+	ResultRelInfo *relinfo = makeNode(ResultRelInfo);
 	HeapTuple	newtup = NULL;
 	Datum		values[6];
 	bool		nulls[6];
@@ -66,10 +67,18 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 
 	/* prepare bdr.bdr_queued_commands for insert */
 	rv = makeRangeVar("bdr", "bdr_queued_commands", -1);
-	queuedcmds = heap_openrv(rv, RowExclusiveLock);
+	queuedcmds = table_openrv(rv, RowExclusiveLock);
 	slot = MakeSingleTupleTableSlot(RelationGetDescr(queuedcmds));
-	estate = bdr_create_rel_estate(queuedcmds);
-	ExecOpenIndices(estate->es_result_relation_info, false);
+	estate = bdr_create_rel_estate(queuedcmds, relinfo);
+
+#if PG_VERSION_NUM >= 140000
+	//XXX is it needed?
+	InitResultRelInfo(relinfo, queuedcmds, 1, NULL, 0);
+#else
+	relinfo = estate->es_result_relation_info;
+#endif
+
+	ExecOpenIndices(relinfo, false);
 
 	/* lsn, queued_at, perpetrator, command_tag, command */
 	MemSet(nulls, 0, sizeof(nulls));
@@ -82,12 +91,12 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 
 	newtup = heap_form_tuple(RelationGetDescr(queuedcmds), values, nulls);
 	simple_heap_insert(queuedcmds, newtup);
-	ExecStoreTuple(newtup, slot, InvalidBuffer, false);
-	UserTableUpdateOpenIndexes(estate, slot);
+	ExecStoreHeapTuple(newtup, slot, false);
+	UserTableUpdateOpenIndexes(estate, slot, relinfo, false);
 
-	ExecCloseIndices(estate->es_result_relation_info);
+	ExecCloseIndices(relinfo);
 	ExecDropSingleTupleTableSlot(slot);
-	heap_close(queuedcmds, RowExclusiveLock);
+	table_close(queuedcmds, RowExclusiveLock);
 }
 
 /*
@@ -181,12 +190,12 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 void
 bdr_capture_ddl(Node *parsetree, const char *queryString,
 				ProcessUtilityContext context, ParamListInfo params,
-				DestReceiver *dest, const char *completionTag)
+				DestReceiver *dest, CommandTag completionTag)
 {
 	ListCell   *lc;
 	StringInfoData si;
 	List	   *active_search_path;
-	const char *tag = completionTag;
+	CommandTag	tag = completionTag;
 	const char *skip_ddl;
 	bool		first;
 
@@ -234,7 +243,7 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 		Oid			nspid = lfirst_oid(lc);
 		char	   *nspname;
 
-		if (IsSystemNamespace(nspid) || IsToastNamespace(nspid) || isTempOrTempToastNamespace(nspid))
+		if (IsCatalogNamespace(nspid) || IsToastNamespace(nspid) || isTempOrTempToastNamespace(nspid))
 			continue;
 		nspname = get_namespace_name(nspid);
 		if (!first)
@@ -242,10 +251,10 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 		appendStringInfoString(&si, quote_identifier(nspname));
 	}
 
-	if (tag == NULL)
+	if (!IsKnownTag(tag))
 		tag = CreateCommandTag(parsetree);
 
-	bdr_queue_ddl_command(tag, queryString, si.data);
+	bdr_queue_ddl_command(GetCommandTagName(tag), queryString, si.data);
 
 	resetStringInfo(&si);
 }

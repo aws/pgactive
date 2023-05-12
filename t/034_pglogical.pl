@@ -32,8 +32,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use IPC::Run qw(timeout);;
 use Test::More;
 use utils::nodemanagement;
@@ -44,7 +44,7 @@ $SIG{__DIE__} = sub { Carp::confess @_ };
 $SIG{INT}  = sub { die("interupted by SIGINT"); };
 
 # Sanity check: is the pglogical extension present? If not, there's no point continuing this test.
-my $compat_check = get_new_node('compat_check');
+my $compat_check = PostgreSQL::Test::Cluster->new('compat_check');
 $compat_check->init;
 $compat_check->start;
 

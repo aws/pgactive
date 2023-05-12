@@ -8,12 +8,12 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 
 $node_a->init();
 $node_a->append_conf('postgresql.conf', q{

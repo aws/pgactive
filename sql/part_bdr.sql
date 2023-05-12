@@ -95,7 +95,7 @@ SELECT * FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
 -- The upstream's slot on the downstream MAY be gone, or may be present, so
 -- there's no point checking. But the upstream's connection to the downstream
 -- MUST be gone, so we can look for the apply worker's connection.
-SELECT * FROM pg_stat_activity WHERE application_name = 'node-regression:send'; -- EMPTY
+SELECT count(*) FROM pg_stat_activity WHERE application_name = 'node-regression:send'; -- EMPTY
 
 \c regression
 

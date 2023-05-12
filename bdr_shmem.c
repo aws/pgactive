@@ -49,6 +49,10 @@ static void bdr_worker_shmem_startup(void);
 void
 bdr_shmem_init(void)
 {
+#if PG_VERSION_NUM >= 150000
+	if (prev_shmem_request_hook)
+		prev_shmem_request_hook();
+#endif
 	/* can never have more worker slots than processes to register them */
 	bdr_max_workers = max_worker_processes + max_wal_senders;
 
@@ -106,7 +110,9 @@ bdr_worker_shmem_size()
 static void
 bdr_worker_shmem_init(void)
 {
+#if PG_VERSION_NUM < 150000
 	Assert(process_shared_preload_libraries_in_progress);
+#endif
 
 	/*
 	 * bdr_worker_shmem_init() only runs on first load, not on postmaster

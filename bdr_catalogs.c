@@ -38,6 +38,7 @@
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
+#include "catalog/pg_namespace.h"
 
 static int	getattno(const char *colname);
 static char *bdr_textarr_to_identliststr(ArrayType *textarray);
@@ -51,24 +52,23 @@ PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
 /* GetSysCacheOid equivalent that errors out if nothing is found */
 Oid
 GetSysCacheOidError(int cacheId,
+#if PG_VERSION_NUM >= 120000
+					AttrNumber oidcol,
+#endif
 					Datum key1,
 					Datum key2,
 					Datum key3,
 					Datum key4)
 {
-	HeapTuple	tuple;
 	Oid			result;
 
-	tuple = SearchSysCache(cacheId, key1, key2, key3, key4);
-	if (!HeapTupleIsValid(tuple))
+	result = BdrGetSysCacheOid(cacheId, oidcol, key1, key2, key3, key4);
+
+	if (result == InvalidOid)
 		elog(ERROR, "cache lookup failure in cache %d", cacheId);
-	result = HeapTupleGetOid(tuple);
-	ReleaseSysCache(tuple);
+
 	return result;
 }
-
-#define GetSysCacheOidError2(cacheId, key1, key2) \
-	GetSysCacheOidError(cacheId, key1, key2, 0, 0)
 
 /*
  * Get the bdr.bdr_nodes status value for the specified node from the local
@@ -101,7 +101,7 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 	 *
 	 * Check for a bdr schema.
 	 */
-	schema_oid = GetSysCacheOid1(NAMESPACENAME, CStringGetDatum("bdr"));
+	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("bdr"));
 	if (schema_oid == InvalidOid)
 		ereport(ERROR, (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						errmsg("No bdr schema is present in database %s, cannot create a bdr slot",
@@ -155,7 +155,7 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
-	rel = heap_openrv(rv, RowExclusiveLock);
+	rel = table_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key[0],
 				1,
@@ -214,7 +214,7 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	}
 
 	systable_endscan(scan);
-	heap_close(rel, RowExclusiveLock);
+	table_close(rel, RowExclusiveLock);
 
 	return nodeinfo;
 }
@@ -234,7 +234,7 @@ bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
 	bool		found = false;
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
-	rel = heap_openrv(rv, RowExclusiveLock);
+	rel = table_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key[0],
 				5,				/* node_name attno */
@@ -273,7 +273,7 @@ bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
 	}
 
 	systable_endscan(scan);
-	heap_close(rel, RowExclusiveLock);
+	table_close(rel, RowExclusiveLock);
 
 	return found;
 }
@@ -928,7 +928,7 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 {
 	Assert(ni != NULL);
 	ni->sysid = GetSystemIdentifier();
-	ni->timeline = ThisTimeLineID;
+	ni->timeline = GetTimeLineID();
 	ni->dboid = MyDatabaseId;
 
 	/*

@@ -1,0 +1,69 @@
+diff --git a/compat/15/pg_dump/pg_backup.h b/compat/15/pg_dump/pg_backup.h
+index fcc5f6b..5f33047 100644
+--- a/compat/15/pg_dump/pg_backup.h
++++ b/compat/15/pg_dump/pg_backup.h
+@@ -159,6 +159,7 @@ typedef struct _dumpOptions
+ 	ConnParams	cparams;
+ 
+ 	int			binary_upgrade;
++	int                     bdr_init_node;
+ 
+ 	/* various user-settable parameters */
+ 	bool		schemaOnly;
+diff --git a/compat/15/pg_dump/pg_dump.c b/compat/15/pg_dump/pg_dump.c
+index 17f84d2..717edbc 100644
+--- a/compat/15/pg_dump/pg_dump.c
++++ b/compat/15/pg_dump/pg_dump.c
+@@ -384,6 +384,7 @@ main(int argc, char **argv)
+ 		 */
+ 		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
+ 		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
++		{"bdr-init-node", no_argument, &dopt.bdr_init_node, 1},
+ 		{"column-inserts", no_argument, &dopt.column_inserts, 1},
+ 		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
+ 		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
+@@ -8757,6 +8758,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
+ {
+ 	if (dopt->binary_upgrade)
+ 		return true;
++	if (dopt->bdr_init_node)
++		return true;
+ 	if (tbinfo->attisdropped[colno])
+ 		return false;
+ 	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
+@@ -15717,6 +15720,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
+ 			}
+ 		}
+ 
++		/* Some of the binary compatibility is needed for bdr as well. */
++		if (dopt->bdr_init_node && tbinfo->relkind == RELKIND_RELATION)
++		{
++			for (j = 0; j < tbinfo->numatts; j++)
++			{
++				if (!tbinfo->attisdropped[j])
++					continue;
++
++				appendPQExpBufferStr(q, "\n-- For bdr init, recreate dropped column.\n");
++				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
++									 "SET attlen = %d, "
++									 "attalign = '%c', attbyval = false\n"
++									 "WHERE attname = ",
++									 tbinfo->attlen[j],
++									 tbinfo->attalign[j]);
++				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
++				appendPQExpBufferStr(q, "\n  AND attrelid = ");
++				appendStringLiteralAH(q, qualrelname, fout);
++				appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
++
++				if (tbinfo->relkind == RELKIND_RELATION ||
++					tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
++					appendPQExpBuffer(q, "ALTER TABLE ONLY %s ", qualrelname);
++				else
++					appendPQExpBuffer(q, "ALTER FOREIGN TABLE %s ", qualrelname);
++
++				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
++			}
++		}
+ 		/*
+ 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
+ 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes

@@ -37,13 +37,20 @@
 #define log_error4(str, param, arg1)	(fprintf(stderr, str, param, arg1), fputc('\n', stderr))
 #endif
 
+#if PG_VERSION_NUM < 140000
 /*
  * Start function taken from src/common/exec.c
  */
 
 static int	validate_exec(const char *path);
-static char *pipe_read_line(char *cmd, char *line, int maxsize);
+#endif
 
+
+#if PG_VERSION_NUM < 130000
+static char *pipe_read_line(char *cmd, char *line, int maxsize);
+#endif
+
+#if PG_VERSION_NUM < 140000
 /*
  * validate_exec -- validate "path" as an executable file
  *
@@ -96,7 +103,7 @@ validate_exec(const char *path)
 #endif
 	return is_x ? (is_r ? 0 : -2) : -1;
 }
-
+#endif
 
 /*
  * Find another program in our binary's directory,
@@ -149,7 +156,7 @@ bdr_find_other_exec(const char *argv0, const char *target,
 	return 0;
 }
 
-
+#if PG_VERSION_NUM < 130000
 /*
  * The runtime library's popen() on win32 does not work when being
  * called from a service when running on windows <= 2000, because
@@ -315,6 +322,7 @@ pipe_read_line(char *cmd, char *line, int maxsize)
 	return retval;
 #endif							/* WIN32 */
 }
+#endif
 
 /*
  * End function taken from src/common/exec.c

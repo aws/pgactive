@@ -10,21 +10,21 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
-my $tempdir = TestLib::tempdir;
+my $tempdir = PostgreSQL::Test::Utils::tempdir;
 
-my $node_a = get_new_node('node-a');
+my $node_a = PostgreSQL::Test::Cluster->new('node-a');
 initandstart_node($node_a, $bdr_test_dbname, extra_init_opts => { has_archiving => 1 });
 create_bdr_group($node_a);
 
 my $backup_name = 'a_back1';
-$node_a->backup_fs_hot($backup_name);
+$node_a->backup_fs_cold($backup_name);
 
-my $node_b = get_new_node('node-b');
+my $node_b = PostgreSQL::Test::Cluster->new('node-b');
 $node_b->init_from_backup(
 	$node_a, $backup_name,
 	has_streaming => 1,
@@ -40,7 +40,6 @@ $node_b->append_conf('postgresql.conf', "port = " . $node_b->port . "\n");
 $node_b->start;
 
 $node_b->safe_psql($bdr_test_dbname, 'SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots;');
-
 exec_ddl($node_a, q[CREATE TABLE public.initialdata (a integer);]);
 $node_a->safe_psql($bdr_test_dbname, q[INSERT INTO initialdata(a) VALUES (1);]);
 
@@ -49,12 +48,6 @@ $node_a->wait_for_catchup($node_b, 'replay', $node_a->lsn('insert'));
 $node_b->stop;
 
 $node_a->safe_psql($bdr_test_dbname, q[INSERT INTO initialdata(a) VALUES (2);]);
-
-ok(-e $node_b->data_dir . "/recovery.conf", "recovery.conf exists");
-
-# Write a deliberately bogus recovery target to recovery.conf to ensure that
-# bdr_init_copy's later entry overwrites it.
-$node_b->append_conf('recovery.conf', "recovery_target_name = 'bogus recovery target'\n");
 
 # We don't have to wait for the node to catch up, as bdr_init_copy will ensure
 # that happens for us, promoting it only once it's passed the replay position
@@ -103,9 +96,9 @@ my $bdr_version = $node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_version()
 note "BDR version $bdr_version";
 
 $node_a->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_b->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a');

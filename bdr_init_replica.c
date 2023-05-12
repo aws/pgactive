@@ -629,9 +629,10 @@ bdr_init_wait_for_slot_creation()
 {
 	List	   *configs;
 	ListCell   *lc;
+#if PG_VERSION_NUM < 130000
 	ListCell   *next,
-			   *prev;
-
+			   *prev = NULL;
+#endif
 	BDRNodeId	myid;
 
 	bdr_make_my_nodeid(&myid);
@@ -646,24 +647,36 @@ bdr_init_wait_for_slot_creation()
 	configs = bdr_read_connection_configs();
 
 	/* Cleanup the config list from the ones we are not insterested in. */
-	prev = NULL;
+#if PG_VERSION_NUM >= 130000
+	foreach(lc, configs)
+#else
 	for (lc = list_head(configs); lc; lc = next)
+#endif
 	{
 		BdrConnectionConfig *cfg = lfirst(lc);
 
 		/* We might delete the cell so advance it now. */
+#if PG_VERSION_NUM < 130000
 		next = lnext(lc);
-
+#endif
 		/*
 		 * We won't see an inbound slot from our own node.
 		 */
 		if (bdr_nodeid_eq(&cfg->remote_node, &myid))
 		{
+#if PG_VERSION_NUM >= 130000
+			configs = foreach_delete_current(configs, lc);
+#else
 			configs = list_delete_cell(configs, lc, prev);
+#endif
 			break;
 		}
 		else
+		{
+#if PG_VERSION_NUM < 130000
 			prev = lc;
+#endif
+		}
 	}
 
 	/*
@@ -928,9 +941,9 @@ bdr_init_standalone_node(BDRNodeInfo * local_node)
 	Assert(local_node->init_from_dsn == NULL);
 
 	StartTransactionCommand();
-	rel = heap_open(BdrNodesRelid, ExclusiveLock);
+	rel = table_open(BdrNodesRelid, ExclusiveLock);
 	bdr_nodes_set_local_attrs(BDR_NODE_STATUS_READY, BDR_NODE_STATUS_BEGINNING_INIT, &seq_id);
-	heap_close(rel, ExclusiveLock);
+	table_close(rel, ExclusiveLock);
 	CommitTransactionCommand();
 }
 
@@ -1016,6 +1029,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 			case BDR_NODE_STATUS_READY:
 				elog(ERROR, "unexpected state");
 
+				/* FALLTHROUGH */
 			case BDR_NODE_STATUS_CATCHUP:
 
 				/*

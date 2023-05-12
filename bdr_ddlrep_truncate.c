@@ -72,9 +72,9 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	Oid			fargtypes[1];	/* dummy, see 0a52d378 */
 
 	if (OidIsValid(relid))
-		rel = heap_open(relid, AccessExclusiveLock);
+		rel = table_open(relid, AccessExclusiveLock);
 	else
-		rel = heap_openrv(relrv, AccessExclusiveLock);
+		rel = table_openrv(relrv, AccessExclusiveLock);
 
 	funcname = list_make2(makeString("bdr"), makeString("queue_truncate"));
 
@@ -96,7 +96,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 
 			if (trigger->tgfoid == funcoid)
 			{
-				heap_close(rel, AccessExclusiveLock);
+				table_close(rel, AccessExclusiveLock);
 				return;
 			}
 
@@ -158,7 +158,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	/* We should also record that the trigger is part of the extension */
 	recordDependencyOnCurrentExtension(&tgaddr, false);
 
-	heap_close(rel, AccessExclusiveLock);
+	table_close(rel, AccessExclusiveLock);
 
 	/* Make the new trigger visible within this session */
 	CommandCounterIncrement();
@@ -172,12 +172,12 @@ Datum
 bdr_internal_create_truncate_trigger(PG_FUNCTION_ARGS)
 {
 	Oid			relid = PG_GETARG_OID(0);
-	Relation	rel = heap_open(relid, AccessExclusiveLock);
+	Relation	rel = table_open(relid, AccessExclusiveLock);
 	char	   *schemaname = get_namespace_name(RelationGetNamespace(rel));
 
 	bdr_create_truncate_trigger(schemaname, RelationGetRelationName(rel), relid);
 	pfree(schemaname);
-	heap_close(rel, AccessExclusiveLock);
+	table_close(rel, AccessExclusiveLock);
 	PG_RETURN_VOID();
 }
 
@@ -208,7 +208,7 @@ bdr_truncate_trigger_add(PG_FUNCTION_ARGS)
 
 	trigdata = (EventTriggerData *) fcinfo->context;
 
-	if (strcmp(trigdata->tag, "CREATE TABLE") == 0 &&
+	if (strcmp(GetCommandTagName(trigdata->tag), "CREATE TABLE") == 0 &&
 		IsA(trigdata->parsetree, CreateStmt))
 	{
 		CreateStmt *stmt = (CreateStmt *) trigdata->parsetree;
