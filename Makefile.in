@@ -14,7 +14,7 @@ bdr_top_builddir = .
 MODULE_big = bdr
 EXTENSION = bdr
 
-DATA = extsql/bdr--2.0.7.0.sql
+DATA = $(BDR_PGVERCOMPAT_INCDIR)/extsql/bdr--2.0.7.0.sql
 
 DOCS = README.bdr bdr.conf.sample
 
@@ -33,7 +33,7 @@ all: \
 	bdr_resetwal
 
 # When in development add -Werror
-PG_CPPFLAGS = -std=gnu89 -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
+PG_CPPFLAGS = -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
 SHLIB_LINK = $(libpq)
 
 OBJS = \
@@ -294,6 +294,10 @@ regresscheck: all install
 
 	mkdir -p results/ddl results/ddl_fn results/dml
 
+	cp -p compat/$(MAJORVERSION)/sql/ddl_fn/ddl_create.sql sql/ddl_fn/ddl_create.sql
+	cp -p compat/$(MAJORVERSION)/expected/*out expected/.
+	cp -p compat/$(MAJORVERSION)/expected/ddl_fn/* expected/ddl_fn/.
+
 	./run_tests --config $(bdr_abs_srcdir)/$(REGRESSCONFIG) \
 		--testbinary src/test/regress/pg_regress \
 		$(REGRESSCHECKS)
@@ -325,12 +329,22 @@ isolationcheck:
 #
 #   https://www.postgresql.org/message-id/CAMsr%2BYFXv%2B2qne6xJW7z_25mYBtktRX5rpkrgrb%2BDRgQ_FxgHQ@mail.gmail.com
 #
+ifeq "12" "$(word 1, $(sort 12 $(MAJORVERSION)))"
+$(pgxsdir)/src/test/perl/PostgresNode.pm:
+	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCan't run prove_installcheck, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
+
+prove_installcheck: $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm
+	rm -rf $(CURDIR)/tmp_check/
+	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),t/*.pl)
+
+else
 $(pgxsdir)/src/test/perl/PostgresNode.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgresNode.pm ] || ( echo -e "----ERROR----\nCan't run prove_installcheck, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_installcheck: $(pgxsdir)/src/test/perl/PostgresNode.pm
 	rm -rf $(CURDIR)/tmp_check/
-	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),t/*.pl)
+	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),compat/$(MAJORVERSION)/t/*.pl)
+endif
 
 .PHONY: prove_installcheck
 endif

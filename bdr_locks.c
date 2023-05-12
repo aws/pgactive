@@ -591,7 +591,7 @@ bdr_locks_startup(void)
 	 */
 	StartTransactionCommand();
 	snap = RegisterSnapshot(GetLatestSnapshot());
-	rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+	rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 	key = (ScanKey) palloc(sizeof(ScanKeyData) * 1);
 
@@ -674,7 +674,7 @@ bdr_locks_startup(void)
 
 	systable_endscan(scan);
 	UnregisterSnapshot(snap);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	CommitTransactionCommand();
 
@@ -1273,7 +1273,9 @@ cancel_conflicting_transactions(void)
 	while (conflict->backendId != InvalidBackendId)
 	{
 		PGPROC	   *pgproc = BackendIdGetProc(conflict->backendId);
+#if PG_VERSION_NUM < 140000
 		PGXACT	   *pgxact;
+#endif
 
 		if (pgproc == NULL)
 		{
@@ -1282,10 +1284,14 @@ cancel_conflicting_transactions(void)
 			continue;
 		}
 
+#if PG_VERSION_NUM < 140000
 		pgxact = &ProcGlobal->allPgXact[pgproc->pgprocno];
 
 		/* Skip the transactions that didn't do any writes. */
 		if (!TransactionIdIsValid(pgxact->xid))
+#else
+		if (!TransactionIdIsValid(pgproc->xid))
+#endif
 		{
 			conflict++;
 			continue;
@@ -1426,7 +1432,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 
 		memset(nulls, 0, sizeof(nulls));
 
-		rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+		rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 		values[0] = CStringGetTextDatum(lock_name);
 
@@ -1456,7 +1462,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			/* CatalogTupleUpdate(rel, &tup->t_self, tup); */
 			CatalogTupleInsert(rel, tup);
 			ForceSyncCommit();	/* async commit would be too complicated */
-			heap_close(rel, NoLock);
+			table_close(rel, NoLock);
 			CommitTransactionCommand();
 			(void) MemoryContextSwitchTo(old_ctx);
 		}
@@ -1558,7 +1564,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		 */
 		/* Scan for a matching lock whose state needs to be updated */
 		snap = RegisterSnapshot(GetLatestSnapshot());
-		rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+		rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 		scan = locks_begin_scan(rel, snap, &replay_node);
 
@@ -1592,7 +1598,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 
 		systable_endscan(scan);
 		UnregisterSnapshot(snap);
-		heap_close(rel, NoLock);
+		table_close(rel, NoLock);
 
 		CommitTransactionCommand();
 		(void) MemoryContextSwitchTo(old_ctx);
@@ -1784,7 +1790,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	 */
 	StartTransactionCommand();
 	snap = RegisterSnapshot(GetLatestSnapshot());
-	rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+	rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 	/* Find any bdr_locks entry for the releasing peer */
 	scan = locks_begin_scan(rel, snap, lock);
@@ -1813,7 +1819,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 
 	systable_endscan(scan);
 	UnregisterSnapshot(snap);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	/*
 	 * Note that it's not unexpected to receive release requests for locks
@@ -1854,7 +1860,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	latch = bdr_my_locks_database->requestor;
 
 	/* Ensure that if on disk and shmem state diverge we crash and recover */
-	START_CRIT_SECTION();
+	//START_CRIT_SECTION(); XXX does produce an Assert at mcxt.c:1075
 
 	CommitTransactionCommand();
 	(void) MemoryContextSwitchTo(old_ctx);
@@ -1868,7 +1874,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	bdr_my_locks_database->requestor = NULL;
 	/* XXX: recheck owner of lock */
 
-	END_CRIT_SECTION();
+	//END_CRIT_SECTION(); XXX
 
 	Assert(bdr_my_locks_database->lockcount == 0);
 	bdr_locks_on_unlock();
@@ -2048,7 +2054,7 @@ bdr_send_confirm_lock(void)
 	 */
 	/* Scan for a matching lock whose state needs to be updated */
 	snap = RegisterSnapshot(GetLatestSnapshot());
-	rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+	rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 	scan = locks_begin_scan(rel, snap, &replay);
 
@@ -2083,7 +2089,7 @@ bdr_send_confirm_lock(void)
 
 	systable_endscan(scan);
 	UnregisterSnapshot(snap);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 
 	CommitTransactionCommand();
 	(void) MemoryContextSwitchTo(old_ctx);
@@ -2175,7 +2181,7 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 	old_ctx = CurrentMemoryContext;
 	StartTransactionCommand();
 	snap = RegisterSnapshot(GetLatestSnapshot());
-	rel = heap_open(BdrLocksRelid, RowExclusiveLock);
+	rel = table_open(BdrLocksRelid, RowExclusiveLock);
 
 	scan = locks_begin_scan(rel, snap, node);
 
@@ -2208,7 +2214,7 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 
 	systable_endscan(scan);
 	UnregisterSnapshot(snap);
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 	/* Lock the shmem control segment for the state change */
 	LWLockAcquire(bdr_locks_ctl->lock, LW_EXCLUSIVE);
 	CommitTransactionCommand();

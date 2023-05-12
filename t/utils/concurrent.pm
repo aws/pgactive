@@ -11,8 +11,8 @@ use 5.8.0;
 use Exporter;
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement qw(
     :DEFAULT
@@ -134,7 +134,7 @@ sub concurrent_joins_logical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     # and verify
@@ -187,7 +187,7 @@ sub concurrent_joins_physical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -320,7 +320,7 @@ sub concurrent_join_part_logical {
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     # and verify
@@ -383,7 +383,7 @@ sub concurrent_join_part_physical {
     # wait for BDR to come up
     foreach my $node (@{$join_nodes}) {
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -452,7 +452,7 @@ sub concurrent_joins_logical_physical {
     foreach my $join_node (@join_nodes) {
         my $node = @{$join_node}[0];
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -471,12 +471,12 @@ sub concurrent_inserts {
     my ($upstream_node,$table_name,$inserts,@nodes) = @_;
     my @node_queries;
     $upstream_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $upstream_node->safe_psql($bdr_test_dbname,"TRUNCATE TABLE $table_name");
     foreach my $node (@nodes) {
         my $node_name = $node->name();
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
         my $insert_query = "INSERT INTO public.$table_name(node_name) SELECT '$node_name' FROM generate_series(1,$inserts)";
         push @node_queries, [$node, $insert_query];
     }

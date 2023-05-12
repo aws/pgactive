@@ -22,14 +22,14 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use threads;
 use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 my $upstream_node = $node_a;
 
@@ -39,7 +39,7 @@ create_table($node_a,$table_name);
 $node_a->safe_psql($bdr_test_dbname,"INSERT INTO $table_name VALUES(1),(2)");
 
 # Join a new node to first node using bdr_group_join
-my $node_b = get_new_node('node_b');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b,$node_a);
 
 #  bdr.bdr_replicate_ddl_command(...) disallows DML (INSERT/UPDATE/DELETE).

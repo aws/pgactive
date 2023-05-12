@@ -15,25 +15,25 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use threads;
 use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 my $upstream_node = $node_a;
 
 # Join a new node to first node using bdr_group_join and apply delay
-my $node_b = get_new_node('node_b');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 my $delay = 1000; # ms
 initandstart_node($node_b);
 bdr_logical_join( $node_b, $upstream_node,apply_delay=>$delay );
 check_join_status( $node_b,$upstream_node);
 
-my $node_c = get_new_node('node_c');
+my $node_c = PostgreSQL::Test::Cluster->new('node_c');
 initandstart_logicaljoin_node($node_c,$node_a);
 
 #

@@ -7,14 +7,14 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
 
 # Create an upstream node and bring up bdr
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 my ($ret, $stdout, $stderr);
 

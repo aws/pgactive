@@ -10,6 +10,7 @@
 #ifndef BDR_H
 #define BDR_H
 
+#include "miscadmin.h"
 #include "access/xlogdefs.h"
 #include "postmaster/bgworker.h"
 #include "replication/logical.h"
@@ -27,8 +28,8 @@
 #include "bdr_internal.h"
 
 #include "bdr_version.h"
-
-#include "pglogical_compat.h"
+#include "bdr_compat.h"
+#include "nodes/execnodes.h"
 
 /* Right now replication_name isn't used; make it easily found for later */
 #define EMPTY_REPLICATION_NAME ""
@@ -46,9 +47,6 @@
  */
 #define BDR_NODEID_FORMAT "("UINT64_FORMAT",%u,%u,%s)"
 #define BDR_NODEID_FORMAT_WITHNAME "%s ("UINT64_FORMAT",%u,%u,%s)"
-
-#define BDR_LOCALID_FORMAT_ARGS \
-	GetSystemIdentifier(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
 
 /*
  * For use with BDR_NODEID_FORMAT_WITHNAME, print our node id tuple and name.
@@ -103,6 +101,10 @@ struct TupleTableSlot;			/* from executor/tuptable.h */
 struct EState;					/* from nodes/execnodes.h */
 struct ScanKeyData;				/* from access/skey.h for ScanKey */
 enum LockTupleMode;				/* from access/heapam.h */
+
+#if PG_VERSION_NUM >= 150000
+extern shmem_request_hook_type prev_shmem_request_hook;
+#endif
 
 /*
  * Flags to indicate which fields are present in a begin record sent by the
@@ -477,12 +479,14 @@ extern bool bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId 
 extern RepOriginId bdr_fetch_node_id_via_sysid(const BDRNodeId * const node);
 
 /* Index maintenance, heap access, etc */
-extern struct EState *bdr_create_rel_estate(Relation rel);
+extern struct EState *bdr_create_rel_estate(Relation rel, ResultRelInfo *resultRelInfo);
 extern void UserTableUpdateIndexes(struct EState *estate,
-								   struct TupleTableSlot *slot);
+								   struct TupleTableSlot *slot,
+								   ResultRelInfo *relinfo);
 extern void UserTableUpdateOpenIndexes(struct EState *estate,
-									   struct TupleTableSlot *slot);
-extern void build_index_scan_keys(struct EState *estate,
+									   struct TupleTableSlot *slot,
+									   ResultRelInfo *relinfo, bool update);
+extern void build_index_scan_keys(ResultRelInfo *relinfo,
 								  struct ScanKeyData **scan_keys,
 								  BDRTupleData * tup);
 extern bool build_index_scan_key(struct ScanKeyData *skey, Relation rel,
@@ -593,7 +597,7 @@ extern void bdr_finish_truncate(void);
 
 extern void bdr_capture_ddl(Node *parsetree, const char *queryString,
 							ProcessUtilityContext context, ParamListInfo params,
-							DestReceiver *dest, const char *completionTag);
+							DestReceiver *dest, CommandTag completionTag);
 
 extern void bdr_locks_shmem_init(void);
 extern void bdr_locks_check_dml(void);
@@ -635,13 +639,14 @@ extern List *bdr_read_connection_configs(void);
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok);
 
-extern Oid	GetSysCacheOidError(int cacheId, Datum key1, Datum key2, Datum key3,
+extern Oid	GetSysCacheOidError(int cacheId,
+#if PG_VERSION_NUM >= 120000
+								AttrNumber oidcol,
+#endif
+								Datum key1, Datum key2, Datum key3,
 								Datum key4);
 
 extern bool bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * out_nodeid);
-
-#define GetSysCacheOidError2(cacheId, key1, key2) \
-	GetSysCacheOidError(cacheId, key1, key2, 0, 0)
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -688,9 +693,9 @@ extern PGconn *bdr_connect_nonrepl(const char *connstring,
 /* Helper for PG_ENSURE_ERROR_CLEANUP to close a PGconn */
 extern void bdr_cleanup_conn_close(int code, Datum offset);
 
-/* use instead of heap_open()/heap_close() */
-extern BDRRelation * bdr_heap_open(Oid reloid, LOCKMODE lockmode);
-extern void bdr_heap_close(BDRRelation * rel, LOCKMODE lockmode);
+/* use instead of table_open()/table_close() */
+extern BDRRelation * bdr_table_open(Oid reloid, LOCKMODE lockmode);
+extern void bdr_table_close(BDRRelation * rel, LOCKMODE lockmode);
 extern void bdr_heap_compute_replication_settings(
 												  BDRRelation * rel,
 												  int num_replication_sets,

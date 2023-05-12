@@ -2,9 +2,9 @@
 use strict;
 use warnings;
 use lib 't/';
-use PostgresNode;
+use PostgreSQL::Test::Cluster;
 use Test::More;
-use TestLib;
+use PostgreSQL::Test::Utils;
 require 'common/bdr_global_sequence.pl';
 
 # This executes all the global sequence related tests

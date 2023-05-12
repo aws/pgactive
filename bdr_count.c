@@ -121,7 +121,9 @@ bdr_count_shmem_size(void)
 void
 bdr_count_shmem_init(int nnodes)
 {
+#if PG_VERSION_NUM < 150000
 	Assert(process_shared_preload_libraries_in_progress);
+#endif
 
 	Assert(nnodes >= 0);
 	bdr_count_nnodes = (Size) nnodes;

@@ -235,7 +235,7 @@ bdr_supervisor_rescan_dbs()
 	 * read it. Otherwise a race between the supervisor latch being set in a
 	 * commit hook and the tuples actually becoming visible is possible.
 	 */
-	secrel = heap_open(SharedSecLabelRelationId, RowShareLock);
+	secrel = table_open(SharedSecLabelRelationId, RowShareLock);
 
 	ScanKeyInit(&skey[0],
 				Anum_pg_shseclabel_classoid,
@@ -326,7 +326,7 @@ bdr_supervisor_rescan_dbs()
 	LWLockRelease(BdrWorkerCtl->lock);
 
 	systable_endscan(scan);
-	heap_close(secrel, RowShareLock);
+	table_close(secrel, RowShareLock);
 
 	CommitTransactionCommand();
 
@@ -537,7 +537,11 @@ bdr_supervisor_worker_main(Datum main_arg)
 	}
 
 	BackgroundWorkerInitializeConnection(BDR_SUPERVISOR_DBNAME, NULL, 0);
-	Assert(ThisTimeLineID > 0);
+#if PG_VERSION_NUM >= 150000
+	Assert(GetTimeLineID() >= 0);
+#else
+	Assert(GetTimeLineID() > 0);
+#endif
 
 	MyProcPort->database_name = BDR_SUPERVISOR_DBNAME;
 

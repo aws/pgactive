@@ -92,6 +92,10 @@ char	   *bdr_extra_apply_connection_options;
 
 PG_MODULE_MAGIC;
 
+#if PG_VERSION_NUM >= 150000
+shmem_request_hook_type prev_shmem_request_hook = NULL;
+#endif
+
 void		_PG_init(void);
 
 PGDLLEXPORT Datum bdr_apply_pause(PG_FUNCTION_ARGS);
@@ -450,7 +454,11 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 
 	/* Connect to our database */
 	BackgroundWorkerInitializeConnection(dbname, NULL, 0);
-	Assert(ThisTimeLineID > 0);
+#if PG_VERSION_NUM >= 150000
+	Assert(GetTimeLineID() >= 0);
+#else
+	Assert(GetTimeLineID() > 0);
+#endif
 
 	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext, dbname);
 
@@ -912,7 +920,12 @@ _PG_init(void)
 		 * Reserve shared memory segment to store bgworker connection
 		 * information and hook into shmem initialization.
 		 */
+#if PG_VERSION_NUM >= 150000
+		prev_shmem_request_hook = shmem_request_hook;
+		shmem_request_hook = bdr_shmem_init;
+#else
 		bdr_shmem_init();
+#endif
 
 		bdr_executor_init();
 
@@ -963,7 +976,7 @@ bdr_maintain_schema(bool update_extensions)
 					  true, 0, false);
 
 	/* make sure we're operating without other bdr workers interfering */
-	extrel = heap_open(ExtensionRelationId, ShareUpdateExclusiveLock);
+	extrel = table_open(ExtensionRelationId, ShareUpdateExclusiveLock);
 
 	btree_gist_oid = get_extension_oid("btree_gist", true);
 	bdr_oid = get_extension_oid("bdr", true);
@@ -989,7 +1002,7 @@ bdr_maintain_schema(bool update_extensions)
 		ExecAlterExtensionStmt(NULL, &alter_stmt);
 	}
 
-	heap_close(extrel, NoLock);
+	table_close(extrel, NoLock);
 
 	/* setup initial queued_cmds OID */
 	schema_oid = get_namespace_oid("bdr", false);
@@ -1437,7 +1450,11 @@ bdr_terminate_workers_byid(const BDRNodeId * const node, BdrWorkerType worker_ty
 	 * recycling no matter what we do and it's no worse whether or not we go
 	 * via pg_terminate_backend.
 	 */
+#if PG_VERSION_NUM >= 140000
+	return DatumGetBool(DirectFunctionCall2(pg_terminate_backend, Int32GetDatum(pid), Int64GetDatum(0)));
+#else
 	return DatumGetBool(DirectFunctionCall1(pg_terminate_backend, Int32GetDatum(pid)));
+#endif
 }
 
 Datum

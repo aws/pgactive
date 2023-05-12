@@ -8,8 +8,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use IPC::Run qw(timeout);;
 use Test::More;
 use utils::nodemanagement qw(
@@ -43,7 +43,7 @@ $offline_node->stop;
 # inbound.
 
 my $new_node_name = 'new_logical_join_node';
-my $new_node = get_new_node($new_node_name);
+my $new_node = PostgreSQL::Test::Cluster->new($new_node_name);
 initandstart_node($new_node);
 my $join_query = generate_bdr_logical_join_query($new_node, $node_0);
 # The join query will always complete immediately, we need to look at the
@@ -54,7 +54,7 @@ $new_node->safe_psql($bdr_test_dbname, $join_query);
 
 # We should never become ready since we'll be stuck at catchup
 $new_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)],
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Logical node join timed out while node down');
 
@@ -66,7 +66,7 @@ is($new_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes
 # If we bring the offline node back online, join should be able to proceed
 $offline_node->start;
 is($new_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]), 0,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
     'join succeeded once offline node came back');
 foreach my $node (@{$nodes}) {
     check_join_status($new_node, $node);
@@ -87,7 +87,7 @@ $offline_node->stop;
 
 # TODO: do some work on offline node here
 
-my $new_physical_join_node = get_new_node('new_physical_join_node');
+my $new_physical_join_node = PostgreSQL::Test::Cluster->new('new_physical_join_node');
 my $new_conf_file = copy_transform_postgresqlconf( $new_physical_join_node, $node_0 );
 my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
 my $handle = start_bdr_init_copy($new_physical_join_node, $node_0, $new_conf_file,[$timeout]);
@@ -95,7 +95,7 @@ ok($handle->finish, 'bdr_init_copy finished without error');
 
 $timedout = 0;
 $new_physical_join_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)],
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Physical node join timed out while node down');
 
@@ -113,7 +113,7 @@ is($new_physical_join_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM
 $offline_node->start;
 
 is($new_physical_join_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]), 0,
+	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
     'physical join succeeded once offline node came back');
 
 foreach my $node (@{$nodes}) {

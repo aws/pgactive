@@ -5,8 +5,8 @@
 use strict;
 use warnings;
 use lib "t/";
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 require 'common/bdr_part_join.pl';
 
