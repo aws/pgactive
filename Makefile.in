@@ -14,7 +14,11 @@ bdr_top_builddir = .
 MODULE_big = bdr
 EXTENSION = bdr
 
+ifeq ($(BDR_PG_MAJORVERSION),11)
 DATA = $(BDR_PGVERCOMPAT_INCDIR)/extsql/bdr--2.0.7.0.sql
+else
+DATA = extsql/bdr--2.0.7.0.sql
+endif
 
 DOCS = README.bdr bdr.conf.sample
 
