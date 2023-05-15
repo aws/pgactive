@@ -229,7 +229,7 @@ CREATE TABLE bdr.bdr_conflict_handlers (
     ch_fun regprocedure NOT NULL,
     ch_timeframe INTERVAL,
     PRIMARY KEY(ch_reloid, ch_name)
-) WITH OIDS;
+);
 REVOKE ALL ON TABLE bdr_conflict_handlers FROM PUBLIC;
 SELECT pg_catalog.pg_extension_config_dump('bdr_conflict_handlers', '');
 
