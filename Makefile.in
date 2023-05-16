@@ -347,7 +347,24 @@ $(pgxsdir)/src/test/perl/PostgresNode.pm:
 
 prove_installcheck: $(pgxsdir)/src/test/perl/PostgresNode.pm
 	rm -rf $(CURDIR)/tmp_check/
-	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),compat/$(MAJORVERSION)/t/*.pl)
+
+	rm -rf $(CURDIR)/tmp_tap_tests/
+	mkdir $(CURDIR)/tmp_tap_tests/
+	cp -r t/ $(CURDIR)/tmp_tap_tests/
+
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/*.pl
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/*.pl
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/*.pl
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+
+	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),tmp_tap_tests/t/*.pl)
 endif
 
 .PHONY: prove_installcheck
