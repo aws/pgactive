@@ -14,11 +14,7 @@ bdr_top_builddir = .
 MODULE_big = bdr
 EXTENSION = bdr
 
-ifeq ($(BDR_PG_MAJORVERSION),11)
-DATA = $(BDR_PGVERCOMPAT_INCDIR)/extsql/bdr--2.0.7.0.sql
-else
 DATA = extsql/bdr--2.0.7.0.sql
-endif
 
 DOCS = README.bdr bdr.conf.sample
 
@@ -219,7 +215,7 @@ additional-clean:
 	rm -f bdr_init_copy$(X) bdr_init_copy.o
 	rm -f bdr_version.h
 	rm -f .distgitrev
-	rm -rf tmp_check results log
+	rm -rf tmp_check results log tmp_tap_tests
 	rm -f  regression.diffs regression.out bdr_init_copy_postgres.log
 	rm -rf home tmp_test_*
 	rm -rf scripts/bdr_initial_load
@@ -298,10 +294,6 @@ regresscheck: all install
 
 	mkdir -p results/ddl results/ddl_fn results/dml
 
-	cp -p compat/$(MAJORVERSION)/sql/ddl_fn/ddl_create.sql sql/ddl_fn/ddl_create.sql
-	cp -p compat/$(MAJORVERSION)/expected/*out expected/.
-	cp -p compat/$(MAJORVERSION)/expected/ddl_fn/* expected/ddl_fn/.
-
 	./run_tests --config $(bdr_abs_srcdir)/$(REGRESSCONFIG) \
 		--testbinary src/test/regress/pg_regress \
 		$(REGRESSCHECKS)
@@ -326,15 +318,15 @@ isolationcheck:
 #
 # To run prove, we need to install a couple of things that are not
 # usually coped from the Pg source tree to the install tree, namely
-# all of src/test/perl needs to be copied to lib/postgresql/pgxs/src/test/perl/PostgresNode.pm .
+# all of src/test/perl needs to be copied to lib/postgresql/pgxs/src/test/perl/.
 #
 # This isn't done by Pg's install command, which doesn't know how to install them. So you'll have
 # to copy them manually or patch your postgres tree to install them:
 #
 #   https://www.postgresql.org/message-id/CAMsr%2BYFXv%2B2qne6xJW7z_25mYBtktRX5rpkrgrb%2BDRgQ_FxgHQ@mail.gmail.com
 #
-ifeq "12" "$(word 1, $(sort 12 $(MAJORVERSION)))"
-$(pgxsdir)/src/test/perl/PostgresNode.pm:
+ifeq ($(shell test $(MAJORVERSION) -ge 15; echo $$?),0)
+$(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCan't run prove_installcheck, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_installcheck: $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm
@@ -352,19 +344,30 @@ prove_installcheck: $(pgxsdir)/src/test/perl/PostgresNode.pm
 	mkdir $(CURDIR)/tmp_tap_tests/
 	cp -r t/ $(CURDIR)/tmp_tap_tests/
 
+#   Instead of maintaining multiple versions of TAP test files, we generate
+#   test files for PG versions less than 15 with simple sed commands.
+
 	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/*.pl
 	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
 	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
-
 	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/*.pl
 	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
 	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+
+ #	The above set of sed commands will bring all the TAP tests prior to
+ #  https://git.postgresql.org/gitweb/?p=postgresql.git;a=commitdiff;h=b3b4d8e68ae83f432f43f035c7eb481ef93e1583
 
 	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/*.pl
 	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
 	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
 
+ #	The above set of sed commands will bring all the TAP tests prior to
+ #  https://git.postgresql.org/gitweb/?p=postgresql.git;a=commitdiff;h=201a76183e2056c2217129e12d68c25ec9c559c8
+
+ #	Now, we are ready with TAP tests for PG versions less than 15.
 	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),tmp_tap_tests/t/*.pl)
+
+	rm -rf $(CURDIR)/tmp_tap_tests/
 endif
 
 .PHONY: prove_installcheck

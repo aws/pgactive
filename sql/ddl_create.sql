@@ -300,12 +300,12 @@ CREATE OPERATOR ## (
 
 CREATE OPERATOR @#@ (
    rightarg = int8,		-- left unary
-   procedure = numeric_fac
+   procedure = factorial
 );
 
 CREATE OPERATOR #@# (
    leftarg = int8,		-- right unary
-   procedure = numeric_fac
+   procedure = factorial
 );
 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);

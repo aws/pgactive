@@ -36,6 +36,7 @@ lib*.pc
 /log/
 /results/
 /tmp_check/
+/tmp_tap_tests/
 /tmp_test_*
 /home
 *~
