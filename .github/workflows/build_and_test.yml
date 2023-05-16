@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        version: [REL_11_STABLE]
+        version: [REL_15_STABLE, REL_11_STABLE]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
 
