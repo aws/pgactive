@@ -1779,6 +1779,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	bool		found = false;
 	Latch	   *latch;
 	MemoryContext old_ctx = CurrentMemoryContext;
+	MemoryContext cs_mem_ctx;
 
 	/* FIXME: check db */
 
@@ -1859,11 +1860,24 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 
 	latch = bdr_my_locks_database->requestor;
 
+	/*
+	 * We allow memory allocations in the following critical section for
+	 * the sake of CommitTransactionCommand(), so, keep track of the memory
+	 * context in which we did so. This is needed to correctly reset
+	 * allowInCritSection flag as CommitTransactionCommand() changes the
+	 * memory context.
+	 */
+	cs_mem_ctx = CurrentMemoryContext;
+	MemoryContextAllowInCriticalSection(CurrentMemoryContext, true);
+
 	/* Ensure that if on disk and shmem state diverge we crash and recover */
-	//START_CRIT_SECTION(); XXX does produce an Assert at mcxt.c:1075
+	START_CRIT_SECTION();
 
 	CommitTransactionCommand();
-	(void) MemoryContextSwitchTo(old_ctx);
+
+	/* Let's reset allowInCritSection correctly */
+	MemoryContextAllowInCriticalSection(cs_mem_ctx, false);
+	MemoryContextSwitchTo(old_ctx);
 
 	Assert(bdr_my_locks_database->lock_state == BDR_LOCKSTATE_NOLOCK);
 	bdr_my_locks_database->lockcount--;
@@ -1874,7 +1888,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	bdr_my_locks_database->requestor = NULL;
 	/* XXX: recheck owner of lock */
 
-	//END_CRIT_SECTION(); XXX
+	END_CRIT_SECTION();
 
 	Assert(bdr_my_locks_database->lockcount == 0);
 	bdr_locks_on_unlock();
