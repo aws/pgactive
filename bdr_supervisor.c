@@ -537,11 +537,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 	}
 
 	BackgroundWorkerInitializeConnection(BDR_SUPERVISOR_DBNAME, NULL, 0);
-#if PG_VERSION_NUM >= 150000
-	Assert(GetTimeLineID() >= 0);
-#else
-	Assert(GetTimeLineID() > 0);
-#endif
+	Assert(ThisTimeLineID > 0);
 
 	MyProcPort->database_name = BDR_SUPERVISOR_DBNAME;
 

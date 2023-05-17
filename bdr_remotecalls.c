@@ -43,7 +43,6 @@
 
 #include "utils/builtins.h"
 #include "utils/pg_lsn.h"
-#include "utils/syscache.h"
 
 PGDLLEXPORT Datum bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_test_replication_connection(PG_FUNCTION_ARGS);

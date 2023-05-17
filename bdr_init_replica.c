@@ -56,7 +56,6 @@
 #include "utils/memutils.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 #include "pgstat.h"
 
 
@@ -1028,8 +1027,8 @@ bdr_init_replica(BDRNodeInfo * local_node)
 
 			case BDR_NODE_STATUS_READY:
 				elog(ERROR, "unexpected state");
+				break;
 
-				/* FALLTHROUGH */
 			case BDR_NODE_STATUS_CATCHUP:
 
 				/*

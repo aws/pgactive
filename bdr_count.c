@@ -31,7 +31,6 @@
 #include "storage/spin.h"
 
 #include "utils/builtins.h"
-#include "utils/syscache.h"
 
 /*
  * Statistics about logical replication
@@ -121,7 +120,9 @@ bdr_count_shmem_size(void)
 void
 bdr_count_shmem_init(int nnodes)
 {
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM >= 150000
+	Assert(process_shmem_requests_in_progress);
+#else
 	Assert(process_shared_preload_libraries_in_progress);
 #endif
 

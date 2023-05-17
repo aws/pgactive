@@ -48,6 +48,13 @@
 #define BDR_NODEID_FORMAT "("UINT64_FORMAT",%u,%u,%s)"
 #define BDR_NODEID_FORMAT_WITHNAME "%s ("UINT64_FORMAT",%u,%u,%s)"
 
+#if PG_VERSION_NUM >= 150000
+#define ThisTimeLineID	GetWALInsertionTimeLine()
+#endif
+
+#define BDR_LOCALID_FORMAT_ARGS \
+	GetSystemIdentifier(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
+
 /*
  * For use with BDR_NODEID_FORMAT_WITHNAME, print our node id tuple and name.
  * The node name used is stored in the bdr nodecache and is accessible outside
@@ -638,13 +645,6 @@ extern List *bdr_read_connection_configs(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok);
-
-extern Oid	GetSysCacheOidError(int cacheId,
-#if PG_VERSION_NUM >= 120000
-								AttrNumber oidcol,
-#endif
-								Datum key1, Datum key2, Datum key3,
-								Datum key4);
 
 extern bool bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * out_nodeid);
 

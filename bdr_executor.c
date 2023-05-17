@@ -40,7 +40,6 @@
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
-#include "utils/syscache.h"
 
 static void BdrExecutorStart(QueryDesc *queryDesc, int eflags);
 CommandTag CreateWritableStmtTag(PlannedStmt *plannedstmt);
@@ -83,9 +82,9 @@ UserTableUpdateIndexes(EState *estate, TupleTableSlot *slot, ResultRelInfo *reli
 	ExecCloseIndices(relinfo);
 }
 
-//XXX need to review the callers to check the value of update
 void
-UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot, ResultRelInfo *relinfo, bool update)
+UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
+						   ResultRelInfo *relinfo, bool update)
 {
 	List	   *recheckIndexes = NIL;
 

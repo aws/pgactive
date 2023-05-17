@@ -190,7 +190,7 @@ main(int argc, char **argv)
 			   *remote_dbuser = NULL;
 	char	   *postgresql_conf = NULL,
 			   *pg_hba_conf = NULL;
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 120000
 	char	   *recovery_conf = NULL;
 #endif
 	char	   *replication_sets = NULL;
@@ -216,7 +216,7 @@ main(int argc, char **argv)
 		{"log-file", required_argument, NULL, 'l'},
 		{"postgresql-conf", required_argument, NULL, 6},
 		{"hba-conf", required_argument, NULL, 7},
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 120000
 		{"recovery-conf", required_argument, NULL, 8},
 		{"replication-sets", required_argument, NULL, 9},
 #else
@@ -310,7 +310,7 @@ main(int argc, char **argv)
 						die(_("The specified pg_hba.conf file does not exist."));
 					break;
 				}
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 120000
 			case 8:
 				{
 					recovery_conf = pg_strdup(optarg);
@@ -489,16 +489,19 @@ main(int argc, char **argv)
 	print_msg(VERBOSITY_NORMAL,
 			  _("Bringing local node to the restore point ...\n"));
 
+#if PG_VERSION_NUM >= 120000
+	appendPQExpBuffer(recoveryconfcontents, "primary_conninfo = '%s'\n",
+					  escape_single_quotes_ascii(remote_connstr));
+#else
 	if (!path_file_exists(data_dir, "recovery.conf"))
 	{
-#if PG_VERSION_NUM < 150000
 		appendPQExpBuffer(recoveryconfcontents, "standby_mode = 'on'\n");
-#endif
 		appendPQExpBuffer(recoveryconfcontents, "primary_conninfo = '%s'\n",
 						  escape_single_quotes_ascii(remote_connstr));
 	}
 	else
 		printf(_("updating recovery target in existing recovery.conf\n"));
+#endif
 
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_name = '%s'\n", restore_point_name);
 	appendPQExpBuffer(recoveryconfcontents, "recovery_target_inclusive = true\n");
@@ -665,7 +668,7 @@ usage(void)
 	printf(_("\nConfiguration files override:\n"));
 	printf(_("  --hba-conf              path to the new pg_hba.conf\n"));
 	printf(_("  --postgresql-conf       path to the new postgresql.conf\n"));
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 120000
 	printf(_("  --recovery-conf         path to the template recovery.conf\n"));
 #endif
 	printf(_("\nConnection options:\n"));
@@ -1575,15 +1578,10 @@ WriteConfFile(PQExpBuffer contents)
 	char		filename[MAXPGPATH];
 	FILE	   *cf;
 
-#if PG_VERSION_NUM < 150000
-	sprintf(filename, "%s/recovery.conf", data_dir);
+#if PG_VERSION_NUM >= 120000
+	snprintf(filename, MAXPGPATH, "%s/postgresql.conf", data_dir);
 #else
-	FILE	   *sf;
-	char		standbyfilename[MAXPGPATH];
-	sprintf(filename, "%s/postgresql.conf", data_dir);
-	sprintf(standbyfilename, "%s/standby.signal", data_dir);
-	sf = fopen(standbyfilename, "a");
-	fclose(sf);
+	snprintf(filename, MAXPGPATH, "%s/recovery.conf", data_dir);
 #endif
 
 	cf = fopen(filename, "a");
@@ -1599,6 +1597,16 @@ WriteConfFile(PQExpBuffer contents)
 	}
 
 	fclose(cf);
+
+#if PG_VERSION_NUM >= 120000
+	snprintf(filename, MAXPGPATH, "%s/standby.signal", data_dir);
+	cf = fopen(filename, "w");
+	if (cf == NULL)
+	{
+		die(_("%s: could not create file \"%s\": %s\n"), progname, filename, strerror(errno));
+	}
+	fclose(cf);
+#endif
 }
 
 /*

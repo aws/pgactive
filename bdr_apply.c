@@ -63,7 +63,6 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 
 /* Useful for development:
 #define VERBOSE_INSERT
@@ -837,7 +836,7 @@ process_remote_insert(StringInfo s)
 #else
 		simple_heap_insert(rel->rel, TTS_TUP(newslot));
 #endif
-		UserTableUpdateOpenIndexes(estate, newslot, relinfo ,false);
+		UserTableUpdateOpenIndexes(estate, newslot, relinfo, false);
 		bdr_count_insert();
 	}
 

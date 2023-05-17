@@ -25,14 +25,7 @@
 
 #include "utils/catcache.h"
 #include "utils/inval.h"
-#if PG_VERSION_NUM >= 130000
-#include "common/jsonapi.h"
-#else
-#include "utils/jsonapi.h"
-#endif
-#include "utils/json.h"
 #include "utils/jsonb.h"
-#include "utils/syscache.h"
 #include "utils/builtins.h"
 
 /* Cache entry. */

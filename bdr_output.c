@@ -62,7 +62,6 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 #include "utils/timestamp.h"
 #include "utils/typcache.h"
 #include "utils/varlena.h"
@@ -145,11 +144,7 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 	cb->message_cb = pg_decode_message;
 	cb->shutdown_cb = pg_decode_shutdown;
 
-#if PG_VERSION_NUM >= 150000
-	Assert(GetTimeLineID() >= 0);
-#else
-	Assert(GetTimeLineID() > 0);
-#endif
+	Assert(ThisTimeLineID > 0);
 }
 
 /* Ensure a bdr_parse_... arg is non-null */
@@ -877,8 +872,20 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	MemoryContext old;
 	BDRRelation *bdr_relation;
 
-	/* RowExclusiveLock to avoid Assert on src/backend/access/common/relation.c:68 */
-	bdr_relation = bdr_table_open(RelationGetRelid(relation), RowExclusiveLock);
+#ifdef USE_ASSERT_CHECKING
+	/*
+	 * NB: We take a lock to avoid assertion failure in relation_open(). We
+	 * don't take any lock in non-assert builds. Well, this might sound like a
+	 * hack. But, acquiring lock for every decoded change might prove costly on
+	 * production builds. In the worst case, it may happen that somebody can
+	 * add the relation to a replication set while we are reading it here
+	 * without any lock, and our should_forward_change() check can miss it.
+	 * That is less of a concern than acquiring lock for every decoded change.
+	 */
+	bdr_relation = bdr_table_open(RelationGetRelid(relation), AccessShareLock);
+#else
+	bdr_relation = bdr_table_open(RelationGetRelid(relation), NoLock);
+#endif
 
 	data = ctx->output_plugin_private;
 
