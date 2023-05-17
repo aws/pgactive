@@ -70,11 +70,7 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 	queuedcmds = table_openrv(rv, RowExclusiveLock);
 	slot = MakeSingleTupleTableSlot(RelationGetDescr(queuedcmds));
 	estate = bdr_create_rel_estate(queuedcmds, relinfo);
-
-#if PG_VERSION_NUM >= 140000
-	//XXX is it needed?
-	InitResultRelInfo(relinfo, queuedcmds, 1, NULL, 0);
-#else
+#if PG_VERSION_NUM < 140000
 	relinfo = estate->es_result_relation_info;
 #endif
 

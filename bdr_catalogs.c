@@ -37,7 +37,6 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 #include "catalog/pg_namespace.h"
 
 static int	getattno(const char *colname);
@@ -48,27 +47,6 @@ Datum		bdr_node_status_from_char(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_node_status_to_char);
 PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
-
-/* GetSysCacheOid equivalent that errors out if nothing is found */
-Oid
-GetSysCacheOidError(int cacheId,
-#if PG_VERSION_NUM >= 120000
-					AttrNumber oidcol,
-#endif
-					Datum key1,
-					Datum key2,
-					Datum key3,
-					Datum key4)
-{
-	Oid			result;
-
-	result = BdrGetSysCacheOid(cacheId, oidcol, key1, key2, key3, key4);
-
-	if (result == InvalidOid)
-		elog(ERROR, "cache lookup failure in cache %d", cacheId);
-
-	return result;
-}
 
 /*
  * Get the bdr.bdr_nodes status value for the specified node from the local
@@ -928,7 +906,7 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 {
 	Assert(ni != NULL);
 	ni->sysid = GetSystemIdentifier();
-	ni->timeline = GetTimeLineID();
+	ni->timeline = ThisTimeLineID;
 	ni->dboid = MyDatabaseId;
 
 	/*

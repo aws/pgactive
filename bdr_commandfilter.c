@@ -44,7 +44,6 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
-#include "utils/syscache.h"
 
 /*
 * bdr_commandfilter.c: a ProcessUtility_hook to prevent a cluster from running
@@ -126,7 +125,6 @@ ispermanent(const char persistence)
 	return persistence == RELPERSISTENCE_PERMANENT;
 }
 
-//XXX completionTag looks not needed
 static void
 filter_CreateStmt(Node *parsetree,
 				  const char *completionTag)
@@ -183,7 +181,6 @@ filter_CreateStmt(Node *parsetree,
 	}
 }
 
-//XXX completionTag looks not needed
 static void
 filter_AlterTableStmt(Node *parsetree,
 					  const char *completionTag,
@@ -218,7 +215,7 @@ filter_AlterTableStmt(Node *parsetree,
 	lockmode = ShareUpdateExclusiveLock;
 	relid = AlterTableLookupRelation(astmt, lockmode);
 
-	// XXX need to take care of beforeStmts and afterStmts?
+	/* XXX Do we need to take care of beforeStmts and afterStmts? */
 	stmts = transformAlterTableStmtBdr(relid, astmt, queryString);
 
 #if PG_VERSION_NUM >= 150000
@@ -226,12 +223,12 @@ filter_AlterTableStmt(Node *parsetree,
 	{
 		AlterTableCmd *stmt;
 		Node       *node = (Node *) lfirst(cell1);
-		/*
-		 * we ignore all nodes which are not AlterTableCmd statements since
-		 * the standard utility hook will recurse and thus call our handler
-		 * again
-		 */
 
+		/*
+		 * We ignore all nodes which are not AlterTableCmd statements since
+		 * the standard utility hook will recurse and thus call our handler
+		 * again.
+		 */
 		if (!IsA(node, AlterTableCmd))
 			continue;
 
@@ -243,9 +240,9 @@ filter_AlterTableStmt(Node *parsetree,
 		AlterTableStmt *at_stmt;
 
 		/*
-		 * we ignore all nodes which are not AlterTableCmd statements since
+		 * We ignore all nodes which are not AlterTableCmd statements since
 		 * the standard utility hook will recurse and thus call our handler
-		 * again
+		 * again.
 		 */
 		if (!IsA(node, AlterTableStmt))
 			continue;
@@ -256,8 +253,6 @@ filter_AlterTableStmt(Node *parsetree,
 		{
 			AlterTableCmd *stmt = (AlterTableCmd *) lfirst(cell1);
 #endif
-
-		// XXX need to check if there is more > 11
 
 			switch (stmt->subtype)
 			{

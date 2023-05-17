@@ -110,7 +110,9 @@ bdr_worker_shmem_size()
 static void
 bdr_worker_shmem_init(void)
 {
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM >= 150000
+	Assert(process_shmem_requests_in_progress);
+#else
 	Assert(process_shared_preload_libraries_in_progress);
 #endif
 

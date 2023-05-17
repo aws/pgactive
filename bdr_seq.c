@@ -40,7 +40,6 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 
 #include "storage/bufmgr.h"
 #include "storage/ipc.h"
@@ -466,7 +465,11 @@ bdr_sequencer_shmem_startup(void)
 void
 bdr_sequencer_shmem_init(int sequencers)
 {
+#if PG_VERSION_NUM >= 150000
+	Assert(process_shmem_requests_in_progress);
+#else
 	Assert(process_shared_preload_libraries_in_progress);
+#endif
 
 	bdr_seq_nsequencers = sequencers;
 

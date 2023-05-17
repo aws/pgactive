@@ -59,7 +59,6 @@
 #include "utils/memutils.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 #include "utils/timestamp.h"
 
 #define MAXCONNINFO		1024
@@ -454,11 +453,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 
 	/* Connect to our database */
 	BackgroundWorkerInitializeConnection(dbname, NULL, 0);
-#if PG_VERSION_NUM >= 150000
-	Assert(GetTimeLineID() >= 0);
-#else
-	Assert(GetTimeLineID() > 0);
-#endif
+	Assert(ThisTimeLineID > 0);
 
 	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext, dbname);
 

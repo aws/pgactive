@@ -36,7 +36,6 @@
 #include "utils/memutils.h"
 #include "utils/pg_lsn.h"
 #include "utils/rel.h"
-#include "utils/syscache.h"
 #include "utils/typcache.h"
 #include "catalog/pg_enum.h"
 
@@ -76,16 +75,20 @@ bdr_conflict_logging_startup()
 
 	schema_oid = get_namespace_oid("bdr", false);
 
-	BdrConflictTypeOid = GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid,
-											  CStringGetDatum("bdr_conflict_type"), ObjectIdGetDatum(schema_oid));
+	BdrConflictTypeOid =
+		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								CStringGetDatum("bdr_conflict_type"),
+								ObjectIdGetDatum(schema_oid));
 
-	BdrConflictResolutionOid = GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid,
-													CStringGetDatum("bdr_conflict_resolution"),
-													ObjectIdGetDatum(schema_oid));
+	BdrConflictResolutionOid =
+		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								CStringGetDatum("bdr_conflict_resolution"),
+								ObjectIdGetDatum(schema_oid));
 
-	BdrConflictHistorySeqId = GetSysCacheOidError2(RELNAMENSP, Anum_pg_class_oid,
-												   CStringGetDatum("bdr_conflict_history_id_seq"),
-												   ObjectIdGetDatum(schema_oid));
+	BdrConflictHistorySeqId =
+		BdrGetSysCacheOid2Error(RELNAMENSP, Anum_pg_class_oid,
+								CStringGetDatum("bdr_conflict_history_id_seq"),
+								ObjectIdGetDatum(schema_oid));
 
 	CommitTransactionCommand();
 }

@@ -1,10 +1,7 @@
 #ifndef PG_BDR_COMPAT_H
 #define PG_BDR_COMPAT_H
 
-#define BDR_LOCALID_FORMAT_ARGS \
-	GetSystemIdentifier(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
-
-#define GetTimeLineID() ThisTimeLineID
+#include "utils/syscache.h"
 
 #define ExecInitExtraTupleSlotBdr(estate, a) \
 	ExecInitExtraTupleSlot(estate, a)
@@ -16,25 +13,33 @@
 
 #define GetCommandTagName(tag) tag
 
-#define GetSysCacheOidErrorr(cacheId, oidcol, key1, key2, key3, key4) \
-	GetSysCacheOidError(cacheId, key1, key2, key3, key4)
-
 #define transformAlterTableStmtBdr(relid, astmt, queryString) \
 	transformAlterTableStmt(relid, astmt, queryString)
 
 #define TTS_TUP(slot) (slot->tts_tuple)
 
-#define BdrGetSysCacheOid(cacheId, oidcol, key1, key2, key3, key4) \
-	GetSysCacheOid(cacheId, key1, key2, key3, key4)
-
 #define BdrGetSysCacheOid1(cacheId, oidcol, key1) \
 	GetSysCacheOid1(cacheId, key1)
 
-#define GetSysCacheOidError2(cacheId, oidcol, key1, key2) \
-	GetSysCacheOidError(cacheId, key1, key2, 0, 0)
-
 #define BdrGetSysCacheOid2(cacheId, oidcol, key1, key2) \
-		GetSysCacheOid2(cacheId, key1, key2)
+	GetSysCacheOid2(cacheId, key1, key2)
+
+/* GetSysCacheOid2 equivalent that errors out if nothing is found */
+static inline  Oid
+GetSysCacheOid2Error(int cacheId, Datum key1, Datum key2)
+{
+	Oid			result;
+
+	result = GetSysCacheOid2(cacheId, key1, key2);
+
+	if (result == InvalidOid)
+		elog(ERROR, "cache lookup failure in cache %d", cacheId);
+
+	return result;
+}
+
+#define BdrGetSysCacheOid2Error(cacheId, oidcol, key1, key2) \
+	GetSysCacheOid2Error(cacheId, key1, key2)
 
 /* deprecated in PG12, removed in PG13 */
 #define table_open(r, l)        heap_open(r, l)

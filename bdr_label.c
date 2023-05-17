@@ -26,7 +26,6 @@
 #include "utils/acl.h"
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
-#include "utils/syscache.h"
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
 

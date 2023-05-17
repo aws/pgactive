@@ -40,7 +40,6 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
-#include "utils/syscache.h"
 #include "utils/rel.h"
 #include "utils/regproc.h"
 #include "catalog/pg_enum.h"
@@ -87,24 +86,29 @@ bdr_conflict_handlers_init(void)
 		elog(ERROR, "cache lookup failed for relation bdr.bdr_conflict_handlers");
 
 	bdr_conflict_handler_type_oid =
-		GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid, PointerGetDatum("bdr_conflict_type"),
-							 ObjectIdGetDatum(schema_oid));
+		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								PointerGetDatum("bdr_conflict_type"),
+								ObjectIdGetDatum(schema_oid));
 
 	bdr_conflict_handler_action_oid =
-		GetSysCacheOidError2(TYPENAMENSP, Anum_pg_type_oid, PointerGetDatum("bdr_conflict_handler_action"),
-							 ObjectIdGetDatum(schema_oid));
+		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								PointerGetDatum("bdr_conflict_handler_action"),
+								ObjectIdGetDatum(schema_oid));
 
 	bdr_conflict_handler_action_ignore_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
-							 CStringGetDatum("IGNORE"));
+		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								bdr_conflict_handler_action_oid,
+								CStringGetDatum("IGNORE"));
 
 	bdr_conflict_handler_action_row_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
-							 CStringGetDatum("ROW"));
+		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								bdr_conflict_handler_action_oid,
+								CStringGetDatum("ROW"));
 
 	bdr_conflict_handler_action_skip_oid =
-		GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_oid, bdr_conflict_handler_action_oid,
-							 CStringGetDatum("SKIP"));
+		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								bdr_conflict_handler_action_oid,
+								CStringGetDatum("SKIP"));
 }
 
 /*
@@ -722,9 +726,9 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 
 	bdr_get_conflict_handlers(rel);
 
-	event_oid = GetSysCacheOidError2(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
-									 bdr_conflict_handler_type_oid,
-									 CStringGetDatum(event));
+	event_oid = BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
+										bdr_conflict_handler_type_oid,
+										CStringGetDatum(event));
 
 	for (i = 0; i < rel->conflict_handlers_len; ++i)
 	{
