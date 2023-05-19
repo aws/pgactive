@@ -1,0 +1,84 @@
+name: BDR CI
+on:
+  schedule:
+    # Runs every 3 hours.
+    - cron: '0 */3 * * *'
+  push:
+  pull_request:
+
+jobs:
+  test:
+    defaults:
+      run:
+        shell: sh
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        version: [REL_15_STABLE, REL_11_STABLE]
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout BDR
+        uses: actions/checkout@v3
+        with:
+          path: bdr
+
+      - name: Checkout Postgres
+        run: |
+          sudo apt-get -y -q install libipc-run-perl
+          git clone --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
+
+      - if: ${{ matrix.version == 'REL_11_STABLE' }}
+        name: Apply per-test-script runtime display patch (REL_11_STABLE only)
+        run: |
+          cd postgres
+          git apply $GITHUB_WORKSPACE/bdr/compat/11/v1-0001-Add-per-test-script-runtime-display-to-pg_regress.patch
+          git status
+
+      - name: Build Postgres
+        run: |
+          cd postgres
+          sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests CFLAGS="-ggdb3 -O0"
+          make -j4 install
+
+          # Install extensions required for BDR tests
+          make -C contrib/btree_gist install
+          make -C contrib/cube install
+          make -C contrib/hstore install
+          make -C contrib/pg_trgm install
+
+      - name: Build BDR
+        run: |
+            cd bdr
+            PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
+            sh configure
+            make -j4 all install
+
+      - name: Run BDR core tests
+        run: |
+          cd bdr
+          make regresscheck
+
+      - name: Show BDR core tests diff
+        if: ${{ failure() }}
+        run: |
+          cat bdr/regression.diffs
+
+      - name: Run BDR extended tests
+        run: |
+          cd bdr
+          make PROVE_FLAGS="--timer" prove_installcheck
+
+      - name: Upload test artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
+          path: |
+            bdr/regression.diffs
+            bdr/tmp_check
+          retention-days: 1
