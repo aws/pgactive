@@ -30,14 +30,6 @@
  */
 #define BDR_REPORIGIN_ID_FORMAT "bdr_"UINT64_FORMAT"_%u_%u_%u_%s"
 
-#ifdef __GNUC__
-#define BDR_WARN_UNUSED __attribute__((warn_unused_result))
-#define BDR_NORETURN __attribute__((noreturn))
-#else
-#define BDR_WARN_UNUSED
-#define BDR_NORETURN
-#endif
-
 typedef enum BdrNodeStatus
 {
 	BDR_NODE_STATUS_NONE = '\0',

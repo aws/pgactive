@@ -28,7 +28,7 @@ END;
 $$;
 -- Dropping the BDR extension isn't allowed while BDR is active
 DROP EXTENSION bdr;
-ERROR:  Dropping the BDR extension is prohibited while BDR is active
+ERROR:  dropping the BDR extension is prohibited while BDR is active
 -- Initial state
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
     node_name    | node_status 
@@ -140,7 +140,7 @@ INFO:  Node node-pgi is already parted, ignoring
 -- BDR is parted, but not fully removed, so don't allow the extension
 -- to be dropped yet.
 DROP EXTENSION bdr;
-ERROR:  Dropping the BDR extension is prohibited while BDR is active
+ERROR:  dropping the BDR extension is prohibited while BDR is active
 SELECT bdr.bdr_is_active_in_db();
  bdr_is_active_in_db 
 ---------------------

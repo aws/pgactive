@@ -6,14 +6,11 @@ package utils::nodemanagement;
 
 use strict;
 use warnings;
-use 5.8.0;
 use Exporter;
 use Cwd;
 use Config;
 use Carp qw(cluck);
 use PostgreSQL::Test::Cluster;
-# Patch PostgresNode with stuff we want from post-9.6
-# require "t/backports/PostgresNode_96.pl";
 use PostgreSQL::Test::Utils;
 use Test::More;
 use IPC::Run;

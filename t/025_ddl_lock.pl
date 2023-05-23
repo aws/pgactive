@@ -38,10 +38,7 @@ my $ret = $node_0->psql($bdr_test_dbname,
 is($ret, 0, 'DDL lock succeeded with node up');
 is($timedout, 0, 'DDL lock acquisition did not time out with node up');
 
-$node_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.write_me(x integer primary key);
-$DDL$)]);
+exec_ddl($node_0, q[CREATE TABLE public.write_me(x integer primary key);]);
 
 #--------------------------------------------
 # Transactions on lock-holding node are read-only

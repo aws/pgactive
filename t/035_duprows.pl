@@ -39,7 +39,8 @@ initandstart_logicaljoin_node($node_b, $node_a);
 my @nodes = ($node_a, $node_b);
 
 # Everything working?
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_replicate_ddl_command($DDL$CREATE TABLE public.t(x text)$DDL$)]);
+exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
+
 # Make sure everything caught up by forcing another lock
 $node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 

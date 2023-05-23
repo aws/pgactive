@@ -66,18 +66,8 @@ $compat_check->stop;
 my $providers = make_bdr_group(2,'provider_');
 my ($provider_0, $provider_1) = @$providers;
 
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.preseed_in(id integer primary key, blah text);
-$DDL$);
-]);
-
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.preseed_ex(id integer primary key, blah text);
-$DDL$);
-]);
-
+exec_ddl($provider_0, q[CREATE TABLE public.preseed_in(id integer primary key, blah text);]);
+exec_ddl($provider_0, q[CREATE TABLE public.preseed_ex(id integer primary key, blah text);]);
 $provider_0->safe_psql($bdr_test_dbname, q[ INSERT INTO preseed_in(id, blah) VALUES (1, 'provider_0'); ]);
 $provider_0->safe_psql($bdr_test_dbname, q[ INSERT INTO preseed_ex(id, blah) VALUES (1, 'provider_0'); ]);
 $provider_0->safe_psql($bdr_test_dbname, q[SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);]);
@@ -102,10 +92,7 @@ shared_preload_libraries = 'bdr,pglogical'
 
 
 # On provider we'll replicate the extension creation
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE EXTENSION pglogical;
-$DDL$);]);
+exec_ddl($provider_0, q[CREATE EXTENSION pglogical;]);
 
 $provider_0->safe_psql($bdr_test_dbname,
 	q[SELECT * FROM pglogical.create_node(node_name := 'bdr_provider', dsn := '] . $provider_0->connstr($bdr_test_dbname) . q[');]);
@@ -115,11 +102,7 @@ $provider_0->safe_psql($bdr_test_dbname, q[SELECT * FROM pglogical.replication_s
 $provider_0->safe_psql($bdr_test_dbname, q[SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);]);
 
 # Same deal on the subscriber
-$subscriber_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE EXTENSION pglogical;
-$DDL$);]);
-
+exec_ddl($subscriber_0, q[CREATE EXTENSION pglogical;]);
 note "created extension on subscriber";
 
 # BDR replicates everything by default, even in extensions. This gets exciting when

@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "bdr.h"
-#include "bdr_label.h"
 
 #include "miscadmin.h"
 
@@ -198,7 +197,7 @@ bdr_dbcache_lookup(Oid dboid, bool missing_ok)
 	object.objectId = dboid;
 	object.objectSubId = 0;
 
-	label = GetSecurityLabel(&object, "bdr");
+	label = GetSecurityLabel(&object, BDR_SECLABEL_PROVIDER);
 	bdr_parse_database_options(label, &entry->bdr_activated);
 
 	entry->valid = true;

@@ -1,13 +1,13 @@
 SET bdr.permit_ddl_locking = false;
 CREATE TABLE should_fail ( id integer );
-ERROR:  Global DDL locking attempt rejected by configuration
+ERROR:  global DDL locking attempt rejected by configuration
 DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
 HINT:  See the 'DDL replication' chapter of the documentation.
 SET bdr.permit_ddl_locking = true;
 CREATE TABLE create_ok (id integer);
 SET bdr.permit_ddl_locking = false;
 ALTER TABLE create_ok ADD COLUMN alter_should_fail text;
-ERROR:  Global DDL locking attempt rejected by configuration
+ERROR:  global DDL locking attempt rejected by configuration
 DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
 HINT:  See the 'DDL replication' chapter of the documentation.
 SET bdr.permit_ddl_locking = true;

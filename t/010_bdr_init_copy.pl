@@ -117,15 +117,7 @@ $node_a->safe_psql($bdr_test_dbname, "SELECT bdr.acquire_global_lock('write_lock
 
 note "Creating a table...";
 
-$node_b->safe_psql($bdr_test_dbname, q{
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.reptest(
-	id integer primary key,
-	dummy text
-);
-$DDL$);
-});
-
+exec_ddl($node_b, q[CREATE TABLE public.reptest(id integer primary key, dummy text);]);
 $node_a->poll_query_until($bdr_test_dbname, q{
 SELECT EXISTS (
   SELECT 1 FROM pg_class c INNER JOIN pg_namespace n ON n.nspname = 'public' AND c.relname = 'reptest'

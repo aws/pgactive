@@ -68,15 +68,8 @@ AC_SUBST(HAVE_SEQAM)
 
 AC_ARG_VAR([PATH], [PATH for target PostgreSQL install pg_config])
 
-if test "$ac_cv_header_replication_origin_h" = 'yes'; then
-   AC_MSG_NOTICE([building with PostgreSQL $version_num])
-   BDR_PGVERCOMPAT_INCDIR="compat/$version_num"
-elif test "$ac_cv_header_replication_replication_identifier_h" == 'yes'; then
-   AC_MSG_NOTICE([building with PostgreSQL 9.4bdr])
-   BDR_PGVERCOMPAT_INCDIR="compat/94bdr"
-else
-   AC_MSG_ERROR([BDR can be built only against postgres-bdr or PostgreSQL 9.6])
-fi;
+AC_MSG_NOTICE([building with PostgreSQL $version_num])
+BDR_PGVERCOMPAT_INCDIR="compat/$version_num"
 
 AC_SUBST(BDR_PGVERCOMPAT_INCDIR)
 

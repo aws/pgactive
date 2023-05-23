@@ -96,13 +96,14 @@ static char *node_name = NULL;
 
 static void signal_handler(int sig);
 static void usage(void);
-static void BDR_NORETURN finish_die();
-static void BDR_NORETURN die(const char *fmt,...)
-			__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+static void finish_die() pg_attribute_noreturn();
+static void die(const char *fmt,...)
+			__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)))
+			pg_attribute_noreturn();
 static void print_msg(VerbosityLevelEnum level, const char *fmt,...)
 			__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
 
-static int	BDR_WARN_UNUSED run_pg_ctl(const char *arg);
+static int	run_pg_ctl(const char *arg);
 static void run_basebackup(const char *remote_connstr, const char *data_dir);
 static void wait_postmaster_connection(const char *connstr);
 static void wait_for_end_recovery(const char *connstr);
@@ -142,7 +143,7 @@ static void appendPQExpBufferConnstrValue(PQExpBuffer buf, const char *str);
 static bool file_exists(const char *path);
 static bool path_file_exists(const char *path, const char *filename);
 static void copy_file(char *fromfile, char *tofile);
-static char *find_other_exec_or_die(const char *argv0, const char *target, const char *versionstr);
+static char *find_other_exec_or_die(const char *argv0, const char *target);
 static bool postmaster_is_alive(pid_t pid);
 static long get_pgpid(void);
 
@@ -756,9 +757,10 @@ run_pg_ctl(const char *arg)
 {
 	int			ret;
 	PQExpBuffer cmd = createPQExpBuffer();
-	char	   *exec_path = find_other_exec_or_die(argv0, "pg_ctl", NULL);
+	char	   *exec_path = find_other_exec_or_die(argv0, "pg_ctl");
 
 	appendPQExpBuffer(cmd, "%s %s -D \"%s\" -s", exec_path, arg, data_dir);
+	pg_free(exec_path);
 
 	/* Run pg_ctl in silent mode unless we run in debug mode. */
 	if (verbosity < VERBOSITY_DEBUG)
@@ -786,9 +788,10 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 {
 	int			ret;
 	PQExpBuffer cmd = createPQExpBuffer();
-	char	   *exec_path = find_other_exec_or_die(argv0, "pg_basebackup", NULL);
+	char	   *exec_path = find_other_exec_or_die(argv0, "pg_basebackup");
 
 	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P", exec_path, data_dir, remote_connstr);
+	pg_free(exec_path);
 
 	/* Run pg_basebackup in verbose mode if we are running in verbose mode. */
 	if (verbosity >= VERBOSITY_VERBOSE)
@@ -820,8 +823,9 @@ set_sysid(uint64 sysid)
 	char	   *exec_path;
 	char	   *cmdname = "bdr_resetwal";
 
-	exec_path = find_other_exec_or_die(argv0, cmdname, NULL);
+	exec_path = find_other_exec_or_die(argv0, cmdname);
 	appendPQExpBuffer(cmd, "%s \"-s " UINT64_FORMAT "\" \"%s\"", exec_path, sysid, data_dir);
+	pg_free(exec_path);
 	print_msg(VERBOSITY_DEBUG, _("Running %s: %s.\n"), cmdname, cmd->data);
 	ret = system(cmd->data);
 	destroyPQExpBuffer(cmd);
@@ -1882,7 +1886,7 @@ copy_file(char *fromfile, char *tofile)
 
 #define COPY_BUF_SIZE (8 * BLCKSZ)
 
-	buffer = malloc(COPY_BUF_SIZE);
+	buffer = pg_malloc(COPY_BUF_SIZE);
 
 	/* basic sanity check for same file; doesn't try to notice links */
 	if (strcmp(fromfile, tofile) == 0)
@@ -1926,59 +1930,45 @@ copy_file(char *fromfile, char *tofile)
 	/* we don't care about errors here */
 	close(srcfd);
 
-	free(buffer);
+	pg_free(buffer);
 }
 
 
 static char *
-find_other_exec_or_die(const char *argv0, const char *target, const char *versionstr)
+find_other_exec_or_die(const char *argv0, const char *target)
 {
 	int			ret;
 	char	   *found_path;
 	uint32		bin_version;
+	char		full_path[MAXPGPATH];
 
+	/* Caller will have to free this memory */
 	found_path = pg_malloc(MAXPGPATH);
 
-	if (versionstr)
-		ret = find_other_exec(argv0, target, versionstr, found_path);
-	else
-		ret = bdr_find_other_exec(argv0, target, &bin_version, found_path);
+	ret = bdr_find_other_exec(argv0, target, &bin_version, found_path);
 
 	if (ret < 0)
-	{
-		char		full_path[MAXPGPATH];
+		goto err;
 
-		if (find_my_exec(argv0, full_path) < 0)
-			strlcpy(full_path, progname, sizeof(full_path));
-
-		if (ret == -1)
-			die(_("The program \"%s\" is needed by %s "
-				  "but was not found in the\n"
-				  "same directory as \"%s\".\n"
-				  "Check your installation.\n"),
-				target, progname, full_path);
-		else
-			die(_("The program \"%s\" was found by \"%s\"\n"
-				  "but was not the same version as %s.\n"
-				  "Check your installation.\n"),
-				target, full_path, progname);
-	}
-	else if (!versionstr)
-	{
-		char		full_path[MAXPGPATH];
-
-		if (find_my_exec(argv0, full_path) < 0)
-			strlcpy(full_path, progname, sizeof(full_path));
-
-		if (bin_version / 100 != PG_VERSION_NUM / 100)
-			die(_("The program \"%s\" was found by \"%s\"\n"
-				  "but was not the same version as %s.\n"
-				  "Check your installation.\n"),
-				target, full_path, progname);
-
-	}
+	if (bin_version / 100 != PG_VERSION_NUM / 100)
+		goto err;
 
 	return found_path;
+
+err:
+	if (find_my_exec(argv0, full_path) < 0)
+		strlcpy(full_path, progname, sizeof(full_path));
+
+	if (ret == -1)
+		die(_("The program \"%s\" is needed by %s but was not found in the\n"
+			  "same directory as \"%s\".\n"
+			  "Check your installation.\n"),
+			target, progname, full_path);
+	else
+		die(_("The program \"%s\" was found by \"%s\"\n"
+			  "but was not the same version as %s.\n"
+			  "Check your installation.\n"),
+			target, full_path, progname);
 }
 
 static bool

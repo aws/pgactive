@@ -84,7 +84,7 @@ error_on_persistent_rv(RangeVar *rv,
 	if (rv == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("Unqualified command %s is unsafe with BDR active.",
+				 errmsg("unqualified command %s is unsafe with BDR active",
 						cmdtag)));
 
 	rel = table_openrv_extended(rv, lockmode, missing_ok);
@@ -158,7 +158,7 @@ filter_CreateStmt(Node *parsetree,
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("Tables WITH OIDs are not supported with bdr")));
+				 errmsg("tables WITH OIDs are not supported with bdr")));
 	}
 
 	/* verify table elements */
@@ -787,9 +787,9 @@ bdr_commandfilter_dbname(const char *dbname)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_RESERVED_NAME),
-				 errmsg("The BDR extension reserves the database name "
+				 errmsg("BDR extension reserves the database name "
 						BDR_SUPERVISOR_DBNAME " for its own use"),
-				 errhint("Use a different database name")));
+				 errhint("Use a different database name.")));
 	}
 }
 
@@ -822,8 +822,8 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 
 		if (bdr_oid == ext_oid)
 			ereport(ERROR,
-					(errmsg("Dropping the BDR extension is prohibited while BDR is active"),
-					 errhint("Part this node with bdr.part_by_node_names(...) first, or if appropriate use bdr.remove_bdr_from_local_node(...)")));
+					(errmsg("dropping the BDR extension is prohibited while BDR is active"),
+					 errhint("Part this node with bdr.part_by_node_names(...) first, or if appropriate use bdr.remove_bdr_from_local_node(...).")));
 	}
 }
 
@@ -851,7 +851,9 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	/* take strongest lock by default. */
 	BDRLockType lock_type = BDR_LOCK_WRITE;
 
-	elog(DEBUG2, "processing %s: %s in statement %s", context == PROCESS_UTILITY_TOPLEVEL ? "toplevel" : "query", GetCommandTagName(CreateCommandTag(parsetree)), queryString);
+	elog(DEBUG2, "processing %s: %s in statement %s",
+		 context == PROCESS_UTILITY_TOPLEVEL ? "toplevel" : "query",
+		 GetCommandTagName(CreateCommandTag(parsetree)), queryString);
 
 	/* don't filter in single user mode */
 	if (!IsUnderPostmaster)
@@ -867,7 +869,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("No commands may be run on the BDR supervisor database")));
+				 errmsg("no commands may be run on the BDR supervisor database")));
 	}
 
 	/* extension contents aren't individually replicated */
@@ -917,7 +919,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			&& !allowed_on_read_only_node(parsetree, &tag))
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-					 errmsg("Cannot run %s on read-only BDR node.", GetCommandTagName(tag))));
+					 errmsg("cannot run %s on read-only BDR node", GetCommandTagName(tag))));
 	}
 
 	/* commands we skip (for now) */
@@ -1138,7 +1140,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command"),
-								 errhint("Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set")));
+								 errhint("Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.")));
 
 					if (!bdr_skip_ddl_replication)
 						error_on_persistent_rv(stmt->relation,
@@ -1260,7 +1262,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command"),
-								 errhint("Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set")));
+								 errhint("Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.")));
 
 					if (!bdr_skip_ddl_replication && !statement_affects_only_nonpermanent(parsetree))
 						ereport(ERROR,
@@ -1368,21 +1370,20 @@ bdr_commandfilter(PlannedStmt *pstmt,
 							   "multi-statement strings or function bodies containing DDL "
 							   "commands. Problem statement has tag [%s] in SQL string: %s",
 							   GetCommandTagName(CreateCommandTag(parsetree)), queryString),
-					 errhint("Use bdr.bdr_replicate_ddl_command(...) instead")));
+					 errhint("Use bdr.bdr_replicate_ddl_command(...) instead.")));
 
 		Assert(bdr_ddl_nestlevel >= 0);
 
 		bdr_capture_ddl(parsetree, queryString, context, params, dest, CreateCommandTag(parsetree));
 
-		elog(DEBUG3, "DDLREP: Entering level %d DDL block. Toplevel command is %s", bdr_ddl_nestlevel, queryString);
+		elog(DEBUG3, "DDLREP: Entering level %d DDL block, toplevel command is %s",
+			 bdr_ddl_nestlevel, queryString);
 		incremented_nestlevel = true;
 		bdr_ddl_nestlevel++;
 	}
 	else
-	{
-		elog(DEBUG3, "DDLREP: At ddl level %d ignoring non-persistent cmd %s", bdr_ddl_nestlevel, queryString);
-	}
-
+		elog(DEBUG3, "DDLREP: At ddl level %d ignoring non-persistent cmd %s",
+			 bdr_ddl_nestlevel, queryString);
 
 done:
 	switch (nodeTag(parsetree))
@@ -1448,7 +1449,8 @@ done:
 		{
 			bdr_ddl_nestlevel--;
 			Assert(bdr_ddl_nestlevel >= 0);
-			elog(DEBUG3, "DDLREP: Exiting level %d in exception ", bdr_ddl_nestlevel);
+			elog(DEBUG3, "DDLREP: Exiting level %d in exception ",
+				 bdr_ddl_nestlevel);
 		}
 
 		/* Error was during extension creation */
@@ -1475,7 +1477,8 @@ done:
 	{
 		bdr_ddl_nestlevel--;
 		Assert(bdr_ddl_nestlevel >= 0);
-		elog(DEBUG3, "DDLREP: Exiting level %d block normally", bdr_ddl_nestlevel);
+		elog(DEBUG3, "DDLREP: Exiting level %d block normally",
+			 bdr_ddl_nestlevel);
 	}
 	Assert(bdr_ddl_nestlevel >= 0);
 }
@@ -1500,9 +1503,9 @@ bdr_ClientAuthentication_hook(Port *port, int status)
 		 */
 		ereport(WARNING,
 				(errcode(ERRCODE_RESERVED_NAME),
-				 errmsg("The BDR extension reserves the database "
+				 errmsg("BDR extension reserves the database "
 						BDR_SUPERVISOR_DBNAME " for its own use"),
-				 errhint("Use a different database")));
+				 errhint("Use a different database.")));
 	}
 
 	if (next_ClientAuthentication_hook)

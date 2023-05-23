@@ -434,7 +434,7 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
 -- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
 ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
 CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
@@ -464,11 +464,11 @@ Indexes:
 -- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
 ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
 CONTEXT:  during DDL replay of ddl statement:  CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
 ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
 CONTEXT:  during DDL replay of ddl statement:  CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
@@ -498,11 +498,11 @@ Indexes:
 -- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test1_idx; $DDL$);
 ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
 CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test1_idx; 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
 ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
 CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_create_index; $DDL$);
  bdr_replicate_ddl_command 

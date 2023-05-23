@@ -75,7 +75,7 @@ bdr_get_remote_lsn(PGconn *conn)
 	res = PQexec(conn, "SELECT pg_current_wal_insert_lsn()");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		elog(ERROR, "Unable to get remote LSN: status %s: %s\n",
+		elog(ERROR, "unable to get remote LSN: status %s: %s\n",
 			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	}
 	Assert(PQntuples(res) == 1);
@@ -100,7 +100,7 @@ bdr_get_remote_ext_version(PGconn *pgconn, char **default_version,
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		elog(ERROR, "Unable to get remote bdr extension version; query %s failed with %s: %s\n",
+		elog(ERROR, "unable to get remote bdr extension version; query %s failed with %s: %s\n",
 			 q_bdr_installed, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	}
 
@@ -143,18 +143,18 @@ bdr_ensure_ext_installed(PGconn *pgconn)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("Remote PostgreSQL install for bdr connection does not have bdr extension installed"),
-				 errdetail("no entry with name 'bdr' in pg_available_extensions."),
-				 errhint("You need to install the BDR extension on the remote end")));
+				 errmsg("remote PostgreSQL install for bdr connection does not have bdr extension installed"),
+				 errdetail("No entry with name 'bdr' in pg_available_extensions."),
+				 errhint("You need to install the BDR extension on the remote end.")));
 	}
 
 	if (installed_version == NULL || strcmp(installed_version, "") == 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("Remote database for BDR connection does not have the bdr extension active"),
-				 errdetail("installed_version for entry 'bdr' in pg_available_extensions is blank"),
-				 errhint("Run 'CREATE EXTENSION bdr;'")));
+				 errmsg("remote database for BDR connection does not have the bdr extension active"),
+				 errdetail("installed_version for entry 'bdr' in pg_available_extensions is blank."),
+				 errhint("Run 'CREATE EXTENSION bdr;'.")));
 	}
 
 	pfree(default_version);
@@ -169,7 +169,7 @@ bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
 
 	if (stat(dir, &st) == 0)
 		if (!rmtree(dir, true))
-			elog(WARNING, "Failed to clean up bdr dump temporary directory %s on exit/error", dir);
+			elog(WARNING, "failed to clean up bdr dump temporary directory %s on exit/error", dir);
 }
 
 /*
@@ -186,7 +186,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 #ifndef WIN32
 	pid_t		pid;
 	char	   *bindir;
-	char	   *tmpdir;
+	char	    tmpdir[MAXPGPATH];
 	char		bdr_init_replica_script_path[MAXPGPATH];
 	char		bdr_dump_path[MAXPGPATH];
 	char		bdr_restore_path[MAXPGPATH];
@@ -287,9 +287,8 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 						   " -c bdr.skip_ddl_locking=on"
 						   " -c session_replication_role=replica'");
 
-	tmpdir = palloc(strlen(bdr_temp_dump_directory) + 32);
-	sprintf(tmpdir, "%s/postgres-bdr-%s.%d", bdr_temp_dump_directory,
-			snapshot, getpid());
+	snprintf(tmpdir, sizeof(tmpdir), "%s/postgres-bdr-%s.%d",
+			bdr_temp_dump_directory, snapshot, getpid());
 
 	if (mkdir(tmpdir, 0700))
 	{
@@ -330,7 +329,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 		};
 
 		ereport(LOG,
-				(errmsg("Creating replica with: %s --snapshot %s --source \"%s\" --target \"%s\" --tmp-directory \"%s\", --pg-dump-path \"%s\", --pg-restore-path \"%s\"",
+				(errmsg("creating replica with: %s --snapshot %s --source \"%s\" --target \"%s\" --tmp-directory \"%s\", --pg-dump-path \"%s\", --pg-restore-path \"%s\"",
 						bdr_init_replica_script_path, snapshot,
 						node->init_from_dsn, node->local_dsn, tmpdir,
 						bdr_dump_path, bdr_restore_path)));
@@ -344,7 +343,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 		pid_t		res;
 		int			exitstatus = 0;
 
-		elog(DEBUG3, "Waiting for %s pid %d",
+		elog(DEBUG3, "waiting for %s pid %d",
 			 bdr_init_replica_script_path, pid);
 
 		PG_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
@@ -387,7 +386,6 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 		bdr_init_replica_cleanup_tmpdir(0, CStringGetDatum(tmpdir));
 	}
 
-	pfree(tmpdir);
 #else
 	/*
 	 * On Windows we should be using CreateProcessEx instead of fork() and
@@ -595,8 +593,8 @@ bdr_init_make_other_slots()
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("System identification mismatch between connection and slot"),
-					 errdetail("Connection for " BDR_NODEID_FORMAT_WITHNAME " resulted in slot on node " BDR_NODEID_FORMAT_WITHNAME " instead of expected node",
+					 errmsg("system identification mismatch between connection and slot"),
+					 errdetail("Connection for " BDR_NODEID_FORMAT_WITHNAME " resulted in slot on node " BDR_NODEID_FORMAT_WITHNAME " instead of expected node.",
 							   BDR_NODEID_FORMAT_WITHNAME_ARGS(cfg->remote_node),
 							   BDR_NODEID_FORMAT_WITHNAME_ARGS(remote))));
 		}
@@ -608,7 +606,7 @@ bdr_init_make_other_slots()
 		/* No replication for now, just close the connection */
 		PQfinish(conn);
 
-		elog(DEBUG2, "Ensured existence of slot %s on " BDR_NODEID_FORMAT_WITHNAME,
+		elog(DEBUG2, "ensured existence of slot %s on " BDR_NODEID_FORMAT_WITHNAME,
 			 NameStr(slot_name), BDR_NODEID_FORMAT_WITHNAME_ARGS(remote));
 
 		bdr_free_connection_config(cfg);
@@ -733,7 +731,7 @@ bdr_init_wait_for_slot_creation()
 }
 
 /*
- * Explicitly ttake the DDL lock on a remote peer.
+ * Explicitly take the DDL lock on a remote peer.
  *
  * Can run standalone or in an existing tx, doesn't care about tx state.
  *
@@ -762,7 +760,8 @@ bdr_ddl_lock_remote(PGconn *conn, BDRLockType mode)
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "Failed to acquire global DDL lock on remote peer: %s\n", PQerrorMessage(conn));
+		elog(ERROR, "failed to acquire global DDL lock on remote peer: %s\n",
+			 PQerrorMessage(conn));
 	}
 
 	PQclear(res);
@@ -794,7 +793,7 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "Failed to start tx on remote peer: %s\n", PQerrorMessage(conn));
+		elog(ERROR, "failed to start tx on remote peer: %s\n", PQerrorMessage(conn));
 	}
 
 	bdr_ddl_lock_remote(conn, BDR_LOCK_DDL);
@@ -837,13 +836,15 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: %s\n", PQerrorMessage(conn));
+		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: %s\n",
+			 PQerrorMessage(conn));
 	}
 
 	if (PQntuples(res) != 1)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: affected %d rows instead of expected 1", PQntuples(res));
+		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: affected %d rows instead of expected 1",
+			 PQntuples(res));
 	}
 
 	Assert(PQnfields(res) == 1);
@@ -856,13 +857,15 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 
 	node_seq_id = atoi(PQgetvalue(res, 0, 0));
 
-	elog(DEBUG1, "BDR node finishing join assigned global seq id %d", node_seq_id);
+	elog(DEBUG1, "BDR node finishing join assigned global seq id %d",
+		 node_seq_id);
 
 	res = PQexec(conn, "COMMIT;");
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "Failed to start tx on remote peer: %s\n", PQerrorMessage(conn));
+		elog(ERROR, "failed to start tx on remote peer: %s\n",
+			 PQerrorMessage(conn));
 	}
 }
 
@@ -905,7 +908,7 @@ bdr_wait_for_local_node_ready()
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OPERATOR_INTERVENTION),
-					 errmsg("The local node has been parted from the BDR group (status=%c)", status)));
+					 errmsg("local node has been parted from the BDR group (status=%c)", status)));
 		}
 	};
 }
@@ -963,7 +966,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 
 	Assert(status != BDR_NODE_STATUS_READY);
 
-	elog(DEBUG2, "bdr_init_replica");
+	elog(DEBUG2, "initializing database in bdr_init_replica");
 
 	/*
 	 * The local SPI transaction we're about to perform must do any writes as
@@ -1076,8 +1079,8 @@ bdr_init_replica(BDRNodeInfo * local_node)
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						 errmsg("previous init failed, manual cleanup is required"),
-						 errdetail("Found bdr.bdr_nodes entry for " BDR_NODEID_FORMAT_WITHNAME " with state=i in remote bdr.bdr_nodes", BDR_LOCALID_FORMAT_WITHNAME_ARGS),
-						 errhint("Remove all replication identifiers and slots corresponding to this node from the init target node then drop and recreate this database and try again")));
+						 errdetail("Found bdr.bdr_nodes entry for " BDR_NODEID_FORMAT_WITHNAME " with state=i in remote bdr.bdr_nodes.", BDR_LOCALID_FORMAT_WITHNAME_ARGS),
+						 errhint("Remove all replication identifiers and slots corresponding to this node from the init target node then drop and recreate this database and try again.")));
 				break;
 
 			default:
@@ -1369,9 +1372,9 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 	BdrWorker  *worker;
 	BdrApplyWorker *catchup_worker;
 
-	elog(DEBUG1, "Registering bdr apply catchup worker for " BDR_NODEID_FORMAT_WITHNAME " to lsn %X/%X",
+	elog(DEBUG1, "registering bdr apply catchup worker for " BDR_NODEID_FORMAT_WITHNAME " to lsn %X/%X",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(ri->nodeid),
-		 (uint32) (target_lsn >> 32), (uint32) target_lsn);
+		 LSN_FORMAT_ARGS(target_lsn));
 
 	Assert(bdr_worker_type == BDR_WORKER_PERDB);
 	/* Create the shmem entry for the catchup worker */
@@ -1405,25 +1408,20 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 		catchup_worker->replay_stop_lsn = target_lsn;
 		catchup_worker->forward_changesets = true;
 
-		/* and the BackgroundWorker, which is a regular apply worker */
+		/* Configure catchup worker, which is a regular apply worker */
 		bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 			BGWORKER_BACKEND_DATABASE_CONNECTION;
 		bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-		strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
-		strncpy(bgw.bgw_function_name, "bdr_apply_main", BGW_MAXLEN);
-
+		snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
+		snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_apply_main");
+		snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr apply worker for catchup to %X/%X",
+				 LSN_FORMAT_ARGS(target_lsn));
+		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply worker for catchup");
 		bgw.bgw_restart_time = BGW_NEVER_RESTART;
 		bgw.bgw_notify_pid = MyProcPid;
-
 		Assert(worker_shmem_idx <= UINT16_MAX);
 		worker_arg = (((uint32) BdrWorkerCtl->worker_generation) << 16) | (uint32) worker_shmem_idx;
 		bgw.bgw_main_arg = Int32GetDatum(worker_arg);
-
-		snprintf(bgw.bgw_name, BGW_MAXLEN,
-				 "bdr: catchup apply to %X/%X",
-				 (uint32) (target_lsn >> 32), (uint32) target_lsn);
-		bgw.bgw_name[BGW_MAXLEN - 1] = '\0';
-		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply");
 
 		/* Launch the catchup worker and wait for it to start */
 		RegisterDynamicBackgroundWorker(&bgw, &bgw_handle);
@@ -1466,7 +1464,7 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 			case BGWH_NOT_YET_STARTED:
 			case BGWH_STARTED:
 				/* Should be unreachable */
-				elog(ERROR, "Unreachable case, bgw status %d", bgw_status);
+				elog(ERROR, "unreachable case, bgw status %d", bgw_status);
 				break;
 		}
 		pfree(bgw_handle);
@@ -1483,12 +1481,10 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 			/* Worker must've died before it finished */
 			elog(ERROR,
 				 "catchup worker exited before catching up to target LSN %X/%X",
-				 (uint32) (target_lsn >> 32), (uint32) target_lsn);
+				 LSN_FORMAT_ARGS(target_lsn));
 		}
 		else
-		{
 			elog(DEBUG1, "catchup worker caught up to target LSN");
-		}
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(bdr_catchup_to_lsn_cleanup,
 								Int32GetDatum(worker_shmem_idx));

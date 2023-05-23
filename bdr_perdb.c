@@ -88,7 +88,7 @@ find_perdb_worker_slot(Oid dboid, BdrWorker * *worker_found)
 		{
 			BdrPerdbWorker *pw = &w->data.perdb;
 
-			if (pw->database_oid == dboid)
+			if (pw->p_dboid == dboid)
 			{
 				found = i;
 				if (worker_found != NULL)
@@ -282,14 +282,14 @@ bdr_maintain_db_workers(void)
 	 */
 	Assert(!IsTransactionState());
 
-	/* Common apply worker values */
+	/* Configure apply worker */
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
-	strncpy(bgw.bgw_function_name, "bdr_apply_main", BGW_MAXLEN);
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_apply_main");
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply worker");
 	bgw.bgw_restart_time = 5;
-	bgw.bgw_notify_pid = 0;
 
 	StartTransactionCommand();
 	SPI_connect();
@@ -335,12 +335,12 @@ bdr_maintain_db_workers(void)
 
 		oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 		node = palloc(sizeof(BDRNodeId));
-		(void) MemoryContextSwitchTo(oldcontext);
+		MemoryContextSwitchTo(oldcontext);
 
 		node_sysid_s = SPI_getvalue(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_SYSID);
 
 		if (sscanf(node_sysid_s, UINT64_FORMAT, &node->sysid) != 1)
-			elog(ERROR, "Parsing sysid uint64 from %s failed", node_sysid_s);
+			elog(ERROR, "parsing sysid uint64 from %s failed", node_sysid_s);
 
 		node->timeline = DatumGetObjectId(
 										  SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_TIMELINE,
@@ -495,7 +495,7 @@ bdr_maintain_db_workers(void)
 
 			oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 			nodes_to_forget = lappend(nodes_to_forget, (void *) node);
-			(void) MemoryContextSwitchTo(oldcontext);
+			MemoryContextSwitchTo(oldcontext);
 		}
 	}
 
@@ -626,7 +626,7 @@ bdr_maintain_db_workers(void)
 								 getattno("conn_sysid"));
 
 		if (sscanf(tmp_sysid, UINT64_FORMAT, &target.sysid) != 1)
-			elog(ERROR, "Parsing sysid uint64 from %s failed", tmp_sysid);
+			elog(ERROR, "parsing sysid uint64 from %s failed", tmp_sysid);
 
 		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								   getattno("conn_timeline"),
@@ -664,7 +664,7 @@ bdr_maintain_db_workers(void)
 		Assert(!isnull);
 		node_status = DatumGetChar(temp_datum);
 
-		elog(DEBUG1, "Found bdr_connections entry for " BDR_NODEID_FORMAT " (origin specific: %d, status: %c)",
+		elog(DEBUG1, "found bdr_connections entry for " BDR_NODEID_FORMAT " (origin specific: %d, status: %c)",
 			 BDR_NODEID_FORMAT_ARGS(target),
 			 (int) origin_is_my_id, node_status);
 
@@ -695,7 +695,7 @@ bdr_maintain_db_workers(void)
 		 */
 		if (find_apply_worker_slot(&target, &worker) != -1)
 		{
-			elog(DEBUG2, "Skipping registration of worker for node " BDR_NODEID_FORMAT " on db oid=%u: already registered",
+			elog(DEBUG2, "skipping registration of worker for node " BDR_NODEID_FORMAT " on db oid=%u: already registered",
 				 BDR_NODEID_FORMAT_ARGS(target), myid.dboid);
 
 			/*
@@ -717,10 +717,9 @@ bdr_maintain_db_workers(void)
 
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
-				 "bdr apply %s to %s",
+				 "bdr apply worker for %s to %s",
 				 bdr_nodeid_name(&target, true),
 				 bdr_nodeid_name(&myid, true));
-		snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply");
 
 		/* Allocate a new shmem slot for this apply worker */
 		worker = bdr_worker_shmem_alloc(BDR_WORKER_APPLY, &slot);
@@ -765,7 +764,7 @@ bdr_maintain_db_workers(void)
 			LWLockRelease(BdrWorkerCtl->lock);
 
 			ereport(ERROR,
-					(errmsg("bdr: Failed to register apply worker for " BDR_NODEID_FORMAT,
+					(errmsg("failed to register apply worker for " BDR_NODEID_FORMAT,
 							BDR_NODEID_FORMAT_ARGS(target))));
 		}
 		else
@@ -855,8 +854,10 @@ bdr_perdb_worker_main(Datum main_arg)
 	 */
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	perdb->proclatch = &MyProc->procLatch;
-	perdb->database_oid = MyDatabaseId;
+	perdb->p_dboid = MyDatabaseId;
 	LWLockRelease(BdrWorkerCtl->lock);
+
+	Assert(perdb->c_dboid == perdb->p_dboid);
 
 	/* need to be able to perform writes ourselves */
 	bdr_executor_always_allow_writes(true);
@@ -904,14 +905,14 @@ bdr_perdb_worker_main(Datum main_arg)
 		bdr_bdr_node_free(local_node);
 	}
 
-	elog(DEBUG1, "Starting bdr apply workers on " BDR_NODEID_FORMAT,
+	elog(DEBUG1, "starting bdr apply workers on " BDR_NODEID_FORMAT,
 		 BDR_LOCALID_FORMAT_ARGS);
 
 	/* Launch the apply workers */
 	bdr_maintain_db_workers();
 
-	elog(DEBUG1, "BDR starting sequencer on db \"%s\"",
-		 NameStr(perdb->dbname));
+	elog(DEBUG1, "BDR starting sequencer on database with OID %u",
+		 MyDatabaseId);
 
 	/* initialize sequencer */
 	bdr_sequencer_init(perdb->seq_slot, perdb->nnodes);
@@ -977,7 +978,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		CHECK_FOR_INTERRUPTS();
 	}
 
-	perdb->database_oid = InvalidOid;
+	perdb->p_dboid = InvalidOid;
 	proc_exit(0);
 }
 
@@ -995,7 +996,7 @@ bdr_get_apply_pid(PG_FUNCTION_ARGS)
 	remote.dboid = PG_GETARG_OID(2);
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 

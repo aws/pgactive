@@ -271,7 +271,7 @@ bdr_ensure_node_ready(BdrOutputData * data)
 	 */
 	spi_ret = SPI_connect();
 	if (spi_ret != SPI_OK_CONNECT)
-		elog(ERROR, "Local SPI connect failed; shouldn't happen");
+		elog(ERROR, "local SPI connect failed; shouldn't happen");
 	PushActiveSnapshot(GetTransactionSnapshot());
 
 	our_status = bdr_local_node_status();
@@ -341,7 +341,7 @@ bdr_ensure_node_ready(BdrOutputData * data)
 			break;
 
 		default:
-			elog(ERROR, "Unhandled case status=%c", our_status);
+			elog(ERROR, "unhandled case status=%c", our_status);
 			break;
 	}
 }
@@ -516,7 +516,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("bdr extension does not exist on " BDR_NODEID_FORMAT,
 						BDR_LOCALID_FORMAT_ARGS),
-				 errdetail("Cannot create a BDR slot without the BDR extension installed")));
+				 errdetail("Cannot create a BDR slot without the BDR extension installed.")));
 	}
 
 	/* no options are passed in during initialization, so don't complain there */

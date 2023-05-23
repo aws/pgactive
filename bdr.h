@@ -24,9 +24,8 @@
 #include "libpq-fe.h"
 
 #include "bdr_config.h"
-
 #include "bdr_internal.h"
-
+#include "bdr_seq.h"
 #include "bdr_version.h"
 #include "bdr_compat.h"
 #include "nodes/execnodes.h"
@@ -96,6 +95,8 @@
 #define BDR_SUPERVISOR_DBNAME "bdr_supervisordb"
 
 #define BDR_LOGICAL_MSG_PREFIX "bdr"
+
+#define BDR_SECLABEL_PROVIDER "bdr"
 
 /*
  * Don't include libpq here, msvc infrastructure requires linking to libpq
@@ -259,8 +260,8 @@ typedef struct BdrApplyWorker
  */
 typedef struct BdrPerdbWorker
 {
-	/* local database name to connect to */
-	NameData	dbname;
+	/* Oid of the local database to connect to */
+	Oid		c_dboid;
 
 	/*
 	 * Number of 'r'eady peer nodes not including self. -1 if not initialized
@@ -283,7 +284,7 @@ typedef struct BdrPerdbWorker
 	Latch	   *proclatch;
 
 	/* Oid of the database the worker is attached to - populated after start */
-	Oid			database_oid;
+	Oid			p_dboid;
 }			BdrPerdbWorker;
 
 /*
@@ -754,7 +755,6 @@ extern bool bdr_nodeid_eq(const BDRNodeId * const left, const BDRNodeId * const 
 /*
  * sequencer support
  */
-#include "bdr_seq.h"
 
 /*
  * Protocol
