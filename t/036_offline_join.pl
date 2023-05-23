@@ -27,10 +27,7 @@ my ($node_0,$offline_node,$node_2) = @$nodes;
 my $offline_index = 1;
 my @online_nodes = ($node_0, $node_2);
 
-$node_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.testinsert(x integer primary key);
-$DDL$);]);
+exec_ddl($node_0, q[CREATE TABLE public.testinsert(x integer primary key);]);
 wait_for_apply($node_0, $offline_node);
 wait_for_apply($node_0, $node_2);
 

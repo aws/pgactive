@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "bdr.h"
-#include "bdr_label.h"
 
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -44,14 +43,14 @@
 #include "utils/guc.h"
 
 /*
- * Register a new perdb worker for the named database. The worker MUST
- * not already exist.
+ * Register a new perdb worker for a database. The worker MUST not already
+ * exist.
  *
  * This is called by the supervisor during startup, and by user backends when
  * the first connection is added for a database.
  */
 static void
-bdr_register_perdb_worker(const char *dbname, Oid dboid)
+bdr_register_perdb_worker(Oid dboid)
 {
 	BackgroundWorkerHandle *bgw_handle;
 	BackgroundWorker bgw = {0};
@@ -61,10 +60,13 @@ bdr_register_perdb_worker(const char *dbname, Oid dboid)
 	BdrPerdbWorker *perdb;
 	unsigned int worker_slot_number;
 	uint32		worker_arg;
+	char	*dbname;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
+	dbname = get_database_name(dboid);
 
-	elog(DEBUG2, "Registering per-db worker for db %s", dbname);
+	elog(DEBUG2, "registering per-db worker for database \"%s\" with OID %u",
+		 dbname, dboid);
 
 	worker = bdr_worker_shmem_alloc(
 									BDR_WORKER_PERDB,
@@ -72,11 +74,8 @@ bdr_register_perdb_worker(const char *dbname, Oid dboid)
 		);
 
 	perdb = &worker->data.perdb;
-
-	strncpy(NameStr(perdb->dbname),
-			dbname, NAMEDATALEN);
-	NameStr(perdb->dbname)[NAMEDATALEN - 1] = '\0';
-	/* Nodecount is set when apply workers are registered */
+	perdb->c_dboid = dboid;
+	/* Node count is set when apply workers are registered */
 	perdb->nnodes = -1;
 	perdb->seq_slot = bdr_sequencer_get_next_free_slot();
 
@@ -85,16 +84,18 @@ bdr_register_perdb_worker(const char *dbname, Oid dboid)
 	 * gets set up by the worker during startup.
 	 */
 
+	/* Configure per-db worker */
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_perdb_worker_main");
+	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr per-db worker for %s", dbname);
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr per-db worker");
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
-	strncpy(bgw.bgw_function_name, "bdr_perdb_worker_main", BGW_MAXLEN);
 	bgw.bgw_restart_time = 5;
+
 	/* We want supervisor to be notified when the worker is started */
 	bgw.bgw_notify_pid = MyProcPid;
-	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr worker for \"%s\" database", dbname);
-	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr worker");
 
 	/*
 	 * The main arg is composed of two uint16 parts - the worker generation
@@ -184,7 +185,7 @@ bdr_register_perdb_worker(const char *dbname, Oid dboid)
 
 		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
-		if (perdb->proclatch != NULL && perdb->database_oid == dboid)
+		if (perdb->proclatch != NULL && perdb->p_dboid == dboid)
 		{
 			LWLockRelease(BdrWorkerCtl->lock);
 			break;
@@ -195,8 +196,10 @@ bdr_register_perdb_worker(const char *dbname, Oid dboid)
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
-	elog(DEBUG2, "successfully started bdr per-db worker for database \"%s\", perdb->proclatch %p, perdb->database_oid %d",
-		 dbname, perdb->proclatch, perdb->database_oid);
+	Assert(perdb->c_dboid == perdb->p_dboid);
+	elog(DEBUG2, "successfully started bdr per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
+		 dbname, perdb->proclatch, perdb->p_dboid);
+	pfree(dbname);
 }
 
 /*
@@ -215,7 +218,7 @@ bdr_supervisor_rescan_dbs()
 	int			n_new_workers = 0,
 				bdr_dbs = 0;
 
-	elog(DEBUG1, "Supervisor scanning for BDR-enabled databases");
+	elog(DEBUG1, "supervisor scanning for BDR-enabled databases");
 
 	pgstat_report_activity(STATE_RUNNING, "scanning backends");
 
@@ -265,33 +268,19 @@ bdr_supervisor_rescan_dbs()
 	while (HeapTupleIsValid(secTuple = systable_getnext(scan)))
 	{
 		FormData_pg_shseclabel *sec;
-		char	   *label_dbname;
 
 		sec = (FormData_pg_shseclabel *) GETSTRUCT(secTuple);
 
-		/*
-		 * The per-db workers are mapped by name not oid, and that's necessary
-		 * because the bgworker API requires that databases be identified by
-		 * name.
-		 *
-		 * Look up the name of the DB with this OID and compare it. It's a bit
-		 * slow, but we aren't doing this much.
-		 *
-		 * FIXME: Currently if a database is renamed, you'll have to restart
-		 * PostgreSQL before BDR notices.
-		 *
-		 * The oid-based bgworker API in 9.5 would allow this to be fixed.
-		 */
-		label_dbname = get_database_name(sec->objoid);
-
 		if (!bdr_is_bdr_activated_db(sec->objoid))
-		{
-			pfree(label_dbname);
 			continue;
-		}
 
-		elog(DEBUG1, "Found BDR-enabled database %s (oid=%i)",
-			 label_dbname, sec->objoid);
+		/*
+		 * While we are here, there's no problem even if the database is
+		 * renamed. This is because we use OID based bg worker API (i.e., every
+		 * bg worker is mapped with database OID, not with database name), and
+		 * database renaming doesn't change the OID.
+		 */
+		elog(DEBUG1, "found BDR-enabled database with OID %u", sec->objoid);
 
 		bdr_dbs++;
 
@@ -307,20 +296,16 @@ bdr_supervisor_rescan_dbs()
 		if (find_perdb_worker_slot(sec->objoid, NULL) == -1)
 		{
 			/* No perdb worker exists for this DB, make one */
-			bdr_register_perdb_worker(label_dbname, sec->objoid);
+			bdr_register_perdb_worker(sec->objoid);
 			Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 			n_new_workers++;
 		}
 		else
-		{
-			elog(DEBUG2, "per-db worker for db %s already exists, not registering",
-				 label_dbname);
-		}
-
-		pfree(label_dbname);
+			elog(DEBUG2, "per-db worker for database with OID %u already exists, not registering",
+				 sec->objoid);
 	}
 
-	elog(DEBUG2, "Found %i BDR-labeled DBs; registered %i new per-db workers",
+	elog(DEBUG2, "found %i BDR-labeled DBs; registered %i new per-db workers",
 		 bdr_dbs, n_new_workers);
 
 	LWLockRelease(BdrWorkerCtl->lock);
@@ -330,7 +315,7 @@ bdr_supervisor_rescan_dbs()
 
 	CommitTransactionCommand();
 
-	elog(DEBUG2, "Finished scanning for BDR-enabled databases");
+	elog(DEBUG2, "finished scanning for BDR-enabled databases");
 
 	pgstat_report_activity(STATE_IDLE, NULL);
 }
@@ -375,15 +360,15 @@ bdr_supervisor_createdb()
 		dboid = createdb(pstate, &stmt);
 
 		if (dboid == InvalidOid)
-			elog(ERROR, "Failed to create " BDR_SUPERVISOR_DBNAME " DB");
+			elog(ERROR, "failed to create " BDR_SUPERVISOR_DBNAME " DB");
 
 		/* TODO DYNCONF: Add a comment to the db, and/or a dummy table */
 
-		elog(LOG, "Created database " BDR_SUPERVISOR_DBNAME " (oid=%i) during BDR startup", dboid);
+		elog(LOG, "created database " BDR_SUPERVISOR_DBNAME " (oid=%i) during BDR startup", dboid);
 	}
 	else
 	{
-		elog(DEBUG3, "Database " BDR_SUPERVISOR_DBNAME " (oid=%i) already exists, not creating", dboid);
+		elog(DEBUG3, "database " BDR_SUPERVISOR_DBNAME " (oid=%i) already exists, not creating", dboid);
 	}
 
 	CommitTransactionCommand();
@@ -441,7 +426,7 @@ check_for_multiple_perdb_workers(void)
 		if (w->worker_type == BDR_WORKER_PERDB)
 		{
 			BdrPerdbWorker *pw = &w->data.perdb;
-			Oid dboid = pw->database_oid;
+			Oid dboid = pw->p_dboid;
 
 			if (!OidIsValid(dboid))
 				continue;
@@ -453,7 +438,7 @@ check_for_multiple_perdb_workers(void)
 				ereport(LOG,
 						(errmsg("more than one per-db worker exists for database %d",
 								dboid),
-						 errdetail("One of the workers' PID is %d",
+						 errdetail("One of the workers' PID is %d.",
 								   w->worker_pid)));
 				exists = true;
 			}
@@ -629,20 +614,18 @@ bdr_supervisor_register()
 	Assert(IsPostmasterEnvironment && !IsUnderPostmaster);
 
 	/*
-	 * The supervisor worker accesses shared relations, but does not connect
-	 * to any specific database. We still have to flag it as using a
-	 * connection in the bgworker API.
+	 * Configure superviosur worker. It basically accesses shared relations,
+	 * but does not connect to any specific database. We still have to flag it
+	 * as using a connection in the bgworker API.
 	 */
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
-	strncpy(bgw.bgw_function_name, "bdr_supervisor_worker_main", BGW_MAXLEN);
-	bgw.bgw_restart_time = 1;
-	bgw.bgw_notify_pid = 0;
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_supervisor_worker_main");
 	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr supervisor");
 	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr supervisor");
-	bgw.bgw_main_arg = Int32GetDatum(0);	/* unused */
+	bgw.bgw_restart_time = 1;
 
 	RegisterBackgroundWorker(&bgw);
 }

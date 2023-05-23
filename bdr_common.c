@@ -276,7 +276,8 @@ pipe_read_line(char *cmd, char *line, int maxsize)
  * Find another program in our binary's directory,
  * then make sure it is the proper version.
  *
- * BDR modified version - returns computed major version number
+ * BDR modified version of core's find_other_exec() - returns computed major
+ * version number.
  */
 int
 bdr_find_other_exec(const char *argv0, const char *target,
@@ -309,16 +310,7 @@ bdr_find_other_exec(const char *argv0, const char *target,
 	if (sscanf(line, "%*s %*s %d.%d", &pre_dot, &post_dot) != 2)
 		return -2;
 
-	if (pre_dot < 10)
-	{
-		/* old style, e.g. 9.6.1 */
-		*version = pre_dot * 10000 + post_dot * 100;
-	}
-	else
-	{
-		/* new style, e.g. 10.1 */
-		*version = pre_dot * 10000;
-	}
+	*version = pre_dot * 10000;
 
 	return 0;
 }

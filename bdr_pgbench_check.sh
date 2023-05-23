@@ -25,9 +25,9 @@ HBACONF=pg_hba.conf
 PRIMARY_HOST=localhost
 PRIMARY_PORT=7432
 PRIMARY_DB=bdr_pgbench
-SLAVE_HOST=localhost
-SLAVE_DB=bdr_pgbench2
-SLAVE_PORT=7432
+SECONDARY_HOST=localhost
+SECONDARY_DB=bdr_pgbench2
+SECONDARY_PORT=7432
 SCRIPTDIR="$( cd "$(dirname "$0")" ; pwd -P )"
 
 convertsecs () {
@@ -85,7 +85,7 @@ $BINDIR/pg_ctl -D $DATADIR/data start -w -l $DATADIR/bdr_pgbench_check_pg.log >>
 # create databases
 echo "Creating databases"
 $BINDIR/psql -h $PRIMARY_HOST -p $PRIMARY_PORT postgres -c "CREATE DATABASE $PRIMARY_DB" >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
-$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT postgres -c "CREATE DATABASE $SLAVE_DB" >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
+$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT postgres -c "CREATE DATABASE $SECONDARY_DB" >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
 $BINDIR/psql -h $PRIMARY_HOST -p $PRIMARY_PORT $PRIMARY_DB > /dev/null << SQL
 DO \$\$
 BEGIN
@@ -105,11 +105,11 @@ echo "Setting up pgbench schema on primary db"
 $BINDIR/pgbench  -q -i -s $SCALE -h $PRIMARY_HOST -p $PRIMARY_PORT $PRIMARY_DB  >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
 $BINDIR/psql -h $PRIMARY_HOST -p $PRIMARY_PORT $PRIMARY_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
 if [ "$RUNMODE" = "parallel" ]; then
-	echo "Setting up pgbench schema on slave db"
-	$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB -c "CREATE SCHEMA pgbench2; ALTER DATABASE $SLAVE_DB SET search_path=pgbench2,pg_catalog;" >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
-	$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
-	$BINDIR/pgbench -q -i -s $SCALE -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
-	$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
+	echo "Setting up pgbench schema on secondary db"
+	$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB -c "CREATE SCHEMA pgbench2; ALTER DATABASE $SECONDARY_DB SET search_path=pgbench2,pg_catalog;" >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
+	$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
+	$BINDIR/pgbench -q -i -s $SCALE -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1
+	$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
 fi
 
 # run pgbench
@@ -128,19 +128,19 @@ for i in `seq 1 $NUM_RUNS`; do
 		PRIMARY_BENCHPID=$!
 	fi
 	if [ $(($i%2)) -eq 0 ] || [ "$RUNMODE" = "parallel" ]; then
-		$BINDIR/pgbench -n -T $RUNTIME -j $CLIENTS -c $CLIENTS -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1 &
-		SLAVE_BENCHPID=$!
+		$BINDIR/pgbench -n -T $RUNTIME -j $CLIENTS -c $CLIENTS -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB >>$SCRIPTDIR/bdr_pgbench_check.log 2>&1 &
+		SECONDARY_BENCHPID=$!
 	fi
 
 	# wait for pgbench instance(s) to finish
-	while kill -0 $PRIMARY_BENCHPID 2>>/dev/null || ( [ -n "$SLAVE_BENCHPID" ] && kill -0 $SLAVE_BENCHPID 2>>/dev/null ) ; do
+	while kill -0 $PRIMARY_BENCHPID 2>>/dev/null || ( [ -n "$SECONDARY_BENCHPID" ] && kill -0 $SECONDARY_BENCHPID 2>>/dev/null ) ; do
 		sleep 1
 	done
 
 done
 
 $BINDIR/psql -h $PRIMARY_HOST -p $PRIMARY_PORT $PRIMARY_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
-$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
+$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" > /dev/null
 
 SQL=$(cat <<EOF
 SET search_path=pg_catalog;
@@ -160,7 +160,7 @@ EOF
 )
 
 $BINDIR/psql -h $PRIMARY_HOST -p $PRIMARY_PORT $PRIMARY_DB -c "$SQL" >$DATADIR/primary.chksum 2>&1
-$BINDIR/psql -h $SLAVE_HOST -p $SLAVE_PORT $SLAVE_DB -c "$SQL" >$DATADIR/slave.chksum 2>&1
+$BINDIR/psql -h $SECONDARY_HOST -p $SECONDARY_PORT $SECONDARY_DB -c "$SQL" >$DATADIR/secondary.chksum 2>&1
 
 echo "Pgbench finished, cleaning up"
 # stop pg
@@ -168,7 +168,7 @@ $BINDIR/pg_ctl -D $DATADIR/data stop -w -mfast >>$SCRIPTDIR/bdr_pgbench_check.lo
 
 cd $SCRIPTDIR
 
-diff -u $DATADIR/primary.chksum $DATADIR/slave.chksum > $DATADIR/chksum.diff
+diff -u $DATADIR/primary.chksum $DATADIR/secondary.chksum > $DATADIR/chksum.diff
 if [ ! -n "$?" ]; then
 	echo "ERROR: data in databases differ, check $DATADIR/chksum.diff"
 	exit 1

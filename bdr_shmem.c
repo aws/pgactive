@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "bdr.h"
-#include "bdr_label.h"
 
 #include "miscadmin.h"
 
@@ -199,7 +198,7 @@ bdr_worker_shmem_startup(void)
 		 */
 		if (bdr_worker_generation == UINT16_MAX)
 			/* We could handle wrap-around, but really ... */
-			elog(FATAL, "Too many postmaster crash/restart cycles. Restart the PostgreSQL server.");
+			elog(FATAL, "too many postmaster crash/restart cycles, restart the PostgreSQL server");
 
 		BdrWorkerCtl->worker_generation = ++bdr_worker_generation;
 	}
@@ -246,7 +245,7 @@ bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
 	}
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-			 errmsg("No free bdr worker slots - bdr.max_workers is too low")));
+			 errmsg("no free bdr worker slots - bdr.max_workers is too low")));
 	/* unreachable */
 }
 

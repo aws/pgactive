@@ -353,8 +353,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	Relation	rel;
 
 	if (PG_NARGS() != 2)
-		elog(ERROR,
-			 "expecting exactly two arguments");
+		elog(ERROR, "expecting exactly two arguments");
 
 	if (bdr_conflict_handler_table_oid == InvalidOid)
 		bdr_conflict_handlers_init();
@@ -617,7 +616,7 @@ bdr_get_conflict_handlers(BDRRelation * rel)
 			 * But, y'know, defensive coding…
 			 */
 			if (isnull)
-				elog(ERROR, "Handler OID is null");
+				elog(ERROR, "handler OID is null");
 
 			rel->conflict_handlers[i].handler_oid = DatumGetObjectId(dat);
 
@@ -629,7 +628,7 @@ bdr_get_conflict_handlers(BDRRelation * rel)
 			 * But, y'know, defensive coding…
 			 */
 			if (isnull)
-				elog(ERROR, "Handler type is null");
+				elog(ERROR, "handler type is null");
 
 			htype = TextDatumGetCString(dat);
 
@@ -826,7 +825,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 		val = fastgetattr(&result_tup, 2, retdesc, &isnull);
 
 		if (isnull)
-			elog(ERROR, "handler action may not be NULL!");
+			elog(ERROR, "handler action cannot be NULL");
 
 		if (DatumGetObjectId(val) == bdr_conflict_handler_action_row_oid)
 		{

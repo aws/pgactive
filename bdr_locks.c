@@ -522,8 +522,8 @@ bdr_locks_find_database(Oid dboid, bool create)
 
 	ereport(ERROR,
 			(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
-			 errmsg("Too many databases BDR-enabled for bdr.max_databases"),
-			 errhint("Increase bdr.max_databases above the current limit of %d", bdr_max_databases)));
+			 errmsg("too many databases BDR-enabled for bdr.max_databases"),
+			 errhint("Increase bdr.max_databases above the current limit of %d.", bdr_max_databases)));
 }
 
 static void
@@ -721,7 +721,7 @@ bdr_locks_set_nnodes(int nnodes)
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("number of nodes increased %d => %d while local DDL lock not held",
 						bdr_my_locks_database->nnodes, nnodes),
-				 errhint("this should only happen during an upgrade from an older BDR version")));
+				 errhint("This should only happen during an upgrade from an older BDR version.")));
 	}
 	bdr_my_locks_database->nnodes = nnodes;
 	LWLockRelease(bdr_locks_ctl->lock);
@@ -858,7 +858,7 @@ bdr_lock_holder_xact_callback(XactEvent event, void *arg)
 			bdr_my_locks_database->lockcount--;
 		}
 		else
-			elog(WARNING, "Releasing unacquired global lock");
+			elog(WARNING, "releasing unacquired global lock");
 
 		this_xact_acquired_lock = false;
 		Assert(bdr_my_locks_database->lock_holder_local_pid == MyProcPid);
@@ -996,7 +996,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("Global DDL locking attempt rejected by configuration"),
+					 errmsg("global DDL locking attempt rejected by configuration"),
 					 errdetail("bdr.permit_ddl_locking is false and the attempted command "
 							   "would require the global lock to be acquired. "
 							   "Command rejected."),
@@ -1007,8 +1007,8 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("No peer nodes or peer node count unknown, cannot acquire global lock"),
-					 errhint("BDR is probably still starting up, wait a while")));
+					 errmsg("no peer nodes or peer node count unknown, cannot acquire global lock"),
+					 errhint("BDR is probably still starting up, wait a while.")));
 		}
 	}
 
@@ -1058,7 +1058,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		ereport(ERROR,
 				(errcode(ERRCODE_LOCK_NOT_AVAILABLE),
 				 errmsg("database is locked against ddl by another node"),
-				 errhint("Node " BDR_NODEID_FORMAT_WITHNAME " in the cluster is already performing DDL",
+				 errhint("Node " BDR_NODEID_FORMAT_WITHNAME " in the cluster is already performing DDL.",
 						 BDR_NODEID_FORMAT_WITHNAME_ARGS(holder))));
 	}
 
@@ -1221,7 +1221,7 @@ check_is_my_origin_node(const BDRNodeId * const peer)
 	StartTransactionCommand();
 	bdr_fetch_sysid_via_node_id(replorigin_session_origin, &session_origin_node);
 	CommitTransactionCommand();
-	(void) MemoryContextSwitchTo(old_ctx);
+	MemoryContextSwitchTo(old_ctx);
 
 	return bdr_nodeid_eq(peer, &session_origin_node);
 }
@@ -1464,7 +1464,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			ForceSyncCommit();	/* async commit would be too complicated */
 			table_close(rel, NoLock);
 			CommitTransactionCommand();
-			(void) MemoryContextSwitchTo(old_ctx);
+			MemoryContextSwitchTo(old_ctx);
 		}
 		PG_CATCH();
 		{
@@ -1575,7 +1575,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 			bool		isnull[10];
 
 			if (found)
-				elog(PANIC, "Duplicate lock?");
+				elog(PANIC, "duplicate lock?");
 
 			heap_deform_tuple(tuple, RelationGetDescr(rel),
 							  values, isnull);
@@ -1601,7 +1601,7 @@ bdr_process_acquire_ddl_lock(const BDRNodeId * const node, BDRLockType lock_type
 		table_close(rel, NoLock);
 
 		CommitTransactionCommand();
-		(void) MemoryContextSwitchTo(old_ctx);
+		MemoryContextSwitchTo(old_ctx);
 
 		LWLockRelease(bdr_locks_ctl->lock);
 
@@ -1679,7 +1679,7 @@ decline:
 		StartTransactionCommand();
 		bdr_fetch_sysid_via_node_id(bdr_my_locks_database->lock_holder, &replay_node);
 		CommitTransactionCommand();
-		(void) MemoryContextSwitchTo(old_ctx);
+		MemoryContextSwitchTo(old_ctx);
 
 		bdr_send_nodeid(&s, node, false);
 		pq_sendint(&s, lock_type, 4);
@@ -1839,8 +1839,8 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	{
 		ereport(DEBUG1,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("Did not find global lock entry locally for a remotely released global lock"),
-				 errdetail("node " BDR_NODEID_FORMAT_WITHNAME " sent a release message but the lock isn't held locally",
+				 errmsg("did not find global lock entry locally for a remotely released global lock"),
+				 errdetail("node " BDR_NODEID_FORMAT_WITHNAME " sent a release message but the lock isn't held locally.",
 						   BDR_NODEID_FORMAT_WITHNAME_ARGS(*lock))));
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
@@ -1849,7 +1849,7 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 
 		/* nothing to unlock, if there's a lock it's owned by someone else */
 		CommitTransactionCommand();
-		(void) MemoryContextSwitchTo(old_ctx);
+		MemoryContextSwitchTo(old_ctx);
 		return;
 	}
 
@@ -2079,7 +2079,7 @@ bdr_send_confirm_lock(void)
 		bool		isnull[10];
 
 		if (found)
-			elog(PANIC, "Duplicate lock?");
+			elog(PANIC, "duplicate lock?");
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 			 LOCKTRACE "updating global lock state from 'catchup' to 'acquired'");
@@ -2106,7 +2106,7 @@ bdr_send_confirm_lock(void)
 	table_close(rel, NoLock);
 
 	CommitTransactionCommand();
-	(void) MemoryContextSwitchTo(old_ctx);
+	MemoryContextSwitchTo(old_ctx);
 }
 
 /*
@@ -2133,10 +2133,8 @@ bdr_process_replay_confirm(const BDRNodeId * const node, XLogRecPtr request_lsn)
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 		 LOCKTRACE "processing replay confirmation from node " BDR_NODEID_FORMAT_WITHNAME " for request %X/%X at %X/%X",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node),
-		 (uint32) (bdr_my_locks_database->replay_confirmed_lsn >> 32),
-		 (uint32) bdr_my_locks_database->replay_confirmed_lsn,
-		 (uint32) (request_lsn >> 32),
-		 (uint32) request_lsn);
+		 LSN_FORMAT_ARGS(bdr_my_locks_database->replay_confirmed_lsn),
+		 LSN_FORMAT_ARGS(request_lsn));
 
 	/* request matches the one we're interested in */
 	if (bdr_my_locks_database->replay_confirmed_lsn == request_lsn)
@@ -2232,7 +2230,7 @@ bdr_locks_process_remote_startup(const BDRNodeId * const node)
 	/* Lock the shmem control segment for the state change */
 	LWLockAcquire(bdr_locks_ctl->lock, LW_EXCLUSIVE);
 	CommitTransactionCommand();
-	(void) MemoryContextSwitchTo(old_ctx);
+	MemoryContextSwitchTo(old_ctx);
 	LWLockRelease(bdr_locks_ctl->lock);
 }
 

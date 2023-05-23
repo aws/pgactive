@@ -62,4 +62,12 @@ GetSysCacheOid2Error(int cacheId, Datum key1, Datum key2)
 
 /* 763f2edd9209 */
 #define ExecFetchSlotHeapTupleDatum(slot) ExecFetchSlotTupleDatum(slot)
+
+/* 6f6f284c7ee4 introduced in PG14 */
+/*
+ * Handy macro for printing XLogRecPtr in conventional format, e.g.,
+ *
+ * printf("%X/%X", LSN_FORMAT_ARGS(lsn));
+ */
+#define LSN_FORMAT_ARGS(lsn) (AssertVariableIsOfTypeMacro((lsn), XLogRecPtr), (uint32) ((lsn) >> 32)), ((uint32) (lsn))
 #endif

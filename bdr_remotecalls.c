@@ -180,7 +180,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 		{
 			ereport(ERROR,
 					(errmsg("writing to destination table failed"),
-					 errdetail("destination connection reported: %s",
+					 errdetail("Destination connection reported: %s",
 							   PQerrorMessage(copyto_conn))));
 		}
 		PQfreemem(copybuf);
@@ -190,7 +190,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 	{
 		ereport(ERROR,
 				(errmsg("reading from origin table/query failed"),
-				 errdetail("source connection returned %d: %s",
+				 errdetail("Source connection returned %d: %s",
 						   copyoutresult, PQerrorMessage(copyfrom_conn))));
 	}
 
@@ -199,7 +199,7 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 	{
 		ereport(ERROR,
 				(errmsg("sending copy-completion to destination connection failed"),
-				 errdetail("destination connection reported: %s",
+				 errdetail("Destination connection reported: %s",
 						   PQerrorMessage(copyto_conn))));
 	}
 }
@@ -292,7 +292,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		ereport(ERROR,
-				(errmsg("Unable to get BDR version string and is_superuser info from remote node"),
+				(errmsg("unable to get BDR version string and is_superuser info from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 	}
 
@@ -361,7 +361,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 		/* Shouldn't happen, but as a sanity check: */
 		if (parsed_version_num > 900)
-			elog(ERROR, "Remote BDR version reported as %s (n=%d) but bdr.bdr_version_num() missing",
+			elog(ERROR, "remote BDR version reported as %s (n=%d) but bdr.bdr_version_num() missing",
 				 remote_bdr_version_str, parsed_version_num);
 
 		ri->version_num = parsed_version_num;
@@ -390,12 +390,12 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		Assert(PQnfields(res) == 3);
 
 		if (PQntuples(res) != 1)
-			elog(ERROR, "Got %d tuples instead of expected 1", PQntuples(res));
+			elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
 
 		for (i = 0; i < 3; i++)
 		{
 			if (PQgetisnull(res, 0, i))
-				elog(ERROR, "Unexpectedly null field %s", PQfname(res, i));
+				elog(ERROR, "unexpectedly null field %s", PQfname(res, i));
 		}
 
 		ri->sysid_str = pstrdup(PQgetvalue(res, 0, 0));
@@ -436,7 +436,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		{
 			ereport(ERROR,
 					(errmsg("getting remote node status failed"),
-					 errdetail("with: %s",
+					 errdetail("With: %s",
 							   PQerrorMessage(conn))));
 		}
 
@@ -449,7 +449,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		else if (PQntuples(res) == 1)
 		{
 			if (PQgetisnull(res, 0, 0))
-				elog(ERROR, "Unexpectedly null field node_status in bdr.bdr_nodes");
+				elog(ERROR, "unexpectedly null field node_status in bdr.bdr_nodes");
 
 			ri->node_status = PQgetvalue(res, 0, 0)[0];
 		}
@@ -588,7 +588,7 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 		/* TODO clone remote error to local */
 		ereport(ERROR,
 				(errmsg("connection from remote back to local in replication mode failed"),
-				 errdetail("remote reported: %s", PQerrorMessage(conn))));
+				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
 	}
 
 	PQclear(res);
@@ -607,13 +607,13 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 		/* TODO clone remote error to local */
 		ereport(ERROR,
 				(errmsg("connection from remote back to local failed"),
-				 errdetail("remote reported: %s", PQerrorMessage(conn))));
+				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
 	}
 
 	Assert(PQnfields(res) == 8);
 
 	if (PQntuples(res) != 1)
-		elog(ERROR, "Got %d tuples instead of expected 1", PQntuples(res));
+		elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
 
 	ri->sysid_str = NULL;
 	ri->nodeid.sysid = 0;
@@ -770,7 +770,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 	remote.dboid = PG_GETARG_OID(2);
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	cfg = bdr_get_connection_config(&remote, false);
 	conn = bdr_connect_nonrepl(cfg->dsn, "bdr_drop_replication_slot");
@@ -817,7 +817,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 
 		/* Slot found, validate that it's BDR slot */
 		if (PQgetisnull(res, 0, 0))
-			elog(ERROR, "Unexpectedly null field %s", PQfname(res, 0));
+			elog(ERROR, "unexpectedly null field %s", PQfname(res, 0));
 
 		if (strcmp("bdr", PQgetvalue(res, 0, 0)) != 0)
 			ereport(ERROR,

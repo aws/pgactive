@@ -36,14 +36,7 @@ create_bdr_group($node_a);
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a after group create');
 
-ok(!$node_a->safe_psql($bdr_test_dbname, q{
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.reptest(
-	id integer primary key,
-	dummy text
-);
-$DDL$);
-}), 'simple DDL succeeds');
+exec_ddl($node_a, q[CREATE TABLE public.reptest(id integer primary key, dummy text);]);
 
 ok(!$node_a->psql($bdr_test_dbname, "INSERT INTO reptest (id, dummy) VALUES (1, '42')"), 'simple DML succeeds');
 

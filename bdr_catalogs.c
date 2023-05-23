@@ -81,10 +81,11 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 	 */
 	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("bdr"));
 	if (schema_oid == InvalidOid)
-		ereport(ERROR, (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-						errmsg("No bdr schema is present in database %s, cannot create a bdr slot",
-							   get_database_name(MyDatabaseId)),
-						errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries")));
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
+						get_database_name(MyDatabaseId)),
+				 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(node->timeline);
@@ -96,7 +97,7 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 									3, argtypes, values, NULL, false, 1);
 
 	if (spi_ret != SPI_OK_SELECT)
-		elog(ERROR, "Unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
+		elog(ERROR, "unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
 
 	if (SPI_processed == 0)
 		return '\0';
@@ -339,7 +340,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 									6, argtypes, values, nulls, false, 0);
 
 	if (spi_ret != SPI_OK_UPDATE)
-		elog(ERROR, "Unable to set status=%c of row (node_sysid="
+		elog(ERROR, "unable to set status=%c of row (node_sysid="
 			 UINT64_FORMAT ", node_timeline=%u, node_dboid=%u) "
 			 "in bdr.bdr_nodes: SPI error %d",
 			 status, myid.sysid, myid.timeline, myid.dboid, spi_ret);
@@ -584,7 +585,7 @@ bdr_read_connection_configs()
 								 getattno("conn_sysid"));
 
 		if (sscanf(tmp_sysid, UINT64_FORMAT, &cfg->remote_node.sysid) != 1)
-			elog(ERROR, "Parsing sysid uint64 from %s failed", tmp_sysid);
+			elog(ERROR, "parsing sysid uint64 from %s failed", tmp_sysid);
 
 		tmp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								  getattno("conn_timeline"),
@@ -711,7 +712,7 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	}
 
 	if (found_config == NULL && !missing_ok)
-		elog(ERROR, "Failed to find expected bdr.connections row "
+		elog(ERROR, "failed to find expected bdr.connections row "
 			 "(conn_sysid,conn_timeline,conn_dboid) = "
 			 "(" UINT64_FORMAT ",%u,%u) "
 			 "in bdr.bdr_connections",
@@ -872,7 +873,7 @@ bdr_node_status_to_char(PG_FUNCTION_ARGS)
 			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_KILLED)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("The string '%s' isn't recognised as a BDR status", status)));
+					 errmsg("string '%s' isn't recognised as a BDR status", status)));
 	} while (false);
 
 	PG_RETURN_CHAR((char) result);

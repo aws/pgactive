@@ -654,16 +654,16 @@ SHOW default_with_oids;
 (1 row)
 
 CREATE TABLE tbl_with_oids() WITH oids;
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CREATE TABLE tbl_without_oids() WITHOUT oids;
 DROP TABLE tbl_without_oids;
 CREATE TABLE tbl_without_oids();
 DROP TABLE tbl_without_oids;
 SET default_with_oids = true;
 CREATE TABLE tbl_with_oids();
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CREATE TABLE tbl_with_oids() WITH OIDS;
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CREATE TABLE tbl_without_oids() WITHOUT oids;
 DROP TABLE tbl_without_oids;
 SET default_with_oids = false;

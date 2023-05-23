@@ -368,7 +368,7 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("local node is still starting up, cannot change read-only status.")));
+				 errmsg("local node is still starting up, cannot change read-only status")));
 	}
 
 	InitDirtySnapshot(SnapshotDirty);
@@ -411,7 +411,7 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 		CatalogTupleUpdate(rel, &tuple->t_self, newtuple);
 	}
 	else
-		elog(ERROR, "Node %s not found.", node_name);
+		elog(ERROR, "node %s not found.", node_name);
 
 	systable_endscan(scan);
 
@@ -529,7 +529,7 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command"),
-					 errhint("Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements")));
+					 errhint("Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.")));
 		}
 	}
 
@@ -585,9 +585,9 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("Cannot run UPDATE or DELETE on table %s because it does not have a PRIMARY KEY.",
+				 errmsg("cannot run UPDATE or DELETE on table %s because it does not have a PRIMARY KEY",
 						RelationGetRelationName(rel)),
-				 errhint("Add a PRIMARY KEY to the table")));
+				 errhint("Add a PRIMARY KEY to the table.")));
 
 		RelationClose(rel);
 	}

@@ -16,7 +16,6 @@
 
 #include "bdr.h"
 #include "bdr_locks.h"
-#include "bdr_label.h"
 
 #include "libpq-fe.h"
 #include "funcapi.h"
@@ -33,6 +32,7 @@
 
 #include "commands/dbcommands.h"
 #include "commands/extension.h"
+#include "commands/seclabel.h"
 
 #include "lib/stringinfo.h"
 
@@ -52,11 +52,14 @@
 #include "storage/proc.h"
 #include "storage/shmem.h"
 
+#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/elog.h"
 #include "utils/guc.h"
+#include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "catalog/pg_database.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
 #include "utils/timestamp.h"
@@ -141,6 +144,8 @@ static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType
 
 static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
+static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
+
 static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
 	{"peers", DDL_LOCK_TRACE_PEERS, false},
@@ -195,7 +200,7 @@ bdr_get_remote_dboid(const char *conninfo_db)
 	char	   *remote_dboid;
 	Oid			remote_dboid_i;
 
-	elog(DEBUG3, "Fetching database oid via standard connection");
+	elog(DEBUG3, "fetching database oid via standard connection");
 
 	dbConn = PQconnectdb(conninfo_db);
 	if (PQstatus(dbConn) != CONNECTION_OK)
@@ -203,7 +208,7 @@ bdr_get_remote_dboid(const char *conninfo_db)
 		ereport(FATAL,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
 				 errmsg("get remote OID: %s", PQerrorMessage(dbConn)),
-				 errdetail("Connection string is '%s'", conninfo_db)));
+				 errdetail("Connection string is '%s'.", conninfo_db)));
 	}
 
 	res = PQexec(dbConn, "SELECT oid FROM pg_database WHERE datname = current_database()");
@@ -280,7 +285,7 @@ bdr_connect(const char *conninfo,
 				 errdetail("Connection string is '%s'", conninfo_repl.data)));
 	}
 
-	elog(DEBUG3, "Sending replication command: IDENTIFY_SYSTEM");
+	elog(DEBUG3, "sending replication command: IDENTIFY_SYSTEM");
 
 	res = PQexec(streamConn, "IDENTIFY_SYSTEM");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -365,7 +370,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "bdr");
 
-	elog(DEBUG3, "Sending replication command: %s", query.data);
+	elog(DEBUG3, "sending replication command: %s", query.data);
 
 	res = PQexec(streamConn, query.data);
 
@@ -408,7 +413,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 {
 	uint16		worker_generation;
 	uint16		worker_idx;
-	char	   *dbname;
+	Oid	   		dboid;
 
 	Assert(IsBackgroundWorker);
 
@@ -428,7 +433,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 
 	/* figure out database to connect to */
 	if (worker_type == BDR_WORKER_PERDB)
-		dbname = NameStr(bdr_worker_slot->data.perdb.dbname);
+		dboid = bdr_worker_slot->data.perdb.c_dboid;
 	else if (worker_type == BDR_WORKER_APPLY)
 	{
 		BdrApplyWorker *apply;
@@ -437,12 +442,13 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 		apply = &bdr_worker_slot->data.apply;
 		Assert(apply->perdb != NULL);
 		perdb = &apply->perdb->data.perdb;
-
-		dbname = NameStr(perdb->dbname);
+		dboid = perdb->c_dboid;
 	}
 	else
 		elog(FATAL, "don't know how to connect to this type of work: %u",
 			 bdr_worker_type);
+
+	Assert(OidIsValid(dboid));
 
 	/* Establish signal handlers before unblocking signals. */
 	pqsignal(SIGHUP, bdr_sighup);
@@ -452,20 +458,24 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	BackgroundWorkerUnblockSignals();
 
 	/* Connect to our database */
-	BackgroundWorkerInitializeConnection(dbname, NULL, 0);
-	Assert(ThisTimeLineID > 0);
+	BackgroundWorkerInitializeConnectionByOid(dboid, InvalidOid, 0);
 
-	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext, dbname);
+	Assert(ThisTimeLineID > 0);
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	bdr_worker_slot->worker_pid = MyProcPid;
 	bdr_worker_slot->worker_proc = MyProc;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	/* make sure BDR extension is up2date */
+	/*
+	 * Ensure BDR extension is up to date and get the name of the database this
+	 * background is connected to.
+	 */
 	bdr_executor_always_allow_writes(true);
 	StartTransactionCommand();
 	bdr_maintain_schema(true);
+	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext,
+									get_database_name(MyDatabaseId));
 	CommitTransactionCommand();
 	bdr_executor_always_allow_writes(false);
 
@@ -526,8 +536,8 @@ bdr_error_nodeids_must_differ(const BDRNodeId * const nodeid)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_NAME),
-			 errmsg("The system identifier, timeline ID and/or database oid must differ between the nodes"),
-			 errdetail("Both keys are (sysid, timelineid, dboid) = (" UINT64_FORMAT ",%u,%u)",
+			 errmsg("system identifier, timeline ID and/or database oid must differ between the nodes"),
+			 errdetail("Both keys are (sysid, timelineid, dboid) = (" UINT64_FORMAT ",%u,%u).",
 					   nodeid->sysid, nodeid->timeline, nodeid->dboid)));
 }
 
@@ -607,7 +617,7 @@ bdr_establish_connection_and_slot(const char *dsn,
 		 */
 
 		/* create local replication identifier and a remote slot */
-		elog(DEBUG1, "Creating new slot %s", NameStr(*out_slot_name));
+		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
 		bdr_create_slot(streamConn, out_slot_name, remote_repident_name,
 						out_replication_identifier, out_snapshot);
 	}
@@ -716,6 +726,45 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 }
 
 /*
+ * BDR security label implementation
+ *
+ * Provide object metadata for bdr using the security label infrastructure.
+ */
+static void
+bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
+{
+	switch (object->classId)
+	{
+		case RelationRelationId:
+
+			if (!pg_class_ownercheck(object->objectId, GetUserId()))
+				aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TABLE,
+							   get_rel_name(object->objectId));
+
+			/* ensure bdr_relcache.c is coherent */
+			CacheInvalidateRelcacheByRelid(object->objectId);
+
+			bdr_parse_relation_options(seclabel, NULL);
+			break;
+		case DatabaseRelationId:
+
+			if (!pg_database_ownercheck(object->objectId, GetUserId()))
+				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_ALL_RIGHTS_DATABASE,
+							   get_database_name(object->objectId));
+
+			/* ensure bdr_dbcache.c is coherent */
+			CacheInvalidateCatalog(DatabaseRelationId);
+
+			bdr_parse_database_options(seclabel, NULL);
+			break;
+		default:
+			elog(ERROR, "unsupported object type: %s",
+				 getObjectDescription(object));
+			break;
+	}
+}
+
+/*
  * Entrypoint of this module - called at shared_preload_libraries time in the
  * context of the postmaster.
  *
@@ -726,8 +775,6 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 void
 _PG_init(void)
 {
-	MemoryContext old_context;
-
 	if (!IsBinaryUpgrade)
 	{
 		if (!process_shared_preload_libraries_in_progress)
@@ -748,9 +795,6 @@ _PG_init(void)
 	 * worker initialization.
 	 */
 	load_external_function("btree_gist", "gbtreekey_in", true, NULL);
-
-	/* guc's et al need to survive outside the lifetime of the library init */
-	old_context = MemoryContextSwitchTo(TopMemoryContext);
 
 	/* XXX: make it changeable at SIGHUP? */
 	DefineCustomBoolVariable("bdr.synchronous_commit",
@@ -904,7 +948,8 @@ _PG_init(void)
 
 	EmitWarningsOnPlaceholders("bdr");
 
-	bdr_label_init();
+	/* Security label provider hook */
+	register_label_provider(BDR_SECLABEL_PROVIDER, bdr_object_relabel);
 
 	if (!IsBinaryUpgrade)
 	{
@@ -927,8 +972,6 @@ _PG_init(void)
 		/* Set up a ProcessUtility_hook to stop unsupported commands being run */
 		init_bdr_commandfilter();
 	}
-
-	MemoryContextSwitchTo(old_context);
 }
 
 Oid
@@ -963,6 +1006,8 @@ bdr_maintain_schema(bool update_extensions)
 	Oid			btree_gist_oid;
 	Oid			bdr_oid;
 	Oid			schema_oid;
+
+	Assert(IsTransactionState());
 
 	PushActiveSnapshot(GetTransactionSnapshot());
 
@@ -1202,10 +1247,10 @@ bdr_format_slot_name_sql(PG_FUNCTION_ARGS)
 	remote.dboid = PG_GETARG_OID(2);
 
 	if (strlen(replication_name) != 0)
-		elog(ERROR, "Non-empty replication_name is not yet supported");
+		elog(ERROR, "non-empty replication_name is not yet supported");
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	slot_name = (Name) palloc0(NAMEDATALEN);
 
@@ -1227,10 +1272,10 @@ bdr_format_replident_name_sql(PG_FUNCTION_ARGS)
 	remote.dboid = PG_GETARG_OID(2);
 
 	if (strlen(replication_name) != 0)
-		elog(ERROR, "Non-empty replication_name is not yet supported");
+		elog(ERROR, "non-empty replication_name is not yet supported");
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	replident_name = bdr_replident_name(&remote, local_dboid);
 
@@ -1261,7 +1306,7 @@ bdr_parse_version(const char *bdr_version_str,
 	nparsed = sscanf(bdr_version_str, "%d.%d.%d.%d", &major, &minor, &rev, &subrev);
 
 	if (nparsed < 3)
-		elog(ERROR, "Unable to parse '%s' as a BDR version number", bdr_version_str);
+		elog(ERROR, "unable to parse '%s' as a BDR version number", bdr_version_str);
 	else if (nparsed < 4)
 		subrev = -1;
 
@@ -1303,18 +1348,18 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("skipping changes is unsafe and will cause replicas to be out of sync"),
-				 errhint("Set bdr.permit_unsafe_ddl_commands if you are sure you want to do this")));
+				 errhint("Set bdr.permit_unsafe_ddl_commands if you are sure you want to do this.")));
 
 	if (upto_lsn == InvalidXLogRecPtr)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("Target LSN must be nonzero")));
+				 errmsg("target LSN must be nonzero")));
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	if (bdr_nodeid_eq(&myid, &remote))
-		elog(ERROR, "the passed ID is for the local node, can't skip changes from self");
+		elog(ERROR, "passed ID is for the local node, can't skip changes from self");
 
 	/* Only ever matches a replnode id owned by the local BDR node */
 	nodeid = bdr_fetch_node_id_via_sysid(&remote);
@@ -1371,15 +1416,11 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 			CHECK_FOR_INTERRUPTS();
 		}
 
-#if BDR_VERSION_NUM >= 90600
-
 		/*
 		 * We need a RowExclusiveLock on pg_replication_origin per docs for
 		 * replorigin_advance(...).
 		 */
 		LockRelationOid(ReplicationOriginRelationId, RowExclusiveLock);
-#endif
-
 
 		/*
 		 * upto_lsn is documented as being exclusive, i.e. we skip a commit
@@ -1388,9 +1429,7 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 		 */
 		replorigin_advance(nodeid, upto_lsn + 1, XactLastCommitEnd, false, true);
 
-#if BDR_VERSION_NUM >= 90600
 		UnlockRelationOid(ReplicationOriginRelationId, RowExclusiveLock);
-#endif
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(bdr_skip_changes_upto_cleanup, (Datum) 0);
 
@@ -1545,14 +1584,12 @@ bdr_is_active_in_db(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(bdr_is_bdr_activated_db(MyDatabaseId));
 }
 
-/*
- * We forgot to add this to core Pg 9.6, so expose it
- * via BDR.
- */
-PG_FUNCTION_INFO_V1(bdr_get_transaction_replorigin);
+#if PG_VERSION_NUM < 150000
+/* b1e48bbe64a4 introduced in PG14 */
+PG_FUNCTION_INFO_V1(pg_xact_commit_timestamp_origin);
 
 Datum
-bdr_get_transaction_replorigin(PG_FUNCTION_ARGS)
+pg_xact_commit_timestamp_origin(PG_FUNCTION_ARGS)
 {
 	TransactionId xid = PG_GETARG_UINT32(0);
 	RepOriginId data = 0;
@@ -1562,3 +1599,4 @@ bdr_get_transaction_replorigin(PG_FUNCTION_ARGS)
 
 	PG_RETURN_INT32((int32) data);
 }
+#endif

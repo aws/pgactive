@@ -52,7 +52,6 @@ OBJS = \
 	bdr_count.o \
 	bdr_executor.o \
 	bdr_init_replica.o \
-	bdr_label.o \
 	bdr_locks.o \
 	bdr_nodecache.o \
 	bdr_messaging.o \

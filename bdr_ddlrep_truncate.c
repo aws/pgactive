@@ -150,7 +150,8 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	if ((nfound = deleteDependencyRecordsForClass(tgaddr.classId, tgaddr.objectId, ProcedureRelationId, 'n')) != 1)
 	{
 		ereport(ERROR,
-				(errmsg_internal("expected exectly one 'n'ormal dependency from a newly created trigger to a pg_proc entry, got %u", nfound)));
+				(errmsg_internal("expected exectly one 'n'ormal dependency from a newly created trigger to a pg_proc entry, got %u",
+								 nfound)));
 	}
 
 	recordDependencyOn(&tgaddr, &procaddr, DEPENDENCY_AUTO);

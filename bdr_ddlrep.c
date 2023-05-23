@@ -192,7 +192,6 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 	StringInfoData si;
 	List	   *active_search_path;
 	CommandTag	tag = completionTag;
-	const char *skip_ddl;
 	bool		first;
 
 	initStringInfo(&si);
@@ -216,8 +215,7 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 	 * mostly used when pg_restore brings a remote node state, so all objects
 	 * will be copied over in the dump anyway.
 	 */
-	skip_ddl = GetConfigOptionByName("bdr.skip_ddl_replication", NULL, false);
-	if (strcmp(skip_ddl, "on") == 0)
+	if (bdr_skip_ddl_replication)
 		return;
 
 	/*

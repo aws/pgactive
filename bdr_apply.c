@@ -14,6 +14,8 @@
  */
 #include "postgres.h"
 
+#include <unistd.h>
+
 #include "bdr.h"
 #include "bdr_locks.h"
 #include "bdr_messaging.h"
@@ -170,8 +172,7 @@ format_action_description(
 
 	appendStringInfo(si,
 					 " in commit before %X/%X, xid %u commited at %s (action #%u)",
-					 (uint32) (replorigin_session_origin_lsn >> 32),
-					 (uint32) replorigin_session_origin_lsn,
+					 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
 					 replication_origin_xid,
 					 timestamptz_to_str(replorigin_session_origin_timestamp),
 					 xact_action_counter);
@@ -185,8 +186,7 @@ format_action_description(
 	if (remote_origin_id != InvalidRepOriginId)
 	{
 		appendStringInfo(si, " forwarded from commit %X/%X on node " BDR_NODEID_FORMAT_WITHNAME,
-						 (uint32) (remote_origin_lsn >> 32),
-						 (uint32) remote_origin_lsn,
+						 LSN_FORMAT_ARGS(remote_origin_lsn),
 						 BDR_NODEID_FORMAT_WITHNAME_ARGS(remote_origin));
 	}
 }
@@ -282,8 +282,7 @@ process_remote_begin(StringInfo s)
 
 	snprintf(statbuf, sizeof(statbuf),
 			 "bdr_apply: BEGIN origin(orig_lsn, timestamp): %X/%X, %s",
-			 (uint32) (replorigin_session_origin_lsn >> 32),
-			 (uint32) replorigin_session_origin_lsn,
+			 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
 			 timestamptz_to_str(committime));
 
 	pgstat_report_activity(STATE_RUNNING, statbuf);
@@ -311,8 +310,8 @@ process_remote_begin(StringInfo s)
 			 * for init_replica.
 			 */
 			ereport(ERROR,
-					(errmsg("Replication loop in catchup mode"),
-					 errdetail("Received a transaction from the remote node that originated on this node")));
+					(errmsg("replication loop in catchup mode"),
+					 errdetail("Received a transaction from the remote node that originated on this node.")));
 		}
 
 		/*
@@ -326,7 +325,7 @@ process_remote_begin(StringInfo s)
 		StartTransactionCommand();
 		remote_origin_id = replorigin_by_name(remote_ident, false);
 		CommitTransactionCommand();
-		(void) MemoryContextSwitchTo(old_ctx);
+		MemoryContextSwitchTo(old_ctx);
 
 		pfree(remote_ident);
 	}
@@ -437,7 +436,7 @@ process_remote_commit(StringInfo s)
 {
 	XLogRecPtr	commit_lsn PG_USED_FOR_ASSERTS_ONLY;
 	TimestampTz committime PG_USED_FOR_ASSERTS_ONLY;
-	TimestampTz commit_afterend_lsn;
+	XLogRecPtr commit_afterend_lsn;
 	int			flags;
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
@@ -455,7 +454,7 @@ process_remote_commit(StringInfo s)
 	flags = pq_getmsgint(s, 4);
 
 	if (flags != 0)
-		elog(ERROR, "Commit flags are currently unused, but flags was set to %i", flags);
+		elog(ERROR, "commit flags are currently unused, but flags was set to %i", flags);
 
 	/* order of access to fields after flags is important */
 	commit_lsn = pq_getmsgint64(s); /* start of commit record; not used
@@ -498,7 +497,7 @@ process_remote_commit(StringInfo s)
 		BdrFlushPosition *flushpos;
 
 		CommitTransactionCommand();
-		(void) MemoryContextSwitchTo(MessageContext);
+		MemoryContextSwitchTo(MessageContext);
 
 		/*
 		 * Associate the end of the remote commit lsn with the local end of
@@ -562,8 +561,8 @@ process_remote_commit(StringInfo s)
 	{
 		ereport(LOG,
 				(errmsg("bdr apply finished processing; replayed up to %X/%X of required %X/%X",
-						(uint32) (commit_afterend_lsn >> 32), (uint32) commit_afterend_lsn,
-						(uint32) (bdr_apply_worker->replay_stop_lsn >> 32), (uint32) bdr_apply_worker->replay_stop_lsn)));
+						LSN_FORMAT_ARGS(commit_afterend_lsn),
+						LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn))));
 
 		/*
 		 * We clear the replay_stop_lsn field to indicate successful catchup,
@@ -636,8 +635,7 @@ process_remote_insert(StringInfo s)
 
 	action = pq_getmsgbyte(s);
 	if (action != 'N')
-		elog(ERROR, "expected new tuple but got %d",
-			 action);
+		elog(ERROR, "expected new tuple but got %d", action);
 
 	estate = bdr_create_rel_estate(rel->rel, relinfo);
 
@@ -721,9 +719,8 @@ process_remote_insert(StringInfo s)
 					 errmsg("multiple unique constraints violated by remotely INSERTed tuple"),
 					 errdetail("Cannot apply transaction because remotely INSERTed tuple "
 							   "conflicts with a local tuple on more than one UNIQUE "
-							   "constraint and/or PRIMARY KEY"),
-					 errhint("Resolve the conflict by removing or changing the conflicting "
-							 "local tuple")));
+							   "constraint and/or PRIMARY KEY."),
+					 errhint("Resolve the conflict by removing or changing the conflicting local tuple.")));
 		}
 		else if (found)
 		{
@@ -893,7 +890,7 @@ process_remote_insert(StringInfo s)
 		if (oldxid != GetTopTransactionId())
 		{
 			CommitTransactionCommand();
-			(void) MemoryContextSwitchTo(MessageContext);
+			MemoryContextSwitchTo(MessageContext);
 			started_transaction = false;
 		}
 	}
@@ -960,8 +957,7 @@ process_remote_update(StringInfo s)
 
 	/* old key present, identifying key changed */
 	if (action != 'K' && action != 'N')
-		elog(ERROR, "expected action 'N' or 'K', got %c",
-			 action);
+		elog(ERROR, "expected action 'N' or 'K', got %c", action);
 
 	estate = bdr_create_rel_estate(rel->rel, relinfo);
 #if PG_VERSION_NUM >= 120000
@@ -985,8 +981,7 @@ process_remote_update(StringInfo s)
 
 	/* check for new  tuple */
 	if (action != 'N')
-		elog(ERROR, "expected action 'N', got %c",
-			 action);
+		elog(ERROR, "expected action 'N', got %c", action);
 
 	if (rel->rel->rd_rel->relkind != RELKIND_RELATION)
 		elog(ERROR, "unexpected relkind '%c' rel \"%s\"",
@@ -1000,11 +995,8 @@ process_remote_update(StringInfo s)
 		RelationGetIndexList(rel->rel);
 	idxoid = rel->rel->rd_replidindex;
 	if (!OidIsValid(idxoid))
-	{
 		elog(ERROR, "could not find primary key for table with oid %u",
 			 RelationGetRelid(rel->rel));
-		return;
-	}
 
 	/* open index, so we can build scan key for row */
 	idxrel = index_open(idxoid, RowExclusiveLock);
@@ -1046,7 +1038,7 @@ process_remote_update(StringInfo s)
 			tuple_to_stringinfo(&o, RelationGetDescr(rel->rel), TTS_TUP(oldslot));
 			appendStringInfo(&o, " to");
 			tuple_to_stringinfo(&o, RelationGetDescr(rel->rel), remote_tuple);
-			elog(DEBUG1, "UPDATE:%s", o.data);
+			elog(DEBUG1, "UPDATE: %s", o.data);
 			resetStringInfo(&o);
 		}
 #endif
@@ -1265,11 +1257,8 @@ process_remote_delete(StringInfo s)
 		RelationGetIndexList(rel->rel);
 	idxoid = rel->rel->rd_replidindex;
 	if (!OidIsValid(idxoid))
-	{
 		elog(ERROR, "could not find primary key for table with oid %u",
 			 RelationGetRelid(rel->rel));
-		return;
-	}
 
 	/* Now open the primary key index */
 	idxrel = index_open(idxoid, RowExclusiveLock);
@@ -1342,7 +1331,7 @@ process_remote_delete(StringInfo s)
 		/* DELETE vs DELETE can't return new tuple. */
 		if (user_tuple)
 			ereport(ERROR,
-					(errmsg("DELETE vs DELETE handler returned a row which isn't allowed.")));
+					(errmsg("DELETE vs DELETE handler returned a row which isn't allowed")));
 
 		apply_conflict = bdr_make_apply_conflict(
 												 BdrConflictType_DeleteDelete,
@@ -1539,7 +1528,7 @@ check_apply_update(BdrConflictType conflict_type,
 												   conflict_type == BdrConflictType_InsertInsert ?
 												   "INSERT" : "UPDATE",
 												   conflict_type,
-												   abs(secs) * 1000000 + abs(microsecs),
+												   labs(secs) * 1000000 + labs(microsecs),
 												   &skip);
 
 		if (skip)
@@ -1674,8 +1663,6 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 	/* Restore the old search_path */
 	AtEOXact_GUC(false, guc_nestlevel);
 }
-
-#include <unistd.h>
 
 static void
 process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
@@ -2087,7 +2074,7 @@ read_tuple_parts_error_badatts(BDRRelation * rel, TupleDesc desc, int rnatts)
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 			 errmsg("remote tuple has different column count to local table and mismatched columns were not null/dropped"),
-			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME,
+			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME".",
 					   get_namespace_name(RelationGetNamespace(rel->rel)), RelationGetRelationName(rel->rel),
 					   RelationGetRelid(rel->rel),
 					   desc->natts,
@@ -2481,12 +2468,8 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 	len += 1;
 
 	elog(DEBUG2, "sending feedback (force %d) to recv %X/%X, write %X/%X, flush %X/%X",
-		 force,
-		 (uint32) (recvpos >> 32), (uint32) recvpos,
-		 (uint32) (writepos >> 32), (uint32) writepos,
-		 (uint32) (flushpos >> 32), (uint32) flushpos
-		);
-
+		 force, LSN_FORMAT_ARGS(recvpos), LSN_FORMAT_ARGS(writepos),
+		 LSN_FORMAT_ARGS(flushpos));
 
 	if (PQputCopyData(conn, replybuf, len) <= 0 || PQflush(conn))
 	{
@@ -2515,6 +2498,8 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
  * of input is not important.
  *
  * If either input is not finite, we return zeroes.
+ *
+ * BDR version of TimestampDifference() with absolute difference.
  */
 static void
 abs_timestamp_difference(TimestampTz start_time, TimestampTz stop_time,
@@ -2527,14 +2512,9 @@ abs_timestamp_difference(TimestampTz start_time, TimestampTz stop_time,
 	}
 	else
 	{
-		TimestampTz diff = abs(stop_time - start_time);
-#ifdef HAVE_INT64_TIMESTAMP
+		TimestampTz diff = labs(stop_time - start_time);
 		*secs = (long) (diff / USECS_PER_SEC);
 		*microsecs = (int) (diff % USECS_PER_SEC);
-#else
-		*secs = (long) diff;
-		*microsecs = (int) ((diff - *secs) * 1000000.0);
-#endif
 	}
 }
 
@@ -2600,13 +2580,13 @@ bdr_apply_reload_config()
 		/* If the DSN or replication sets changed we must restart */
 		if (strcmp(bdr_apply_config->dsn, new_apply_config->dsn) != 0)
 		{
-			elog(DEBUG1, "Apply worker exiting to apply new DSN configuration");
+			elog(DEBUG1, "apply worker exiting to apply new DSN configuration");
 			proc_exit(1);
 		}
 
 		if (strcmp(bdr_apply_config->replication_sets, new_apply_config->replication_sets) != 0)
 		{
-			elog(DEBUG1, "Apply worker exiting to apply new replication set configuration");
+			elog(DEBUG1, "apply worker exiting to apply new replication set configuration");
 			proc_exit(1);
 		}
 
@@ -2636,7 +2616,6 @@ bdr_apply_work(PGconn *streamConn)
 
 	while (!got_SIGTERM)
 	{
-		/* int		 ret; */
 		int			rc;
 		int			r;
 
@@ -2701,21 +2680,14 @@ bdr_apply_work(PGconn *streamConn)
 			r = PQgetCopyData(streamConn, &copybuf, 1);
 
 			if (r == -1)
-			{
 				elog(ERROR, "data stream ended");
-			}
 			else if (r == -2)
-			{
 				elog(ERROR, "could not read COPY data: %s",
 					 PQerrorMessage(streamConn));
-			}
 			else if (r < 0)
 				elog(ERROR, "invalid COPY status %d", r);
 			else if (r == 0)
-			{
-				/* need to wait for new data */
-				break;
-			}
+				break;	/* need to wait for new data */
 			else
 			{
 				int			c;
@@ -2864,7 +2836,7 @@ bdr_apply_main(Datum main_arg)
 	if (BdrWorkerCtl->worker_management_paused)
 	{
 		LWLockRelease(BdrWorkerCtl->lock);
-		elog(ERROR, "BDR worker management is currently paused, apply worker exiting. Retry later.");
+		elog(ERROR, "BDR worker management is currently paused, apply worker exiting, retry later");
 	}
 	bdr_apply_worker->proclatch = &MyProc->procLatch;
 	LWLockRelease(BdrWorkerCtl->lock);
@@ -2901,8 +2873,7 @@ bdr_apply_main(Datum main_arg)
 
 	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 (uint32) (bdr_apply_worker->replay_stop_lsn >> 32),
-						 (uint32) bdr_apply_worker->replay_stop_lsn);
+						 LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn));
 
 	SetConfigOption("application_name", query.data, PGC_USERSET, PGC_S_SESSION);
 
@@ -2921,8 +2892,7 @@ bdr_apply_main(Datum main_arg)
 
 	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 (uint32) (bdr_apply_worker->replay_stop_lsn >> 32),
-						 (uint32) bdr_apply_worker->replay_stop_lsn);
+						 LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn));
 
 	/* Make the replication connection to the remote end */
 	streamConn = bdr_establish_connection_and_slot(bdr_apply_config->dsn,
@@ -2949,13 +2919,11 @@ bdr_apply_main(Datum main_arg)
 	start_from = replorigin_session_get_progress(false);
 
 	elog(INFO, "starting up replication from %u at %X/%X (inclusive)",
-		 replication_identifier,
-		 (uint32) (start_from >> 32), (uint32) start_from);
+		 replication_identifier, LSN_FORMAT_ARGS(start_from));
 
 	resetStringInfo(&query);
 	appendStringInfo(&query, "START_REPLICATION SLOT \"%s\" LOGICAL %X/%X (",
-					 NameStr(slot_name), (uint32) (start_from >> 32),
-					 (uint32) start_from);
+					 NameStr(slot_name), LSN_FORMAT_ARGS(start_from));
 	appendStringInfo(&query, "pg_version '%u'", PG_VERSION_NUM);
 	appendStringInfo(&query, ", pg_catversion '%u'", CATALOG_VERSION_NO);
 	appendStringInfo(&query, ", bdr_version '%u'", BDR_VERSION_NUM);
@@ -2981,7 +2949,7 @@ bdr_apply_main(Datum main_arg)
 
 	appendStringInfoChar(&query, ')');
 
-	elog(DEBUG3, "Sending replication command: %s", query.data);
+	elog(DEBUG3, "sending replication command: %s", query.data);
 
 	res = PQexec(streamConn, query.data);
 

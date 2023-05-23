@@ -61,8 +61,7 @@ bdr_process_remote_message(StringInfo s)
 
 	elog(DEBUG1, "received message type %s from " BDR_NODEID_FORMAT_WITHNAME " at %X/%X",
 		 bdr_message_type_str(msg_type),
-		 BDR_NODEID_FORMAT_WITHNAME_ARGS(origin_node),
-		 (uint32) (lsn >> 32), (uint32) lsn);
+		 BDR_NODEID_FORMAT_WITHNAME_ARGS(origin_node), LSN_FORMAT_ARGS(lsn));
 
 	if (bdr_locks_process_message(msg_type, transactional, lsn, &origin_node, &message))
 		goto done;

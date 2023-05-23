@@ -897,7 +897,7 @@ SHOW default_with_oids;
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH oids; $DDL$);
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.tbl_with_oids() WITH oids; 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
  bdr_replicate_ddl_command 
@@ -925,10 +925,10 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $
 
 SET default_with_oids = true;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids(); $DDL$);
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.tbl_with_oids(); 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
-ERROR:  Tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with bdr
 CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.tbl_with_oids() WITH OIDS; 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
  bdr_replicate_ddl_command 

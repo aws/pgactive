@@ -56,7 +56,7 @@ bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 
 	elog(DEBUG1, "waiting for %s to pass confirmed_flush position %X/%X",
 		 slot_name == NULL ? "all local slots" : NameStr(*slot_name),
-		 (uint32) (target_lsn >> 32), (uint32) target_lsn);
+		 LSN_FORMAT_ARGS(target_lsn));
 
 	do
 	{
@@ -85,10 +85,10 @@ bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 
 		if (oldest_slot_pos >= 0)
 			elog(DEBUG2, "oldest confirmed lsn is %X/%X on slot '%s', %u bytes left until %X/%X",
-				 (uint32) (oldest_confirmed_lsn >> 32), (uint32) oldest_confirmed_lsn,
+				 LSN_FORMAT_ARGS(oldest_confirmed_lsn),
 				 NameStr(ReplicationSlotCtl->replication_slots[oldest_slot_pos].data.name),
 				 (uint32) (target_lsn - oldest_confirmed_lsn),
-				 (uint32) (target_lsn >> 32), (uint32) target_lsn);
+				 LSN_FORMAT_ARGS(target_lsn));
 
 		LWLockRelease(ReplicationSlotControlLock);
 

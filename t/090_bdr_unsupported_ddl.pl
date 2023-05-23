@@ -23,8 +23,8 @@ create_table($node_a,$table_name);
 # Join a new node to first node using bdr_group_join
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b,$node_a);
-# Add new column and constraing to test ALTER CONSTRAINT and ALTER COLUMN ..TYPE
-$node_a->safe_psql($bdr_test_dbname,qq{SELECT bdr.bdr_replicate_ddl_command(\$DDL\$ ALTER TABLE public.$table_name  ADD DateOfBirth date;\$DDL\$);});
+# Add new column and constraint to test ALTER CONSTRAINT and ALTER COLUMN ..TYPE
+$node_a->safe_psql($bdr_test_dbname,qq{SELECT bdr.bdr_replicate_ddl_command(\$DDL\$ ALTER TABLE public.$table_name ADD DateOfBirth date;\$DDL\$);});
 
 # Test showing that bdr.bdr_replicate_ddl_command(...) 
 # correctly rejects disallowed commands like 

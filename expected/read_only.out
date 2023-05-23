@@ -25,13 +25,13 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 -- errors
 CREATE TABLE readonly_test_shoulderror(a int);
-ERROR:  Cannot run CREATE TABLE on read-only BDR node.
+ERROR:  cannot run CREATE TABLE on read-only BDR node
 SELECT bdr.bdr_replicate_ddl_command($$
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
         );
 $$);
-ERROR:  Cannot run CREATE TABLE on read-only BDR node.
+ERROR:  cannot run CREATE TABLE on read-only BDR node
 CONTEXT:  during DDL replay of ddl statement: 
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
@@ -44,7 +44,7 @@ ERROR:  UPDATE may only affect UNLOGGED or TEMPORARY tables on read-only BDR nod
 DELETE FROM public.test_read_only;
 ERROR:  DELETE may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
 COPY public.test_read_only FROM '/tmp/nosuch.csv';
-ERROR:  Cannot run COPY FROM on read-only BDR node.
+ERROR:  cannot run COPY FROM on read-only BDR node
 WITH cte AS (
 	INSERT INTO public.test_read_only VALUES('foo') RETURNING *
 )
@@ -75,13 +75,13 @@ SELECT * FROM cte;
 \c regression
 -- errors
 CREATE TABLE test(a int);
-ERROR:  Cannot run CREATE TABLE on read-only BDR node.
+ERROR:  cannot run CREATE TABLE on read-only BDR node
 SELECT bdr.bdr_replicate_ddl_command($$
         CREATE TABLE public.test (
                 data text
         );
 $$);
-ERROR:  Cannot run CREATE TABLE on read-only BDR node.
+ERROR:  cannot run CREATE TABLE on read-only BDR node
 CONTEXT:  during DDL replay of ddl statement: 
         CREATE TABLE public.test (
                 data text

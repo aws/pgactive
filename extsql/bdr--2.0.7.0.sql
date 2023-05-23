@@ -1461,14 +1461,6 @@ BEGIN
 
     -- Notify local perdb worker to kill nodes.
     PERFORM bdr.bdr_connections_changed();
-
-    UPDATE bdr.bdr_nodes
-    SET node_status = 'k'
-    WHERE node_name = ANY(p_nodes);
-
-    -- Notify local perdb worker to kill nodes.
-    PERFORM bdr.bdr_connections_changed();
-
 END;
 $body$;
 
@@ -2053,9 +2045,6 @@ AS $$
 SELECT (current_setting('server_version_num')::int / 100) = 904;
 $$;
 
-RESET bdr.permit_unsafe_ddl_commands;
-RESET bdr.skip_ddl_replication;
-RESET search_path;
 -- code-only changes, this file here only to keep Pg happy
 --
 -- We used to overload bdr_create_conflict_handler at the C level by
@@ -2074,24 +2063,17 @@ CREATE OR REPLACE FUNCTION bdr.bdr_create_conflict_handler(
 RETURNS VOID
 LANGUAGE C
 AS 'MODULE_PATHNAME';
+
 --
 -- We need these columns to exist on BDR 1.0 in order for an upgrade to BDR 2.0
 -- to succeed.
 --
-
-SET LOCAL bdr.permit_unsafe_ddl_commands = true;
-SET LOCAL bdr.skip_ddl_replication = true;
-SET LOCAL search_path = bdr;
-
 ALTER TABLE bdr_queued_commands
   ADD COLUMN search_path TEXT;
-
 ALTER TABLE bdr_queued_commands
   ALTER COLUMN search_path SET DEFAULT '';
-
 ALTER TABLE bdr.bdr_nodes
   ADD COLUMN node_seq_id smallint;
-
 ALTER TABLE bdr.bdr_conflict_history
   ADD COLUMN remote_node_timeline oid;
 ALTER TABLE bdr.bdr_conflict_history
@@ -2103,21 +2085,6 @@ ALTER TABLE bdr.bdr_conflict_history
 
 -- Conflict history should never be in dumps
 SELECT pg_catalog.pg_extension_config_dump('bdr_conflict_history', 'WHERE false');
-
-RESET bdr.permit_unsafe_ddl_commands;
-RESET bdr.skip_ddl_replication;
-RESET search_path;
---\echo Use "CREATE EXTENSION bdr" to load this file. \quit
---
--- This extension script adds compatibility for 9.6 DDL replication
---
--- Columns are added to some tables in a prior script,
--- bdr--1.0.2.0--1.0.3.0.sql, since we need them to be present
--- on both 1.0 and 2.0 for upgrades to work.
-
-SET LOCAL bdr.permit_unsafe_ddl_commands = true;
-SET LOCAL bdr.skip_ddl_replication = true;
-SET LOCAL search_path = bdr;
 
 -- Marking this immutable is technically a bit cheeky as we could add
 -- new statuses. But for index use we need it, and it's safe since
@@ -2703,14 +2670,18 @@ $$;
 -- dumped and applied.
 SELECT pg_catalog.pg_extension_config_dump('bdr_nodes', 'WHERE false');
 
---
--- An oversight in introducing commit timestamps and replication origins
--- to 9.6 means that on 9.6 we don't have any equivalent to 9.4bdr's
--- pg_get_transaction_extradata(xid) function. Add a wrapper in BDR
--- for now.
---
-CREATE FUNCTION bdr.get_transaction_replorigin(xid) RETURNS oid
-LANGUAGE c AS 'MODULE_PATHNAME','bdr_get_transaction_replorigin';
+-- b1e48bbe64a4 introduced in PG14
+DO $$BEGIN
+  PERFORM 1 FROM pg_proc WHERE proname = 'pg_xact_commit_timestamp_origin';
+  IF FOUND THEN
+    CREATE FUNCTION bdr.get_transaction_replorigin(xid) RETURNS oid
+    AS 'SELECT roident FROM pg_catalog.pg_xact_commit_timestamp_origin($1);'
+    LANGUAGE SQL;
+  ELSE
+    CREATE FUNCTION bdr.get_transaction_replorigin(xid) RETURNS oid
+    LANGUAGE c AS 'MODULE_PATHNAME','pg_xact_commit_timestamp_origin';
+  END IF;
+END;$$;
 
 REVOKE ALL ON FUNCTION bdr.get_transaction_replorigin(xid) FROM public;
 
@@ -2817,13 +2788,6 @@ FROM bdr.global_lock_info();
 
 COMMENT ON VIEW bdr.bdr_locks IS
 'diagnostic information on BDR global locking state, see manual';
-
-RESET bdr.permit_unsafe_ddl_commands;
-RESET bdr.skip_ddl_replication;
-RESET search_path;
-SET bdr.permit_unsafe_ddl_commands = true;
-SET bdr.skip_ddl_replication = true;
-SET LOCAL search_path = bdr;
 
 CREATE FUNCTION
 bdr.wait_slot_confirm_lsn(slotname name, target pg_lsn)

@@ -138,8 +138,8 @@ global_seq_read_nodeid(void)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("node sequence ID not allocated"),
-				 errdetail("No node_seq_id in bdr.bdr_nodes for this node"),
-				 errhint("Check the node status to ensure it's fully ready")));
+				 errdetail("No node_seq_id in bdr.bdr_nodes for this node."),
+				 errhint("Check the node status to ensure it's fully ready.")));
 
 	if (seq_id < 0 || seq_id > MAX_NODE_ID)
 		elog(ERROR, "node sequence ID out of range 0 .. %d", MAX_NODE_ID);
