@@ -73,6 +73,11 @@ jobs:
           cd bdr
           make PROVE_FLAGS="--timer" prove_installcheck
 
+      - name: Run pgbench tests with BDR
+        run: |
+            cd bdr
+            time sh bdr_pgbench.sh PGSRC=$GITHUB_WORKSPACE/postgres BDRSRC=$GITHUB_WORKSPACE/bdr RESULTS=$GITHUB_WORKSPACE/pgbench_results
+
       - name: Upload test artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
@@ -81,4 +86,6 @@ jobs:
           path: |
             bdr/regression.diffs
             bdr/tmp_check
+            # Upload bdr_pgbench.sh results
+            $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
