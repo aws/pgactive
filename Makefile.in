@@ -371,17 +371,6 @@ endif
 .PHONY: prove_installcheck
 endif
 
-bdr_pgbench_check: bdr_pgbench_check.sh
-	sed -e 's,@bindir@,$(bindir),g' \
-	    -e 's,@libdir@,$(libdir),g' \
-	    -e 's,@MAKE@,$(MAKE),g' \
-	    -e 's,@top_srcdir@,$(top_srcdir),g' \
-	  $< >$@
-	chmod a+x $@
-
-pgbenchcheck: bdr_pgbench_check
-	./bdr_pgbench_check
-
 distdir = bdr-$(BDR_VERSION)
 
 git-dist: clean
