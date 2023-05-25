@@ -181,8 +181,6 @@ echo "pgbench finished, cleaning up"
 # Stop pg instance
 $PGBIN/pg_ctl -D $PGBIN/data -l $RESULTS/server.log stop
 
-cd $SCRIPTDIR
-
 echo "Comparing data on node $WHALE and node $PANDA"
 diff -c $RESULTS/whale.chksum $RESULTS/panda.chksum > $RESULTS/chksum.diff
 status=$?
