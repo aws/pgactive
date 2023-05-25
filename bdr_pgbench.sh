@@ -11,6 +11,8 @@
 # Usage:
 # sh bdr_pgbench.sh PGSRC=/path/to/postgres/source/code BDRSRC=/path/to/bdr/source/code RESULTS=/path/to/bdr_pgbench.sh/results/
 
+set -e -u
+
 for arg in "$@"; do
 eval "$arg"
 done
