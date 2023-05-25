@@ -16,7 +16,7 @@ EXTENSION = bdr
 
 DATA = extsql/bdr--2.0.7.0.sql
 
-DOCS = README.bdr bdr.conf.sample
+DOCS = README.bdr
 
 # pgxs doesn't know how to handle directories of docs, or built docs, so the
 # html docs will get separate rules below
@@ -285,11 +285,9 @@ ISOLATIONCHECKS=\
 REQUIRED_EXTENSIONS="btree_gist"
 REQUIRED_TEST_EXTENSIONS="pg_trgm cube hstore"
 
-REGRESSCONFIG=bdr_regress_bdr.conf
+REGRESSCONFIG=bdr_regress.conf
 
 regresscheck: all install
-	[ -e pg_hba.conf ] || ln -s $(bdr_abs_srcdir)/pg_hba.conf .
-
 	mkdir -p results/ddl results/ddl_fn results/dml
 
 	./run_tests --config $(bdr_abs_srcdir)/$(REGRESSCONFIG) \
