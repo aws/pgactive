@@ -4,7 +4,7 @@
 # config file, the needed extensions installed, etc. It works around the
 # lack of needed pg_regress features in 9.4.
 #
-# Don't call this directly, use "make regresscheck", "make isolationcheck", etc
+# Don't call this directly, use "make regress_check", "make isolationcheck", etc
 # or just "make check"
 # 
 

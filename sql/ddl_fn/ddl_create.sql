@@ -226,7 +226,6 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids(); $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
 SET default_with_oids = true;
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids(); $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);

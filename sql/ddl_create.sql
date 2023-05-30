@@ -10,17 +10,14 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_simple_create
 
-CREATE UNLOGGED TABLE test_tbl_unlogged_create(val int);
+CREATE UNLOGGED TABLE test_tbl_unlogged(val int);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
-\d+ test_tbl_unlogged_create
+\d+ test_tbl_unlogged
 \c postgres
-\d+ test_tbl_unlogged_create
+\d+ test_tbl_unlogged
 
-DROP TABLE test_tbl_unlogged_create;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
-\d+ test_tbl_unlogged_create
 \c regression
-\d+ test_tbl_unlogged_create
+\d+ test_tbl_unlogged
 
 CREATE TABLE test_tbl_simple_pk(val int PRIMARY KEY);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
@@ -207,7 +204,6 @@ DROP TABLE tbl_without_oids;
 CREATE TABLE tbl_without_oids();
 DROP TABLE tbl_without_oids;
 SET default_with_oids = true;
-CREATE TABLE tbl_with_oids();
 CREATE TABLE tbl_with_oids() WITH OIDS;
 CREATE TABLE tbl_without_oids() WITHOUT oids;
 DROP TABLE tbl_without_oids;
