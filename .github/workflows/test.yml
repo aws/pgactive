@@ -61,7 +61,7 @@ jobs:
       - name: Run BDR core tests
         run: |
           cd bdr
-          make regresscheck
+          make regress_check
 
       - name: Show BDR core tests diff
         if: ${{ failure() }}
@@ -71,7 +71,7 @@ jobs:
       - name: Run BDR extended tests
         run: |
           cd bdr
-          make PROVE_FLAGS="--timer" prove_installcheck
+          make PROVE_FLAGS="--timer" prove_check
 
       - name: Run pgbench tests with BDR
         run: |
@@ -89,3 +89,5 @@ jobs:
             # Upload bdr_pgbench.sh results
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
+
+      # XXX: Add a step to build docs

@@ -1,9 +1,4 @@
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_create(val int); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_simple_create(val int);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -23,12 +18,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  val    | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_create; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_tbl_simple_create;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -38,52 +28,29 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_simple_create
 \c regression
 \d+ test_tbl_simple_create
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNLOGGED TABLE public.test_tbl_unlogged_create(val int); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE UNLOGGED TABLE test_tbl_unlogged(val int);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
  
 (1 row)
 
-\d+ test_tbl_unlogged_create
-                     Unlogged table "public.test_tbl_unlogged_create"
+\d+ test_tbl_unlogged
+                        Unlogged table "public.test_tbl_unlogged"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  val    | integer |           |          |         | plain   |              | 
 
 \c postgres
-\d+ test_tbl_unlogged_create
-                     Unlogged table "public.test_tbl_unlogged_create"
+\d+ test_tbl_unlogged
+\c regression
+\d+ test_tbl_unlogged
+                        Unlogged table "public.test_tbl_unlogged"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  val    | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_unlogged_create; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
- 
-(1 row)
-
-\d+ test_tbl_unlogged_create
-\c regression
-\d+ test_tbl_unlogged_create
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_pk(val int PRIMARY KEY); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_simple_pk(val int PRIMARY KEY);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -107,12 +74,7 @@ Indexes:
 Indexes:
     "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_pk; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_tbl_simple_pk;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -122,12 +84,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_simple_pk
 \c regression
 \d+ test_tbl_simple_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1)); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1));
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -153,12 +110,7 @@ Indexes:
 Indexes:
     "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_combined_pk; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_tbl_combined_pk;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -168,12 +120,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_combined_pk
 \c regression
 \d+ test_tbl_combined_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_serial(val SERIAL);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -193,12 +140,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 --------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_tbl_serial;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -208,12 +150,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_serial
 \c regression
 \d+ test_tbl_serial
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_serial(val SERIAL);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -233,12 +170,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 --------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_pk(val SERIAL PRIMARY KEY); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_serial_pk(val SERIAL PRIMARY KEY);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -262,12 +194,7 @@ Indexes:
 Indexes:
     "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_pk; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_tbl_serial_pk;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -277,12 +204,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_serial_pk
 \c regression
 \d+ test_tbl_serial_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1)); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1));
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -308,24 +230,9 @@ Indexes:
 Indexes:
     "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_create_index (val int, val2 int); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX test1_idx ON public.test_tbl_create_index(val); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE test_tbl_create_index (val int, val2 int);
+CREATE UNIQUE INDEX test1_idx ON test_tbl_create_index(val);
+CREATE INDEX test2_idx ON test_tbl_create_index (lower(val2::text));
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -353,18 +260,8 @@ Indexes:
     "test1_idx" UNIQUE, btree (val)
     "test2_idx" btree (lower(val2::text))
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test2_idx; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP INDEX test1_idx;
+DROP INDEX test2_idx;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -386,18 +283,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  val    | integer |           |          |         | plain   |              | 
  val2   | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index USING gist (val, UPPER(val2::text)); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE INDEX test1_idx ON test_tbl_create_index(val, val2);
+CREATE INDEX test2_idx ON test_tbl_create_index USING gist (val, UPPER(val2::text));
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -425,17 +312,9 @@ Indexes:
     "test1_idx" btree (val, val2)
     "test2_idx" gist (val, upper(val2::text))
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
-CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
+DROP INDEX test1_idx;
+DROP INDEX CONCURRENTLY test2_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -461,15 +340,10 @@ Indexes:
 Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
-ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
-CONTEXT:  during DDL replay of ddl statement:  CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
-ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
-CONTEXT:  during DDL replay of ddl statement:  CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); 
+CREATE INDEX CONCURRENTLY test1_idx ON test_tbl_create_index(val, val2);
+ERROR:  CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl_create_index is a regular table
+CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON test_tbl_create_index (lower(val2::text));
+ERROR:  CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl_create_index is a regular table
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -495,27 +369,12 @@ Indexes:
 Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test1_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
-CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test1_idx; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
-CONTEXT:  during DDL replay of ddl statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_create_index; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_arrays_tbl(val int[], val1 text[]); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP INDEX CONCURRENTLY test1_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+DROP INDEX CONCURRENTLY test2_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+DROP TABLE test_tbl_create_index;
+CREATE TABLE test_simple_create_with_arrays_tbl(val int[], val1 text[]);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -537,24 +396,9 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  val    | integer[] |           |          |         | extended |              | 
  val1   | text[]    |           |          |         | extended |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_arrays_tbl; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS ENUM('a','b','c'); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_enums_tbl(val public.test_t, val1 public.test_t); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_simple_create_with_arrays_tbl;
+CREATE TYPE test_t AS ENUM('a','b','c');
+CREATE TABLE test_simple_create_with_enums_tbl(val test_t, val1 test_t);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -576,18 +420,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  val    | test_t |           |          |         | plain   |              | 
  val1   | test_t |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_enums_tbl; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_simple_create_with_enums_tbl;
+DROP TYPE test_t;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -595,32 +429,22 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \d+ test_simple_create_with_enums_tbl
-\dT test_t
-     List of data types
- Schema | Name | Description 
---------+------+-------------
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
 (0 rows)
 
 \c postgres
 \d+ test_simple_create_with_enums_tbl
-\dT test_t
-     List of data types
- Schema | Name | Description 
---------+------+-------------
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS (f1 text, f2 float, f3 integer); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_composites_tbl(val public.test_t, val1 public.test_t); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TYPE test_t AS (f1 text, f2 float, f3 integer);
+CREATE TABLE test_simple_create_with_composites_tbl(val test_t, val1 test_t);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -642,18 +466,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  val    | test_t |           |          |         | extended |              | 
  val1   | test_t |           |          |         | extended |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_composites_tbl; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP TABLE test_simple_create_with_composites_tbl;
+DROP TYPE test_t;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -661,65 +475,33 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \d+ test_simple_create_with_composites_tbl
-\dT test_t
-     List of data types
- Schema | Name | Description 
---------+------+-------------
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
 (0 rows)
 
 \c postgres
 \d+ test_simple_create_with_composites_tbl
-\dT test_t
-     List of data types
- Schema | Name | Description 
---------+------+-------------
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_combined_pk; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02'); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-\set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (public.test_tbl_inh_parent); $DDL$);
+DROP TABLE test_tbl_serial;
+DROP TABLE test_tbl_serial_combined_pk;
+CREATE TABLE test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02');
+CREATE TABLE test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (test_tbl_inh_parent);
 NOTICE:  merging column "f1" with inherited definition
 NOTICE:  merging column "f2" with inherited definition
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld2(f1 text, f2 date) INHERITS (public.test_tbl_inh_parent); $DDL$);
+CREATE TABLE test_tbl_inh_chld2(f1 text, f2 date) INHERITS (test_tbl_inh_parent);
 NOTICE:  merging column "f1" with inherited definition
 NOTICE:  merging column "f2" with inherited definition
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld3(f1 text) INHERITS (public.test_tbl_inh_parent, public.test_tbl_inh_chld1); $DDL$);
+CREATE TABLE test_tbl_inh_chld3(f1 text) INHERITS (test_tbl_inh_parent, test_tbl_inh_chld1);
 NOTICE:  merging multiple inherited definitions of column "f1"
 NOTICE:  merging multiple inherited definitions of column "f2"
 NOTICE:  merging column "f1" with inherited definition
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-\set VERBOSITY default
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -793,26 +575,12 @@ Child tables: test_tbl_inh_chld1,
               test_tbl_inh_chld2,
               test_tbl_inh_chld3
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO public.test_tbl_inh_parent
+CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO test_tbl_inh_parent
           WHERE (f1 LIKE '%1%') DO INSTEAD
-          INSERT INTO public.test_tbl_inh_chld1 VALUES (NEW.*);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO public.test_tbl_inh_parent
+          INSERT INTO test_tbl_inh_chld1 VALUES (NEW.*);
+CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO test_tbl_inh_parent
           WHERE (f1 LIKE '%2%') DO INSTEAD
-          INSERT INTO public.test_tbl_inh_chld2 VALUES (NEW.*);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+          INSERT INTO test_tbl_inh_chld2 VALUES (NEW.*);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -858,21 +626,16 @@ Child tables: test_tbl_inh_chld1,
               test_tbl_inh_chld2,
               test_tbl_inh_chld3
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_chld1; $DDL$);
-ERROR:  cannot drop table public.test_tbl_inh_chld1 because other objects depend on it
-DETAIL:  table public.test_tbl_inh_chld3 depends on table public.test_tbl_inh_chld1
-rule test_tbl_inh_parent_rule_ins_1 on table public.test_tbl_inh_parent depends on table public.test_tbl_inh_chld1
+DROP TABLE test_tbl_inh_chld1;
+ERROR:  cannot drop table test_tbl_inh_chld1 because other objects depend on it
+DETAIL:  table test_tbl_inh_chld3 depends on table test_tbl_inh_chld1
+rule test_tbl_inh_parent_rule_ins_1 on table test_tbl_inh_parent depends on table test_tbl_inh_chld1
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
-CONTEXT:  during DDL replay of ddl statement:  DROP TABLE public.test_tbl_inh_chld1; 
-\set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_parent CASCADE; $DDL$);
+DROP TABLE test_tbl_inh_parent CASCADE;
 NOTICE:  drop cascades to 3 other objects
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-\set VERBOSITY default
+DETAIL:  drop cascades to table test_tbl_inh_chld1
+drop cascades to table test_tbl_inh_chld2
+drop cascades to table test_tbl_inh_chld3
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -882,18 +645,6 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_tbl_inh_*
 \c regression
 \d+ test_tbl_inh_*
-CREATE TABLE test_tbl_exclude(val int PRIMARY KEY,EXCLUDE USING gist(id with =));
-ERROR:  EXCLUDE constraints are unsafe with BDR active
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
- 
-(1 row)
-
-\d+ test_tbl_exclude
-\c postgres
-\d+ test_tbl_exclude
-\c regression
 -- ensure tables WITH OIDs can't be created
 SHOW default_with_oids;
  default_with_oids 
@@ -901,69 +652,26 @@ SHOW default_with_oids;
  off
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH oids; $DDL$);
+CREATE TABLE tbl_with_oids() WITH oids;
 ERROR:  syntax error at or near "oids"
-LINE 1: SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE publ...
-                                                  ^
-CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.tbl_with_oids() WITH oids; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids(); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+LINE 1: CREATE TABLE tbl_with_oids() WITH oids;
+                                          ^
+CREATE TABLE tbl_without_oids() WITHOUT oids;
+DROP TABLE tbl_without_oids;
+CREATE TABLE tbl_without_oids();
+DROP TABLE tbl_without_oids;
 SET default_with_oids = true;
 ERROR:  tables declared WITH OIDS are not supported
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids(); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
+CREATE TABLE tbl_with_oids() WITH OIDS;
 ERROR:  syntax error at or near "OIDS"
-LINE 1: SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE publ...
-                                                  ^
-CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.tbl_with_oids() WITH OIDS; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+LINE 1: CREATE TABLE tbl_with_oids() WITH OIDS;
+                                          ^
+CREATE TABLE tbl_without_oids() WITHOUT oids;
+DROP TABLE tbl_without_oids;
 SET default_with_oids = false;
--- ensure storage attributes in SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.are replicated properly $DDL$);
+-- ensure storage attributes in CREATE TABLE are replicated properly
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+CREATE TABLE tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75);
 \d+ tbl_showfillfactor
                                 Table "public.tbl_showfillfactor"
  Column |      Type      | Collation | Nullable | Default | Storage  | Stats target | Description 
@@ -989,49 +697,25 @@ Indexes:
     "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
 Options: fillfactor=75
 
-\set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE tbl_showfillfactor;$DDL$);
-ERROR:  relation "tbl_showfillfactor" does not exist
-\set VERBOSITY default
+DROP TABLE tbl_showfillfactor;
 --- AGGREGATE ---
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE AGGREGATE public.test_avg (
+CREATE AGGREGATE test_avg (
    sfunc = int4_avg_accum, basetype = int4, stype = _int8,
    finalfunc = int8_avg,
    initcond1 = '{0,0}',
    sortop = =
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
 -- without finalfunc; test obsolete spellings 'sfunc1' etc
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE AGGREGATE public.test_sum (
+CREATE AGGREGATE test_sum (
    sfunc1 = int4pl, basetype = int4, stype1 = int4,
    initcond1 = '0'
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
 -- zero-argument aggregate
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE AGGREGATE public.test_cnt (*) (
+CREATE AGGREGATE test_cnt (*) (
    sfunc = int8inc, stype = int8,
    initcond = '0'
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -1057,30 +741,9 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  public | test_sum | integer          | integer             | agg
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP AGGREGATE public.test_avg(int4);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP AGGREGATE public.test_sum(int4);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP AGGREGATE public.test_cnt(*);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP AGGREGATE test_avg(int4);
+DROP AGGREGATE test_sum(int4);
+DROP AGGREGATE test_cnt(*);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -1100,45 +763,17 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 --------+------+------------------+---------------------+------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-create type public.aggtype as (a integer, b integer, c text);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-create function public.aggf_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
-as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
+create type aggtype as (a integer, b integer, c text);
+create function aggf_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
 language sql strict immutable;
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-create function public.aggfns_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
-as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
+create function aggfns_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
 language sql immutable;
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-create aggregate public.test_aggfstr(integer,integer,text) (
-   sfunc = public.aggf_trans, stype = public.aggtype[],
+create aggregate test_aggfstr(integer,integer,text) (
+   sfunc = aggf_trans, stype = aggtype[],
    initcond = '{}'
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -1160,38 +795,10 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  public | test_aggfstr | aggtype[]        | integer, integer, text | agg
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP AGGREGATE public.test_aggfstr(integer,integer,text);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP FUNCTION public.aggf_trans(public.aggtype[],integer,integer,text);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP FUNCTION public.aggfns_trans(public.aggtype[],integer,integer,text);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP TYPE public.aggtype;
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+DROP AGGREGATE test_aggfstr(integer,integer,text);
+DROP FUNCTION aggf_trans(aggtype[],integer,integer,text);
+DROP FUNCTION aggfns_trans(aggtype[],integer,integer,text);
+DROP TYPE aggtype;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -1213,44 +820,22 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 --- OPERATOR ---
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE OPERATOR public.## (
+CREATE OPERATOR ## (
    leftarg = path,
    rightarg = path,
    procedure = path_inter,
-   commutator = OPERATOR(public.##)
+   commutator = ##
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE OPERATOR public.@#@ (
+CREATE OPERATOR @#@ (
    rightarg = int8,		-- left unary
    procedure = factorial
 );
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE OPERATOR public.#@# (
+CREATE OPERATOR #@# (
    leftarg = int8,		-- right unary
    procedure = factorial
 );
-$DDL$);
 ERROR:  operator right argument type must be specified
 DETAIL:  Postfix operators are not supported.
-CONTEXT:  during DDL replay of ddl statement: 
-CREATE OPERATOR public.#@# (
-   leftarg = int8,		-- right unary
-   procedure = factorial
-);
-
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -1298,29 +883,10 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 --------+------+---------------+----------------+-------------+-------------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP OPERATOR public.##(path, path);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP OPERATOR public.@#@(none,int8);
-$DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-DROP OPERATOR public.#@#(int8,none);
-$DDL$);
+DROP OPERATOR ##(path, path);
+DROP OPERATOR @#@(none,int8);
+DROP OPERATOR #@#(int8,none);
 ERROR:  postfix operators are not supported
-CONTEXT:  during DDL replay of ddl statement: 
-DROP OPERATOR public.#@#(int8,none);
-
 \do public.##
                              List of operators
  Schema | Name | Left arg type | Right arg type | Result type | Description 

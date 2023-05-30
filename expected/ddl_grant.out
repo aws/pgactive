@@ -16,28 +16,28 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \dp grant_test.*
-                                     Access privileges
-   Schema   |      Name      |   Type   |   Access privileges    | Column access privileges 
-------------+----------------+----------+------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super   +| 
-            |                |          | nonsuper=a*r*/super    | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super       +| 
-            |                |          | nonsuper=wU/super      | 
- grant_test | test_view      | view     | super=arwdDxt/super   +| 
-            |                |          | nonsuper=arwdDxt/super | 
+                                       Access privileges
+   Schema   |      Name      |   Type   |   Access privileges    | Column privileges | Policies 
+------------+----------------+----------+------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=a*r*/super    |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super       +|                   | 
+            |                |          | nonsuper=wU/super      |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=arwdDxt/super |                   | 
 (3 rows)
 
 \c postgres
 \dp grant_test.*
-                                     Access privileges
-   Schema   |      Name      |   Type   |   Access privileges    | Column access privileges 
-------------+----------------+----------+------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super   +| 
-            |                |          | nonsuper=a*r*/super    | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super       +| 
-            |                |          | nonsuper=wU/super      | 
- grant_test | test_view      | view     | super=arwdDxt/super   +| 
-            |                |          | nonsuper=arwdDxt/super | 
+                                       Access privileges
+   Schema   |      Name      |   Type   |   Access privileges    | Column privileges | Policies 
+------------+----------------+----------+------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=a*r*/super    |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super       +|                   | 
+            |                |          | nonsuper=wU/super      |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=arwdDxt/super |                   | 
 (3 rows)
 
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test FROM PUBLIC, nonsuper;
@@ -48,24 +48,24 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \dp grant_test.*
-                                    Access privileges
-   Schema   |      Name      |   Type   |  Access privileges  | Column access privileges 
-------------+----------------+----------+---------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super    +| 
-            |                |          | nonsuper=wU/super   | 
- grant_test | test_view      | view     | super=arwdDxt/super | 
+                                      Access privileges
+   Schema   |      Name      |   Type   |  Access privileges  | Column privileges | Policies 
+------------+----------------+----------+---------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super    +|                   | 
+            |                |          | nonsuper=wU/super   |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super |                   | 
 (3 rows)
 
 \c regression
 \dp grant_test.*
-                                    Access privileges
-   Schema   |      Name      |   Type   |  Access privileges  | Column access privileges 
-------------+----------------+----------+---------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super    +| 
-            |                |          | nonsuper=wU/super   | 
- grant_test | test_view      | view     | super=arwdDxt/super | 
+                                      Access privileges
+   Schema   |      Name      |   Type   |  Access privileges  | Column privileges | Policies 
+------------+----------------+----------+---------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super    +|                   | 
+            |                |          | nonsuper=wU/super   |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super |                   | 
 (3 rows)
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test TO nonsuper WITH GRANT OPTION;
@@ -76,28 +76,28 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \dp grant_test.*
-                                         Access privileges
-   Schema   |      Name      |   Type   |       Access privileges       | Column access privileges 
-------------+----------------+----------+-------------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super              +| 
-            |                |          | nonsuper=wU/super             | 
- grant_test | test_view      | view     | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super              +|                   | 
+            |                |          | nonsuper=wU/super             |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
 (3 rows)
 
 \c postgres
 \dp grant_test.*
-                                         Access privileges
-   Schema   |      Name      |   Type   |       Access privileges       | Column access privileges 
-------------+----------------+----------+-------------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super              +| 
-            |                |          | nonsuper=wU/super             | 
- grant_test | test_view      | view     | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super              +|                   | 
+            |                |          | nonsuper=wU/super             |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
 (3 rows)
 
 REVOKE TRIGGER, INSERT, UPDATE, DELETE, REFERENCES, TRUNCATE ON grant_test.test_view FROM nonsuper;
@@ -109,26 +109,26 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 \dp grant_test.*
-                                         Access privileges
-   Schema   |      Name      |   Type   |       Access privileges       | Column access privileges 
-------------+----------------+----------+-------------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super               | 
- grant_test | test_view      | view     | super=arwdDxt/super          +| 
-            |                |          | nonsuper=r*/super             | 
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super               |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=r*/super             |                   | 
 (3 rows)
 
 \c regression
 \dp grant_test.*
-                                         Access privileges
-   Schema   |      Name      |   Type   |       Access privileges       | Column access privileges 
-------------+----------------+----------+-------------------------------+--------------------------
- grant_test | test_tbl       | table    | super=arwdDxt/super          +| 
-            |                |          | nonsuper=a*r*w*d*D*x*t*/super | 
- grant_test | test_tbl_a_seq | sequence | super=rwU/super               | 
- grant_test | test_view      | view     | super=arwdDxt/super          +| 
-            |                |          | nonsuper=r*/super             | 
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super               |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=r*/super             |                   | 
 (3 rows)
 
 GRANT EXECUTE ON FUNCTION grant_test.test_func(int) TO nonsuper;

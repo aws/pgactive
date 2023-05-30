@@ -7,11 +7,11 @@ Run the regression tests with
 
 Run the TAP tests with
 
-    make -s install prove_installcheck
+    make -s install prove_check
 
 You can run individual TAP tests with
 
-    make PROVE_TESTS=t/050\* prove_installcheck
+    make PROVE_TESTS=t/050\* prove_check
 
 or similar.
 
