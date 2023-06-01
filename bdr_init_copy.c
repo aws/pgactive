@@ -244,6 +244,11 @@ main(int argc, char **argv)
 			}
 		}
 	}
+	else
+	{
+		usage();
+		exit(1);
+	}
 
 	/* Option parsing and validation */
 	while ((c = getopt_long(argc, argv, "D:d:h:l:n:p:sU:vy:", long_options, &optindex)) != -1)
@@ -661,7 +666,7 @@ usage(void)
 	printf(_("                          can be either empty/non-existing directory,\n"));
 	printf(_("                          or directory populated using pg_basebackup -X stream\n"));
 	printf(_("                          command\n"));
-	printf(_("  -l, --log-file          log file name, default bdr_init_copy_postgres.log"));
+	printf(_("  -l, --log-file          log file name, default bdr_init_copy_postgres.log\n"));
 	printf(_("  -n, --node-name=NAME    name of the newly created node\n"));
 	printf(_("  --replication-sets=SETS comma separated list of replication set names to use\n"));
 	printf(_("  -s, --stop              stop the server once the initialization is done\n"));
@@ -682,8 +687,8 @@ usage(void)
 	printf(_("  --local-dbname=CONNSTR  dbname or connection string for local node\n"));
 	printf(_("  --local-host=HOSTNAME   server host or socket directory for local node\n"));
 	printf(_("  --local-port=PORT       server port number for local node. Must match\n"));
-	printf(_("                          postgresql.conf, does not set port server is"));
-	printf(_("                          started with."));
+	printf(_("                          postgresql.conf, does not set port server is\n"));
+	printf(_("                          started with\n"));
 	printf(_("  --local-user=NAME       connect as specified database user to the local node\n"));
 	printf(_("\nDebug options:\n"));
 	printf(_("  --apply-delay           artificially delay replication for this node\n"));
