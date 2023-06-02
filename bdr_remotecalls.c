@@ -765,6 +765,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 	NameData	slotname;
 	BdrConnectionConfig *cfg;
 	BDRNodeId	remote;
+	bool	config_found;
 
 	remote.timeline = PG_GETARG_OID(1);
 	remote.dboid = PG_GETARG_OID(2);
@@ -772,7 +773,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
 		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
-	cfg = bdr_get_connection_config(&remote, false);
+	cfg = bdr_get_connection_config(&remote, false, &config_found);
 	conn = bdr_connect_nonrepl(cfg->dsn, "bdr_drop_replication_slot");
 	bdr_free_connection_config(cfg);
 

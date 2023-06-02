@@ -959,6 +959,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 	PGconn	   *nonrepl_init_conn;
 	StringInfoData dsn;
 	BdrConnectionConfig *local_conn_config;
+	bool	config_found;
 
 	initStringInfo(&dsn);
 
@@ -1006,7 +1007,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 		return;
 	}
 
-	local_conn_config = bdr_get_connection_config(&local_node->id, true);
+	local_conn_config = bdr_get_connection_config(&local_node->id, true, &config_found);
 
 	if (!local_conn_config)
 		elog(ERROR, "cannot find local BDR connection configurations");

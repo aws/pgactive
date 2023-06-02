@@ -670,13 +670,15 @@ bdr_free_connection_config(BdrConnectionConfig * cfg)
  * Fetch the connection configuration for the specified node
  */
 BdrConnectionConfig *
-bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
+bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok, bool *config_found)
 {
 	List	   *configs;
 	ListCell   *lc;
 	MemoryContext saved_ctx;
 	BdrConnectionConfig *found_config = NULL;
 	bool		tx_started = false;
+
+	*config_found = true;
 
 	Assert(MyDatabaseId != InvalidOid);
 
@@ -712,11 +714,14 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	}
 
 	if (found_config == NULL && !missing_ok)
-		elog(ERROR, "failed to find expected bdr.connections row "
+	{
+		elog(LOG, "failed to find expected bdr.connections row "
 			 "(conn_sysid,conn_timeline,conn_dboid) = "
 			 "(" UINT64_FORMAT ",%u,%u) "
 			 "in bdr.bdr_connections",
 			 node->sysid, node->timeline, node->dboid);
+		*config_found = false;
+	}
 
 	if (tx_started)
 		CommitTransactionCommand();
@@ -727,13 +732,13 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 }
 
 BdrConnectionConfig *
-bdr_get_my_connection_config(bool missing_ok)
+bdr_get_my_connection_config(bool missing_ok, bool *config_found)
 {
 	BDRNodeId	ni;
 
 	bdr_make_my_nodeid(&ni);
 
-	return bdr_get_connection_config(&ni, missing_ok);
+	return bdr_get_connection_config(&ni, missing_ok, config_found);
 }
 
 

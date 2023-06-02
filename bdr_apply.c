@@ -2544,11 +2544,19 @@ static void
 bdr_apply_reload_config()
 {
 	BdrConnectionConfig *new_apply_config;
+	bool config_found;
 
 	/* Fetch our config from the DB */
 	new_apply_config = bdr_get_connection_config(
 												 &bdr_apply_worker->remote_node,
-												 false);
+												 false, &config_found);
+	if (!config_found)
+	{
+		elog(LOG, "unregistering worker, config not found");
+		bdr_worker_shmem_free(bdr_worker_slot, NULL);
+		bdr_worker_slot = NULL;
+		proc_exit(0);
+	}
 
 	Assert(bdr_nodeid_eq(&new_apply_config->remote_node, &bdr_apply_worker->remote_node));
 
@@ -2562,8 +2570,15 @@ bdr_apply_reload_config()
 	 */
 	if (!new_apply_config->origin_is_my_id)
 	{
-		BdrConnectionConfig *cfg = bdr_get_my_connection_config(false);
+		BdrConnectionConfig *cfg = bdr_get_my_connection_config(false, &config_found);
 
+		if (!config_found)
+		{
+			elog(LOG, "unregistering worker, config not found");
+			bdr_worker_shmem_free(bdr_worker_slot, NULL);
+			bdr_worker_slot = NULL;
+			proc_exit(0);
+		}
 		new_apply_config->apply_delay = cfg->apply_delay;
 		pfree(new_apply_config->replication_sets);
 		new_apply_config->replication_sets = pstrdup(cfg->replication_sets);

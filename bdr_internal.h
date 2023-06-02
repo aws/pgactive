@@ -93,8 +93,8 @@ extern volatile sig_atomic_t got_SIGHUP;
 
 extern void bdr_error_nodeids_must_differ(const BDRNodeId * const other_nodeid);
 extern BdrConnectionConfig * bdr_get_connection_config(const BDRNodeId * nodeid,
-													   bool missing_ok);
-extern BdrConnectionConfig * bdr_get_my_connection_config(bool missing_ok);
+													   bool missing_ok, bool *config_found);
+extern BdrConnectionConfig * bdr_get_my_connection_config(bool missing_ok, bool *config_found);
 
 extern void bdr_free_connection_config(BdrConnectionConfig * cfg);
 
