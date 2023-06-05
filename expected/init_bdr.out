@@ -10,7 +10,7 @@ SELECT bdr.bdr_group_create(
 	node_external_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
 	);
-WARNING:  Secondary unique constraint(s) exist on replicated table(s)
+WARNING:  secondary unique constraint(s) exist on replicated table(s)
 DETAIL:  Table public.some_local_tbl has secondary unique constraint some_local_tbl_key_key. This may cause unhandled replication conflicts.
 HINT:  Drop the secondary unique constraint(s), change the table(s) to UNLOGGED if they don't need to be replicated, or exclude the table(s) from the active replication set(s).
  bdr_group_create 
