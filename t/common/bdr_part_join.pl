@@ -5,8 +5,8 @@ use lib 't/';
 use threads;
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
@@ -15,12 +15,12 @@ sub bdr_part_join_tests {
     my $type = shift;
 
     # Create an upstream node and bring up bdr
-    my $node_a = get_new_node('node_a');
+    my $node_a = PostgreSQL::Test::Cluster->new('node_a');
     initandstart_bdr_group($node_a);
     my $upstream_node = $node_a;
 
     # Join a new node to first node using bdr_group_join
-    my $node_b = get_new_node('node_b');
+    my $node_b = PostgreSQL::Test::Cluster->new('node_b');
     initandstart_join_node( $node_b, $node_a, $type );
 
     # Part a node from two node cluster
@@ -31,11 +31,11 @@ sub bdr_part_join_tests {
     # And create 3+ node cluster
     note "Join new nodes C, D, E to same upstream node after part of B\n";
     dump_nodes_statuses($node_a);
-    my $node_c = get_new_node('node_c');
+    my $node_c = PostgreSQL::Test::Cluster->new('node_c');
     initandstart_join_node( $node_c, $node_a, $type );
-    my $node_d = get_new_node('node_d');
+    my $node_d = PostgreSQL::Test::Cluster->new('node_d');
     initandstart_join_node( $node_d, $node_a, $type );
-    my $node_e = get_new_node('node_e');
+    my $node_e = PostgreSQL::Test::Cluster->new('node_e');
     initandstart_join_node( $node_e, $node_a, $type );
 
     # Part nodes in series  from multinode  cluster

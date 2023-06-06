@@ -73,19 +73,22 @@ IsBdrPerdbWorker(void)
  * started up.
  */
 int
-find_perdb_worker_slot(Oid dboid, BdrWorker **worker_found)
+find_perdb_worker_slot(Oid dboid, BdrWorker * *worker_found)
 {
-	int i, found = -1;
+	int			i,
+				found = -1;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 
 	for (i = 0; i < bdr_max_workers; i++)
 	{
-		BdrWorker *w = &BdrWorkerCtl->slots[i];
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+
 		if (w->worker_type == BDR_WORKER_PERDB)
 		{
 			BdrPerdbWorker *pw = &w->data.perdb;
-			if (pw->database_oid == dboid)
+
+			if (pw->p_dboid == dboid)
 			{
 				found = i;
 				if (worker_found != NULL)
@@ -108,18 +111,21 @@ find_perdb_worker_slot(Oid dboid, BdrWorker **worker_found)
  * Note that there's no guarantee that the worker is actually started up.
  */
 static int
-find_apply_worker_slot(const BDRNodeId * const remote, BdrWorker **worker_found)
+find_apply_worker_slot(const BDRNodeId * const remote, BdrWorker * *worker_found)
 {
-	int i, found = -1;
+	int			i,
+				found = -1;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 
 	for (i = 0; i < bdr_max_workers; i++)
 	{
-		BdrWorker *w = &BdrWorkerCtl->slots[i];
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+
 		if (w->worker_type == BDR_WORKER_APPLY)
 		{
 			BdrApplyWorker *aw = &w->data.apply;
+
 			if (aw->dboid == MyDatabaseId &&
 				bdr_nodeid_eq(&aw->remote_node, remote))
 			{
@@ -142,8 +148,8 @@ bdr_perdb_xact_callback(XactEvent event, void *arg)
 		case XACT_EVENT_COMMIT:
 			if (xacthook_connections_changed)
 			{
-				int slotno;
-				BdrWorker *w;
+				int			slotno;
+				BdrWorker  *w;
 
 				xacthook_connections_changed = false;
 
@@ -172,9 +178,9 @@ bdr_perdb_xact_callback(XactEvent event, void *arg)
 				else
 				{
 					/*
-					 * Per-db worker doesn't exist, ask the supervisor to check for
-					 * changes and register new per-db workers for labeled
-					 * databases.
+					 * Per-db worker doesn't exist, ask the supervisor to
+					 * check for changes and register new per-db workers for
+					 * labeled databases.
 					 */
 					if (BdrWorkerCtl->supervisor_latch)
 						SetLatch(BdrWorkerCtl->supervisor_latch);
@@ -212,7 +218,7 @@ bdr_connections_changed(PG_FUNCTION_ARGS)
 static int
 getattno(const char *colname)
 {
-	int attno;
+	int			attno;
 
 	attno = SPI_fnumber(SPI_tuptable->tupdesc, colname);
 	if (attno == SPI_ERROR_NOATTRIBUTE)
@@ -231,19 +237,21 @@ getattno(const char *colname)
 void
 bdr_maintain_db_workers(void)
 {
-	BackgroundWorker	bgw;
-	int					i, ret;
-	int					nnodes = 0;
+	BackgroundWorker bgw = {0};
+	int			i,
+				ret;
+	int			nnodes = 0;
 #define BDR_CON_Q_NARGS 3
-	Oid					argtypes[BDR_CON_Q_NARGS] = { TEXTOID, OIDOID, OIDOID };
-	Datum				values[BDR_CON_Q_NARGS];
-	char				sysid_str[33];
-	char				our_status;
-	BDRNodeId			myid;
-	List			   *parted_nodes = NIL;
-	List			   *nodes_to_forget = NIL;
-	ListCell		   *lcparted;
-	ListCell		   *lcforget;
+	Oid			argtypes[BDR_CON_Q_NARGS] = {TEXTOID, OIDOID, OIDOID};
+	Datum		values[BDR_CON_Q_NARGS];
+	char		sysid_str[33];
+	char		our_status;
+	BDRNodeId	myid;
+	List	   *parted_nodes = NIL;
+	List	   *nodes_to_forget = NIL;
+	ListCell   *lcparted;
+	ListCell   *lcforget;
+	bool		at_least_one_worker_terminated = false;
 
 	bdr_make_my_nodeid(&myid);
 
@@ -264,7 +272,7 @@ bdr_maintain_db_workers(void)
 	}
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
-	sysid_str[sizeof(sysid_str)-1] = '\0';
+	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	elog(DEBUG2, "launching apply workers");
 
@@ -274,15 +282,14 @@ bdr_maintain_db_workers(void)
 	 */
 	Assert(!IsTransactionState());
 
-	/* Common apply worker values */
+	/* Configure apply worker */
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	//bgw.bgw_main = NULL;
-	strncpy(bgw.bgw_library_name, BDR_LIBRARY_NAME, BGW_MAXLEN);
-	strncpy(bgw.bgw_function_name, "bdr_apply_main", BGW_MAXLEN);
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_apply_main");
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply worker");
 	bgw.bgw_restart_time = 5;
-	bgw.bgw_notify_pid = 0;
 
 	StartTransactionCommand();
 	SPI_connect();
@@ -294,21 +301,21 @@ bdr_maintain_db_workers(void)
 	 * First check whether any existing processes to/from this database need
 	 * to be killed off because of the node status.
 	 *
-	 * We have three main states for nodes being removed: 'p'arting,
-	 * 'P'arted, and 'k'illed.
+	 * We have three main states for nodes being removed: 'p'arting, 'P'arted,
+	 * and 'k'illed.
 	 */
 	ret = SPI_execute(
-		"SELECT node_sysid, node_timeline, node_dboid\n"
-		"FROM bdr.bdr_nodes\n"
-		"WHERE bdr_nodes.node_status = "BDR_NODE_STATUS_KILLED_S,
-		false, 0);
+					  "SELECT node_sysid, node_timeline, node_dboid\n"
+					  "FROM bdr.bdr_nodes\n"
+					  "WHERE bdr_nodes.node_status = " BDR_NODE_STATUS_KILLED_S,
+					  false, 0);
 
 	if (ret != SPI_OK_SELECT)
 		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
 
 	/*
-	 * We may want to use the SPI within the loop that processes
-	 * parted nodes, so copy the matched list of node IDs.
+	 * We may want to use the SPI within the loop that processes parted nodes,
+	 * so copy the matched list of node IDs.
 	 */
 
 	for (i = 0; i < SPI_processed; i++)
@@ -328,31 +335,31 @@ bdr_maintain_db_workers(void)
 
 		oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 		node = palloc(sizeof(BDRNodeId));
-		(void) MemoryContextSwitchTo(oldcontext);
+		MemoryContextSwitchTo(oldcontext);
 
 		node_sysid_s = SPI_getvalue(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_SYSID);
 
 		if (sscanf(node_sysid_s, UINT64_FORMAT, &node->sysid) != 1)
-			elog(ERROR, "Parsing sysid uint64 from %s failed", node_sysid_s);
+			elog(ERROR, "parsing sysid uint64 from %s failed", node_sysid_s);
 
 		node->timeline = DatumGetObjectId(
-			SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_TIMELINE,
-						  &isnull));
+										  SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_TIMELINE,
+														&isnull));
 		Assert(!isnull);
 
 		node->dboid = DatumGetObjectId(
-			SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_DBOID,
-						  &isnull));
+									   SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_DBOID,
+													 &isnull));
 		Assert(!isnull);
 
-		parted_nodes = lappend(parted_nodes, (void*)node);
+		parted_nodes = lappend(parted_nodes, (void *) node);
 	}
 
 	/*
-	 * Terminate worker processes and, where possible, drop slots for
-	 * parted peers.
+	 * Terminate worker processes and, where possible, drop slots for parted
+	 * peers.
 	 */
-	foreach (lcparted, parted_nodes)
+	foreach(lcparted, parted_nodes)
 	{
 		BDRNodeId  *node = lfirst(lcparted);
 		bool		found_alive = false;
@@ -423,20 +430,20 @@ bdr_maintain_db_workers(void)
 
 		if (found_alive)
 		{
-			/* check again next time round, soon please */
-			SetLatch(&MyProc->procLatch);
+			at_least_one_worker_terminated = true;
+
 			/*
 			 * and treat as still alive for DDL locking purposes, since if it
 			 * holds the ddl lock we might still have pending xacts from it
 			 */
-			nnodes ++;
+			nnodes++;
 		}
 		else
 		{
-			List *drop = NIL;
-			ListCell *dc;
-			bool we_were_dropped;
-			NameData slot_name_dropped; /* slot of the dropped node */
+			List	   *drop = NIL;
+			ListCell   *dc;
+			bool		we_were_dropped;
+			NameData	slot_name_dropped;	/* slot of the dropped node */
 			MemoryContext oldcontext;
 
 			/*
@@ -468,7 +475,7 @@ bdr_maintain_db_workers(void)
 				}
 
 				else if (strcmp(NameStr(s->data.name),
-						   NameStr(slot_name_dropped)) == 0)
+								NameStr(slot_name_dropped)) == 0)
 				{
 					elog(DEBUG1, "need to drop slot %s of parted node %s",
 						 NameStr(s->data.name), bdr_nodeid_name(node, true));
@@ -479,17 +486,31 @@ bdr_maintain_db_workers(void)
 
 			foreach(dc, drop)
 			{
-				char *slot_name = (char *) lfirst(dc);
+				char	   *slot_name = (char *) lfirst(dc);
+
 				elog(DEBUG1, "dropping slot %s due to node part", slot_name);
 				ReplicationSlotDrop(slot_name, true);
 				elog(LOG, "dropped slot %s due to node part", slot_name);
 			}
 
 			oldcontext = MemoryContextSwitchTo(TopMemoryContext);
-			nodes_to_forget = lappend(nodes_to_forget, (void*)node);
-			(void) MemoryContextSwitchTo(oldcontext);
+			nodes_to_forget = lappend(nodes_to_forget, (void *) node);
+			MemoryContextSwitchTo(oldcontext);
 		}
 	}
+
+	/*
+	 * If at least one worker was found alive and killed in the above for loop,
+	 * we check again next time for dropping replication slots of the parted
+	 * peers. However, we want to do this soon, so setting the latch ensures
+	 * the per-db worker doesn't go into long wait in its main loop. And, we
+	 * set the latch specifically after ReplicationSlotDrop() call in the above
+	 * for loop, because it can get reset by ConditionVariablePrepareToSleep()
+	 * or ConditionVariableSleep() (called via ReplicationSlotDrop() ->
+	 * ReplicationSlotAcquire()) making per-db worker go into long wait.
+	 */
+	if (at_least_one_worker_terminated)
+		SetLatch(&MyProc->procLatch);
 
 	PopActiveSnapshot();
 	SPI_finish();
@@ -497,26 +518,26 @@ bdr_maintain_db_workers(void)
 	bdr_nodecache_invalidate();
 	CommitTransactionCommand();
 
-	foreach (lcforget, nodes_to_forget)
+	foreach(lcforget, nodes_to_forget)
 	{
 		BDRNodeId  *node = lfirst(lcforget);
 
 		/*
-		 * If this node held the global DDL lock, purge it. We can no
-		 * longer replicate changes from it so doing so is safe, it can
-		 * never release the lock, and we'll otherwise be unable to recover.
+		 * If this node held the global DDL lock, purge it. We can no longer
+		 * replicate changes from it so doing so is safe, it can never release
+		 * the lock, and we'll otherwise be unable to recover.
 		 */
 		bdr_locks_node_parted(node);
 
 		/*
-		 * TODO: if we leave it at 'k' we'll keep on re-checking it
-		 * over and over. But for now that's what we do.
+		 * TODO: if we leave it at 'k' we'll keep on re-checking it over and
+		 * over. But for now that's what we do.
 		 *
 		 * We could set the node as 'dead'. This is a local state, since it
-		 * could still be parting on other nodes. So we shouldn't just
-		 * update bdr_nodes, we'd have to do a non-replicated update in a
-		 * replicated table and it'd be ugly. We'll need a side-table
-		 * for local node state.
+		 * could still be parting on other nodes. So we shouldn't just update
+		 * bdr_nodes, we'd have to do a non-replicated update in a replicated
+		 * table and it'd be ugly. We'll need a side-table for local node
+		 * state.
 		 *
 		 * Or we could delete the row locally. We're eventually consistent
 		 * anyway, right? We'd have to do that with do_not_replicate set.
@@ -542,44 +563,44 @@ bdr_maintain_db_workers(void)
 	 * If an entry with our origin (sysid,tlid,dboid) exists, treat that as
 	 * overriding the generic one.
 	 *
-	 * Connections with no corresponding nodes entry will be ignored
-	 * (excluded by the join).
+	 * Connections with no corresponding nodes entry will be ignored (excluded
+	 * by the join).
 	 */
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(myid.timeline);
 	values[2] = ObjectIdGetDatum(myid.dboid);
 
 	ret = SPI_execute_with_args(
-			"SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
-			"  conn_sysid, conn_timeline, conn_dboid, "
-			"  conn_is_unidirectional, "
-			"  conn_origin_dboid <> 0 AS origin_is_my_id, "
-			"  node_status "
-			"FROM bdr.bdr_connections "
-			"    JOIN bdr.bdr_nodes ON ("
-			"          conn_sysid = node_sysid AND "
-			"          conn_timeline = node_timeline AND "
-			"          conn_dboid = node_dboid "
-			"    )"
-			"WHERE ( "
-			"         (conn_origin_sysid = '0' AND "
-			"          conn_origin_timeline = 0 AND "
-			"          conn_origin_dboid = 0) "
-			"         OR "
-			"         (conn_origin_sysid = $1 AND "
-			"          conn_origin_timeline = $2 AND "
-			"          conn_origin_dboid = $3) "
-			"      ) AND NOT ( "
-			"          conn_sysid = $1 AND "
-			"          conn_timeline = $2 AND "
-			"          conn_dboid = $3"
-			"      ) "
-			"ORDER BY conn_sysid, conn_timeline, conn_dboid, "
-			"         conn_origin_sysid ASC NULLS LAST, "
-			"         conn_timeline ASC NULLS LAST, "
-			"         conn_dboid ASC NULLS LAST ",
-		BDR_CON_Q_NARGS, argtypes, values, NULL,
-		false, 0);
+								"SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
+								"  conn_sysid, conn_timeline, conn_dboid, "
+								"  conn_is_unidirectional, "
+								"  conn_origin_dboid <> 0 AS origin_is_my_id, "
+								"  node_status "
+								"FROM bdr.bdr_connections "
+								"    JOIN bdr.bdr_nodes ON ("
+								"          conn_sysid = node_sysid AND "
+								"          conn_timeline = node_timeline AND "
+								"          conn_dboid = node_dboid "
+								"    )"
+								"WHERE ( "
+								"         (conn_origin_sysid = '0' AND "
+								"          conn_origin_timeline = 0 AND "
+								"          conn_origin_dboid = 0) "
+								"         OR "
+								"         (conn_origin_sysid = $1 AND "
+								"          conn_origin_timeline = $2 AND "
+								"          conn_origin_dboid = $3) "
+								"      ) AND NOT ( "
+								"          conn_sysid = $1 AND "
+								"          conn_timeline = $2 AND "
+								"          conn_dboid = $3"
+								"      ) "
+								"ORDER BY conn_sysid, conn_timeline, conn_dboid, "
+								"         conn_origin_sysid ASC NULLS LAST, "
+								"         conn_timeline ASC NULLS LAST, "
+								"         conn_dboid ASC NULLS LAST ",
+								BDR_CON_Q_NARGS, argtypes, values, NULL,
+								false, 0);
 
 	if (ret != SPI_OK_SELECT)
 		elog(ERROR, "SPI error while querying bdr.bdr_connections");
@@ -587,17 +608,17 @@ bdr_maintain_db_workers(void)
 	for (i = 0; i < SPI_processed; i++)
 	{
 		BackgroundWorkerHandle *bgw_handle;
-		HeapTuple				tuple;
-		uint32					slot;
-		uint32					worker_arg;
-		BdrWorker			   *worker;
-		BdrApplyWorker		   *apply;
-		Datum					temp_datum;
-		bool					isnull;
-		BDRNodeId				target;
-		char*					tmp_sysid;
-		bool					origin_is_my_id;
-		BdrNodeStatus			node_status;
+		HeapTuple	tuple;
+		uint32		slot;
+		uint32		worker_arg;
+		BdrWorker  *worker;
+		BdrApplyWorker *apply;
+		Datum		temp_datum;
+		bool		isnull;
+		BDRNodeId	target;
+		char	   *tmp_sysid;
+		bool		origin_is_my_id;
+		BdrNodeStatus node_status;
 
 		tuple = SPI_tuptable->vals[i];
 
@@ -605,7 +626,7 @@ bdr_maintain_db_workers(void)
 								 getattno("conn_sysid"));
 
 		if (sscanf(tmp_sysid, UINT64_FORMAT, &target.sysid) != 1)
-			elog(ERROR, "Parsing sysid uint64 from %s failed", tmp_sysid);
+			elog(ERROR, "parsing sysid uint64 from %s failed", tmp_sysid);
 
 		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								   getattno("conn_timeline"),
@@ -626,8 +647,8 @@ bdr_maintain_db_workers(void)
 		if (DatumGetBool(temp_datum))
 		{
 			ereport(WARNING,
-					(errmsg("unidirectional connection to "BDR_NODEID_FORMAT" ignored; UDR support has been removed",
-					 BDR_NODEID_FORMAT_ARGS(target))));
+					(errmsg("unidirectional connection to " BDR_NODEID_FORMAT " ignored; UDR support has been removed",
+							BDR_NODEID_FORMAT_ARGS(target))));
 			continue;
 		}
 
@@ -643,11 +664,11 @@ bdr_maintain_db_workers(void)
 		Assert(!isnull);
 		node_status = DatumGetChar(temp_datum);
 
-		elog(DEBUG1, "Found bdr_connections entry for "BDR_NODEID_FORMAT" (origin specific: %d, status: %c)",
+		elog(DEBUG1, "found bdr_connections entry for " BDR_NODEID_FORMAT " (origin specific: %d, status: %c)",
 			 BDR_NODEID_FORMAT_ARGS(target),
 			 (int) origin_is_my_id, node_status);
 
-		if(node_status == BDR_NODE_STATUS_KILLED)
+		if (node_status == BDR_NODE_STATUS_KILLED)
 		{
 			elog(DEBUG2, "skipping registration of conn as killed");
 			continue;
@@ -674,7 +695,7 @@ bdr_maintain_db_workers(void)
 		 */
 		if (find_apply_worker_slot(&target, &worker) != -1)
 		{
-			elog(DEBUG2, "Skipping registration of worker for node "BDR_NODEID_FORMAT" on db oid=%u: already registered",
+			elog(DEBUG2, "skipping registration of worker for node " BDR_NODEID_FORMAT " on db oid=%u: already registered",
 				 BDR_NODEID_FORMAT_ARGS(target), myid.dboid);
 
 			/*
@@ -696,7 +717,7 @@ bdr_maintain_db_workers(void)
 
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
-				 "bdr apply %s to %s",
+				 "bdr apply worker for %s to %s",
 				 bdr_nodeid_name(&target, true),
 				 bdr_nodeid_name(&myid, true));
 
@@ -705,7 +726,7 @@ bdr_maintain_db_workers(void)
 
 		/* Tell the apply worker what its shmem slot is */
 		Assert(slot <= UINT16_MAX);
-		worker_arg = (((uint32)BdrWorkerCtl->worker_generation) << 16) | (uint32)slot;
+		worker_arg = (((uint32) BdrWorkerCtl->worker_generation) << 16) | (uint32) slot;
 		bgw.bgw_main_arg = Int32GetDatum(worker_arg);
 
 		/*
@@ -743,12 +764,12 @@ bdr_maintain_db_workers(void)
 			LWLockRelease(BdrWorkerCtl->lock);
 
 			ereport(ERROR,
-					(errmsg("bdr: Failed to register apply worker for "BDR_NODEID_FORMAT,
+					(errmsg("failed to register apply worker for " BDR_NODEID_FORMAT,
 							BDR_NODEID_FORMAT_ARGS(target))));
 		}
 		else
 		{
-			elog(DEBUG2, "registered apply worker for "BDR_NODEID_FORMAT,
+			elog(DEBUG2, "registered apply worker for " BDR_NODEID_FORMAT,
 				 BDR_NODEID_FORMAT_ARGS(target));
 		}
 	}
@@ -764,15 +785,15 @@ out:
 	elog(DEBUG2, "done registering apply workers");
 
 	/*
-	 * Now we need to tell the lock manager and the sequence
-	 * manager about the changed node count.
+	 * Now we need to tell the lock manager and the sequence manager about the
+	 * changed node count.
 	 *
-	 * Now that node join takes the DDL lock and part is careful to wait
-	 * until it completes, the node count should only change when it's
-	 * safe. In particular it should only go up when the DDL lock is held.
+	 * Now that node join takes the DDL lock and part is careful to wait until
+	 * it completes, the node count should only change when it's safe. In
+	 * particular it should only go up when the DDL lock is held.
 	 *
-	 * There's no such protection for 9.4bdr global sequences, which
-	 * could have voting issues when the nodecount changes.
+	 * There's no such protection for 9.4bdr global sequences, which could
+	 * have voting issues when the nodecount changes.
 	 */
 	bdr_worker_slot->data.perdb.nnodes = nnodes;
 	bdr_locks_set_nnodes(nnodes);
@@ -797,11 +818,11 @@ out:
 void
 bdr_perdb_worker_main(Datum main_arg)
 {
-	int					rc = 0;
-	BdrPerdbWorker		*perdb;
-	StringInfoData		si;
-	bool				wait;
-	BDRNodeId			myid;
+	int			rc = 0;
+	BdrPerdbWorker *perdb;
+	StringInfoData si;
+	bool		wait;
+	BDRNodeId	myid;
 
 	is_perdb_worker = true;
 
@@ -825,32 +846,34 @@ bdr_perdb_worker_main(Datum main_arg)
 
 	/*
 	 * It's necessary to acquire a lock here so that a concurrent
-	 * bdr_perdb_xact_callback can't try to set our latch at the same
-	 * time as we write to it.
+	 * bdr_perdb_xact_callback can't try to set our latch at the same time as
+	 * we write to it.
 	 *
-	 * There's no per-worker lock, so we just take the lock on the
-	 * whole segment.
+	 * There's no per-worker lock, so we just take the lock on the whole
+	 * segment.
 	 */
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	perdb->proclatch = &MyProc->procLatch;
-	perdb->database_oid = MyDatabaseId;
+	perdb->p_dboid = MyDatabaseId;
 	LWLockRelease(BdrWorkerCtl->lock);
+
+	Assert(perdb->c_dboid == perdb->p_dboid);
 
 	/* need to be able to perform writes ourselves */
 	bdr_executor_always_allow_writes(true);
 	bdr_locks_startup();
 
 	{
-		int				spi_ret;
-		MemoryContext	saved_ctx;
-		BDRNodeInfo	   *local_node;
+		int			spi_ret;
+		MemoryContext saved_ctx;
+		BDRNodeInfo *local_node;
 
 		/*
 		 * Check the local bdr.bdr_nodes table to see if there's an entry for
 		 * our node.
 		 *
-		 * Note that we don't have to explicitly SPI_finish(...) on error paths;
-		 * that's taken care of for us.
+		 * Note that we don't have to explicitly SPI_finish(...) on error
+		 * paths; that's taken care of for us.
 		 */
 		StartTransactionCommand();
 		spi_ret = SPI_connect();
@@ -865,7 +888,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		if (local_node == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("local node record for "BDR_NODEID_FORMAT" not found",
+					 errmsg("local node record for " BDR_NODEID_FORMAT " not found",
 							BDR_NODEID_FORMAT_ARGS(myid))));
 
 		SPI_finish();
@@ -882,14 +905,14 @@ bdr_perdb_worker_main(Datum main_arg)
 		bdr_bdr_node_free(local_node);
 	}
 
-	elog(DEBUG1, "Starting bdr apply workers on "BDR_NODEID_FORMAT,
+	elog(DEBUG1, "starting bdr apply workers on " BDR_NODEID_FORMAT,
 		 BDR_LOCALID_FORMAT_ARGS);
 
 	/* Launch the apply workers */
 	bdr_maintain_db_workers();
 
-	elog(DEBUG1, "BDR starting sequencer on db \"%s\"",
-		 NameStr(perdb->dbname));
+	elog(DEBUG1, "BDR starting sequencer on database with OID %u",
+		 MyDatabaseId);
 
 	/* initialize sequencer */
 	bdr_sequencer_init(perdb->seq_slot, perdb->nnodes);
@@ -945,8 +968,8 @@ bdr_perdb_worker_main(Datum main_arg)
 			if (rc & WL_LATCH_SET)
 			{
 				/*
-				 * If the perdb worker's latch is set we're being asked
-				 * to rescan and launch new apply workers.
+				 * If the perdb worker's latch is set we're being asked to
+				 * rescan and launch new apply workers.
 				 */
 				bdr_maintain_db_workers();
 			}
@@ -955,7 +978,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		CHECK_FOR_INTERRUPTS();
 	}
 
-	perdb->database_oid = InvalidOid;
+	perdb->p_dboid = InvalidOid;
 	proc_exit(0);
 }
 
@@ -973,7 +996,7 @@ bdr_get_apply_pid(PG_FUNCTION_ARGS)
 	remote.dboid = PG_GETARG_OID(2);
 
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "Parsing of remote sysid as uint64 failed");
+		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 

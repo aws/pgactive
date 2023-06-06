@@ -7,8 +7,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use IPC::Run;
 use Test::More;
 use utils::nodemanagement;
@@ -17,15 +17,7 @@ use utils::nodemanagement;
 my $nodes = make_bdr_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
 
-$node_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.city(
-  city_sid INT PRIMARY KEY,
-  name VARCHAR,
-  UNIQUE(name)
-);
-$DDL$);
-]);
+exec_ddl($node_0, q[CREATE TABLE public.city(city_sid INT PRIMARY KEY, name VARCHAR, UNIQUE(name));]);
 wait_for_apply($node_0, $node_1);
 
 foreach my $node ($node_0, $node_1)

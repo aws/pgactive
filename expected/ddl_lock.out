@@ -15,7 +15,7 @@ ERROR:  unknown lock type bogus
 BEGIN;
 SET LOCAL bdr.permit_ddl_locking = false;
 SELECT bdr.acquire_global_lock('ddl_lock');
-ERROR:  Global DDL locking attempt rejected by configuration
+ERROR:  global DDL locking attempt rejected by configuration
 DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
 HINT:  See the 'DDL replication' chapter of the documentation.
 ROLLBACK;

@@ -40,65 +40,73 @@
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
-#include "utils/syscache.h"
 
 static void BdrExecutorStart(QueryDesc *queryDesc, int eflags);
+CommandTag CreateWritableStmtTag(PlannedStmt *plannedstmt);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
 
 static bool bdr_always_allow_writes = false;
 
 PGDLLEXPORT Datum bdr_node_set_read_only(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_node_set_read_only);
 
 EState *
-bdr_create_rel_estate(Relation rel)
+bdr_create_rel_estate(Relation rel, ResultRelInfo *resultRelInfo)
 {
 	EState	   *estate;
-	ResultRelInfo *resultRelInfo;
 
 	estate = CreateExecutorState();
 
-	resultRelInfo = makeNode(ResultRelInfo);
-	resultRelInfo->ri_RangeTableIndex = 1;		/* dummy */
+	resultRelInfo->ri_RangeTableIndex = 1;	/* dummy */
 	resultRelInfo->ri_RelationDesc = rel;
 	resultRelInfo->ri_TrigInstrument = NULL;
-
+#if PG_VERSION_NUM < 140000
 	estate->es_result_relations = resultRelInfo;
 	estate->es_num_result_relations = 1;
 	estate->es_result_relation_info = resultRelInfo;
-
+#endif
 	return estate;
 }
 
 void
-UserTableUpdateIndexes(EState *estate, TupleTableSlot *slot)
+UserTableUpdateIndexes(EState *estate, TupleTableSlot *slot, ResultRelInfo *relinfo)
 {
 	/* HOT update does not require index inserts */
-	if (HeapTupleIsHeapOnly(slot->tts_tuple))
+	if (HeapTupleIsHeapOnly(TTS_TUP(slot)))
 		return;
 
-	ExecOpenIndices(estate->es_result_relation_info, false);
-	UserTableUpdateOpenIndexes(estate, slot);
-	ExecCloseIndices(estate->es_result_relation_info);
+	ExecOpenIndices(relinfo, false);
+	UserTableUpdateOpenIndexes(estate, slot, relinfo ,false);
+	ExecCloseIndices(relinfo);
 }
 
 void
-UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot)
+UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
+						   ResultRelInfo *relinfo, bool update)
 {
 	List	   *recheckIndexes = NIL;
 
 	/* HOT update does not require index inserts */
-	if (HeapTupleIsHeapOnly(slot->tts_tuple))
+	if (HeapTupleIsHeapOnly(TTS_TUP(slot)))
 		return;
 
-	if (estate->es_result_relation_info->ri_NumIndices > 0)
+	if (relinfo->ri_NumIndices > 0)
 	{
-		recheckIndexes = ExecInsertIndexTuples(slot,
-											   		 &slot->tts_tuple->t_self,
-											   		 estate,
-													 false, NULL, NIL);
-
+		recheckIndexes = ExecInsertIndexTuples(
+#if PG_VERSION_NUM >= 140000
+												relinfo,
+#endif
+												slot,
+#if PG_VERSION_NUM < 120000
+												&slot->tts_tuple->t_self,
+#endif
+												estate
+#if PG_VERSION_NUM >= 140000
+												, update
+#endif
+												, false, NULL, NIL);
 		if (recheckIndexes != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -110,12 +118,9 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot)
 }
 
 void
-build_index_scan_keys(EState *estate, ScanKey *scan_keys, BDRTupleData *tup)
+build_index_scan_keys(ResultRelInfo *relinfo, ScanKey *scan_keys, BDRTupleData * tup)
 {
-	ResultRelInfo *relinfo;
-	int i;
-
-	relinfo = estate->es_result_relation_info;
+	int			i;
 
 	/* build scankeys for each index */
 	for (i = 0; i < relinfo->ri_NumIndices; i++)
@@ -139,9 +144,9 @@ build_index_scan_keys(EState *estate, ScanKey *scan_keys, BDRTupleData *tup)
 		 * Only return index if we could build a key without NULLs.
 		 */
 		if (build_index_scan_key(scan_keys[i],
-								  relinfo->ri_RelationDesc,
-								  relinfo->ri_IndexRelationDescs[i],
-								  tup))
+								 relinfo->ri_RelationDesc,
+								 relinfo->ri_IndexRelationDescs[i],
+								 tup))
 		{
 			pfree(scan_keys[i]);
 			scan_keys[i] = NULL;
@@ -157,14 +162,14 @@ build_index_scan_keys(EState *estate, ScanKey *scan_keys, BDRTupleData *tup)
  * Returns whether any column contains NULLs.
  */
 bool
-build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData *tup)
+build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData * tup)
 {
 	int			attoff;
 	Datum		indclassDatum;
 	Datum		indkeyDatum;
 	bool		isnull;
 	oidvector  *opclass;
-	int2vector  *indkey;
+	int2vector *indkey;
 	bool		hasnulls = false;
 
 	indclassDatum = SysCacheGetAttr(INDEXRELID, idxrel->rd_indextuple,
@@ -173,7 +178,7 @@ build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData *
 	opclass = (oidvector *) DatumGetPointer(indclassDatum);
 
 	indkeyDatum = SysCacheGetAttr(INDEXRELID, idxrel->rd_indextuple,
-									Anum_pg_index_indkey, &isnull);
+								  Anum_pg_index_indkey, &isnull);
 	Assert(!isnull);
 	indkey = (int2vector *) DatumGetPointer(indkeyDatum);
 
@@ -227,10 +232,12 @@ build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData *
  * context of the passed slot.
  */
 bool
-find_pkey_tuple(ScanKey skey, BDRRelation *rel, Relation idxrel,
+find_pkey_tuple(ScanKey skey, BDRRelation * rel, Relation idxrel,
 				TupleTableSlot *slot, bool lock, LockTupleMode mode)
 {
+#if PG_VERSION_NUM < 120000
 	HeapTuple	scantuple;
+#endif
 	bool		found;
 	IndexScanDesc scan;
 	SnapshotData snap;
@@ -245,20 +252,26 @@ retry:
 						   RelationGetNumberOfAttributes(idxrel),
 						   0);
 	index_rescan(scan, skey, RelationGetNumberOfAttributes(idxrel), NULL, 0);
-
+#if PG_VERSION_NUM >= 120000
+	if (index_getnext_slot(scan, ForwardScanDirection, slot))
+#else
 	if ((scantuple = index_getnext(scan, ForwardScanDirection)) != NULL)
+#endif
 	{
 		found = true;
+
 		/*
 		 * Store a copied physical tuple that doesn't reference shmem or hold
 		 * any buffer pin, so it can live past the index scan. Any old tuple
 		 * from a prior loop is cleared first.
 		 */
 		/* FIXME: Improve TupleSlot to not require copying the whole tuple */
-		ExecStoreTuple(scantuple, slot, InvalidBuffer, false);
+#if PG_VERSION_NUM < 120000
+		ExecStoreHeapTuple(scantuple, slot, false);
+#endif
 		ExecMaterializeSlot(slot);
 
-		xwait = TransactionIdIsValid(snap.xmin) ?  snap.xmin : snap.xmax;
+		xwait = TransactionIdIsValid(snap.xmin) ? snap.xmin : snap.xmax;
 
 		if (TransactionIdIsValid(xwait))
 		{
@@ -270,29 +283,52 @@ retry:
 
 	if (lock && found)
 	{
-		Buffer buf;
+#if PG_VERSION_NUM >= 120000
+		TM_FailureData tmfd;
+		TM_Result res;
+#else
+		Buffer		buf;
 		HeapUpdateFailureData hufd;
 		HTSU_Result res;
 		HeapTupleData locktup;
 
-		ItemPointerCopy(&slot->tts_tuple->t_self, &locktup.t_self);
+		ItemPointerCopy(&(TTS_TUP(slot)->t_self), &locktup.t_self);
+#endif
 
 		PushActiveSnapshot(GetLatestSnapshot());
 
+#if PG_VERSION_NUM >= 120000
+		res = table_tuple_lock(rel->rel, &(slot->tts_tid), GetLatestSnapshot(),
+							   slot,
+							   GetCurrentCommandId(false),
+							   mode,
+							   LockWaitBlock,
+							   0 /* don't follow updates */ ,
+							   &tmfd);
+#else
 		res = heap_lock_tuple(rel->rel, &locktup, GetCurrentCommandId(false), mode,
-							  false /* wait */,
-							  false /* don't follow updates */,
+							  false /* wait */ ,
+							  false /* don't follow updates */ ,
 							  &buf, &hufd);
 		/* the tuple slot already has the buffer pinned */
 		ReleaseBuffer(buf);
+#endif
 
 		PopActiveSnapshot();
 
 		switch (res)
 		{
+#if PG_VERSION_NUM >= 120000
+			case TM_Ok:
+#else
 			case HeapTupleMayBeUpdated:
+#endif
 				break;
+#if PG_VERSION_NUM >= 120000
+			case TM_Updated:
+#else
 			case HeapTupleUpdated:
+#endif
 				/* XXX: Improve handling here */
 				ereport(LOG,
 						(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
@@ -313,9 +349,9 @@ retry:
 void
 bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 {
-	HeapTuple tuple = NULL;
-	Relation rel;
-	RangeVar	   *rv;
+	HeapTuple	tuple = NULL;
+	Relation	rel;
+	RangeVar   *rv;
 	SnapshotData SnapshotDirty;
 	SysScanDesc scan;
 	ScanKeyData key;
@@ -324,21 +360,21 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 	Assert(IsTransactionState());
 
 	/*
-	 * We don't allow the user to clear read-only status
-	 * while the local node is initing.
+	 * We don't allow the user to clear read-only status while the local node
+	 * is initing.
 	 */
- 	status = bdr_local_node_status();
+	status = bdr_local_node_status();
 	if ((status != BDR_NODE_STATUS_READY && status != BDR_NODE_STATUS_KILLED) && !force)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("local node is still starting up, cannot change read-only status.")));
+				 errmsg("local node is still starting up, cannot change read-only status")));
 	}
 
 	InitDirtySnapshot(SnapshotDirty);
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
-	rel = heap_openrv(rv, RowExclusiveLock);
+	rel = table_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key,
 				get_attnum(rel->rd_id, "node_name"),
@@ -371,18 +407,18 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 
 		newtuple = heap_form_tuple(RelationGetDescr(rel),
 								   values, nulls);
-		//simple_heap_update(rel, &tuple->t_self, newtuple);
+		/* simple_heap_update(rel, &tuple->t_self, newtuple); */
 		CatalogTupleUpdate(rel, &tuple->t_self, newtuple);
 	}
 	else
-		elog(ERROR, "Node %s not found.", node_name);
+		elog(ERROR, "node %s not found.", node_name);
 
 	systable_endscan(scan);
 
 	CommandCounterIncrement();
 
 	/* now release lock again,  */
-	heap_close(rel, RowExclusiveLock);
+	table_close(rel, RowExclusiveLock);
 
 	bdr_connections_changed(NULL);
 }
@@ -396,8 +432,8 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
 Datum
 bdr_node_set_read_only(PG_FUNCTION_ARGS)
 {
-	char   *node_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
-	bool	read_only = PG_GETARG_BOOL(1);
+	char	   *node_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	bool		read_only = PG_GETARG_BOOL(1);
 
 	bdr_node_set_read_only_internal(node_name, read_only, false);
 
@@ -412,11 +448,15 @@ bdr_executor_always_allow_writes(bool always_allow)
 	bdr_always_allow_writes = always_allow;
 }
 
-static const char *
+CommandTag
 CreateWritableStmtTag(PlannedStmt *plannedstmt)
 {
 	if (plannedstmt->commandType == CMD_SELECT)
-		return "DML"; /* SELECT INTO/WCTE */
+#if PG_VERSION_NUM < 120000
+		return "DML";			/* SELECT INTO/WCTE */
+#else
+		return CMDTAG_SELECT_INTO;
+#endif
 
 	return CreateCommandTag((Node *) plannedstmt);
 }
@@ -430,11 +470,11 @@ CreateWritableStmtTag(PlannedStmt *plannedstmt)
 static void
 BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 {
-	bool			performs_writes = false;
-	bool			read_only_node;
-	ListCell	   *l;
-	List		   *rangeTable;
-	PlannedStmt	   *plannedstmt = queryDesc->plannedstmt;
+	bool		performs_writes = false;
+	bool		read_only_node;
+	ListCell   *l;
+	List	   *rangeTable;
+	PlannedStmt *plannedstmt = queryDesc->plannedstmt;
 
 	if (bdr_always_allow_writes)
 		goto done;
@@ -464,35 +504,32 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 
 	/*
 	 * Are we in bdr.replicate_ddl_command? If so, it's not safe to do DML,
-	 * since this will basically do statement based replication that'll mess up
-	 * volatile functions etc. If we skipped replicating it as rows and just
-	 * replicated statements, we'd get wrong sequences and so on.
+	 * since this will basically do statement based replication that'll mess
+	 * up volatile functions etc. If we skipped replicating it as rows and
+	 * just replicated statements, we'd get wrong sequences and so on.
 	 *
 	 * We can't just ignore the DML and leave it in the command string, then
 	 * replicate its effects with rows, either. Otherwise DDL like this would
 	 * break:
 	 *
-	 *     bdr.replicate_ddl_command($$
-	 *       ALTER TABLE foo ADD COLUMN bar ...;
-	 *       UPDATE foo SET bar = baz WHERE ...;
-	 *       ALTER TABLE foo DROP COLUMN baz;
-	 *     $$);
+	 * bdr.replicate_ddl_command($$ ALTER TABLE foo ADD COLUMN bar ...; UPDATE
+	 * foo SET bar = baz WHERE ...; ALTER TABLE foo DROP COLUMN baz; $$);
 	 *
-	 * ... because we'd apply the DROP COLUMN before we replicated
-	 * the rows, since we execute a DDL string as a single operation. Then
-	 * row apply would fail because the incoming rows would have data for
-	 * dropped column 'baz'.
+	 * ... because we'd apply the DROP COLUMN before we replicated the rows,
+	 * since we execute a DDL string as a single operation. Then row apply
+	 * would fail because the incoming rows would have data for dropped column
+	 * 'baz'.
 	 */
 	if (in_bdr_replicate_ddl_command && !bdr_in_extension)
 	{
 		if (queryDesc->operation == CMD_INSERT
-		    || queryDesc->operation == CMD_UPDATE
+			|| queryDesc->operation == CMD_UPDATE
 			|| queryDesc->operation == CMD_DELETE)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command"),
-					 errhint("Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements")));
+					 errhint("Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.")));
 		}
 	}
 
@@ -505,9 +542,9 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	rangeTable = plannedstmt->rtable;
 	foreach(l, plannedstmt->resultRelations)
 	{
-		Index			rtei = lfirst_int(l);
-		RangeTblEntry  *rte = rt_fetch(rtei, rangeTable);
-		Relation		rel;
+		Index		rtei = lfirst_int(l);
+		RangeTblEntry *rte = rt_fetch(rtei, rangeTable);
+		Relation	rel;
 
 		rel = RelationIdGetRelation(rte->relid);
 
@@ -519,10 +556,10 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 		}
 
 		/*
-		 * Since changes to pg_catalog aren't replicated directly there's
-		 * no strong need to suppress direct UPDATEs on them. The usual
-		 * rule of "it's dumb to modify the catalogs directly if you don't
-		 * know what you're doing" applies.
+		 * Since changes to pg_catalog aren't replicated directly there's no
+		 * strong need to suppress direct UPDATEs on them. The usual rule of
+		 * "it's dumb to modify the catalogs directly if you don't know what
+		 * you're doing" applies.
 		 */
 		if (RelationGetNamespace(rel) == PG_CATALOG_NAMESPACE)
 		{
@@ -533,9 +570,9 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 		if (read_only_node)
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-					 errmsg("%s may only affect UNLOGGED or TEMPORARY tables "\
+					 errmsg("%s may only affect UNLOGGED or TEMPORARY tables " \
 							"on read-only BDR node; %s is a regular table",
-							CreateWritableStmtTag(plannedstmt),
+							GetCommandTagName(CreateWritableStmtTag(plannedstmt)),
 							RelationGetRelationName(rel))));
 
 		if (rel->rd_indexvalid == 0)
@@ -548,9 +585,9 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("Cannot run UPDATE or DELETE on table %s because it does not have a PRIMARY KEY.",
+				 errmsg("cannot run UPDATE or DELETE on table %s because it does not have a PRIMARY KEY",
 						RelationGetRelationName(rel)),
-				 errhint("Add a PRIMARY KEY to the table")));
+				 errhint("Add a PRIMARY KEY to the table.")));
 
 		RelationClose(rel);
 	}

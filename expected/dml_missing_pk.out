@@ -43,53 +43,53 @@ SELECT * FROM bdr_missing_pk;
 -- these should fail
 \c :writedb2
 UPDATE bdr_missing_pk SET a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 DELETE FROM bdr_missing_pk WHERE a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 UPDATE bdr_missing_pk_parent SET a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 DELETE FROM bdr_missing_pk_parent WHERE a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	UPDATE bdr_missing_pk SET a = 1 WHERE a > 1 RETURNING a
 ) SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	DELETE FROM bdr_missing_pk RETURNING a
 ) SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 UPDATE bdr_missing_pk_view SET a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 DELETE FROM bdr_missing_pk_view WHERE a = 1;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	UPDATE bdr_missing_pk_view SET a = 1 WHERE a > 1 RETURNING a
 ) SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	DELETE FROM bdr_missing_pk_view RETURNING a
 ) SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	UPDATE bdr_missing_pk SET a = 1 RETURNING *
 ) INSERT INTO bdr_missing_pk SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
 	DELETE FROM bdr_missing_pk_view RETURNING a
 ) INSERT INTO bdr_missing_pk SELECT * FROM foo;
-ERROR:  Cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY.
-HINT:  Add a PRIMARY KEY to the table
+ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 -- success again
 TRUNCATE bdr_missing_pk;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);

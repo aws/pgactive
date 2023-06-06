@@ -7,8 +7,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 use utils::sequence;
@@ -18,7 +18,7 @@ sub global_sequence_tests {
     my $type = shift;
 
     # Create an upstream node and bring up bdr
-    my $node_a = get_new_node('node_a');
+    my $node_a = PostgreSQL::Test::Cluster->new('node_a');
     initandstart_bdr_group($node_a);
     my $upstream_node = $node_a;
     my $table_name    = 'test_table_sequence';
@@ -27,19 +27,19 @@ sub global_sequence_tests {
 
     # Join a new node to first node
     # and check insert on table_with_sequence
-    my $node_b = get_new_node('node_b');
+    my $node_b = PostgreSQL::Test::Cluster->new('node_b');
     check_insert_on_new_joins( $node_a, $type, [$node_b] );
 
     # Join a multiple nodes to first node
     # and check insert on table_with_sequence
-    my $node_c = get_new_node('node_c');
-    my $node_d = get_new_node('node_d');
+    my $node_c = PostgreSQL::Test::Cluster->new('node_c');
+    my $node_d = PostgreSQL::Test::Cluster->new('node_d');
     check_insert_on_new_joins( $node_a, $type, [ $node_c, $node_d ] );
 
     # Join two nodes concurrently
     note "Two concurrent joins then inserts\n";
-    my $node_e = get_new_node('node_e');
-    my $node_f = get_new_node('node_f');
+    my $node_e = PostgreSQL::Test::Cluster->new('node_e');
+    my $node_f = PostgreSQL::Test::Cluster->new('node_f');
   TODO: {
         todo_skip "Concurrent physical joins to an existing 2 node cluster", 4
           if $type eq 'physical';
@@ -49,9 +49,9 @@ sub global_sequence_tests {
 
     # Insert on two nodes concurrently
     note "Concurrent insert into table_with_sequence\n";
-    my $node_g = get_new_node('node_g');
+    my $node_g = PostgreSQL::Test::Cluster->new('node_g');
     initandstart_join_node( $node_g, $upstream_node, $type );
-    my $node_h = get_new_node('node_h');
+    my $node_h = PostgreSQL::Test::Cluster->new('node_h');
     initandstart_join_node( $node_h, $upstream_node, $type );
     check_concurrent_inserts( $node_a, $table_name, 50, $node_g, $node_h );
 
@@ -60,9 +60,9 @@ sub global_sequence_tests {
     join_under_sequence_write_load( $type, $upstream_node, $table_name );
 
     note "Concurrent physical logical joins\n";
-    my $node_k = get_new_node('node_k');
-    my $node_l = get_new_node('node_l');
-    my $node_m = get_new_node('node_m');
+    my $node_k = PostgreSQL::Test::Cluster->new('node_k');
+    my $node_l = PostgreSQL::Test::Cluster->new('node_l');
+    my $node_m = PostgreSQL::Test::Cluster->new('node_m');
     concurrent_joins_logical_physical(  [\@{[ $node_l,$upstream_node ]}, \@{[ $node_m,$upstream_node ]} ],
             [\@{[ $node_k,$upstream_node ]}] );
     compare_sequence_table_with_upstream(
@@ -112,7 +112,7 @@ sub join_under_sequence_write_load {
       start_insert( $upstream_node, $table_with_sequence, 200 );
 
     # Start a node to join under write load
-    my $node = get_new_node('node_join_under_write_load');
+    my $node = PostgreSQL::Test::Cluster->new('node_join_under_write_load');
 
     if ( $type eq 'logical' ) {
         initandstart_logicaljoin_node( $node, $upstream_node );

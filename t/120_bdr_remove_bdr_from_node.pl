@@ -4,14 +4,14 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 use utils::sequence;
 
 # Create an upstream node and bring up bdr
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 my $upstream_node = $node_a;
 
@@ -19,7 +19,7 @@ my $upstream_node = $node_a;
 create_table_global_sequence( $node_a, 'test_table_sequence' );
 
 # Join a new node to first node using bdr_group_join
-my $node_b = get_new_node('node_b');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node( $node_b, $node_a );
 
 # Part node_b before completely removing BDR
@@ -30,7 +30,7 @@ sleep(10);
 bdr_remove( $node_b, 1 );
 
 # Join a new node to first node using bdr_group_join
-my $node_c = get_new_node('node_c');
+my $node_c = PostgreSQL::Test::Cluster->new('node_c');
 initandstart_logicaljoin_node( $node_c, $node_a );
 
 # Remove(force) BDR from node that is not parted

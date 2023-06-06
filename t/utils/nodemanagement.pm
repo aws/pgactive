@@ -6,15 +6,12 @@ package utils::nodemanagement;
 
 use strict;
 use warnings;
-use 5.8.0;
 use Exporter;
 use Cwd;
 use Config;
-use Carp;
-use PostgresNode;
-# Patch PostgresNode with stuff we want from post-9.6
-# require "t/backports/PostgresNode_96.pl";
-use TestLib;
+use Carp qw(cluck);
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use IPC::Run;
 use Time::HiRes;
@@ -68,7 +65,7 @@ BEGIN {
     $bdr_test_dbname = 'bdr_test';
 }
 
-my $tempdir = TestLib::tempdir;
+my $tempdir = PostgreSQL::Test::Utils::tempdir;
 
 # Make a group of BDR nodes with numbered node names
 # and returns a list of the nodes.
@@ -80,14 +77,14 @@ sub make_bdr_group {
     die "unrecognised join mode $mode"
         if ($mode ne 'logical' && $mode ne 'physical');
 
-    my $node_0 = get_new_node("${name_prefix}0");
+    my $node_0 = PostgreSQL::Test::Cluster->new("${name_prefix}0");
     initandstart_bdr_group($node_0);
     my @nodes;
     push @nodes, $node_0;
 
     for (my $nodeid = 1; $nodeid < $n_nodes; $nodeid++)
     {
-        my $node_n = get_new_node("${name_prefix}${nodeid}");
+        my $node_n = PostgreSQL::Test::Cluster->new("${name_prefix}${nodeid}");
         push @nodes, $node_n;
         if ($mode eq 'logical')
         {
@@ -118,7 +115,7 @@ sub create_bdr_group {
             }
     );
     $node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');
 }
@@ -246,7 +243,7 @@ sub bdr_logical_join {
 
     if (!$nowait) {
         $local_node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 }
 
@@ -353,9 +350,9 @@ sub initandstart_physicaljoin_node {
 
     # wait for BDR to come up
     $upstream_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $join_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
     $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');

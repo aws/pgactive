@@ -7,12 +7,11 @@ package utils::sequence;
 
 use strict;
 use warnings;
-use 5.8.0;
 use Exporter;
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
@@ -44,7 +43,7 @@ sub insert_into_table_sequence {
 
     if (not defined $no_node_join_check) {
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     if ( not defined $no_of_inserts ) {
@@ -68,26 +67,4 @@ sub compare_sequence_table_with_upstream {
     }
 }
 
-sub join_under_sequence_write_load {
-    my ( $type, $upstream_node, $table_with_sequence ) = @_;
-    $upstream_node->safe_psql( $bdr_test_dbname,
-        "TRUNCATE TABLE test_table_sequence" );
-
-    my ( $h, $stdout, $stderr, $query ) = start_insert( $upstream_node, $table_with_sequence, 200 );
-
-    my $node = get_new_node('node_join_under_write_load');
-
-    if ( $type eq 'logical' ) {
-        initandstart_logicaljoin_node( $node, $upstream_node );
-    }
-    elsif ( $type eq 'physical' ) {
-        initandstart_physicaljoin_node( $node, $upstream_node );
-    }
-  SKIP: {
-        eval { $h->finish; };
-        skip "Insert hangs while node join begins", 1 if $@;
-        is( $h->full_result(0), 0, "psql on node " . $upstream_node->name . " exited normally" );
-        compare_sequence_table_with_upstream( "New node join while inserts into sequence table: ", $upstream_node, $node );
-    }
-}
 1;

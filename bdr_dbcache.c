@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "bdr.h"
-#include "bdr_label.h"
 
 #include "miscadmin.h"
 
@@ -25,20 +24,17 @@
 
 #include "utils/catcache.h"
 #include "utils/inval.h"
-#include "utils/jsonapi.h"
-#include "utils/json.h"
 #include "utils/jsonb.h"
-#include "utils/syscache.h"
 #include "utils/builtins.h"
 
 /* Cache entry. */
 typedef struct BDRDatabaseCacheEntry
 {
-	Oid		oid; /* cache key, needs to be first */
+	Oid			oid;			/* cache key, needs to be first */
 	const char *dbname;
-	bool	valid;
-	bool	bdr_activated;
-} BDRDatabaseCacheEntry;
+	bool		valid;
+	bool		bdr_activated;
+}			BDRDatabaseCacheEntry;
 
 static HTAB *BDRDatabaseCacheHash = NULL;
 
@@ -82,7 +78,7 @@ bdr_dbcache_initialize()
 	ctl.hcxt = CacheMemoryContext;
 
 	BDRDatabaseCacheHash = hash_create("BDR database cache", 128, &ctl,
-								  HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+									   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
 	CacheRegisterSyscacheCallback(DATABASEOID, bdr_dbcache_invalidate_entry, (Datum) 0);
@@ -102,7 +98,7 @@ bdr_parse_database_options(const char *label, bool *is_active)
 		return;
 
 	data = DatumGetJsonbP(
-		DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
+						  DirectFunctionCall1(jsonb_in, CStringGetDatum(label)));
 
 	if (!JB_ROOT_IS_OBJECT(data))
 		elog(ERROR, "root needs to be an object");
@@ -201,7 +197,7 @@ bdr_dbcache_lookup(Oid dboid, bool missing_ok)
 	object.objectId = dboid;
 	object.objectSubId = 0;
 
-	label = GetSecurityLabel(&object, "bdr");
+	label = GetSecurityLabel(&object, BDR_SECLABEL_PROVIDER);
 	bdr_parse_database_options(label, &entry->bdr_activated);
 
 	entry->valid = true;

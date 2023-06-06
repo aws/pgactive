@@ -2794,17 +2794,9 @@ done
 
 
 
-if test "$ac_cv_header_replication_origin_h" = 'yes'; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: building with PostgreSQL $version_num" >&5
-$as_echo "$as_me: building with PostgreSQL $version_num" >&6;}
-   BDR_PGVERCOMPAT_INCDIR="compat/$version_num"
-elif test "$ac_cv_header_replication_replication_identifier_h" == 'yes'; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: building with PostgreSQL 9.4bdr" >&5
-$as_echo "$as_me: building with PostgreSQL 9.4bdr" >&6;}
-   BDR_PGVERCOMPAT_INCDIR="compat/94bdr"
-else
-   as_fn_error $? "BDR can be built only against postgres-bdr or PostgreSQL 9.6" "$LINENO" 5
-fi;
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: building with PostgreSQL $version_num" >&5
+printf "%s\n" "$as_me: building with PostgreSQL $version_num" >&6;}
+BDR_PGVERCOMPAT_INCDIR="compat/$version_num"
 
 
 

@@ -32,8 +32,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use IPC::Run qw(timeout);;
 use Test::More;
 use utils::nodemanagement;
@@ -44,7 +44,7 @@ $SIG{__DIE__} = sub { Carp::confess @_ };
 $SIG{INT}  = sub { die("interupted by SIGINT"); };
 
 # Sanity check: is the pglogical extension present? If not, there's no point continuing this test.
-my $compat_check = get_new_node('compat_check');
+my $compat_check = PostgreSQL::Test::Cluster->new('compat_check');
 $compat_check->init;
 $compat_check->start;
 
@@ -66,18 +66,8 @@ $compat_check->stop;
 my $providers = make_bdr_group(2,'provider_');
 my ($provider_0, $provider_1) = @$providers;
 
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.preseed_in(id integer primary key, blah text);
-$DDL$);
-]);
-
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.preseed_ex(id integer primary key, blah text);
-$DDL$);
-]);
-
+exec_ddl($provider_0, q[CREATE TABLE public.preseed_in(id integer primary key, blah text);]);
+exec_ddl($provider_0, q[CREATE TABLE public.preseed_ex(id integer primary key, blah text);]);
 $provider_0->safe_psql($bdr_test_dbname, q[ INSERT INTO preseed_in(id, blah) VALUES (1, 'provider_0'); ]);
 $provider_0->safe_psql($bdr_test_dbname, q[ INSERT INTO preseed_ex(id, blah) VALUES (1, 'provider_0'); ]);
 $provider_0->safe_psql($bdr_test_dbname, q[SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);]);
@@ -102,10 +92,7 @@ shared_preload_libraries = 'bdr,pglogical'
 
 
 # On provider we'll replicate the extension creation
-$provider_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE EXTENSION pglogical;
-$DDL$);]);
+exec_ddl($provider_0, q[CREATE EXTENSION pglogical;]);
 
 $provider_0->safe_psql($bdr_test_dbname,
 	q[SELECT * FROM pglogical.create_node(node_name := 'bdr_provider', dsn := '] . $provider_0->connstr($bdr_test_dbname) . q[');]);
@@ -115,11 +102,7 @@ $provider_0->safe_psql($bdr_test_dbname, q[SELECT * FROM pglogical.replication_s
 $provider_0->safe_psql($bdr_test_dbname, q[SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);]);
 
 # Same deal on the subscriber
-$subscriber_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE EXTENSION pglogical;
-$DDL$);]);
-
+exec_ddl($subscriber_0, q[CREATE EXTENSION pglogical;]);
 note "created extension on subscriber";
 
 # BDR replicates everything by default, even in extensions. This gets exciting when

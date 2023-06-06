@@ -5,7 +5,7 @@
 
 typedef enum BdrMessageType
 {
-	BDR_MESSAGE_START = 0, /* bdr started */
+	BDR_MESSAGE_START = 0,		/* bdr started */
 	/* DDL locking */
 	BDR_MESSAGE_ACQUIRE_LOCK = 1,
 	BDR_MESSAGE_RELEASE_LOCK = 2,
@@ -22,6 +22,6 @@ extern void bdr_process_remote_message(StringInfo s);
 extern void bdr_prepare_message(StringInfo s, BdrMessageType message_type);
 extern void bdr_send_message(StringInfo s, bool transactional);
 
-extern char* bdr_message_type_str(BdrMessageType message_type);
+extern char *bdr_message_type_str(BdrMessageType message_type);
 
 #endif

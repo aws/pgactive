@@ -31,11 +31,11 @@ lib*.pc
 /bdr_dump
 /bdr_resetwal
 /bdr_version.h
-/bdr_pgbench_check
 /scripts/bdr_initial_load
 /log/
 /results/
 /tmp_check/
+/tmp_tap_tests/
 /tmp_test_*
 /home
 *~

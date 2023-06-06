@@ -7,8 +7,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use IPC::Run qw(timeout);;
 use Test::More;
 use utils::nodemanagement;
@@ -27,7 +27,7 @@ for my $node (@$nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@$nodes) {
     $node->safe_psql($bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Make sure DDL locking works
@@ -38,10 +38,7 @@ my $ret = $node_0->psql($bdr_test_dbname,
 is($ret, 0, 'DDL lock succeeded with node up');
 is($timedout, 0, 'DDL lock acquisition did not time out with node up');
 
-$node_0->safe_psql($bdr_test_dbname, q[
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.write_me(x integer primary key);
-$DDL$)]);
+exec_ddl($node_0, q[CREATE TABLE public.write_me(x integer primary key);]);
 
 #--------------------------------------------
 # Transactions on lock-holding node are read-only
@@ -50,7 +47,7 @@ $DDL$)]);
 # Per 2ndQuadrant/bdr-private#78, acquisition of the global DDL lock by a node
 # forces its local transactions to read-only as well as those of its peers.
 #
-my $timer = IPC::Run::timeout($TestLib::timeout_default);
+my $timer = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default);
 my $handle = start_acquire_ddl_lock($node_0, 'write_lock', $timer);
 wait_acquire_ddl_lock($handle);
 

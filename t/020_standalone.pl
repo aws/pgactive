@@ -8,12 +8,12 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 
 $node_a->init();
 $node_a->append_conf('postgresql.conf', q{
@@ -36,14 +36,7 @@ create_bdr_group($node_a);
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_a after group create');
 
-ok(!$node_a->safe_psql($bdr_test_dbname, q{
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE TABLE public.reptest(
-	id integer primary key,
-	dummy text
-);
-$DDL$);
-}), 'simple DDL succeeds');
+exec_ddl($node_a, q[CREATE TABLE public.reptest(id integer primary key, dummy text);]);
 
 ok(!$node_a->psql($bdr_test_dbname, "INSERT INTO reptest (id, dummy) VALUES (1, '42')"), 'simple DML succeeds');
 

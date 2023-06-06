@@ -13,14 +13,14 @@ SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();
 ERROR:  skipping changes is unsafe and will cause replicas to be out of sync
-HINT:  Set bdr.permit_unsafe_ddl_commands if you are sure you want to do this
+HINT:  Set bdr.permit_unsafe_ddl_commands if you are sure you want to do this.
 SET bdr.permit_unsafe_ddl_commands = on;
 SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();
-ERROR:  Target LSN must be nonzero
+ERROR:  target LSN must be nonzero
 -- Access a bogus node.
--- Needs a wrapper because of message differences between 9.4bdr and 9.6
+-- Needs a wrapper because of the dynamic content in the error message.
 \set VERBOSITY terse
 DO LANGUAGE plpgsql
 $$
@@ -32,20 +32,18 @@ EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS
        errm = MESSAGE_TEXT;
-    IF errm LIKE '%cache lookup failed for %bdr_0_0_%' THEN
-      RAISE EXCEPTION 'Got expected lookup error';
-    ELSIF errm LIKE 'replication origin "bdr_0_0_%" does not exist' THEN
-      RAISE EXCEPTION 'Got expected lookup error';
+    IF errm LIKE 'replication origin "bdr_0_0_%" does not exist' THEN
+      RAISE EXCEPTION 'Got expected error from bdr.skip_changes_upto()';
     ELSE
       RAISE;
     END IF;
 END;
 $$;
-ERROR:  Got expected lookup error
+ERROR:  Got expected error from bdr.skip_changes_upto()
 SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) = bdr.bdr_get_local_nodeid();
-ERROR:  the passed ID is for the local node, can't skip changes from self
+ERROR:  passed ID is for the local node, can't skip changes from self
 -- Skipping the past must do nothing. The LSN isn't exposed in
 -- pg_replication_identifier so this'll just produce no visible result, but not
 -- break anything.

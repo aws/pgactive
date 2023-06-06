@@ -19,8 +19,8 @@ use warnings;
 use lib 't/';
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement;
 
@@ -29,10 +29,10 @@ use utils::nodemanagement;
 # Setup and worker names
 #-------------------------------------
 
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 
-my $node_b = get_new_node('node_b');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
 
 # application_name should be the same as the node name
@@ -41,10 +41,10 @@ q[t],
 '2-node application_name check');
 
 # Create the other nodes
-my $node_c = get_new_node('node_c');
+my $node_c = PostgreSQL::Test::Cluster->new('node_c');
 initandstart_logicaljoin_node($node_c, $node_a);
 
-my $node_d = get_new_node('node_d');
+my $node_d = PostgreSQL::Test::Cluster->new('node_d');
 initandstart_logicaljoin_node($node_d, $node_c);
 
 # other apply workers should be visible now
@@ -57,7 +57,8 @@ q[t],
 #-------------------------------------
 
 # Everything working?
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_replicate_ddl_command($DDL$CREATE TABLE public.t(x text)$DDL$)]);
+exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
+
 # Make sure everything caught up by forcing another lock
 $node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 
@@ -93,7 +94,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -149,7 +150,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -193,7 +194,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($TestLib::timeout_default)]);
+      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up

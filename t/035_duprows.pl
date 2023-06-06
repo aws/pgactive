@@ -15,8 +15,8 @@ use warnings;
 use lib "t/";
 use Cwd;
 use Config;
-use PostgresNode;
-use TestLib;
+use PostgreSQL::Test::Cluster;
+use PostgreSQL::Test::Utils;
 use utils::nodemanagement;
 use Test::More;
 
@@ -30,16 +30,17 @@ left join bdr.bdr_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node
 order by x;
 ];
 
-my $node_a = get_new_node('node_a');
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 
-my $node_b = get_new_node('node_b');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
 
 my @nodes = ($node_a, $node_b);
 
 # Everything working?
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_replicate_ddl_command($DDL$CREATE TABLE public.t(x text)$DDL$)]);
+exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
+
 # Make sure everything caught up by forcing another lock
 $node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 

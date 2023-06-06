@@ -18,7 +18,7 @@ FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();
 
 -- Access a bogus node.
--- Needs a wrapper because of message differences between 9.4bdr and 9.6
+-- Needs a wrapper because of the dynamic content in the error message.
 \set VERBOSITY terse
 
 DO LANGUAGE plpgsql
@@ -31,10 +31,8 @@ EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS
        errm = MESSAGE_TEXT;
-    IF errm LIKE '%cache lookup failed for %bdr_0_0_%' THEN
-      RAISE EXCEPTION 'Got expected lookup error';
-    ELSIF errm LIKE 'replication origin "bdr_0_0_%" does not exist' THEN
-      RAISE EXCEPTION 'Got expected lookup error';
+    IF errm LIKE 'replication origin "bdr_0_0_%" does not exist' THEN
+      RAISE EXCEPTION 'Got expected error from bdr.skip_changes_upto()';
     ELSE
       RAISE;
     END IF;

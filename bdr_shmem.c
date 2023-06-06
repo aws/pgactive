@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "bdr.h"
-#include "bdr_label.h"
 
 #include "miscadmin.h"
 
@@ -49,6 +48,10 @@ static void bdr_worker_shmem_startup(void);
 void
 bdr_shmem_init(void)
 {
+#if PG_VERSION_NUM >= 150000
+	if (prev_shmem_request_hook)
+		prev_shmem_request_hook();
+#endif
 	/* can never have more worker slots than processes to register them */
 	bdr_max_workers = max_worker_processes + max_wal_senders;
 
@@ -106,7 +109,11 @@ bdr_worker_shmem_size()
 static void
 bdr_worker_shmem_init(void)
 {
+#if PG_VERSION_NUM >= 150000
+	Assert(process_shmem_requests_in_progress);
+#else
 	Assert(process_shared_preload_libraries_in_progress);
+#endif
 
 	/*
 	 * bdr_worker_shmem_init() only runs on first load, not on postmaster
@@ -122,9 +129,9 @@ bdr_worker_shmem_init(void)
 	RequestAddinShmemSpace(bdr_worker_shmem_size());
 
 	/*
-	 * We'll need to be able to take exclusive locks so only one per-db backend
-	 * tries to allocate or free blocks from this array at once.  There won't
-	 * be enough contention to make anything fancier worth doing.
+	 * We'll need to be able to take exclusive locks so only one per-db
+	 * backend tries to allocate or free blocks from this array at once. There
+	 * won't be enough contention to make anything fancier worth doing.
 	 */
 	RequestNamedLWLockTranche("bdr_shmem", 1);
 
@@ -146,15 +153,15 @@ bdr_worker_shmem_init(void)
 static void
 bdr_worker_shmem_startup(void)
 {
-	bool        found;
+	bool		found;
 
 	if (prev_shmem_startup_hook != NULL)
 		prev_shmem_startup_hook();
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 	BdrWorkerCtl = ShmemInitStruct("bdr_worker",
-								  bdr_worker_shmem_size(),
-								  &found);
+								   bdr_worker_shmem_size(),
+								   &found);
 	if (!found)
 	{
 		/* Must be in postmaster its self */
@@ -174,24 +181,24 @@ bdr_worker_shmem_startup(void)
 		 *
 		 * Background workers aren't unregistered when the postmaster restarts
 		 * and clears shared memory, so after a restart the supervisor and
-		 * per-db workers have no idea what workers are/aren't running, nor any
-		 * way to control them. To make a clean BDR restart possible the
+		 * per-db workers have no idea what workers are/aren't running, nor
+		 * any way to control them. To make a clean BDR restart possible the
 		 * workers registered before the restart need to find out about the
 		 * restart and terminate.
 		 *
 		 * To make that possible we pass the generation number to the worker
 		 * in its main argument, and also set it in shared memory. The two
-		 * must match. If they don't, the worker will proc_exit(0), causing its
-		 * self to be unregistered.
+		 * must match. If they don't, the worker will proc_exit(0), causing
+		 * its self to be unregistered.
 		 *
-		 * This should really be part of the bgworker API its self, handled via
-		 * a BGW_NO_RESTART_ON_CRASH flag or by providing a generation number
-		 * as a bgworker argument. However, for now we're stuck with this
-		 * workaround.
+		 * This should really be part of the bgworker API its self, handled
+		 * via a BGW_NO_RESTART_ON_CRASH flag or by providing a generation
+		 * number as a bgworker argument. However, for now we're stuck with
+		 * this workaround.
 		 */
 		if (bdr_worker_generation == UINT16_MAX)
 			/* We could handle wrap-around, but really ... */
-			elog(FATAL, "Too many postmaster crash/restart cycles. Restart the PostgreSQL server.");
+			elog(FATAL, "too many postmaster crash/restart cycles, restart the PostgreSQL server");
 
 		BdrWorkerCtl->worker_generation = ++bdr_worker_generation;
 	}
@@ -217,15 +224,16 @@ bdr_worker_shmem_startup(void)
  * You must hold BdrWorkerCtl->lock in LW_EXCLUSIVE mode for
  * this call.
  */
-BdrWorker*
+BdrWorker *
 bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
 {
-	int i;
+	int			i;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 	for (i = 0; i < bdr_max_workers; i++)
 	{
-		BdrWorker *new_entry = &BdrWorkerCtl->slots[i];
+		BdrWorker  *new_entry = &BdrWorkerCtl->slots[i];
+
 		if (new_entry->worker_type == BDR_WORKER_EMPTY_SLOT)
 		{
 			memset(new_entry, 0, sizeof(BdrWorker));
@@ -237,7 +245,7 @@ bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
 	}
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-			errmsg("No free bdr worker slots - bdr.max_workers is too low")));
+			 errmsg("no free bdr worker slots - bdr.max_workers is too low")));
 	/* unreachable */
 }
 
@@ -251,7 +259,7 @@ bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
  * is not still running before the slot is released.
  */
 void
-bdr_worker_shmem_free(BdrWorker* worker, BackgroundWorkerHandle *handle)
+bdr_worker_shmem_free(BdrWorker * worker, BackgroundWorkerHandle *handle)
 {
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
@@ -261,8 +269,9 @@ bdr_worker_shmem_free(BdrWorker* worker, BackgroundWorkerHandle *handle)
 		/* Sanity check - ensure any associated dynamic bgworker is stopped */
 		if (handle)
 		{
-			pid_t pid;
+			pid_t		pid;
 			BgwHandleStatus status;
+
 			status = GetBackgroundWorkerPid(handle, &pid);
 			if (status == BGWH_STARTED)
 			{
@@ -287,7 +296,7 @@ bdr_worker_shmem_free(BdrWorker* worker, BackgroundWorkerHandle *handle)
 void
 bdr_worker_shmem_acquire(BdrWorkerType worker_type, uint32 worker_idx, bool free_at_rel)
 {
-	BdrWorker *worker;
+	BdrWorker  *worker;
 
 	/* can't acquire if we already have one */
 	Assert(bdr_worker_type == BDR_WORKER_EMPTY_SLOT);
@@ -339,11 +348,11 @@ bdr_worker_shmem_release(void)
  *
  * The caller must hold the BdrWorkerCtl lock in at least share mode.
  */
-BdrWorker*
+BdrWorker *
 bdr_worker_get_entry(const BDRNodeId * const nodeid, BdrWorkerType worker_type)
 {
-	BdrWorker *worker = NULL;
-	int i;
+	BdrWorker  *worker = NULL;
+	int			i;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 
@@ -357,27 +366,29 @@ bdr_worker_get_entry(const BDRNodeId * const nodeid, BdrWorkerType worker_type)
 		worker = &BdrWorkerCtl->slots[i];
 
 		if (worker->worker_type != worker_type
-		    || worker->worker_proc == NULL
-		    || worker->worker_proc->databaseId != MyDatabaseId)
+			|| worker->worker_proc == NULL
+			|| worker->worker_proc->databaseId != MyDatabaseId)
 		{
 			continue;
 		}
 
 		if (worker->worker_type == BDR_WORKER_APPLY)
 		{
-			const BdrApplyWorker * const w = &worker->data.apply;
+			const		BdrApplyWorker *const w = &worker->data.apply;
+
 			if (bdr_nodeid_eq(&w->remote_node, nodeid))
 				break;
 		}
 		else if (worker->worker_type == BDR_WORKER_WALSENDER)
 		{
-			const BdrWalsenderWorker * const w = &worker->data.walsnd;
+			const		BdrWalsenderWorker *const w = &worker->data.walsnd;
+
 			if (bdr_nodeid_eq(&w->remote_node, nodeid))
 				break;
 		}
 		else
 		{
-			Assert(false); /* unreachable */
+			Assert(false);		/* unreachable */
 		}
 	}
 
