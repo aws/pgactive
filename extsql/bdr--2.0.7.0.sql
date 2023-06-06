@@ -47,13 +47,13 @@ REVOKE ALL ON FUNCTION pg_stat_get_bdr() FROM PUBLIC;
 CREATE VIEW pg_stat_bdr AS SELECT * FROM pg_stat_get_bdr();
 
 CREATE TABLE bdr_sequence_values (
-    owning_sysid text COLLATE "C",
+    owning_sysid text NOT NULL COLLATE "C",
     owning_tlid oid NOT NULL,
     owning_dboid oid NOT NULL,
-    owning_riname text COLLATE "C",
+    owning_riname text NOT NULL COLLATE "C",
 
-    seqschema text COLLATE "C",
-    seqname text COLLATE "C",
+    seqschema text NOT NULL COLLATE "C",
+    seqname text NOT NULL COLLATE "C",
     seqrange int8range NOT NULL,
 
     -- could not acquire chunk
@@ -81,19 +81,19 @@ CREATE INDEX bdr_sequence_values_newchunk
   ON bdr_sequence_values(seqschema, seqname, upper(seqrange));
 
 CREATE TABLE bdr_sequence_elections (
-    owning_sysid text COLLATE "C",
+    owning_sysid text NOT NULL COLLATE "C",
     owning_tlid oid NOT NULL,
     owning_dboid oid NOT NULL,
-    owning_riname text COLLATE "C",
+    owning_riname text NOT NULL COLLATE "C",
     owning_election_id bigint NOT NULL,
 
-    seqschema text COLLATE "C",
-    seqname text COLLATE "C",
+    seqschema text NOT NULL COLLATE "C",
+    seqname text NOT NULL COLLATE "C",
     seqrange int8range NOT NULL,
 
     /* XXX id */
 
-    vote_type text COLLATE "C",
+    vote_type text NOT NULL COLLATE "C",
 
     open bool NOT NULL,
     success bool NOT NULL DEFAULT false,
@@ -118,16 +118,16 @@ CREATE INDEX bdr_sequence_elections__owner_range
   ON bdr.bdr_sequence_elections USING gist(owning_election_id, seqrange);
 
 CREATE TABLE bdr_votes (
-    vote_sysid text COLLATE "C",
+    vote_sysid text NOT NULL COLLATE "C",
     vote_tlid oid NOT NULL,
     vote_dboid oid NOT NULL,
-    vote_riname text COLLATE "C",
+    vote_riname text NOT NULL COLLATE "C",
     vote_election_id bigint NOT NULL,
 
-    voter_sysid text COLLATE "C",
+    voter_sysid text NOT NULL COLLATE "C",
     voter_tlid oid NOT NULL,
     voter_dboid oid NOT NULL,
-    voter_riname text COLLATE "C",
+    voter_riname text NOT NULL COLLATE "C",
 
     vote bool NOT NULL,
     reason text COLLATE "C" CHECK (reason IS NULL OR vote = false),
