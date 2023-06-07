@@ -383,64 +383,28 @@
       <row>
        <entry>
         <indexterm>
-         <primary>bdr.terminate_apply_workers(text,oid,oid)</primary>
+         <primary>bdr.bdr_get_workers_info(text,oid,oid)</primary>
         </indexterm>
-        <literal><function>bdr.terminate_apply_workers(<replaceable>sysid text</replaceable>, <replaceable>timeline oid</replaceable>, <replaceable>dboid oid</replaceable>)</function></literal>
+        <literal><function>bdr.bdr_get_workers_info(OUT sysid text, OUT timeline oid, OUT dboid oid, OUT worker_type text, OUT pid int4)
        </entry>
        <entry>boolean</entry>
        <entry>
-        Terminate any downstream (apply) BDR workers that are connected to
-        the upstream peer with the identified
+        Get information about BDR workers that are present on the node.
+       </entry>
+      </row>
+
+      <row>
+       <entry>
+        <indexterm>
+         <primary>bdr.bdr_terminate_workers(text,oid,oid,text)</primary>
+        </indexterm>
+        <literal><function>bdr.bdr_terminate_workers(sysid text, timeline oid,oid,text)
+       </entry>
+       <entry>boolean</entry>
+       <entry>
+        Terminate BDR worker(s) of a node identified by
         (<literal>sysid</literal>,<literal>timeline</literal>,<literal>dboid</literal>)
-        tuple. Returns true if a terminate signal was successfully sent. The worker may not
-        yet have exited; check <literal>pg_stat_activity</literal>.
-       </entry>
-      </row>
-
-      <row>
-       <entry>
-        <indexterm>
-         <primary>bdr.terminate_walsender_workers(text,oid,oid)</primary>
-        </indexterm>
-        <literal><function>bdr.terminate_walsender_workers(<replaceable>sysid text</replaceable>, <replaceable>timeline oid</replaceable>, <replaceable>dboid oid</replaceable>)</function></literal>
-       </entry>
-       <entry>boolean</entry>
-       <entry>
-        Terminate any upstream (walsender) BDR workers that are connected to
-        the downstream peer with the identified
-        (<literal>sysid</literal>,<literal>timeline</literal>,<literal>dboid</literal>)
-        tuple. Returns true if a terminate signal was successfully sent. The worker may not
-        yet have exited; check <literal>pg_stat_activity</literal>.
-       </entry>
-      </row>
-
-      <row>
-       <entry>
-        <indexterm>
-         <primary>bdr.terminate_apply_workers(text)</primary>
-        </indexterm>
-        <literal><function>bdr.terminate_apply_workers(<replaceable>node_name text</replaceable>)</function></literal>
-       </entry>
-       <entry>boolean</entry>
-       <entry>
-        Same as <literal>bdr.terminate_apply_workers(text,oid,oid)</literal> but instead of a node
-        identity tuple this function looks up the node in <literal>bdr.bdr_nodes</literal> by node
-        name.
-       </entry>
-      </row>
-
-      <row>
-       <entry>
-        <indexterm>
-         <primary>bdr.terminate_walsender_workers(text)</primary>
-        </indexterm>
-        <literal><function>bdr.terminate_walsender_workers(<replaceable>node_name text</replaceable>)</function></literal>
-       </entry>
-       <entry>boolean</entry>
-       <entry>
-        Same as <literal>bdr.terminate_walsender_workers(text,oid,oid)</literal> but instead of a node
-        identity tuple this function looks up the node in <literal>bdr.bdr_nodes</literal> by node
-        name.
+        and type <literal>worker_type</literal> (appy/per-db/walsender).
        </entry>
       </row>
 
