@@ -297,10 +297,6 @@ Datum
 pg_stat_get_bdr(PG_FUNCTION_ARGS)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
-	TupleDesc	tupdesc;
-	Tuplestorestate *tupstore;
-	MemoryContext per_query_ctx;
-	MemoryContext oldcontext;
 	size_t		current_offset;
 
 	if (!superuser())
@@ -308,29 +304,8 @@ pg_stat_get_bdr(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("access to pg_stat_get_bdr() denied as non-superuser")));
 
-	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("set-valued function called in context that cannot accept a set")));
-	if (!(rsinfo->allowedModes & SFRM_Materialize))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("materialize mode required, but it is not allowed in this context")));
-	if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
-
-	if (tupdesc->natts != BDR_COUNT_STAT_COLS)
-		elog(ERROR, "wrong function definition");
-
-	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
-	oldcontext = MemoryContextSwitchTo(per_query_ctx);
-
-	tupstore = tuplestore_begin_heap(true, false, work_mem);
-	rsinfo->returnMode = SFRM_Materialize;
-	rsinfo->setResult = tupstore;
-	rsinfo->setDesc = tupdesc;
-
-	MemoryContextSwitchTo(oldcontext);
+	/* Construct the tuplestore and tuple descriptor */
+	InitMaterializedSRF(fcinfo, 0);
 
 	/* don't let a node get created/vanish below us */
 	LWLockAcquire(BdrCountCtl->lock, LW_SHARED);
@@ -367,7 +342,8 @@ pg_stat_get_bdr(PG_FUNCTION_ARGS)
 		values[10] = Int64GetDatumFast(slot->nr_delete_conflict);
 		values[11] = Int64GetDatumFast(slot->nr_disconnect);
 
-		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
+		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
+							 values, nulls);
 	}
 	LWLockRelease(BdrCountCtl->lock);
 

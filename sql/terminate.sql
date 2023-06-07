@@ -38,12 +38,17 @@ SELECT wait_for_nworkers(2);
 
 BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
 
--- Must report 't' for all except our own
-SELECT
-  n.node_name,
-  bdr.terminate_apply_workers(n.node_name)
-FROM bdr.bdr_nodes n
-ORDER BY node_name;
+-- We're one instance with two databases so we should have two apply workers
+SELECT COUNT(*) = 2 AS ok FROM bdr.bdr_get_workers_info() WHERE worker_type = 'apply';
+
+-- Kill all apply workers except our own
+SELECT n.node_name, bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'apply')
+  FROM bdr.bdr_nodes n
+  WHERE (node_sysid, node_timeline, node_dboid) <> bdr.bdr_get_local_nodeid();
+
+-- We must remain with our own apply worker
+SELECT COUNT(*) = 1 AS ok FROM bdr.bdr_get_workers_info()
+  WHERE (sysid, timeline, dboid) = bdr.bdr_get_local_nodeid() AND worker_type = 'apply';
 
 -- One worker should vanish and not have restarted because of the timer
 SELECT wait_for_nworkers(1);
@@ -57,12 +62,17 @@ SELECT wait_for_nworkers(2);
 
 BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
 
--- terminate walsenders, this time by ID
-SELECT
-  n.node_name,
-  bdr.terminate_walsender_workers(node_sysid, node_timeline, node_dboid)
-FROM bdr.bdr_nodes n
-ORDER BY node_name;
+-- We're one instance with two databases so we should have two walsender workers
+SELECT COUNT(*) = 2 AS ok FROM bdr.bdr_get_workers_info() WHERE worker_type = 'walsender';
+
+-- Kill all walsenders except our own
+SELECT n.node_name, bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'walsender')
+  FROM bdr.bdr_nodes n
+  WHERE (node_sysid, node_timeline, node_dboid) <> bdr.bdr_get_local_nodeid();
+
+-- We must remain with our own walsender
+SELECT COUNT(*) = 1 AS ok FROM bdr.bdr_get_workers_info()
+  WHERE (sysid, timeline, dboid) = bdr.bdr_get_local_nodeid() AND worker_type = 'walsender';
 
 -- One left
 SELECT wait_for_nwalsenders(1);
