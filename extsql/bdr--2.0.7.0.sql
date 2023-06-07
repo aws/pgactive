@@ -1640,7 +1640,9 @@ RETURNS boolean
 LANGUAGE SQL
 AS $$
 SELECT pg_catalog.pg_terminate_backend(pid) FROM bdr.bdr_get_workers_info()
-  WHERE (sysid, timeline, dboid) = ($1, $2, $3) AND worker_type = $4;
+-- For per-db worker, we don't expect sysid and timeline, but rely on dboid.
+  WHERE CASE WHEN worker_type = 'per-db' THEN (dboid, worker_type) = ($3, $4)
+        ELSE (sysid, timeline, dboid, worker_type) = ($1, $2, $3, $4) END;
 $$;
 
 CREATE FUNCTION skip_changes_upto(
