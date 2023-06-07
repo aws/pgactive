@@ -404,7 +404,7 @@
        <entry>
         Terminate BDR worker(s) of a node identified by
         (<literal>sysid</literal>,<literal>timeline</literal>,<literal>dboid</literal>)
-        and type <literal>worker_type</literal> (appy/per-db/walsender).
+        and type <literal>worker_type</literal> (apply/per-db/walsender).
        </entry>
       </row>
 
