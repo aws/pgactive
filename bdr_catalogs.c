@@ -52,12 +52,13 @@ PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
  * Get the bdr.bdr_nodes status value for the specified node from the local
  * bdr.bdr_nodes table via SPI.
  *
- * Returns the status value, or '\0' if no such row exists.
+ * Returns the status value, or '\0' if no such row exists or bdr schema
+ * doesn't exist (extension may have been dropped).
  *
  * SPI must be initialized, and you must be in a running transaction.
  */
 BdrNodeStatus
-bdr_nodes_get_local_status(const BDRNodeId * const node)
+bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 {
 	int			spi_ret;
 	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
@@ -81,11 +82,16 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 	 */
 	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("bdr"));
 	if (schema_oid == InvalidOid)
-		ereport(ERROR,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
-						get_database_name(MyDatabaseId)),
-				 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
+	{
+		if (missing_ok)
+			return '\0';
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
+							get_database_name(MyDatabaseId)),
+					 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
+	}
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(node->timeline);

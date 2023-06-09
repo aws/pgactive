@@ -292,7 +292,7 @@ bdr_maintain_db_workers(void)
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	our_status = bdr_nodes_get_local_status(&myid);
+	our_status = bdr_nodes_get_local_status(&myid, false);
 
 	/*
 	 * First check whether any existing processes to/from this database need

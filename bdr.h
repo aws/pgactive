@@ -637,7 +637,8 @@ extern int	bdr_parse_version(const char *bdr_version_str, int *o_major,
 							  int *o_minor, int *o_rev, int *o_subrev);
 
 /* manipulation of bdr catalogs */
-extern BdrNodeStatus bdr_nodes_get_local_status(const BDRNodeId * const node);
+extern BdrNodeStatus bdr_nodes_get_local_status(const BDRNodeId * const node,
+												bool missing_ok);
 extern BDRNodeInfo * bdr_nodes_get_local_info(const BDRNodeId * const node);
 extern void bdr_bdr_node_free(BDRNodeInfo * node);
 extern void bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus oldstatus);

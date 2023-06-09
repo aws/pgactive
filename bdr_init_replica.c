@@ -899,7 +899,7 @@ bdr_wait_for_local_node_ready()
 		StartTransactionCommand();
 		SPI_connect();
 		PushActiveSnapshot(GetTransactionSnapshot());
-		status = bdr_nodes_get_local_status(&myid);
+		status = bdr_nodes_get_local_status(&myid, false);
 		PopActiveSnapshot();
 		SPI_finish();
 		CommitTransactionCommand();
