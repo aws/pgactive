@@ -620,8 +620,7 @@ bdr_establish_connection_and_slot(const char *dsn,
 	 * Establish BDR conn and IDENTIFY_SYSTEM, ERROR on things like connection
 	 * failure.
 	 */
-	streamConn = bdr_connect(
-							 dsn, &appname, out_nodeid);
+	streamConn = bdr_connect(dsn, &appname, out_nodeid);
 
 	bdr_slot_name(out_slot_name, &myid, out_nodeid->dboid);
 	remote_repident_name = bdr_replident_name(out_nodeid, myid.dboid);
@@ -1196,7 +1195,6 @@ bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(myid.timeline);
@@ -1226,7 +1224,6 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 
 	snprintf(remote_sysid_str, sizeof(remote_sysid_str),
 			 UINT64_FORMAT, remote.sysid);
-	remote_sysid_str[sizeof(remote_sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(remote_sysid_str);
 	values[1] = ObjectIdGetDatum(remote.timeline);
@@ -1258,7 +1255,6 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 
 	snprintf(remote_sysid_str, sizeof(remote_sysid_str),
 			 UINT64_FORMAT, remote.sysid);
-	remote_sysid_str[sizeof(remote_sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(remote_sysid_str);
 	values[1] = ObjectIdGetDatum(remote.timeline);

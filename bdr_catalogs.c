@@ -71,7 +71,6 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 	Assert(IsTransactionState());
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	/*
 	 * Determine if BDR is present on this DB. The output plugin can be
@@ -137,7 +136,6 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	ScanKeyData key[3];
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	rv = makeRangeVar("bdr", "bdr_nodes", -1);
 	rel = table_openrv(rv, RowExclusiveLock);
@@ -262,9 +260,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT,
-			 myid.sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
+	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
 
 	values[0] = CharGetDatum((char) status);
 	values[1] = CStringGetTextDatum(sysid_str);
@@ -494,7 +490,6 @@ bdr_read_connection_configs()
 		);
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(&sysid_str[0]);
 	values[1] = ObjectIdGetDatum(myid.timeline);
@@ -746,13 +741,8 @@ stringify_node_identity(char *sysid_str, Size sysid_str_size,
 						const BDRNodeId * const nodeid)
 {
 	snprintf(sysid_str, sysid_str_size, UINT64_FORMAT, nodeid->sysid);
-	sysid_str[sysid_str_size - 1] = '\0';
-
 	snprintf(timeline_str, timeline_str_size, "%u", nodeid->timeline);
-	timeline_str[timeline_str_size - 1] = '\0';
-
 	snprintf(dboid_str, dboid_str_size, "%u", nodeid->dboid);
-	dboid_str[dboid_str_size - 1] = '\0';
 }
 
 void
