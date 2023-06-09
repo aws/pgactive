@@ -34,6 +34,8 @@
 #include "commands/extension.h"
 #include "commands/seclabel.h"
 
+#include "executor/spi.h"
+
 #include "lib/stringinfo.h"
 
 #include "libpq/libpq-be.h"
@@ -408,6 +410,9 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	uint16		worker_generation;
 	uint16		worker_idx;
 	Oid	   		dboid;
+	BDRNodeId	myid;
+	char		mystatus;
+	bool		unregister = false;
 
 	Assert(IsBackgroundWorker);
 
@@ -460,6 +465,44 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	bdr_worker_slot->worker_pid = MyProcPid;
 	bdr_worker_slot->worker_proc = MyProc;
 	LWLockRelease(BdrWorkerCtl->lock);
+
+	/* Check if we decided to unregister this worker. */
+	bdr_make_my_nodeid(&myid);
+	StartTransactionCommand();
+	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
+	mystatus = bdr_nodes_get_local_status(&myid, true);
+	SPI_finish();
+	PopActiveSnapshot();
+	CommitTransactionCommand();
+
+	/*
+	 * We unregister per-db/apply worker when local node_status is killed or no
+	 * row exists for the node in bdr_nodes. This can happen after a node is
+	 * parted or BDR is removed from local node. Unregistering the worker
+	 * prevents subsequent worker fail-and-restart cycles.
+	 */
+	if (mystatus == BDR_NODE_STATUS_KILLED)
+	{
+		elog(LOG, "unregistering %s worker due to node " BDR_NODEID_FORMAT " part",
+			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
+			 BDR_NODEID_FORMAT_ARGS(myid));
+		unregister = true;
+	}
+	else if (mystatus == '\0')
+	{
+		elog(LOG, "unregistering %s worker due to missing bdr.bdr_nodes row for node " BDR_NODEID_FORMAT "",
+			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
+			 BDR_NODEID_FORMAT_ARGS(myid));
+		unregister = true;
+	}
+
+	if (unregister)
+	{
+		bdr_worker_shmem_free(bdr_worker_slot, NULL);
+		bdr_worker_slot = NULL;
+		proc_exit(0);			/* unregister */
+	}
 
 	/*
 	 * Ensure BDR extension is up to date and get the name of the database this
