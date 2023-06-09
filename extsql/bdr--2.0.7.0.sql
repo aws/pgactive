@@ -1469,6 +1469,11 @@ BEGIN
         END IF;
     END LOOP;
 
+	DELETE from bdr.bdr_connections
+	WHERE (conn_sysid, conn_timeline, conn_dboid)
+	in (select node_sysid, node_timeline, node_dboid FROM
+		bdr.bdr_nodes WHERE node_name = ANY(p_nodes));
+
     UPDATE bdr.bdr_nodes
     SET node_status = bdr.node_status_to_char('BDR_NODE_STATUS_KILLED')
     WHERE node_name = ANY(p_nodes);
@@ -2157,6 +2162,30 @@ LANGUAGE C;
 
 COMMENT ON FUNCTION wait_slot_confirm_lsn(name,pg_lsn) IS
 'Wait until slotname (or all slots, if null) has passed specified lsn (or current lsn, if null)';
+
+CREATE OR REPLACE FUNCTION bdr_dont_insert_or_delete_killed()
+  RETURNS trigger AS
+$$
+BEGIN
+ IF NEW.node_status = 'k' THEN
+	RETURN NULL;
+
+ ELSIF NEW.node_status = 'i' THEN
+	DELETE FROM bdr.bdr_nodes
+	WHERE node_status = 'k'
+		  and node_sysid = NEW.node_sysid
+		  and node_timeline = NEW.node_timeline
+		  and node_dboid = NEW.node_dboid;
+ END IF;
+ RETURN NEW;
+END;$$
+LANGUAGE 'plpgsql';
+
+CREATE TRIGGER bdr_dont_insert_or_delete_killed_trigg
+BEFORE INSERT
+ON bdr.bdr_nodes
+FOR EACH ROW
+EXECUTE PROCEDURE bdr_dont_insert_or_delete_killed();
 
 RESET bdr.permit_unsafe_ddl_commands;
 RESET bdr.skip_ddl_replication;
