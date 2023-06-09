@@ -391,9 +391,7 @@ bdr_conflict_log_table(BdrApplyConflict * conflict)
 		return;
 
 	/* Pg has no uint64 SQL type so we have to store all them as text */
-	snprintf(local_sysid, sizeof(local_sysid), UINT64_FORMAT,
-			 myid.sysid);
-
+	snprintf(local_sysid, sizeof(local_sysid), UINT64_FORMAT, myid.sysid);
 	snprintf(remote_sysid, sizeof(remote_sysid), UINT64_FORMAT,
 			 conflict->remote_node.sysid);
 
@@ -483,8 +481,8 @@ bdr_conflict_log_table(BdrApplyConflict * conflict)
 		 * after an elog(...) - we'll just be writing XX0000, but that's still
 		 * better than nothing.
 		 */
-		strncpy(sqlstate, unpack_sql_state(edata->sqlerrcode), 12);
-		sqlstate[sizeof(sqlstate) - 1] = '\0';
+		snprintf(sqlstate, sizeof(sqlstate), "%s",
+				 unpack_sql_state(edata->sqlerrcode));
 		values[attno] = CStringGetTextDatum(sqlstate);
 
 		/*

@@ -1626,7 +1626,7 @@ CopyConfFile(char *fromfile, char *tofile)
 {
 	char		filename[MAXPGPATH];
 
-	sprintf(filename, "%s/%s", data_dir, tofile);
+	snprintf(filename, MAXPGPATH, "%s/%s", data_dir, tofile);
 
 	print_msg(VERBOSITY_DEBUG, _("Copying \"%s\" to \"%s\".\n"),
 			  fromfile, filename);

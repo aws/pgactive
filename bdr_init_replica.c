@@ -447,7 +447,6 @@ bdr_sync_nodes(PGconn *remote_conn, BDRNodeInfo * local_node)
 		initStringInfo(&query);
 		/* No need to quote as everything is numbers. */
 		snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, local_node->id.sysid);
-		sysid_str[sizeof(sysid_str) - 1] = '\0';
 		appendStringInfo(&query,
 						 "COPY (SELECT * FROM bdr.bdr_nodes WHERE "
 						 "node_sysid = '%s' AND node_timeline = '%u' "
