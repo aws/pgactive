@@ -33,6 +33,8 @@
 /* For struct Port only! */
 #include "libpq/libpq-be.h"
 
+#include "replication/origin.h"
+
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -246,8 +248,10 @@ bdr_maintain_db_workers(void)
 	BDRNodeId	myid;
 	List	   *parted_nodes = NIL;
 	List	   *nodes_to_forget = NIL;
+	List	   *rep_origin_to_remove = NIL;
 	ListCell   *lcparted;
 	ListCell   *lcforget;
+	ListCell   *lcroname;
 	bool		at_least_one_worker_terminated = false;
 
 	bdr_make_my_nodeid(&myid);
@@ -487,6 +491,19 @@ bdr_maintain_db_workers(void)
 				elog(DEBUG1, "dropping slot %s due to node part", slot_name);
 				ReplicationSlotDrop(slot_name, true);
 				elog(LOG, "dropped slot %s due to node part", slot_name);
+
+				if(!we_were_dropped)
+				{
+					char       roname[256];
+
+					snprintf(roname, sizeof(roname), BDR_REPORIGIN_ID_FORMAT,
+							 node->sysid, node->timeline, node->dboid, myid.dboid,
+							 EMPTY_REPLICATION_NAME);
+
+					oldcontext = MemoryContextSwitchTo(TopMemoryContext);
+					rep_origin_to_remove = lappend(rep_origin_to_remove, roname);
+					MemoryContextSwitchTo(oldcontext);
+				}
 			}
 
 			oldcontext = MemoryContextSwitchTo(TopMemoryContext);
@@ -539,6 +556,40 @@ bdr_maintain_db_workers(void)
 		 * anyway, right? We'd have to do that with do_not_replicate set.
 		 */
 	}
+
+	/*
+	 * Now we can remove replication origins linked to parted node(s) (if any).
+	 */
+	StartTransactionCommand();
+	PushActiveSnapshot(GetTransactionSnapshot());
+	foreach(lcroname, rep_origin_to_remove)
+	{
+#if PG_VERSION_NUM < 140000
+		RepOriginId roident;
+#endif
+		char	   *roname = (char *) lfirst(lcroname);
+
+		if (RecoveryInProgress())
+				ereport(ERROR,
+						(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
+						errmsg("cannot manipulate replication origins during recovery")));
+
+		elog(DEBUG1, "dropping replication origin %s due to node part", roname);
+#if PG_VERSION_NUM < 140000
+		roident = replorigin_by_name(roname, true);
+		if (roident != InvalidRepOriginId)
+		{
+			replorigin_drop(roident, true);
+			elog(LOG, "dropped replication origin %s due to node part", roname);
+		}
+#else
+		replorigin_drop_by_name(roname, true, true);
+		elog(LOG, "dropped replication origin %s due to node part", roname);
+#endif
+
+	}
+	PopActiveSnapshot();
+	CommitTransactionCommand();
 
 	list_free_deep(nodes_to_forget);
 
