@@ -2847,13 +2847,14 @@ bdr_apply_main(Datum main_arg)
 	StartTransactionCommand();
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
-	status = bdr_nodes_get_local_status(&bdr_apply_worker->remote_node);
+	status = bdr_nodes_get_local_status(&bdr_apply_worker->remote_node, false);
 	SPI_finish();
 	PopActiveSnapshot();
 	CommitTransactionCommand();
 	if (status == BDR_NODE_STATUS_KILLED)
 	{
-		elog(LOG, "unregistering worker, node has been killed");
+		elog(LOG, "unregistering apply worker due to remote node " BDR_NODEID_FORMAT " part",
+			 BDR_NODEID_FORMAT_ARGS(bdr_apply_worker->remote_node));
 		bdr_worker_shmem_free(bdr_worker_slot, NULL);
 		bdr_worker_slot = NULL;
 		proc_exit(0);			/* unregister */

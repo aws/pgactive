@@ -52,12 +52,13 @@ PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
  * Get the bdr.bdr_nodes status value for the specified node from the local
  * bdr.bdr_nodes table via SPI.
  *
- * Returns the status value, or '\0' if no such row exists.
+ * Returns the status value, or '\0' if no such row exists or bdr schema
+ * doesn't exist (extension may have been dropped).
  *
  * SPI must be initialized, and you must be in a running transaction.
  */
 BdrNodeStatus
-bdr_nodes_get_local_status(const BDRNodeId * const node)
+bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 {
 	int			spi_ret;
 	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
@@ -81,11 +82,16 @@ bdr_nodes_get_local_status(const BDRNodeId * const node)
 	 */
 	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("bdr"));
 	if (schema_oid == InvalidOid)
-		ereport(ERROR,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
-						get_database_name(MyDatabaseId)),
-				 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
+	{
+		if (missing_ok)
+			return '\0';
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
+							get_database_name(MyDatabaseId)),
+					 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
+	}
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(node->timeline);
@@ -196,65 +202,6 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	table_close(rel, RowExclusiveLock);
 
 	return nodeinfo;
-}
-
-/*
- * Quick lookup in bdr nodes to map a node name to an identity tuple. Returns
- * true if found, false if not.
- */
-bool
-bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * const nodeid)
-{
-	HeapTuple	tuple = NULL;
-	Relation	rel;
-	RangeVar   *rv;
-	SysScanDesc scan;
-	ScanKeyData key[1];
-	bool		found = false;
-
-	rv = makeRangeVar("bdr", "bdr_nodes", -1);
-	rel = table_openrv(rv, RowExclusiveLock);
-
-	ScanKeyInit(&key[0],
-				5,				/* node_name attno */
-				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(node_name));
-
-	scan = systable_beginscan(rel, 0, true, NULL, 1, key);
-
-	tuple = systable_getnext(scan);
-
-	if (HeapTupleIsValid(tuple))
-	{
-		bool		isnull;
-		TupleDesc	desc = RelationGetDescr(rel);
-		Datum		d;
-
-		const char *sysid_str;
-
-		d = fastgetattr(tuple, 1, desc, &isnull);
-		if (isnull)
-			elog(ERROR, "bdr.bdr_nodes.sysid is NULL; shouldn't happen");
-		sysid_str = TextDatumGetCString(d);
-
-		if (sscanf(sysid_str, UINT64_FORMAT, &nodeid->sysid) != 1)
-			elog(ERROR, "bdr.bdr_nodes.sysid didn't parse to integer; shouldn't happen");
-
-		nodeid->timeline = DatumGetObjectId(fastgetattr(tuple, 2, desc, &isnull));
-		if (isnull)
-			elog(ERROR, "bdr.bdr_nodes.timeline is NULL; shouldn't happen");
-
-		nodeid->dboid = DatumGetObjectId(fastgetattr(tuple, 3, desc, &isnull));
-		if (isnull)
-			elog(ERROR, "bdr.bdr_nodes.dboid is NULL; shouldn't happen");
-
-		found = true;
-	}
-
-	systable_endscan(scan);
-	table_close(rel, RowExclusiveLock);
-
-	return found;
 }
 
 /* Free the BDRNodeInfo pointer including its properties. */

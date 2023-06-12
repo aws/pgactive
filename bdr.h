@@ -637,7 +637,8 @@ extern int	bdr_parse_version(const char *bdr_version_str, int *o_major,
 							  int *o_minor, int *o_rev, int *o_subrev);
 
 /* manipulation of bdr catalogs */
-extern BdrNodeStatus bdr_nodes_get_local_status(const BDRNodeId * const node);
+extern BdrNodeStatus bdr_nodes_get_local_status(const BDRNodeId * const node,
+												bool missing_ok);
 extern BDRNodeInfo * bdr_nodes_get_local_info(const BDRNodeId * const node);
 extern void bdr_bdr_node_free(BDRNodeInfo * node);
 extern void bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus oldstatus);
@@ -646,8 +647,6 @@ extern List *bdr_read_connection_configs(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok);
-
-extern bool bdr_get_node_identity_by_name(const char *node_name, BDRNodeId * out_nodeid);
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -762,5 +761,14 @@ extern bool bdr_nodeid_eq(const BDRNodeId * const left, const BDRNodeId * const 
 extern void bdr_getmsg_nodeid(StringInfo message, BDRNodeId * const nodeid, bool expect_empty_nodename);
 extern void bdr_send_nodeid(StringInfo s, const BDRNodeId * const nodeid, bool include_empty_nodename);
 extern void bdr_sendint64(int64 i, char *buf);
+
+#if PG_VERSION_NUM < 150000
+/* 9e98583898c3/a19e5cee635d introduced in PG15 */
+/* flag bits for InitMaterializedSRF() */
+#define MAT_SRF_USE_EXPECTED_DESC	0x01	/* use expectedDesc as tupdesc. */
+#define MAT_SRF_BLESS				0x02	/* "Bless" a tuple descriptor with
+											 * BlessTupleDesc(). */
+extern void InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags);
+#endif
 
 #endif							/* BDR_H */

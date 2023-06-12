@@ -34,6 +34,8 @@
 #include "commands/extension.h"
 #include "commands/seclabel.h"
 
+#include "executor/spi.h"
+
 #include "lib/stringinfo.h"
 
 #include "libpq/libpq-be.h"
@@ -112,10 +114,7 @@ PGDLLEXPORT Datum bdr_parse_slot_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_parse_replident_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_format_slot_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_format_replident_name_sql(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_terminate_walsender_workers_byname(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_terminate_apply_workers_byname(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_terminate_walsender_workers(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_terminate_apply_workers(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_skip_changes_upto(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
@@ -132,10 +131,7 @@ PG_FUNCTION_INFO_V1(bdr_parse_slot_name_sql);
 PG_FUNCTION_INFO_V1(bdr_parse_replident_name_sql);
 PG_FUNCTION_INFO_V1(bdr_format_slot_name_sql);
 PG_FUNCTION_INFO_V1(bdr_format_replident_name_sql);
-PG_FUNCTION_INFO_V1(bdr_terminate_walsender_workers_byname);
-PG_FUNCTION_INFO_V1(bdr_terminate_apply_workers_byname);
-PG_FUNCTION_INFO_V1(bdr_terminate_walsender_workers);
-PG_FUNCTION_INFO_V1(bdr_terminate_apply_workers);
+PG_FUNCTION_INFO_V1(bdr_get_workers_info);
 PG_FUNCTION_INFO_V1(bdr_skip_changes_upto);
 PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
@@ -414,6 +410,9 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	uint16		worker_generation;
 	uint16		worker_idx;
 	Oid	   		dboid;
+	BDRNodeId	myid;
+	char		mystatus;
+	bool		unregister = false;
 
 	Assert(IsBackgroundWorker);
 
@@ -466,6 +465,44 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	bdr_worker_slot->worker_pid = MyProcPid;
 	bdr_worker_slot->worker_proc = MyProc;
 	LWLockRelease(BdrWorkerCtl->lock);
+
+	/* Check if we decided to unregister this worker. */
+	bdr_make_my_nodeid(&myid);
+	StartTransactionCommand();
+	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
+	mystatus = bdr_nodes_get_local_status(&myid, true);
+	SPI_finish();
+	PopActiveSnapshot();
+	CommitTransactionCommand();
+
+	/*
+	 * We unregister per-db/apply worker when local node_status is killed or no
+	 * row exists for the node in bdr_nodes. This can happen after a node is
+	 * parted or BDR is removed from local node. Unregistering the worker
+	 * prevents subsequent worker fail-and-restart cycles.
+	 */
+	if (mystatus == BDR_NODE_STATUS_KILLED)
+	{
+		elog(LOG, "unregistering %s worker due to node " BDR_NODEID_FORMAT " part",
+			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
+			 BDR_NODEID_FORMAT_ARGS(myid));
+		unregister = true;
+	}
+	else if (mystatus == '\0')
+	{
+		elog(LOG, "unregistering %s worker due to missing bdr.bdr_nodes row for node " BDR_NODEID_FORMAT "",
+			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
+			 BDR_NODEID_FORMAT_ARGS(myid));
+		unregister = true;
+	}
+
+	if (unregister)
+	{
+		bdr_worker_shmem_free(bdr_worker_slot, NULL);
+		bdr_worker_slot = NULL;
+		proc_exit(0);			/* unregister */
+	}
 
 	/*
 	 * Ensure BDR extension is up to date and get the name of the database this
@@ -1465,6 +1502,83 @@ bdr_get_worker_pid_byid(const BDRNodeId * const node, BdrWorkerType worker_type)
 	return pid;
 }
 
+Datum
+bdr_get_workers_info(PG_FUNCTION_ARGS)
+{
+#define BDR_GET_WORKERS_PID_COLS	5
+	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
+	int	i;
+
+	/* Construct the tuplestore and tuple descriptor */
+	InitMaterializedSRF(fcinfo, 0);
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+	for (i = 0; i < bdr_max_workers; i++)
+	{
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		Datum		values[BDR_GET_WORKERS_PID_COLS] = {0};
+		bool		nulls[BDR_GET_WORKERS_PID_COLS] = {0};
+		uint64		sysid;
+		TimeLineID	timeline;
+		Oid			dboid;
+		char	sysid_str[33];
+		text	*worker_type;
+
+		/* unused slot */
+		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+			continue;
+
+		/* unconnected slot */
+		if (w->worker_proc == NULL)
+			continue;
+
+		if (w->worker_type == BDR_WORKER_APPLY)
+		{
+			BdrApplyWorker *aw = &w->data.apply;
+
+			sysid = aw->remote_node.sysid;
+			timeline = aw->remote_node.timeline;
+			dboid = aw->remote_node.dboid;
+			worker_type = cstring_to_text("apply");
+		}
+		else if (w->worker_type == BDR_WORKER_PERDB)
+		{
+			BdrPerdbWorker *pw = &w->data.perdb;
+
+			nulls[0] = true;
+			nulls[1] = true;
+			dboid = pw->p_dboid;
+			worker_type = cstring_to_text("per-db");
+		}
+		else if (w->worker_type == BDR_WORKER_WALSENDER)
+		{
+			BdrWalsenderWorker *ws = &w->data.walsnd;
+
+			sysid = ws->remote_node.sysid;
+			timeline = ws->remote_node.timeline;
+			dboid = ws->remote_node.dboid;
+			worker_type = cstring_to_text("walsender");
+		}
+
+		if (w->worker_type != BDR_WORKER_PERDB)
+		{
+			snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, sysid);
+			values[0] = CStringGetTextDatum(sysid_str);
+			values[1] = ObjectIdGetDatum(timeline);
+		}
+		values[2] = ObjectIdGetDatum(dboid);
+		values[3] = PointerGetDatum(worker_type);
+		values[4] = Int32GetDatum(w->worker_pid);
+
+		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
+							 values, nulls);
+	}
+	LWLockRelease(BdrWorkerCtl->lock);
+
+	PG_RETURN_VOID();
+#undef BDR_GET_WORKERS_PID_COLS
+}
+
 /*
  * Terminate the worker with the identified role and remote peer that
  * is operating on the current database.
@@ -1489,63 +1603,6 @@ bdr_terminate_workers_byid(const BDRNodeId * const node, BdrWorkerType worker_ty
 #else
 	return DatumGetBool(DirectFunctionCall1(pg_terminate_backend, Int32GetDatum(pid)));
 #endif
-}
-
-Datum
-bdr_terminate_apply_workers(PG_FUNCTION_ARGS)
-{
-	const char *sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
-	BDRNodeId	node;
-
-	node.timeline = PG_GETARG_OID(1);
-	node.dboid = PG_GETARG_OID(2);
-
-	if (sscanf(sysid_str, UINT64_FORMAT, &node.sysid) != 1)
-		elog(ERROR, "couldn't parse sysid as uint64");
-
-	PG_RETURN_BOOL(bdr_terminate_workers_byid(&node, BDR_WORKER_APPLY));
-}
-
-Datum
-bdr_terminate_walsender_workers(PG_FUNCTION_ARGS)
-{
-	const char *sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
-	BDRNodeId	node;
-
-	node.timeline = PG_GETARG_OID(1);
-	node.dboid = PG_GETARG_OID(2);
-
-	if (sscanf(sysid_str, UINT64_FORMAT, &node.sysid) != 1)
-		elog(ERROR, "couldn't parse sysid as uint64");
-
-	PG_RETURN_BOOL(bdr_terminate_workers_byid(&node, BDR_WORKER_WALSENDER));
-}
-
-Datum
-bdr_terminate_apply_workers_byname(PG_FUNCTION_ARGS)
-{
-	const char *node_name = text_to_cstring(PG_GETARG_TEXT_P(0));
-	BDRNodeId	node;
-
-	if (!bdr_get_node_identity_by_name(node_name, &node))
-		ereport(ERROR,
-				(errmsg("named node not found in bdr.bdr_nodes")));
-
-	PG_RETURN_BOOL(bdr_terminate_workers_byid(&node, BDR_WORKER_APPLY));
-
-}
-
-Datum
-bdr_terminate_walsender_workers_byname(PG_FUNCTION_ARGS)
-{
-	const char *node_name = text_to_cstring(PG_GETARG_TEXT_P(0));
-	BDRNodeId	node;
-
-	if (!bdr_get_node_identity_by_name(node_name, &node))
-		ereport(ERROR,
-				(errmsg("named node not found in bdr.bdr_nodes")));
-
-	PG_RETURN_BOOL(bdr_terminate_workers_byid(&node, BDR_WORKER_WALSENDER));
 }
 
 /*
@@ -1584,7 +1641,7 @@ bdr_is_active_in_db(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(bdr_is_bdr_activated_db(MyDatabaseId));
 }
 
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 140000
 /* b1e48bbe64a4 introduced in PG14 */
 PG_FUNCTION_INFO_V1(pg_xact_commit_timestamp_origin);
 
@@ -1598,5 +1655,58 @@ pg_xact_commit_timestamp_origin(PG_FUNCTION_ARGS)
 	TransactionIdGetCommitTsData(xid, &ts, &data);
 
 	PG_RETURN_INT32((int32) data);
+}
+#endif
+
+#if PG_VERSION_NUM < 150000
+/* 9e98583898c3/a19e5cee635d introduced in PG15 */
+void
+InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
+{
+	bool		random_access;
+	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
+	Tuplestorestate *tupstore;
+	MemoryContext old_context,
+				per_query_ctx;
+	TupleDesc	stored_tupdesc;
+
+	/* check to see if caller supports returning a tuplestore */
+	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("set-valued function called in context that cannot accept a set")));
+	if (!(rsinfo->allowedModes & SFRM_Materialize) ||
+		((flags & MAT_SRF_USE_EXPECTED_DESC) != 0 && rsinfo->expectedDesc == NULL))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("materialize mode required, but it is not allowed in this context")));
+
+	/*
+	 * Store the tuplestore and the tuple descriptor in ReturnSetInfo.  This
+	 * must be done in the per-query memory context.
+	 */
+	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
+	old_context = MemoryContextSwitchTo(per_query_ctx);
+
+	/* build a tuple descriptor for our result type */
+	if ((flags & MAT_SRF_USE_EXPECTED_DESC) != 0)
+		stored_tupdesc = CreateTupleDescCopy(rsinfo->expectedDesc);
+	else
+	{
+		if (get_call_result_type(fcinfo, NULL, &stored_tupdesc) != TYPEFUNC_COMPOSITE)
+			elog(ERROR, "return type must be a row type");
+	}
+
+	/* If requested, bless the tuple descriptor */
+	if ((flags & MAT_SRF_BLESS) != 0)
+		BlessTupleDesc(stored_tupdesc);
+
+	random_access = (rsinfo->allowedModes & SFRM_Materialize_Random) != 0;
+
+	tupstore = tuplestore_begin_heap(random_access, false, work_mem);
+	rsinfo->returnMode = SFRM_Materialize;
+	rsinfo->setResult = tupstore;
+	rsinfo->setDesc = stored_tupdesc;
+	MemoryContextSwitchTo(old_context);
 }
 #endif

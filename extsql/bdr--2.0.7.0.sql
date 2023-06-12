@@ -1619,47 +1619,31 @@ RETURNS boolean
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE STRICT;
 
-CREATE FUNCTION bdr_get_apply_pid(sysid text, timeline oid, dboid oid)
-RETURNS integer
-AS 'MODULE_PATHNAME'
-LANGUAGE C VOLATILE STRICT;
-
 CREATE FUNCTION bdr_internal_sequence_reset_cache(seq regclass)
 RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT;
 
-CREATE FUNCTION terminate_apply_workers(node_name text)
+CREATE FUNCTION bdr_get_workers_info (
+    OUT sysid text,
+    OUT timeline oid,
+    OUT dboid oid,
+    OUT worker_type text,
+    OUT pid int4
+)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C VOLATILE STRICT;
+
+CREATE FUNCTION bdr_terminate_workers(text, oid, oid, text)
 RETURNS boolean
-AS 'MODULE_PATHNAME','bdr_terminate_apply_workers_byname'
-LANGUAGE C;
-
-CREATE FUNCTION terminate_apply_workers(sysid text, timeline oid, dboid oid)
-RETURNS boolean
-AS 'MODULE_PATHNAME','bdr_terminate_apply_workers'
-LANGUAGE C;
-
-CREATE FUNCTION terminate_walsender_workers(node_name text)
-RETURNS boolean
-AS 'MODULE_PATHNAME','bdr_terminate_walsender_workers_byname'
-LANGUAGE C;
-
-CREATE FUNCTION terminate_walsender_workers(sysid text, timeline oid, dboid oid)
-RETURNS boolean
-AS 'MODULE_PATHNAME','bdr_terminate_walsender_workers'
-LANGUAGE C;
-
-COMMENT ON FUNCTION terminate_walsender_workers(node_name text) IS
-'Terminate walsender workers connected to the named node';
-
-COMMENT ON FUNCTION terminate_apply_workers(node_name text) IS
-'Terminate apply workers connected to the named node';
-
-COMMENT ON FUNCTION terminate_walsender_workers(sysid text, timeline oid, dboid oid) IS
-'Terminate walsender connected to the node with the given identity';
-
-COMMENT ON FUNCTION terminate_apply_workers(sysid text, timeline oid, dboid oid) IS
-'Terminate apply workers connected to the node with the given identity';
+LANGUAGE SQL
+AS $$
+SELECT pg_catalog.pg_terminate_backend(pid) FROM bdr.bdr_get_workers_info()
+-- For per-db worker, we don't expect sysid and timeline, but rely on dboid.
+  WHERE CASE WHEN worker_type = 'per-db' THEN (dboid, worker_type) = ($3, $4)
+        ELSE (sysid, timeline, dboid, worker_type) = ($1, $2, $3, $4) END;
+$$;
 
 CREATE FUNCTION skip_changes_upto(
     from_sysid text,
@@ -1863,12 +1847,13 @@ BEGIN
   -- walsenders they won't get relaunched.
   PERFORM bdr._test_pause_worker_management(true);
 
-  -- Terminate every worker associated with this DB
-  PERFORM bdr.terminate_walsender_workers(node_sysid, node_timeline, node_dboid)
+  -- Terminate WAL sender(s) associated with this database.
+  PERFORM bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'walsender')
   FROM bdr.bdr_nodes
   WHERE (node_sysid, node_timeline, node_dboid) <> bdr.bdr_get_local_nodeid();
 
-  PERFORM bdr.terminate_apply_workers(node_sysid, node_timeline, node_dboid)
+  -- Terminate apply worker(s) associated with this database.
+  PERFORM bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'apply')
   FROM bdr.bdr_nodes
   WHERE (node_sysid, node_timeline, node_dboid) <> bdr.bdr_get_local_nodeid();
 
@@ -1887,11 +1872,9 @@ BEGIN
   -- Give it a few seconds
   PERFORM pg_sleep(2);
 
-  -- Shut down the perdb worker
-  PERFORM pg_terminate_backend(pid)
-  FROM pg_stat_activity, bdr.bdr_get_local_nodeid() ni
-  WHERE datname = current_database()
-    AND application_name = format('bdr: (%s,%s,%s,):perdb', ni.sysid, ni.timeline, ni.dboid);
+  -- Terminate per-db worker associated with this database.
+  PERFORM bdr.bdr_terminate_workers(sysid, timeline, dboid, 'per-db')
+    FROM bdr.bdr_get_local_nodeid();
 
   -- Clear out the rest of bdr_nodes and bdr_connections
   DELETE FROM bdr.bdr_nodes;
