@@ -1182,7 +1182,7 @@ pglReorderBufferCleanSerializedTXNs(const char *slotname)
 	struct stat statbuf;
 	char		path[MAXPGPATH * 2 + 12];
 
-	sprintf(path, "pg_replslot/%s", slotname);
+	snprintf(path, sizeof(path), "pg_replslot/%s", slotname);
 
 	/* we're only handling directories here, skip if it's not our's */
 	if (lstat(path, &statbuf) == 0 && !S_ISDIR(statbuf.st_mode))
