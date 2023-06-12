@@ -61,9 +61,8 @@
 
 char	   *bdr_temp_dump_directory = NULL;
 
-static void bdr_init_exec_dump_restore(BDRNodeInfo * node,
-									   char *snapshot);
-
+static void bdr_execute_command(const char *cmd);
+static void bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot);
 static void bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn);
 
 static XLogRecPtr
@@ -173,57 +172,82 @@ bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
 }
 
 /*
- * Use a script to copy the contents of a remote node using pg_dump and apply
- * it to the local node. Runs during node join creation to bring up a new
+ * Function to execute a given commnd.
+ *
+ * Any sort of failure in command execution is a FATAL error so that
+ * postmaster will just start the per-db worker again.
+ */
+static void
+bdr_execute_command(const char *cmd)
+{
+	int		rc;
+
+	elog(LOG, "BDR executing command \"%s\"", cmd);
+
+	pgstat_report_wait_start(PG_WAIT_EXTENSION);
+	rc = system(cmd);
+	pgstat_report_wait_end();
+
+	if (rc != 0)
+	{
+		/*
+		 * If either the shell itself, or a called command, died on a signal,
+		 * abort the per-db worker.  We do this because system() ignores SIGINT
+		 * and SIGQUIT while waiting; so a signal is very likely something that
+		 * should have interrupted us too.  Also die if the shell got a hard
+		 * "command not found" type of error.  If we overreact it's no big
+		 * deal, the postmaster will just start the per-db worker again.
+		 */
+		if (WIFEXITED(rc))
+		{
+			ereport(FATAL,
+					(errmsg("command failed with exit code %d",
+							WEXITSTATUS(rc)),
+					 errdetail("The failed command was: %s", cmd)));
+		}
+		else if (WIFSIGNALED(rc))
+		{
+#if defined(WIN32)
+			ereport(FATAL,
+					(errmsg("command was terminated by exception 0x%X",
+							WTERMSIG(rc)),
+					 errhint("See C include file \"ntstatus.h\" for a description of the hexadecimal value."),
+					 errdetail("The failed command was: %s", cmd)));
+#else
+			ereport(FATAL,
+					(errmsg("command was terminated by signal %d: %s",
+							WTERMSIG(rc), pg_strsignal(WTERMSIG(rc))),
+					 errdetail("The failed command was: %s", cmd)));
+#endif
+		}
+		else
+		{
+			ereport(FATAL,
+					(errmsg("command exited with unrecognized status %d", rc),
+					 errdetail("The failed command was: %s", cmd)));
+		}
+	}
+}
+
+/*
+ * Copy the contents of a remote node using pg_dump and apply it to the local
+ * node using pg_restore. Runs during node join creation to bring up a new
  * logical replica from an existing node. The remote dump is taken from the
  * start position of a slot on the remote end to ensure that we never replay
  * changes included in the dump and never miss changes.
  */
 static void
-bdr_init_exec_dump_restore(BDRNodeInfo * node,
-						   char *snapshot)
+bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 {
-#ifndef WIN32
-	pid_t		pid;
-	char	   *bindir;
 	char	    tmpdir[MAXPGPATH];
-	char		bdr_init_replica_script_path[MAXPGPATH];
 	char		bdr_dump_path[MAXPGPATH];
 	char		bdr_restore_path[MAXPGPATH];
-	StringInfoData path;
-	StringInfoData origin_dsn;
-	StringInfoData local_dsn;
-	int			saved_errno;
+	StringInfo origin_dsn = makeStringInfo();
+	StringInfo local_dsn = makeStringInfo();
+	StringInfo	cmd = makeStringInfo();
 	uint32		bin_version;
-	char	   *nodename;
 
-	initStringInfo(&path);
-	initStringInfo(&origin_dsn);
-	initStringInfo(&local_dsn);
-
-	nodename = MemoryContextStrdup(TopMemoryContext, bdr_get_my_cached_node_name());
-
-	bindir = pstrdup(my_exec_path);
-	get_parent_directory(bindir);
-
-	if (bdr_find_other_exec(my_exec_path, BDR_INIT_REPLICA_CMD,
-							&bin_version,
-							&bdr_init_replica_script_path[0]) < 0)
-	{
-		elog(ERROR, "bdr node init failed to find " BDR_INIT_REPLICA_CMD
-			 " relative to binary %s",
-			 my_exec_path);
-	}
-	if (bin_version / 10000 != PG_VERSION_NUM / 10000)
-	{
-		elog(ERROR, "bdr node init found " BDR_INIT_REPLICA_CMD
-			 " with wrong major version %d.%d, expected %d.%d",
-			 bin_version / 100 / 100, bin_version / 100 % 100,
-			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
-	}
-
-	if (bdr_find_other_exec(my_exec_path, BDR_DUMP_CMD,
-							&bin_version,
+	if (bdr_find_other_exec(my_exec_path, BDR_DUMP_CMD, &bin_version,
 							&bdr_dump_path[0]) < 0)
 	{
 		elog(ERROR, "bdr node init failed to find " BDR_DUMP_CMD
@@ -238,8 +262,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
 	}
 
-	if (bdr_find_other_exec(my_exec_path, BDR_RESTORE_CMD,
-							&bin_version,
+	if (bdr_find_other_exec(my_exec_path, BDR_RESTORE_CMD, &bin_version,
 							&bdr_restore_path[0]) < 0)
 	{
 		elog(ERROR, "bdr node init failed to find " BDR_RESTORE_CMD
@@ -254,22 +277,11 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
 	}
 
-
-	appendStringInfoString(&origin_dsn, bdr_default_apply_connection_options);
-	appendStringInfoChar(&origin_dsn, ' ');
-	appendStringInfoString(&origin_dsn, bdr_extra_apply_connection_options);
-	appendStringInfoChar(&origin_dsn, ' ');
-	appendStringInfoString(&origin_dsn, node->init_from_dsn);
-	appendStringInfo(&origin_dsn,
-					 " application_name='%s: init dump'",
-					 nodename);
-
-	appendStringInfo(&local_dsn,
-					 "%s application_name='%s: init restore'",
-					 node->local_dsn, nodename);
-
-	pfree(nodename);
-	nodename = NULL;
+	appendStringInfo(origin_dsn, "%s %s %s application_name='%s: init dump'",
+					 bdr_default_apply_connection_options,
+					 bdr_extra_apply_connection_options,
+					 node->init_from_dsn,
+					 bdr_get_my_cached_node_name());
 
 	/*
 	 * Suppress replication of changes applied via pg_restore back to the
@@ -280,124 +292,84 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node,
 	 * (also to be used for init_copy). Simply appending the options instead
 	 * is a bit dodgy.
 	 */
-	appendStringInfoString(&local_dsn,
-						   " options='-c bdr.do_not_replicate=on "
-						   " -c bdr.permit_unsafe_ddl_commands=on"
-						   " -c bdr.skip_ddl_replication=on"
-						   " -c bdr.skip_ddl_locking=on"
-						   " -c session_replication_role=replica'");
+	appendStringInfo(local_dsn, "%s application_name='%s: init restore' "
+					 "options='-c bdr.do_not_replicate=on "
+					 "-c bdr.permit_unsafe_ddl_commands=on "
+					 "-c bdr.skip_ddl_replication=on "
+					 "-c bdr.skip_ddl_locking=on "
+					 "-c session_replication_role=replica'",
+					 node->local_dsn,  bdr_get_my_cached_node_name());
 
 	snprintf(tmpdir, sizeof(tmpdir), "%s/postgres-bdr-%s.%d",
-			bdr_temp_dump_directory, snapshot, getpid());
+			 bdr_temp_dump_directory, snapshot, getpid());
 
-	if (mkdir(tmpdir, 0700))
+	if (MakePGDirectory(tmpdir) < 0)
 	{
-		saved_errno = errno;
-		if (saved_errno == EEXIST)
+		int			save_errno = errno;
+
+		if (save_errno == EEXIST)
 		{
 			/*
 			 * Target is an existing dir that somehow wasn't cleaned up or
 			 * something more sinister. We'll just die here, and let the
 			 * postmaster relaunch us and retry the whole operation.
 			 */
-			elog(ERROR, "bdr init_replica: Temporary dump directory %s exists: %s",
-				 tmpdir, strerror(saved_errno));
+			elog(ERROR, "temporary dump directory %s already exists: %s",
+				 tmpdir, strerror(save_errno));
 		}
 		else
-		{
-			elog(ERROR, "bdr init_replica: Failed to create temp directory: %s",
-				 strerror(saved_errno));
-		}
+			elog(ERROR, "failed to create temporary dump directory %s: %s",
+				 tmpdir, strerror(save_errno));
 	}
 
-	pid = fork();
-	if (pid < 0)
-		elog(FATAL, "can't fork to create initial replica");
-	else if (pid == 0)
-	{
-		int			n = 0;
-
-		char	   *const argv[] = {
-			bdr_init_replica_script_path,
-			"--snapshot", snapshot,
-			"--source", origin_dsn.data,
-			"--target", local_dsn.data,
-			"--tmp-directory", tmpdir,
-			"--pg-dump-path", bdr_dump_path,
-			"--pg-restore-path", bdr_restore_path,
-			NULL
-		};
-
-		ereport(LOG,
-				(errmsg("creating replica with: %s --snapshot %s --source \"%s\" --target \"%s\" --tmp-directory \"%s\", --pg-dump-path \"%s\", --pg-restore-path \"%s\"",
-						bdr_init_replica_script_path, snapshot,
-						node->init_from_dsn, node->local_dsn, tmpdir,
-						bdr_dump_path, bdr_restore_path)));
-
-		n = execv(bdr_init_replica_script_path, argv);
-		if (n < 0)
-			_exit(n);
-	}
-	else
-	{
-		pid_t		res;
-		int			exitstatus = 0;
-
-		elog(DEBUG3, "waiting for %s pid %d",
-			 bdr_init_replica_script_path, pid);
-
-		PG_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
-								CStringGetDatum(tmpdir));
-		{
-			do
-			{
-				res = waitpid(pid, &exitstatus, WNOHANG);
-				if (res < 0)
-				{
-					if (errno == EINTR || errno == EAGAIN)
-						continue;
-					elog(FATAL, "bdr_exec_init_replica: error calling waitpid");
-				}
-				else if (res == pid)
-					break;
-
-				pg_usleep(10 * 1000);
-				CHECK_FOR_INTERRUPTS();
-			}
-			while (1);
-
-			elog(DEBUG3, "%s exited with waitpid return status %d",
-				 bdr_init_replica_script_path, exitstatus);
-
-			if (exitstatus != 0)
-			{
-				if (WIFEXITED(exitstatus))
-					elog(FATAL, "bdr: %s exited with exit code %d",
-						 bdr_init_replica_script_path, WEXITSTATUS(exitstatus));
-				if (WIFSIGNALED(exitstatus))
-					elog(FATAL, "bdr: %s exited due to signal %d",
-						 bdr_init_replica_script_path, WTERMSIG(exitstatus));
-				elog(FATAL, "bdr: %s exited for an unknown reason with waitpid return %d",
-					 bdr_init_replica_script_path, exitstatus);
-			}
-		}
-		PG_END_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
-									PointerGetDatum(tmpdir));
-		bdr_init_replica_cleanup_tmpdir(0, CStringGetDatum(tmpdir));
-	}
-
-#else
 	/*
-	 * On Windows we should be using CreateProcessEx instead of fork() and
-	 * exec().  We should add an abstraction for this to port/ eventually, so
-	 * this code doesn't have to care about the platform.
-	 *
-	 * TODO
+	 * XXX: It's worth making number of jobs with which pg_dump and pg_restore
+	 * gets executed here configurable. Perhaps, a bdr.init_node_jobs GUC is
+	 * better, users can set it based on their remote node database size. A
+	 * well-configured value based on remote node database size and local node
+	 * instance capacity can reduce dump and restore times, and thus can bring
+	 * up the local node to ready state faster.
 	 */
-	ereport(ERROR,
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("init_replica isn't supported on Windows yet")));
-#endif
+	PG_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
+							CStringGetDatum(tmpdir));
+	{
+		/* Get contents from remote node with pg_dump */
+		appendStringInfo(cmd,
+						 "%s -T \"bdr.bdr_nodes\" -T \"bdr.bdr_connections\" "
+						 "--bdr-init-node --jobs=4 --snapshot=%s "
+						 "--format=directory --file=%s \"%s\"",
+						 bdr_dump_path,
+						 snapshot,
+						 tmpdir,
+						 origin_dsn->data);
+
+		bdr_execute_command(cmd->data);
+		resetStringInfo(cmd);
+
+		/*
+		 * Restore contents from remote node on to local node with pg_restore.
+		 */
+		appendStringInfo(cmd,
+						 "%s --exit-on-error --jobs=4 --format=directory "
+						 "--dbname=\"%s\" %s",
+						 bdr_restore_path,
+						 local_dsn->data,
+						 tmpdir);
+
+		bdr_execute_command(cmd->data);
+	}
+	PG_END_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
+								PointerGetDatum(tmpdir));
+
+	/* Clean up temporary directory we used for storing pg_dump. */
+	bdr_init_replica_cleanup_tmpdir(0, CStringGetDatum(tmpdir));
+
+	pfree(origin_dsn->data);
+	pfree(origin_dsn);
+	pfree(local_dsn->data);
+	pfree(local_dsn);
+	pfree(cmd->data);
+	pfree(cmd);
 }
 
 /*

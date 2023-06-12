@@ -87,7 +87,6 @@
 #define BDR_NODEID_FORMAT_WITHNAME_ARGS(node) \
 	bdr_get_my_cached_remote_name(&(node)), BDR_NODEID_FORMAT_ARGS(node)
 
-#define BDR_INIT_REPLICA_CMD "bdr_initial_load"
 #define BDR_LIBRARY_NAME "bdr"
 #define BDR_RESTORE_CMD "pg_restore"
 #define BDR_DUMP_CMD "bdr_dump"
