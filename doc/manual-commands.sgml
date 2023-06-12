@@ -312,15 +312,4 @@
   </sect2>
  </sect1>
 
- <sect1 id="command-bdr-initial-load" xreflabel="bdr_initial_load">
-  <title>bdr_initial_load</title>
-
-  <para>
-   <application>bdr_initial_load</application> is an internal utility command
-   invoked by &bdr; when joining or subscribing. It is not intended for
-   end-user use, and may not be present in future versions of the system.
-  </para>
-
- </sect1>
-
 </chapter>

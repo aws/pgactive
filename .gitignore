@@ -31,7 +31,6 @@ lib*.pc
 /bdr_dump
 /bdr_resetwal
 /bdr_version.h
-/scripts/bdr_initial_load
 /log/
 /results/
 /tmp_check/
