@@ -1514,11 +1514,11 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 		BdrWorker  *w = &BdrWorkerCtl->slots[i];
 		Datum		values[BDR_GET_WORKERS_PID_COLS] = {0};
 		bool		nulls[BDR_GET_WORKERS_PID_COLS] = {0};
-		uint64		sysid;
-		TimeLineID	timeline;
-		Oid			dboid;
+		uint64		sysid = 0; /* keep compiler quiet */
+		TimeLineID	timeline = 0; /* keep compiler quiet */
+		Oid			dboid = InvalidOid; /* keep compiler quiet */
 		char	sysid_str[33];
-		text	*worker_type;
+		text	*worker_type = NULL; /* keep compiler quiet */
 
 		/* unused slot */
 		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
