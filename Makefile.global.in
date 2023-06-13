@@ -21,4 +21,4 @@ export GIT_WORK_TREE
 
 include $(PGXS)
 
-BDR_VERSION=$(shell awk '/^#define BDR_VERSION / { print $3; }' ${bdr_abs_srcdir}/bdr_version.h.in | cut -d '"' -f 2)
+BDR_VERSION=$(shell awk '/^.define BDR_VERSION / { print $3; }' ${bdr_abs_srcdir}/bdr_version.h.in | cut -d '"' -f 2)
