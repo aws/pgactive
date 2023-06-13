@@ -261,8 +261,7 @@ bdr_ensure_node_ready(BdrOutputData * data)
 
 	/* We need dbname valid outside this transaction, so copy it */
 	tmp_dbname = get_database_name(MyDatabaseId);
-	strncpy(NameStr(dbname), tmp_dbname, NAMEDATALEN);
-	NameStr(dbname)[NAMEDATALEN - 1] = '\0';
+	snprintf(NameStr(dbname), NAMEDATALEN, "%s", tmp_dbname);
 	pfree(tmp_dbname);
 
 	/*
@@ -1183,7 +1182,7 @@ pglReorderBufferCleanSerializedTXNs(const char *slotname)
 	struct stat statbuf;
 	char		path[MAXPGPATH * 2 + 12];
 
-	sprintf(path, "pg_replslot/%s", slotname);
+	snprintf(path, sizeof(path), "pg_replslot/%s", slotname);
 
 	/* we're only handling directories here, skip if it's not our's */
 	if (lstat(path, &statbuf) == 0 && !S_ISDIR(statbuf.st_mode))
@@ -1199,8 +1198,8 @@ pglReorderBufferCleanSerializedTXNs(const char *slotname)
 		/* only look at names that can be ours */
 		if (strncmp(spill_de->d_name, "xid", 3) == 0)
 		{
-			sprintf(path, "pg_replslot/%s/%s", slotname,
-					spill_de->d_name);
+			snprintf(path, sizeof(path), "pg_replslot/%s/%s", slotname,
+					 spill_de->d_name);
 
 			if (unlink(path) != 0)
 				ereport(PANIC,

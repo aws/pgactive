@@ -544,12 +544,9 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	strncpy(NameStr(appname), "BDR test connection", NAMEDATALEN);
-
+	snprintf(NameStr(appname), NAMEDATALEN, "BDR test connection");
 	conn = bdr_connect(conninfo, &appname, &remote);
-
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, remote.sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	values[0] = CStringGetTextDatum(sysid_str);
 	values[1] = ObjectIdGetDatum(remote.timeline);

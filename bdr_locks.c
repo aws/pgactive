@@ -926,11 +926,11 @@ static SysScanDesc
 locks_begin_scan(Relation rel, Snapshot snap, const BDRNodeId * const node)
 {
 	ScanKey		key;
-	char		buf[30];
+	char		buf[33];
 
 	key = (ScanKey) palloc(sizeof(ScanKeyData) * 4);
 
-	sprintf(buf, UINT64_FORMAT, node->sysid);
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, node->sysid);
 
 	ScanKeyInit(&key[0],
 				2,

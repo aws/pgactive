@@ -269,7 +269,6 @@ bdr_maintain_db_workers(void)
 	}
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
-	sysid_str[sizeof(sysid_str) - 1] = '\0';
 
 	elog(DEBUG2, "launching apply workers");
 
