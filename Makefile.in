@@ -149,15 +149,6 @@ $(info Building against PostgreSQL $(MAJORVERSION))
 export PG_CONFIG
 export PATH
 
-# Check if the postgres module btree_gist required by BDR is installed. Without
-# it BDR won't come up as the BDR uses the module internally. Therefore, it is
-# better to error out in advance.
-REQUIRED_EXTENSIONS = btree_gist
-LDIR = $(shell $(PG_CONFIG) --libdir)
-ifeq ($(wildcard $(addprefix $(LDIR)/, $(addsuffix .so, $(REQUIRED_EXTENSIONS)))),)
-$(error $(REQUIRED_EXTENSIONS) module required by BDR is not found in $(LDIR))
-endif
-
 # Modules such as pg_trgm, cube and hstore are used by BDR in tests, i.e. if
 # they aren't available the tests start to fail. Therefore, it is not required
 # to error out.
