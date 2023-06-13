@@ -385,7 +385,7 @@
         <indexterm>
          <primary>bdr.bdr_get_workers_info(text,oid,oid)</primary>
         </indexterm>
-        <literal><function>bdr.bdr_get_workers_info(OUT sysid text, OUT timeline oid, OUT dboid oid, OUT worker_type text, OUT pid int4)
+        <literal><function>bdr.bdr_get_workers_info(OUT sysid text, OUT timeline oid, OUT dboid oid, OUT worker_type text, OUT pid int4)</function></literal>
        </entry>
        <entry>boolean</entry>
        <entry>
@@ -398,7 +398,7 @@
         <indexterm>
          <primary>bdr.bdr_terminate_workers(text,oid,oid,text)</primary>
         </indexterm>
-        <literal><function>bdr.bdr_terminate_workers(sysid text, timeline oid,oid,text)
+        <literal><function>bdr.bdr_terminate_workers(sysid text, timeline oid,oid,text)</function></literal>
        </entry>
        <entry>boolean</entry>
        <entry>
