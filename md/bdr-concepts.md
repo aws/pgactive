@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------- ------------------------------------ ------------------------- ----------------------------------------------------------------------------------------------------------------------------------
   [Prev](overview.md "BDR overview"){accesskey="P"}   [Up](overview.md){accesskey="U"}    Chapter 1. BDR overview    [Next](logical-vs-physical.md "Differences between logical (row level) and physical (block level) replication"){accesskey="N"}
 

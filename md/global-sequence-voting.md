@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ --------------------------------------------------------------------------------------------------------------------
   [Prev](global-sequences-orms.md "Global sequences and ORMs"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs"){accesskey="N"}
 

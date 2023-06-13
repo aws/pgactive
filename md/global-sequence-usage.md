@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                          
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ ---------------------------------------------------------------------------------------
   [Prev](global-sequences-when.md "When to use global sequences"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequence-limitations.md "Global sequence limitations"){accesskey="N"}
 
@@ -26,8 +26,8 @@ must be `BIGINT`{.TYPE} as the result is 64 bits wide.
     CREATE SEQUENCE gstest_id_seq OWNED BY gstest.id;
 
     ALTER TABLE gstest ALTER COLUMN id SET DEFAULT bdr.global_seq_nextval('gstest_id_seq');
-   
-   
+
+
 ```
 
 If you normally create the sequence as a `BIGSERIAL`{.TYPE} column you
@@ -38,7 +38,7 @@ transparently so you need to do it in a follow up command like:
 
 ``` PROGRAMLISTING
     ALTER TABLE my_table ALTER COLUMN my_bigserial SET DEFAULT bdr.global_seq_nextval('my_table_my_bigserial_seq');
-   
+
 ```
 
 `SERIAL`{.LITERAL} must be converted to `BIGSERIAL`{.LITERAL} since

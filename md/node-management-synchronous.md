@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                      
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------------- ------------------------------------------- ---------------------------- ---------------------------------------------------------------
   [Prev](node-management-disabling.md "Completely removing BDR"){accesskey="P"}   [Up](node-management.md){accesskey="U"}    Chapter 5. Node Management    [Next](commands.md "Command-line Utilities"){accesskey="N"}
 
@@ -58,7 +58,7 @@ vice versa, each node\'s configuration would be:
    # on node D:
    synchronous_standby_names = '1 ("C:send")'
    bdr.synchronous_commit = on
-   
+
 ```
 
 With this configuration, commits on A will hang indefinitely if B goes
@@ -70,7 +70,7 @@ over a WAN), e.g.
    # on node A, prefer sync rep to B, but if B is down allow COMMIT
    # confirmation if either C or D are reachable and caught up:
    synchronous_standby_names = '1 ("B:send","C:send","D:send")'
-   
+
 ```
 
 If confirmation from all three other nodes is required before local
@@ -80,7 +80,7 @@ commit, use 3-safe:
    # Require that B, C and D all confirm commit replay before local commit
    # on A becomes visible.
    synchronous_standby_names = '3 ("B:send","C:send","D:send")'
-   
+
 ```
 
 See [the PostgreSQL manual on synchronous
@@ -109,7 +109,7 @@ throughput, users may wish to run unimportant transactions with
 
 ``` PROGRAMLISTING
      SET LOCAL synchronous_commit = off;
-   
+
 ```
 
 This effectively disables synchronous replication for individual

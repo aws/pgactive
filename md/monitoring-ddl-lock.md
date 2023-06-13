@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------- -------------------------------------- ----------------------- ------------------------------------------------------------------------------
   [Prev](monitoring-peers.md "Monitoring replication peers"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-conflict-stats.md "Monitoring conflicts"){accesskey="N"}
 

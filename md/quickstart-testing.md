@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                                   
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------------------------------------------- -------------------------------------- ------------------------------ ----------------------------------------------------------------
   [Prev](quickstart-enabling.md "Enabling BDR in SQL sessions for both of your nodes/instances"){accesskey="P"}   [Up](quickstart.md){accesskey="U"}    Chapter 3. Quick-start guide    [Next](manual.md "BDR administration manual"){accesskey="N"}
 
@@ -19,7 +19,7 @@ Create a table and insert rows from your first node/instance:
       INSERT INTO t1bdr VALUES (2);
       -- you will see two rows
       SELECT * FROM t1bdr;
-    
+
 ```
 
 Check that the rows are there on your second node/instance. Now, delete
@@ -33,7 +33,7 @@ a row:
       DELETE FROM t1bdr WHERE c1 = 2;
       -- you will see one row
       SELECT * FROM t1bdr;
-    
+
 ```
 
 Check that one row has been deleted from the first node/instance::
@@ -43,7 +43,7 @@ Check that one row has been deleted from the first node/instance::
 
       -- you will see one row
       SELECT * FROM t1bdr;
-    
+
 ```
 
 Create and use global sequence::
@@ -53,7 +53,7 @@ Create and use global sequence::
 
       -- Create a normal local sequence
       SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL$);
-    
+
 ```
 
 Once you\'ve created a global sequence you may use it with
@@ -66,8 +66,8 @@ Limitations](global-sequence-limitations.md).
 
       -- Use the global sequence
       SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (id bigint DEFAULT bdr.global_seq_nextval('public.test_seq'),name text); $DDL$);
-   
-    
+
+
 ```
 
 Insert and check the id.
@@ -79,8 +79,8 @@ Insert and check the id.
       INSERT INTO test_tbl(name) VALUES ('first-entry');
       -- you will see database-generated ids
       SELECT * from test_tbl;
- 
-    
+
+
 ```
 
 To enable global sequence use on a BIGSERIAL column see [Using global

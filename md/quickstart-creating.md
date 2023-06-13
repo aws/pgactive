@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------------- -------------------------------------- ------------------------------ -----------------------------------------------------------------------------------------------------------------
   [Prev](quickstart-starting.md "Starting the BDR-enabled PostgreSQL nodes/instances"){accesskey="P"}   [Up](quickstart.md){accesskey="U"}    Chapter 3. Quick-start guide    [Next](quickstart-enabling.md "Enabling BDR in SQL sessions for both of your nodes/instances"){accesskey="N"}
 
@@ -15,7 +15,7 @@ command line of your operating system:
 ``` PROGRAMLISTING
     createdb -p 5598 -U postgres bdrdemo
     createdb -p 5599 -U postgres bdrdemo
-    
+
 ```
 :::
 

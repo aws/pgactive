@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                          
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ -------------------------------------------------------------------------------
   [Prev](replication-sets-concepts.md "Replication Set Concepts"){accesskey="P"}   [Up](replication-sets.md){accesskey="U"}    Chapter 11. Replication Sets    [Next](replication-sets-nodes.md "Node Replication Control"){accesskey="N"}
 

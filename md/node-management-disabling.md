@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------- ------------------------------------------- ---------------------------- ------------------------------------------------------------------------------------------
   [Prev](node-management-removing.md "Parting (removing) a node"){accesskey="P"}   [Up](node-management.md){accesskey="U"}    Chapter 5. Node Management    [Next](node-management-synchronous.md "n-safe synchronous replication"){accesskey="N"}
 

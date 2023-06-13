@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------------- ---------------------------- ------------------------------------------------------------------------------------------------------
   [Prev](ddl-replication.md "DDL Replication"){accesskey="P"}   [Up](ddl-replication.md){accesskey="U"}    Chapter 8. DDL Replication    [Next](ddl-replication-statements.md "Statement specific DDL replication concerns"){accesskey="N"}
 
@@ -62,7 +62,7 @@ grace period, with the error:
 ``` PROGRAMLISTING
 FATAL:  terminating connection due to conflict with recovery
 DETAIL:  User was holding a relation lock for too long.
-     
+
 ```
 
 BDR\'s DDL write lock does not affect writes on the node that acquired
@@ -92,7 +92,7 @@ DDL from any other transaction on any node will immediately
 ``` PROGRAMLISTING
 ERROR:  database is locked against ddl by another node
 HINT:  Node (6313760193895071967,1,16385) in the cluster is already performing DDL
-     
+
 ```
 
 There is no grace period for conflicting DDL (schema changes), only DML
@@ -153,14 +153,14 @@ the default for a database, user or group with
 
 ``` PROGRAMLISTING
  ALTER ROLE username SET bdr.permit_ddl_locking = false;
-     
+
 ```
 
 or
 
 ``` PROGRAMLISTING
  ALTER DATABASE dbname SET bdr.permit_ddl_locking = false;
-     
+
 ```
 
 or set it globally in `postgresql.conf`{.FILENAME}. Then when you intend
@@ -171,7 +171,7 @@ BEGIN;
 SET LOCAL bdr.permit_ddl_locking = true;
 -- Do your schema changes here
 COMMIT;
-     
+
 ```
 :::
 :::

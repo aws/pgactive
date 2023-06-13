@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                               
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------------------- ------------------------------------------ -------------------------------- -----------------------------------------------------------------------------
   [Prev](catalog-bdr-conflict-handlers.md "bdr.bdr_conflict_handlers"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks.md "bdr.bdr_global_locks"){accesskey="N"}
 
@@ -22,7 +22,7 @@ global DDL lock will always be different to the state on the other
 nodes.
 
 ::: TABLE
-[]{#AEN4182}
+[]{#AEN4150}
 
 **Table 13-7. `bdr.bdr_locks`{.STRUCTNAME} Columns**
 

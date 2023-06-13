@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------------------- ------------------------------------- ----------------------------------- -----------------------------------------------------------------
   [Prev](conflicts-user-defined-handlers.md "User defined conflict handlers"){accesskey="P"}   [Up](conflicts.md){accesskey="U"}    Chapter 9. Multi-master conflicts    [Next](global-sequences.md "Global Sequences"){accesskey="N"}
 

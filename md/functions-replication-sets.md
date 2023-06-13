@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------- ------------------------------------- ----------------------- -------------------------------------------------------------------------------------------------
   [Prev](functions-node-mgmt.md "Node management functions"){accesskey="P"}   [Up](functions.md){accesskey="U"}    Chapter 12. Functions    [Next](functions-conflict-handlers.md "Conflict handler management functions"){accesskey="N"}
 
@@ -13,7 +13,7 @@ The following functions exist to manage [Replication
 Sets](replication-sets.md).
 
 ::: TABLE
-[]{#AEN3162}
+[]{#AEN3130}
 
 **Table 12-2. Replication Set functions**
 

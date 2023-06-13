@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                     
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------- ----------------------------------- -- ---------------------------------------------------------------
   [Prev](quickstart-testing.md "Testing your BDR-enabled system"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](settings.md "Configuration Settings"){accesskey="N"}
 
@@ -150,14 +150,14 @@ functions](functions-conflict-handlers.md)
 
 14\. [Upgrading [BDR]{.PRODUCTNAME}](upgrade.md)
 
-14.1. [Upgrading 2.0.x to 2.0.y releases](x4413.md)
+14.1. [Upgrading 2.0.x to 2.0.y releases](x4381.md)
 
 14.2. [Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL
-9.6](x4416.md)
+9.6](x4384.md)
 
-14.3. [Upgrading BDR 0.9.x to 1.0](x4529.md)
+14.3. [Upgrading BDR 0.9.x to 1.0](x4497.md)
 
-14.4. [Upgrading 0.8.x to 1.0](x4533.md)
+14.4. [Upgrading 0.8.x to 1.0](x4501.md)
 :::
 :::
 :::

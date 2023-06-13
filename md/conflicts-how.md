@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                      
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------- ------------------------------------- ----------------------------------- -----------------------------------------------------------------
   [Prev](conflicts.md "Multi-master conflicts"){accesskey="P"}   [Up](conflicts.md){accesskey="U"}    Chapter 9. Multi-master conflicts    [Next](conflicts-types.md "Types of conflict"){accesskey="N"}
 

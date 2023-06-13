@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------- -------------------------------------- ----------------------- -----------------------------------------------------------------------------
   [Prev](monitoring-why.md "Why monitoring matters"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-peers.md "Monitoring replication peers"){accesskey="N"}
 
@@ -38,7 +38,7 @@ one node is initializing (`i`{.LITERAL}):
      6125823714403985168 |             1 |      16386 | k           | node2     | port=5599 dbname=bdrdemo | port=5598 dbname=bdrdemo
      6125847382076805699 |             1 |      16386 | i           | node3     | port=6000 dbname=bdrdemo | port=5598 dbname=bdrdemo
     (3 rows)
-    
+
 ```
 :::
 

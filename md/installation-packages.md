@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------- ---------------------------------------- ------------------------- ------------------------------------------------------------------------------
   [Prev](install-requirements.md "BDR requirements"){accesskey="P"}   [Up](installation.md){accesskey="U"}    Chapter 2. Installation    [Next](installation-source.md "Installing BDR from source"){accesskey="N"}
 
@@ -82,7 +82,7 @@ client programs, simply:
 ``` PROGRAMLISTING
      sudo dnf check-update
      sudo dnf install postgresql-bdr96-bdr
-    
+
 ```
 
 Once BDR is installed, if this is a fresh PostgreSQL install you must
@@ -136,7 +136,7 @@ BDR for PostgreSQL 9.6 is just an extension. To install it, run:
 ``` PROGRAMLISTING
      sudo apt-get update
      sudo apt-get install postgresql-9.6-bdr-plugin
-    
+
 ```
 
 Then proceed with BDR-specific configuration per [Configuration
@@ -224,7 +224,7 @@ Once you have fully backed up all your databases:
 
 ``` PROGRAMLISTING
       yum remove postgresql94\*
-     
+
 ```
 
 Check the list of packages to be removed carefully, approve the removal
@@ -244,7 +244,7 @@ client programs, simply:
 ``` PROGRAMLISTING
       sudo yum check-update
       sudo yum install postgresql-bdr94-bdr
-     
+
 ```
 
 ::: NOTE
@@ -324,7 +324,7 @@ Once you have fully backed up all your databases:
 
 ``` PROGRAMLISTING
       sudo apt-get remove postgresql-9.4
-     
+
 ```
 
 Check the list of packages to be removed carefully, approve the removal
@@ -343,7 +343,7 @@ should run:
 ``` PROGRAMLISTING
       sudo apt-get update
       sudo apt-get install postgresql-bdr-9.4 postgresql-bdr-9.4-bdr-plugin
-     
+
 ```
 
 ::: NOTE

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                             
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------------- ------------------------------------ ----------------------------------- ---------------------------------------------------------------
   [Prev](settings-prerequisite.md "Prerequisite PostgreSQL parameters"){accesskey="P"}   [Up](settings.md){accesskey="U"}    Chapter 4. Configuration Settings    [Next](node-management.md "Node Management"){accesskey="N"}
 
@@ -269,7 +269,7 @@ server restart to take effect.
     > keepalives_idle=20
     > keepalives_interval=20
     > keepalives_count=5
-    >          
+    >
     > ```
     >
     > You may override these settings with this option, e.g.:

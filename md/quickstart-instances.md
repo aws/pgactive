@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                              
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------ -------------------------------------- ------------------------------ ------------------------------------------------------------------------------------------------
   [Prev](quickstart.md "Quick-start guide"){accesskey="P"}   [Up](quickstart.md){accesskey="U"}    Chapter 3. Quick-start guide    [Next](quickstart-editing.md "Editing the configuration files to enable BDR"){accesskey="N"}
 
@@ -16,7 +16,7 @@ example, run:
      mkdir -p $HOME/2ndquadrant_bdr
      initdb -D $HOME/2ndquadrant_bdr/bdr5598 -A trust -U postgres
      initdb -D $HOME/2ndquadrant_bdr/bdr5599 -A trust -U postgres
-     
+
 ```
 
 Adjust the data directory path (the path after `-D`{.LITERAL}) if you

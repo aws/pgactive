@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   -------------------------------------------------------------------- ------------------------------------- ----------------------------- ----------------------------------------------------------------------
   [Prev](technotes-mesh.md "BDR network structure"){accesskey="P"}   [Up](technotes.md){accesskey="U"}    Appendix C. Technical notes    [Next](technotes-rewrites.md "Full table rewrites"){accesskey="N"}
 

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------- ------------------------------------ ------------------------- ----------------------------------------------------------------------------------------------------------
   [Prev](bdr-concepts.md "Concepts"){accesskey="P"}   [Up](overview.md){accesskey="U"}    Chapter 1. BDR overview    [Next](bdr-vs-trigger-based.md "Differences between BDR and trigger-based replication"){accesskey="N"}
 

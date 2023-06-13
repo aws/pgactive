@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------- -------------------------------------------- ------------------------------ ----------------------------------------------------------------------------------
   [Prev](global-sequences.md "Global Sequences"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequences-when.md "When to use global sequences"){accesskey="N"}
 

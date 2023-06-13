@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------ ----------------------------------- -------------------------------------------------------------------------
   [Prev](commands.md "Command-line Utilities"){accesskey="P"}   [Up](commands.md){accesskey="U"}    Chapter 6. Command-line Utilities    [Next](command-bdr-initial-load.md "bdr_initial_load"){accesskey="N"}
 

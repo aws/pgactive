@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                   
+  [BDR 2.0.7 Documentation](index.md)
   -------------------------------------------------------------------------------- ----------------------------------- -- --------------------------------------------------------------------
   [Prev](appendix-signatures.md "Verifying digital signatures"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](technotes-mesh.md "BDR network structure"){accesskey="N"}
 

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------------------------------- ------------------------------------------- -- ---------------------------------------------------------------------
   [Prev](weak-coupled-multimaster.md "BDR: Weakly coupled multi-master replication"){accesskey="P"}   [Up](getting-started.md){accesskey="U"}        [Next](install-requirements.md "BDR requirements"){accesskey="N"}
 

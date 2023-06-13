@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------- ---------------------------------- -- -----------------------------------------------------------------------------------
   [Prev](monitoring-postgres-stats.md "PostgreSQL statistics views"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](ddl-replication-advice.md "Executing DDL on BDR systems"){accesskey="N"}
 

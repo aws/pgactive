@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                  
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------- ---------------------------------- -- ----------------------------------------------------------------------------------------
   [Prev](manual.md "BDR administration manual"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](settings-prerequisite.md "Prerequisite PostgreSQL parameters"){accesskey="N"}
 

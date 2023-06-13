@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                            
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
   [Prev](release-2.0.5.md "Release 2.0.5"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-2.0.3.md "Release 2.0.3"){accesskey="N"}
 
@@ -65,14 +65,14 @@ If your DML is mixed with DDL, you can break replication. For example:
         UPDATE t1 SET foo = bar;
         ALTER TABLE t1 DROP COLUMN bar;
     $DDL$);
-    
+
 ```
 
 will break replication with the error
 
 ``` PROGRAMLISTING
     ERROR: data for dropped column
-    
+
 ```
 
 because BDR applies the whole compound SQL statement string from
@@ -86,14 +86,14 @@ Replication will then fail with an error like
 ``` PROGRAMLISTING
     ERROR: 42P10: remote tuple has different column count to local table
     DETAIL: Table "public"."test" has 15 columns on local node (...) vs 16 on remote node (...)
-    
+
 ```
 
 or on older BDR versions:
 
 ``` PROGRAMLISTING
     ERROR: XX000: tuple natts mismatch, 15 vs 16
-    
+
 ```
 
 There\'s no safe way to handle this. If we suppressed logical decoding
@@ -109,7 +109,7 @@ message like:
 ``` PROGRAMLISTING
     ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
     HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements
-    
+
 ```
 :::
 
@@ -132,7 +132,7 @@ will now emit a log message like
 
 ``` PROGRAMLISTING
       WARNING: DDL LOCK TRACE: backend 1234 already registered as waiter for DDL lock release
-    
+
 ```
 
 and prevent the problem.

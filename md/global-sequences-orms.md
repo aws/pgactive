@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                               
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ -----------------------------------------------------------------------------
   [Prev](global-sequence-limitations.md "Global sequence limitations"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequence-voting.md "Global sequence voting"){accesskey="N"}
 

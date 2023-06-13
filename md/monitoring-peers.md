@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                   
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------------- -------------------------------------- ----------------------- -------------------------------------------------------------------------------
   [Prev](monitoring-node-join-remove.md "Monitoring node join/removal"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-ddl-lock.md "Monitoring global DDL locks"){accesskey="N"}
 
@@ -31,7 +31,7 @@ sent by the peer (for BDR, this is
     -------+----------+---------+--------------------------------------------+-------------+-----------------+-------------+-------------------------------+--------------+-----------+---------------+----------------+----------------+-----------------+---------------+------------
      29045 |    16385 | myadmin   | bdr (6127682459268878512,1,16386,):receive |             |                 |          -1 | 2015-03-18 21:03:28.717175+00 |              | streaming | 0/189D3B8     | 0/189D3B8      | 0/189D3B8      | 0/189D3B8       |             0 | async
      29082 |    16385 | myadmin   | bdr (6127682494973391064,1,16386,):receive |             |                 |          -1 | 2015-03-18 21:03:44.665272+00 |              | streaming | 0/189D3B8     | 0/189D3B8      | 0/189D3B8      | 0/189D3B8       |             0 | async
-    
+
 ```
 
 This view shows all active replication connections, not just those used
@@ -49,7 +49,7 @@ committed its work) with the sending server\'s
        pg_xlog_location_diff(pg_current_xlog_insert_location(), flush_location) AS lag_bytes,
        pid, application_name
      FROM pg_stat_replication;
-    
+
 ```
 
 This query will show how much lag downstream servers have from the
@@ -85,12 +85,12 @@ connection using them. It looks like:
 
 ``` PROGRAMLISTING
     SELECT * FROM pg_replication_slots;
-                    slot_name                | plugin | slot_type | datoid | database | active | active_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn 
+                    slot_name                | plugin | slot_type | datoid | database | active | active_pid | xmin | catalog_xmin | restart_lsn | confirmed_flush_lsn
     -----------------------------------------+--------+-----------+--------+----------+--------+------------+------+--------------+-------------+---------------------
      bdr_16386_6127682459268878512_1_16386__ | bdr    | logical   |  16386 | bdrdemo  | t      |       4121 |      |          749 | 0/191B130   | 0/201E120
      bdr_16386_6127682494973391064_1_16386__ | bdr    | logical   |  16386 | bdrdemo  | t      |       4317 |      |          749 | 0/191B130   | 0/201E120
     (2 rows)
-    
+
 ```
 
 If a slot has `active = t`{.LITERAL} then there will be a corresponding
@@ -111,7 +111,7 @@ If you want to see a combined view, you can query a join of the two:
                  ON r.pid = s.active_pid
     WHERE r.application_name IS NULL
        OR r.application_name LIKE 'bdr%';
-    
+
 ```
 
 This has the handy advantage of showing the replication slot name along
@@ -126,7 +126,7 @@ bytes, use a query like:
       pg_xlog_location_diff(pg_current_xlog_insert_location(), restart_lsn) AS retained_bytes
     FROM pg_catalog.pg_replication_slots
     WHERE plugin = 'bdr';
-    
+
 ```
 
 Retained WAL isn\'t additive; if you have three peers, who of which

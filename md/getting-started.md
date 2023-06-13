@@ -1,7 +1,7 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------- ----------------------------------- -- -----------------------------------------------------
-  [Prev](index.md "BDR 2.0.6 Documentation"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](overview.md "BDR overview"){accesskey="N"}
+  [Prev](index.md "BDR 2.0.7 Documentation"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](overview.md "BDR overview"){accesskey="N"}
 
 ------------------------------------------------------------------------
 :::
@@ -63,6 +63,6 @@ nodes/instances](quickstart-enabling.md)
 
   ----------------------------------- ----------------------------------- --------------------------------------
   [Prev](index.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](overview.md){accesskey="N"}
-  BDR 2.0.6 Documentation                                                                           BDR overview
+  BDR 2.0.7 Documentation                                                                           BDR overview
   ----------------------------------- ----------------------------------- --------------------------------------
 :::

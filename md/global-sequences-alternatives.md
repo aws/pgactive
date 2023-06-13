@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                     
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------- -------------------------------------------- ------------------------------ -------------------------------------------------------------------------------
   [Prev](global-sequence-voting.md "Global sequence voting"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequences-bdr10.md "BDR 1.0 global sequences"){accesskey="N"}
 
@@ -48,7 +48,7 @@ the desired sequence on one node like
       CREATE SEQUENCE some_seq INCREMENT 1000 OWNED BY some_table.generated_value;
 
       ALTER TABLE some_table ALTER COLUMN generated_value SET DEFAULT nextval('some_seq');
-    
+
 ```
 
 \... then on each node calling `setval`{.FUNCTION} to give each node a
@@ -62,7 +62,7 @@ different offset starting value, e.g.
       SELECT setval('some_seq', 2);
 
       -- ... etc
-  
+
 ```
 
 You should be sure to allow a large enough `INCREMENT`{.LITERAL} to
@@ -123,7 +123,7 @@ PostgreSQL has a built-in `uuid`{.LITERAL} data type and the
      CREATE EXTENSION "uuid-ossp";
 
      SELECT uuid_generate_v4();
-    
+
 ```
 :::
 :::

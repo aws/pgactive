@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------------------------- ------------------------------------------- ---------------------------- ----------------------------------------------------------------
   [Prev](ddl-replication-advice.md "Executing DDL on BDR systems"){accesskey="P"}   [Up](ddl-replication.md){accesskey="U"}    Chapter 8. DDL Replication    [Next](conflicts.md "Multi-master conflicts"){accesskey="N"}
 
@@ -70,7 +70,7 @@ approach, e.g.:
 
 ``` PROGRAMLISTING
      SELECT bdr.bdr_replicate_ddl_command('CREATE USER myuser;');
-    
+
 ```
 
 ::: NOTE
@@ -106,7 +106,7 @@ The statements that are applied locally but not replicated are:
            SET bdr.skip_ddl_replication = on;
             CREATE INDEX CONCURRENTLY idxname ON tblname(cols);
             RESET bdr.skip_ddl_replication;
-            
+
     ```
 
 []{#DDL-DROP-INDEX-CONCURRENTLY}`DROP INDEX CONCURRENTLY`{.VARNAME}

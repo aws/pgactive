@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                 
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------- ---------------------------------- -- ----------------------------------------------------------------------------------
   [Prev](global-sequences-bdr10.md "BDR 1.0 global sequences"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](replication-sets-concepts.md "Replication Set Concepts"){accesskey="N"}
 

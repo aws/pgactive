@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------- ------------------------------------- ----------------------------- -----------------------------------------------
   [Prev](technotes-ddl-locking.md "DDL locking details"){accesskey="P"}   [Up](technotes.md){accesskey="U"}    Appendix C. Technical notes    [Next](bookindex.md "Index"){accesskey="N"}
 

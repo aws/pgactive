@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------- ---------------------------------------- ------------------------- ----------------------------------------------------------------------------------
   [Prev](installation.md "Installation"){accesskey="P"}   [Up](installation.md){accesskey="U"}    Chapter 2. Installation    [Next](installation-packages.md "Installing BDR from packages"){accesskey="N"}
 

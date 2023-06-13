@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                           
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------- ------------------------------------------- ---------------------------- ---------------------------------------------------------------------------------
   [Prev](node-management-joining.md "Joining a node"){accesskey="P"}   [Up](node-management.md){accesskey="U"}    Chapter 5. Node Management    [Next](node-management-disabling.md "Completely removing BDR"){accesskey="N"}
 
@@ -26,7 +26,7 @@ with an error like:
 
 ``` PROGRAMLISTING
     PANIC: could not write to file "pg_xlog/xlogtemp.559": No space left on device
-   
+
 ```
 
 or report other out-of-disk related symptoms.
@@ -51,14 +51,14 @@ To remove `node1`{.LITERAL}:
 
 ``` PROGRAMLISTING
     SELECT bdr.bdr_part_by_node_names(ARRAY['node-1']);
-   
+
 ```
 
 or to remove multiple nodes at once:
 
 ``` PROGRAMLISTING
     SELECT bdr.bdr_part_by_node_names(ARRAY['node-1', 'node-2', 'node-3']);
-   
+
 ```
 
 If you only know the slot name from `pg_replication_slots`{.LITERAL} and

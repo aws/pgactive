@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                           
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------- ------------------------------------- ----------------------- -------------------------------------------------------------------
   [Prev](functions-conflict-handlers.md "Conflict handler management functions"){accesskey="P"}   [Up](functions.md){accesskey="U"}    Chapter 12. Functions    [Next](functions-upgrade.md "Upgrade functions"){accesskey="N"}
 
@@ -12,7 +12,7 @@
 The following functions provide information about a BDR node:
 
 ::: TABLE
-[]{#AEN3302}
+[]{#AEN3270}
 
 **Table 12-4. Node information functions**
 

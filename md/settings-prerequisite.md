@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                    
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------ ----------------------------------- ------------------------------------------------------------------------------------------------
   [Prev](settings.md "Configuration Settings"){accesskey="P"}   [Up](settings.md){accesskey="U"}    Chapter 4. Configuration Settings    [Next](bdr-configuration-variables.md "BDR specific configuration variables"){accesskey="N"}
 

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                     
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------- ------------------------------------- ----------------------- -----------------------------------------------------------------
   [Prev](functions-information.md "Information functions"){accesskey="P"}   [Up](functions.md){accesskey="U"}    Chapter 12. Functions    [Next](catalogs-views.md "Catalogs and Views"){accesskey="N"}
 
@@ -13,7 +13,7 @@ The following function(s) are used when upgrading [BDR]{.PRODUCTNAME} to
 a new version:
 
 ::: TABLE
-[]{#AEN3389}
+[]{#AEN3357}
 
 **Table 12-5. Upgrade functions**
 

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ ---------------------------------------------------
   [Prev](replication-sets-tables.md "Table Replication Control"){accesskey="P"}   [Up](replication-sets.md){accesskey="U"}    Chapter 11. Replication Sets    [Next](functions.md "Functions"){accesskey="N"}
 
@@ -30,7 +30,7 @@ which operations a replication set syncs, `INSERT`{.LITERAL} a row into
 ``` PROGRAMLISTING
     INSERT INTO bdr.bdr_replication_set_config(set_name, replicate_inserts, replicate_updates, replicate_deletes)
     VALUES ('set_name', 't', 't', 't');
-   
+
 ```
 
 Adjust the replication flags as desired for the intended replication set

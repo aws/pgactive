@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                     
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------
   [Prev](functions-upgrade.md "Upgrade functions"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](catalog-bdr-nodes.md "bdr.bdr_nodes"){accesskey="N"}
 

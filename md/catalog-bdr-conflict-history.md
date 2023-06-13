@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                           
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------- ------------------------------------------ -------------------------------- -------------------------------------------------------------------------------------------------
   [Prev](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config"){accesskey="N"}
 
@@ -22,7 +22,7 @@ unnecessary replication overhead.
 It is safe to `TRUNCATE`{.LITERAL} this table to save disk space.
 
 ::: TABLE
-[]{#AEN3879}
+[]{#AEN3847}
 
 **Table 13-5. `bdr.bdr_conflict_history`{.STRUCTNAME} Columns**
 

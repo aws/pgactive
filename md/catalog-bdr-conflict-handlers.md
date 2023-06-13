@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------- ------------------------------------------ -------------------------------- ---------------------------------------------------------------
   [Prev](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-locks.md "bdr.bdr_locks"){accesskey="N"}
 
@@ -15,7 +15,7 @@ handlers](conflicts-user-defined-handlers.md). Do not modify this
 table directly.
 
 ::: TABLE
-[]{#AEN4128}
+[]{#AEN4096}
 
 **Table 13-6. `bdr.bdr_conflict_handlers`{.STRUCTNAME} Columns**
 

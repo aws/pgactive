@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                            
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
   [Prev](release-2.0.1.md "Release 2.0.1"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-1.0.2.md "Release 1.0.2"){accesskey="N"}
 

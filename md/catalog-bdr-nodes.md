@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------------- ------------------------------------------ -------------------------------- ---------------------------------------------------------------------------
   [Prev](catalogs-views.md "Catalogs and Views"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-connections.md "bdr.bdr_connections"){accesskey="N"}
 
@@ -54,7 +54,7 @@ that have `node_state`{.LITERAL} `'k'`{.LITERAL} to re-use their node
 names.
 
 ::: TABLE
-[]{#AEN3456}
+[]{#AEN3424}
 
 **Table 13-1. `bdr.bdr_nodes`{.STRUCTNAME} Columns**
 

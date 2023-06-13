@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------------ -------------------------------- -----------------------------------------------------------------------------------
   [Prev](catalog-bdr-locks.md "bdr.bdr_locks"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-queued-commands.md "bdr.bdr_queued_commands"){accesskey="N"}
 

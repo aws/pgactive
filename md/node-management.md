@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                  
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------ ---------------------------------- -- ----------------------------------------------------------------------
   [Prev](bdr-configuration-variables.md "BDR specific configuration variables"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](node-management-joining.md "Joining a node"){accesskey="N"}
 

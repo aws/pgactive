@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------ ------------------------------------- ----------------------------------- ------------------------------------------------------------------------------------
   [Prev](conflicts-how.md "How conflicts happen"){accesskey="P"}   [Up](conflicts.md){accesskey="U"}    Chapter 9. Multi-master conflicts    [Next](conflicts-avoidance.md "Avoiding or tolerating conflicts"){accesskey="N"}
 
@@ -68,7 +68,7 @@ that\'s trying to apply the change will `ERROR`{.LITERAL} out with:
 
 ``` PROGRAMLISTING
      ERROR: multiple unique constraints violated by remotely INSERTed tuple
-     
+
 ```
 
 (Older versions would report a
@@ -100,7 +100,7 @@ tables without a `PRIMARY KEY`{.LITERAL} with:
 
 ``` PROGRAMLISTING
       ERROR: Cannot run UPDATE or DELETE on table (tablename) because it does not have a primary key.
-     
+
 ```
 :::
 
@@ -147,7 +147,7 @@ tables without a `PRIMARY KEY`{.LITERAL} with:
 
 ``` PROGRAMLISTING
       ERROR: Cannot run UPDATE or DELETE on table (tablename) because it does not have a primary key.
-     
+
 ```
 
 ::: NOTE

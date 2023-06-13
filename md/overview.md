@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                          
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------------- -- -----------------------------------------------------
   [Prev](getting-started.md "Getting started"){accesskey="P"}   [Up](getting-started.md){accesskey="U"}        [Next](bdr-concepts.md "Concepts"){accesskey="N"}
 

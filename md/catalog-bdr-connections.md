@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                       
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------- ------------------------------------------ -------------------------------- -------------------------------------------------------------------------
   [Prev](catalog-bdr-nodes.md "bdr.bdr_nodes"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-node-slots.md "bdr.bdr_node_slots"){accesskey="N"}
 
@@ -18,7 +18,7 @@ functions](functions-node-mgmt.md). It is safe to modify the
 connection string.
 
 ::: TABLE
-[]{#AEN3541}
+[]{#AEN3509}
 
 **Table 13-2. `bdr.bdr_connections`{.STRUCTNAME} Columns**
 

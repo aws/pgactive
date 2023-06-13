@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------- ----------------------------------- -- ---
   [Prev](technotes-rewrites.md "Full table rewrites"){accesskey="P"}   [Home](index.md){accesskey="H"}         
 
@@ -9,17 +9,17 @@
 ::: INDEX
 # []{#BOOKINDEX}Index
 
-[A](bookindex.md#AEN5166) \| [B](bookindex.md#AEN5210) \|
-[C](bookindex.md#AEN5362) \| [D](bookindex.md#AEN5454) \|
-[F](bookindex.md#AEN5495) \| [G](bookindex.md#AEN5500) \|
-[L](bookindex.md#AEN5506) \| [M](bookindex.md#AEN5517) \|
-[N](bookindex.md#AEN5532) \| [P](bookindex.md#AEN5537) \|
-[R](bookindex.md#AEN5545) \| [S](bookindex.md#AEN5556) \|
-[T](bookindex.md#AEN5570) \| [U](bookindex.md#AEN5575) \|
-[W](bookindex.md#AEN5580)
+[A](bookindex.md#AEN5134) \| [B](bookindex.md#AEN5178) \|
+[C](bookindex.md#AEN5324) \| [D](bookindex.md#AEN5416) \|
+[F](bookindex.md#AEN5457) \| [G](bookindex.md#AEN5462) \|
+[L](bookindex.md#AEN5468) \| [M](bookindex.md#AEN5479) \|
+[N](bookindex.md#AEN5494) \| [P](bookindex.md#AEN5499) \|
+[R](bookindex.md#AEN5507) \| [S](bookindex.md#AEN5518) \|
+[T](bookindex.md#AEN5532) \| [U](bookindex.md#AEN5537) \|
+[W](bookindex.md#AEN5542)
 
 ::: INDEXDIV
-## [A]{#AEN5166} {#a .INDEXDIV}
+## [A]{#AEN5134} {#a .INDEXDIV}
 
 ALTER DATABASE, [Not replicated DDL
 statements](ddl-replication-statements.md#AEN1524)
@@ -65,7 +65,7 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [B]{#AEN5210} {#b .INDEXDIV}
+## [B]{#AEN5178} {#b .INDEXDIV}
 
 bdr.acquire_global_lock, [Node management
 functions](functions-node-mgmt.md)
@@ -94,6 +94,9 @@ functions](functions-information.md)
 bdr.bdr_get_remote_nodeinfo, [Information
 functions](functions-information.md)
 
+bdr.bdr_get_workers_info(text,oid,oid), [Node management
+functions](functions-node-mgmt.md)
+
 bdr.bdr_group_create, [Node management
 functions](functions-node-mgmt.md)
 
@@ -116,6 +119,9 @@ bdr.bdr_part_by_node_names, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_replicate_ddl_command, [Node management
+functions](functions-node-mgmt.md)
+
+bdr.bdr_terminate_workers(text,oid,oid,text), [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_test_remote_connectback, [Information
@@ -198,18 +204,6 @@ functions](functions-replication-sets.md)
 bdr.temp_dump_directory configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.terminate_apply_workers(text), [Node management
-functions](functions-node-mgmt.md)
-
-bdr.terminate_apply_workers(text,oid,oid), [Node management
-functions](functions-node-mgmt.md)
-
-bdr.terminate_walsender_workers(text), [Node management
-functions](functions-node-mgmt.md)
-
-bdr.terminate_walsender_workers(text,oid,oid), [Node management
-functions](functions-node-mgmt.md)
-
 bdr.trace_ddl_locks_level configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
@@ -221,7 +215,7 @@ functions](functions-node-mgmt.md)
 :::
 
 ::: INDEXDIV
-## [C]{#AEN5362} {#c .INDEXDIV}
+## [C]{#AEN5324} {#c .INDEXDIV}
 
 Catalogs
 
@@ -235,7 +229,7 @@ Configuration Settings
 
 of the server, [Configuration Settings](settings.md)
 
-:   
+:
 
 Conflicts, [Multi-master conflicts](conflicts.md)
 
@@ -316,7 +310,7 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [D]{#AEN5454} {#d .INDEXDIV}
+## [D]{#AEN5416} {#d .INDEXDIV}
 
 DDL Replication, [DDL Replication](ddl-replication.md)
 
@@ -360,25 +354,25 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [F]{#AEN5495} {#f .INDEXDIV}
+## [F]{#AEN5457} {#f .INDEXDIV}
 
 Functions, [Functions](functions.md)
 :::
 
 ::: INDEXDIV
-## [G]{#AEN5500} {#g .INDEXDIV}
+## [G]{#AEN5462} {#g .INDEXDIV}
 
 Global Sequence
 
-:   
+:
 
     Distributed sequence, [Global Sequences](global-sequences.md)
 
-    :   
+    :
 :::
 
 ::: INDEXDIV
-## [L]{#AEN5506} {#l .INDEXDIV}
+## [L]{#AEN5468} {#l .INDEXDIV}
 
 limitations, [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
@@ -394,7 +388,7 @@ conflicts](conflicts-types.md#AEN2392)
 :::
 
 ::: INDEXDIV
-## [M]{#AEN5517} {#m .INDEXDIV}
+## [M]{#AEN5479} {#m .INDEXDIV}
 
 max_replication_slots configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
@@ -411,13 +405,13 @@ see also Catalogs
 :::
 
 ::: INDEXDIV
-## [N]{#AEN5532} {#n .INDEXDIV}
+## [N]{#AEN5494} {#n .INDEXDIV}
 
 Node Management, [Node Management](node-management.md)
 :::
 
 ::: INDEXDIV
-## [P]{#AEN5537} {#p .INDEXDIV}
+## [P]{#AEN5499} {#p .INDEXDIV}
 
 pg_xlog_wait_remote_apply, [Node management
 functions](functions-node-mgmt.md)
@@ -427,7 +421,7 @@ functions](functions-node-mgmt.md)
 :::
 
 ::: INDEXDIV
-## [R]{#AEN5545} {#r .INDEXDIV}
+## [R]{#AEN5507} {#r .INDEXDIV}
 
 REFRESH MATERIALIZED VIEW, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -438,7 +432,7 @@ Replication Sets, [Replication Sets](replication-sets.md)
 :::
 
 ::: INDEXDIV
-## [S]{#AEN5556} {#s .INDEXDIV}
+## [S]{#AEN5518} {#s .INDEXDIV}
 
 SECURITY LABEL, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -454,20 +448,20 @@ subscribe,
 :::
 
 ::: INDEXDIV
-## [T]{#AEN5570} {#t .INDEXDIV}
+## [T]{#AEN5532} {#t .INDEXDIV}
 
 track_commit_timestamp configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
 :::
 
 ::: INDEXDIV
-## [U]{#AEN5575} {#u .INDEXDIV}
+## [U]{#AEN5537} {#u .INDEXDIV}
 
 Upgrading BDR, [Upgrading BDR](upgrade.md)
 :::
 
 ::: INDEXDIV
-## [W]{#AEN5580} {#w .INDEXDIV}
+## [W]{#AEN5542} {#w .INDEXDIV}
 
 wal_level configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)

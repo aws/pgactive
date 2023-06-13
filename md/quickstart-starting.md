@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                  
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------ -------------------------------------- ------------------------------ -------------------------------------------------------------------------------
   [Prev](quickstart-editing.md "Editing the configuration files to enable BDR"){accesskey="P"}   [Up](quickstart.md){accesskey="U"}    Chapter 3. Quick-start guide    [Next](quickstart-creating.md "Creating the demo databases"){accesskey="N"}
 
@@ -15,7 +15,7 @@ system:
 ``` PROGRAMLISTING
     pg_ctl -l $HOME/2ndquadrant_bdr/bdr5598.log -D $HOME/2ndquadrant_bdr/bdr5598 -o "-p 5598" -w start
     pg_ctl -l $HOME/2ndquadrant_bdr/bdr5599.log -D $HOME/2ndquadrant_bdr/bdr5599 -o "-p 5599" -w start
-    
+
 ```
 
 Each node/instance will start up and then will run in the background.
@@ -24,7 +24,7 @@ You\'ll see the following:
 ``` PROGRAMLISTING
      waiting for server to start.... done
      server started
-     
+
 ```
 
 If you see an issue with starting your nodes/instances:
@@ -32,7 +32,7 @@ If you see an issue with starting your nodes/instances:
 ``` PROGRAMLISTING
      waiting for server to start........ stopped waiting
      pg_ctl: could not start server
-     
+
 ```
 
 \... then take a look at the log files (`bdr5598.log`{.FILENAME} or

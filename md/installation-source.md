@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                 
+  [BDR 2.0.7 Documentation](index.md)
   ---------------------------------------------------------------------------------- ---------------------------------------- ------------------------- ------------------------------------------------------------
   [Prev](installation-packages.md "Installing BDR from packages"){accesskey="P"}   [Up](installation.md){accesskey="U"}    Chapter 2. Installation    [Next](quickstart.md "Quick-start guide"){accesskey="N"}
 
@@ -56,7 +56,7 @@ in the `PATH`{.LITERAL} environment variable, e.g.:
      PATH=/path/to/postgres96/install/bin:"$PATH" ./configure
      make -j4 -s all
      make -s install
-    
+
 ```
 :::
 :::
@@ -75,7 +75,7 @@ users should prefer to [install BDR as an extension to PostgreSQL
 To install Postgres-BDR 9.4 and the BDR extension the prerequisites for
 compiling PostgreSQL must be installed. These are described in
 PostgreSQL\'s documentation on [build
-requirements](http://www.postgresql.org/docs/current/install-requirements.md)
+requirements](http://www.postgresql.org/docs/current/install-requirements.html)
 and [build requirements for
 documentation](http://www.postgresql.org/docs/current/docguide-toolsets.html).
 
@@ -91,7 +91,7 @@ BDR extension can be installed using simple commands.
     ``` PROGRAMLISTING
        sudo apt-get update
         sudo apt-get build-dep postgresql-9.4
-           
+
     ```
 
 -   `RHEL or CentOS 6.x or 7.x`{.LITERAL}: install the appropriate
@@ -104,7 +104,7 @@ BDR extension can be installed using simple commands.
         sudo yum groupinstall "Development Tools"
         sudo yum install yum-utils openjade docbook-dtds docbook-style-dsssl docbook-style-xsl
            sudo yum-builddep postgresql94
-          
+
     ```
 :::
 
@@ -126,14 +126,14 @@ BDR plugin.
 
 The patched PostgreSQL 9.4 required for BDR on 9.4 can be compiled using
 the [normal documented
-procedures](http://www.postgresql.org/docs/current/static/installation.md).
+procedures](http://www.postgresql.org/docs/current/static/installation.html).
 That will usually be something like:
 
 ``` PROGRAMLISTING
     cd /path/to/bdr-pg-source/
     ./configure --prefix=/path/to/install --enable-debug --with-openssl
     make -j4 -s install-world
-   
+
 ```
 
 To then install BDR execute its configure script with the
@@ -145,7 +145,7 @@ To then install BDR execute its configure script with the
     PATH=/path/to/postgres/install/bin:"$PATH" ./configure
     make -j4 -s all
     make -s install
-   
+
 ```
 :::
 :::

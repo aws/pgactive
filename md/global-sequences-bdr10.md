@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                                                            
+  [BDR 2.0.7 Documentation](index.md)
   -------------------------------------------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ -----------------------------------------------------------------
   [Prev](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](replication-sets.md "Replication Sets"){accesskey="N"}
 
@@ -33,14 +33,14 @@ where, query:
     FROM pg_class
     WHERE relkind = 'S' AND
           pg_class.relam = (SELECT oid FROM pg_seqam WHERE seqamname = 'bdr');
-   
+
 ```
 
 to list sequences. You can self-join on `pg_class.relowner`{.LITERAL} to
 find the associated table for each sequence.
 
 For upgrade and conversion advice see [Converting BDR 1.0 global
-sequences](x4416.md#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES).
+sequences](x4384.md#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES).
 :::
 
 ::: NAVFOOTER

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                             
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------- ------------------------------------- ----------------------- ------------------------------------------------------------------------------------
   [Prev](functions.md "Functions"){accesskey="P"}   [Up](functions.md){accesskey="U"}    Chapter 12. Functions    [Next](functions-replication-sets.md "Replication Set functions"){accesskey="N"}
 
@@ -259,41 +259,19 @@ Same as `pg_xlog_wait_remote_apply(...)`{.FUNCTION}, but returns as soon
 as the remote confirms it has received the changes, not necessarily
 applied them.
 
-`bdr.terminate_apply_workers(`{.FUNCTION}*`sysid text`{.REPLACEABLE}*`, `{.FUNCTION}*`timeline oid`{.REPLACEABLE}*`, `{.FUNCTION}*`dboid oid`{.REPLACEABLE}*`)`{.FUNCTION}
+`bdr.bdr_get_workers_info(OUT sysid text, OUT timeline oid, OUT dboid oid, OUT worker_type text, OUT pid int4)`{.FUNCTION}
 
 boolean
 
-Terminate any downstream (apply) BDR workers that are connected to the
-upstream peer with the identified
-(`sysid`{.LITERAL},`timeline`{.LITERAL},`dboid`{.LITERAL}) tuple.
-Returns true if a terminate signal was successfully sent. The worker may
-not yet have exited; check `pg_stat_activity`{.LITERAL}.
+Get information about BDR workers that are present on the node.
 
-`bdr.terminate_walsender_workers(`{.FUNCTION}*`sysid text`{.REPLACEABLE}*`, `{.FUNCTION}*`timeline oid`{.REPLACEABLE}*`, `{.FUNCTION}*`dboid oid`{.REPLACEABLE}*`)`{.FUNCTION}
+`bdr.bdr_terminate_workers(sysid text, timeline oid,oid,text)`{.FUNCTION}
 
 boolean
 
-Terminate any upstream (walsender) BDR workers that are connected to the
-downstream peer with the identified
-(`sysid`{.LITERAL},`timeline`{.LITERAL},`dboid`{.LITERAL}) tuple.
-Returns true if a terminate signal was successfully sent. The worker may
-not yet have exited; check `pg_stat_activity`{.LITERAL}.
-
-`bdr.terminate_apply_workers(`{.FUNCTION}*`node_name text`{.REPLACEABLE}*`)`{.FUNCTION}
-
-boolean
-
-Same as `bdr.terminate_apply_workers(text,oid,oid)`{.LITERAL} but
-instead of a node identity tuple this function looks up the node in
-`bdr.bdr_nodes`{.LITERAL} by node name.
-
-`bdr.terminate_walsender_workers(`{.FUNCTION}*`node_name text`{.REPLACEABLE}*`)`{.FUNCTION}
-
-boolean
-
-Same as `bdr.terminate_walsender_workers(text,oid,oid)`{.LITERAL} but
-instead of a node identity tuple this function looks up the node in
-`bdr.bdr_nodes`{.LITERAL} by node name.
+Terminate BDR worker(s) of a node identified by
+(`sysid`{.LITERAL},`timeline`{.LITERAL},`dboid`{.LITERAL}) and type
+`worker_type`{.LITERAL} (apply/per-db/walsender).
 
 `bdr.skip_changes_upto(`{.FUNCTION}*`sysid text`{.REPLACEABLE}*`, `{.FUNCTION}*`timeline oid`{.REPLACEABLE}*`, `{.FUNCTION}*`dboid oid`{.REPLACEABLE}*`, `{.FUNCTION}*`skip_to_lsn pg_lsn`{.REPLACEABLE}*`)`{.FUNCTION}
 
@@ -370,7 +348,7 @@ To create a [BDR]{.PRODUCTNAME} group on \'node1\':
     SELECT bdr.bdr_group_create(
        local_node_name := 'node1',
        node_external_dsn := 'port=5598 dbname=bdrdemo');
-   
+
 ```
 
 To join \'node2\' to [BDR]{.PRODUCTNAME} group created above:
@@ -380,14 +358,14 @@ To join \'node2\' to [BDR]{.PRODUCTNAME} group created above:
        local_node_name := 'node2',
        node_external_dsn := 'port=5559 dbname=bdrdemo',
        join_using_dsn := 'port=5558 dbname=bdrdemo');
-   
+
 ```
 
 To remove \'node2\' from the [BDR]{.PRODUCTNAME} group created above:
 
 ``` PROGRAMLISTING
    SELECT bdr.bdr_part_by_node_names('{node2}');
-   
+
 ```
 
 To see if your node is ready for replication (if you see a NULL result
@@ -395,7 +373,7 @@ set, your node is ready):
 
 ``` PROGRAMLISTING
    SELECT bdr.bdr_node_join_wait_for_ready();
-   
+
 ```
 :::
 

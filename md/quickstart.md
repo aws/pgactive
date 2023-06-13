@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                         
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------ ------------------------------------------- -- ----------------------------------------------------------------------------------------------------
   [Prev](installation-source.md "Installing BDR from source"){accesskey="P"}   [Up](getting-started.md){accesskey="U"}        [Next](quickstart-instances.md "Creating BDR-enabled PostgreSQL nodes/instances"){accesskey="N"}
 

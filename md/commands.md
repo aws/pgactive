@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                            
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------ ---------------------------------- -- -------------------------------------------------------------------
   [Prev](node-management-synchronous.md "n-safe synchronous replication"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](command-bdr-init-copy.md "bdr_init_copy"){accesskey="N"}
 

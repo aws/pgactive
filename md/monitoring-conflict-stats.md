@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                          
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------- -------------------------------------- ----------------------- -------------------------------------------------------------------------------------
   [Prev](monitoring-ddl-lock.md "Monitoring global DDL locks"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-postgres-stats.md "PostgreSQL statistics views"){accesskey="N"}
 

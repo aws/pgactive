@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------- -------------------------------------- ----------------------- ----------------------------------------------------------------------------------------
   [Prev](monitoring.md "Monitoring"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-node-join-remove.md "Monitoring node join/removal"){accesskey="N"}
 

@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                 
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------- ------------------------------------------ -------------------------------- -------------------------------------------------------------------------------------
   [Prev](catalog-bdr-node-slots.md "bdr.bdr_node_slots"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-bdr-conflict-history.md "bdr.bdr_conflict_history"){accesskey="N"}
 
@@ -24,11 +24,11 @@ An example listing from this table might look like:
               1 |         1 | bdr_6127682459268878512_1_16386_16386_ |         4 |           0 |         6 |                  0 |         1 |                  0 |         0 |                  3 |             0
               2 |         2 | bdr_6127682494973391064_1_16386_16386_ |         1 |           0 |         0 |                  0 |         1 |                  0 |         0 |                  0 |             0
    (2 rows)
-   
+
 ```
 
 ::: TABLE
-[]{#AEN3763}
+[]{#AEN3731}
 
 **Table 13-4. `bdr.pg_stat_bdr`{.STRUCTNAME} Columns**
 

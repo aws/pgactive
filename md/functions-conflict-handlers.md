@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                              
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------ ------------------------------------- ----------------------- ---------------------------------------------------------------------------
   [Prev](functions-replication-sets.md "Replication Set functions"){accesskey="P"}   [Up](functions.md){accesskey="U"}    Chapter 12. Functions    [Next](functions-information.md "Information functions"){accesskey="N"}
 
@@ -13,7 +13,7 @@ The following functions manage conflict handlers (\"conflict
 triggers\"):
 
 ::: TABLE
-[]{#AEN3248}
+[]{#AEN3216}
 
 **Table 12-3. Conflict handler management functions**
 

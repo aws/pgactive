@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                                   
+  [BDR 2.0.7 Documentation](index.md)
   --------------------------------------------------------------------------- ------------------------------------------ -------------------------------- -------------------------------------------------------------------
   [Prev](catalog-bdr-connections.md "bdr.bdr_connections"){accesskey="P"}   [Up](catalogs-views.md){accesskey="U"}    Chapter 13. Catalogs and Views    [Next](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr"){accesskey="N"}
 
@@ -22,12 +22,12 @@ The columns are all the same as the corresponding columns in the
 originating tables. An example listing might look like:
 
 ``` PROGRAMLISTING
- node_name |                slot_name                | slot_restart_lsn | slot_confirmed_lsn | walsender_active | walsender_pid | sent_location | write_location | flush_location | replay_location 
+ node_name |                slot_name                | slot_restart_lsn | slot_confirmed_lsn | walsender_active | walsender_pid | sent_location | write_location | flush_location | replay_location
 -----------+-----------------------------------------+------------------+--------------------+------------------+---------------+---------------+----------------+----------------+-----------------
  nodeA     | bdr_16385_6313760193895071967_1_16385__ | 0/1A7E680        | 0/1A7E6B8          | t                |         12359 | 0/1A7E6B8     | 0/1A7E6B8      | 0/1A7E6B8      | 0/1A7E6B8
  nodeC     | bdr_16385_6313760468754622756_1_16385__ | 0/1A7E680        | 0/1A7E6B8          | t                |         12360 | 0/1A7E6B8     | 0/1A7E6B8      | 0/1A7E6B8      | 0/1A7E6B8
 (2 rows)
-   
+
 ```
 
 Note that `slot_restart_lsn`{.LITERAL} and
@@ -47,7 +47,7 @@ name, slot name, or pid as the key as appropriate.
 For more on the use of this view, see [Monitoring](monitoring.md).
 
 ::: TABLE
-[]{#AEN3653}
+[]{#AEN3621}
 
 **Table 13-3. `bdr.bdr_nodes_slots`{.STRUCTNAME} Columns**
 

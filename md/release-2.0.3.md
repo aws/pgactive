@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                            
+  [BDR 2.0.7 Documentation](index.md)
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
   [Prev](release-2.0.4.md "Release 2.0.4"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-2.0.2.md "Release 2.0.2"){accesskey="N"}
 
@@ -36,13 +36,13 @@ Fixes and improvements:
 -   Improve error message for \"tuple natts mismatch\" to identify
     affected table, ec
 
--   
+-
 
--   
+-
 
--   
+-
 
--   
+-
 :::
 
 ::: NAVFOOTER

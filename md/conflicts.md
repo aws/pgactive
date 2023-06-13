@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------------------------------------------ ---------------------------------- -- ------------------------------------------------------------------
   [Prev](ddl-replication-statements.md "Statement specific DDL replication concerns"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](conflicts-how.md "How conflicts happen"){accesskey="N"}
 

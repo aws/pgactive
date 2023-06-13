@@ -1,5 +1,5 @@
 ::: NAVHEADER
-  [BDR 2.0.6 Documentation](index.md)                                                                                                        
+  [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------------- ------------------------------------ ----------------------------------- -----------------------------------------------------
   [Prev](command-bdr-init-copy.md "bdr_init_copy"){accesskey="P"}   [Up](commands.md){accesskey="U"}    Chapter 6. Command-line Utilities    [Next](monitoring.md "Monitoring"){accesskey="N"}
 
