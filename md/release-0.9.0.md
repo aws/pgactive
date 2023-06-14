@@ -14,7 +14,7 @@ The 0.9.0 release was tagged on Tue Mar 24 2015 as git tag
 `bdr-pg/REL9_4_1-1`{.LITERAL} to support full BDR functionality.
 
 Development of BDR 0.9.0 was performed by the
-[2ndQuadrant](http://2ndquadrant.com) BDR team. Multiple
+[2ndQuadrant](http://2ndquadrant.com){target="_top"} BDR team. Multiple
 customers contributed funding and other resources to make this release
 possible. 2ndQuadrant continues to fund the ongoing development of BDR
 to meet internal needs and those of customers.

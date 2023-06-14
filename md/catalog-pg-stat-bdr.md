@@ -28,7 +28,7 @@ An example listing from this table might look like:
 ```
 
 ::: TABLE
-[]{#AEN3731}
+[]{#AEN3726}
 
 **Table 13-4. `bdr.pg_stat_bdr`{.STRUCTNAME} Columns**
 

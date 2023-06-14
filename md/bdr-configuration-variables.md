@@ -257,7 +257,7 @@ server restart to take effect.
     etc. Settings given in an individual node\'s configured connection
     string will override these options and BDR\'s built-in connection
     options. See [libpq connection
-    strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING).
+    strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING){target="_top"}.
 
     ::: NOTE
     > **Note:** BDR automatically sets a fallback application name and

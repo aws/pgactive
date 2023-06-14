@@ -50,21 +50,21 @@ replication slots start falling badly behind the admin is alerted and
 can take proactive action. BDR does not provide monitoring, but can be
 integrated into tools like:
 
--   [collectd](https://collectd.org/)
+-   [collectd](https://collectd.org/){target="_top"}
 
--   [Munin](http://munin-monitoring.org/) or
-    [Cacti](http://www.cacti.net/)
+-   [Munin](http://munin-monitoring.org/){target="_top"} or
+    [Cacti](http://www.cacti.net/){target="_top"}
 
--   [Icinga](https://www.icinga.com/) or
-    [Nagios](https://www.nagios.com/)
+-   [Icinga](https://www.icinga.com/){target="_top"} or
+    [Nagios](https://www.nagios.com/){target="_top"}
 
--   [Zabbix](http://www.zabbix.com/)
+-   [Zabbix](http://www.zabbix.com/){target="_top"}
 
 -   \... and numerous extensible commercial solutions
 
 If there isn\'t a plugin available for your chosen platform, feel free
 to [get in touch with
-2ndQuadrant](http://2ndQuadrant.com).
+2ndQuadrant](http://2ndQuadrant.com){target="_top"}.
 :::
 
 ::: NAVFOOTER

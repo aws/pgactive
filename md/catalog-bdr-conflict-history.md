@@ -22,7 +22,7 @@ unnecessary replication overhead.
 It is safe to `TRUNCATE`{.LITERAL} this table to save disk space.
 
 ::: TABLE
-[]{#AEN3847}
+[]{#AEN3842}
 
 **Table 13-5. `bdr.bdr_conflict_history`{.STRUCTNAME} Columns**
 

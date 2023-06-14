@@ -17,7 +17,7 @@ management](node-management.md) for more on how to manage
 The following functions exist to manage nodes:
 
 ::: TABLE
-[]{#AEN2819}
+[]{#AEN2814}
 
 **Table 12-1. Node management functions**
 
@@ -41,7 +41,7 @@ previously standalone normal PostgreSQL databaseor an ex-BDR database
 cleaned with
 [bdr.remove_bdr_from_local_node](functions-node-mgmt.md#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE).
 The \"dsn\" (data source name) parameters are [libpq connection
-strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING).
+strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING){target="_top"}.
 *`node_external_dsn`{.REPLACEABLE}* is an arbitrary node name, which
 must be unique across the BDR group. *`node_external_dsn`{.REPLACEABLE}*
 must be a connection string other nodes can use to connect to this node.
@@ -333,7 +333,7 @@ some nodes or manually applying them on the other nodes.
 
 The function `bdr.bdr_subscribe`{.FUNCTION} has been removed from BDR.
 For uni-directional replication, look at the [pglogical
-project](http://2ndquadrant.com/pglogical) project or
+project](http://2ndquadrant.com/pglogical){target="_top"} project or
 tools like Londiste.
 :::
 

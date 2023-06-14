@@ -1,7 +1,7 @@
 ::: NAVHEADER
   [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------------
-  [Prev](command-bdr-initial-load.md "bdr_initial_load"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](monitoring-why.md "Why monitoring matters"){accesskey="N"}
+  ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------------
+  [Prev](command-bdr-init-copy.md "bdr_init_copy"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](monitoring-why.md "Why monitoring matters"){accesskey="N"}
 
 ------------------------------------------------------------------------
 :::
@@ -43,8 +43,8 @@ faults that may halt operations.
 
 ------------------------------------------------------------------------
 
-  ------------------------------------------------------ ----------------------------------- --------------------------------------------
-  [Prev](command-bdr-initial-load.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](monitoring-why.md){accesskey="N"}
-  bdr_initial_load                                        [Up](manual.md){accesskey="U"}                         Why monitoring matters
-  ------------------------------------------------------ ----------------------------------- --------------------------------------------
+  --------------------------------------------------- ----------------------------------- --------------------------------------------
+  [Prev](command-bdr-init-copy.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](monitoring-why.md){accesskey="N"}
+  bdr_init_copy                                        [Up](manual.md){accesskey="U"}                         Why monitoring matters
+  --------------------------------------------------- ----------------------------------- --------------------------------------------
 :::

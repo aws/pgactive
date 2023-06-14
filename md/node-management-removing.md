@@ -16,7 +16,7 @@ performance will suffer and eventually the whole system will stop
 working.
 
 Each node saves up change information (using one [replication
-slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html)
+slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}
 for each peer node) so it can replay changes to a temporarily
 unreachable node. If a peer node remains offline indefinitely this
 accumulating change information will cause the node to run out of

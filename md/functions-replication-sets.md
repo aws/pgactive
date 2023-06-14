@@ -13,7 +13,7 @@ The following functions exist to manage [Replication
 Sets](replication-sets.md).
 
 ::: TABLE
-[]{#AEN3130}
+[]{#AEN3125}
 
 **Table 12-2. Replication Set functions**
 

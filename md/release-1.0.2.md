@@ -21,7 +21,7 @@ peers when user defined conflict handlers are created.
 Alongside the bdr-plugin 1.0.2 release, BDR-Postgres is updated to
 9.4.10, including all fixes and improvements from PostgreSQL 9.4.10. See
 [the PostgreSQL 9.4.10 release
-notes](https://www.postgresql.org/docs/9.4/static/release-9-4-10.html).
+notes](https://www.postgresql.org/docs/9.4/static/release-9-4-10.html){target="_top"}.
 :::
 
 ::: NAVFOOTER

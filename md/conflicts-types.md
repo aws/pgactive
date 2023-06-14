@@ -248,7 +248,7 @@ be applied.
 :::
 
 ::: SECT2
-## [9.2.4. Global data conflicts]{#AEN2392} {#global-data-conflicts .SECT2}
+## [9.2.4. Global data conflicts]{#AEN2387} {#global-data-conflicts .SECT2}
 
 Conflicts can also arise where nodes have global
 (PostgreSQL-system-wide) data, like roles, that differs. This can result
@@ -272,7 +272,7 @@ permissions, but must exist).
 :::
 
 ::: SECT2
-## [9.2.5. Lock conflicts and deadlock aborts]{#AEN2413} {#lock-conflicts-and-deadlock-aborts .SECT2}
+## [9.2.5. Lock conflicts and deadlock aborts]{#AEN2408} {#lock-conflicts-and-deadlock-aborts .SECT2}
 
 Because [BDR]{.PRODUCTNAME} apply processes operate very like normal
 user sessions they are subject to the usual rules around row and table
@@ -308,7 +308,7 @@ session to get replication flowing again, but this is no different to a
 user holding a long lock that impacts another user session.
 
 Use of the
-[log_lock_waits](http://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-LOG-LOCK-WAITS)
+[log_lock_waits](http://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-LOG-LOCK-WAITS){target="_top"}
 facility in PostgreSQL can help identify locking related replay stalls.
 :::
 

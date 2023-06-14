@@ -10,15 +10,15 @@
 # [1.2. Differences between logical (row level) and physical (block level) replication]{#LOGICAL-VS-PHYSICAL} {#differences-between-logical-row-level-and-physical-block-level-replication .SECT1}
 
 BDR uses [PostgreSQL\'s logical decoding
-feature](http://www.postgresql.org/docs/current/static/logicaldecoding.html)
+feature](http://www.postgresql.org/docs/current/static/logicaldecoding.html){target="_top"}
 to implement a low overhead logical replication solution. It has
 significant advantages - and some disadvantages - when compared to
 PostgreSQL\'s older physical (block-based)
-[streaming](http://www.postgresql.org/docs/current/static/warm-standby.html#STREAMING-REPLICATION)
+[streaming](http://www.postgresql.org/docs/current/static/warm-standby.html#STREAMING-REPLICATION){target="_top"}
 or
-[archive-based](http://www.postgresql.org/docs/current/static/warm-standby.html)
+[archive-based](http://www.postgresql.org/docs/current/static/warm-standby.html){target="_top"}
 replication with warm or [hot
-standby](http://www.postgresql.org/docs/current/static/hot-standby.html)
+standby](http://www.postgresql.org/docs/current/static/hot-standby.html){target="_top"}
 
 Logical replication has a different set of trade-offs to physical
 block-based replication. It isn\'t clearly better or worse. Physical
@@ -41,7 +41,7 @@ replication as implemented by BDR are:
     `full_page_writes`{.LITERAL}.
 
 -   There is no need to use
-    [`hot_standby_feedback`{.LITERAL}](http://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-HOT-STANDBY-FEEDBACK)
+    [`hot_standby_feedback`{.LITERAL}](http://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-HOT-STANDBY-FEEDBACK){target="_top"}
     or to cancel long running queries on hot standbys, so there aren\'t
     any [\"cancelling statement due to conflict with recovery\"]{.QUOTE}
     errors.
@@ -53,7 +53,7 @@ replication as implemented by BDR are:
 
 -   Replication across major versions (e.g. 9.4 to 9.5) can be supported
     (though BDR imposes limitations on that,
-    [pglogical](http://2ndquadrant.com/pglogical)
+    [pglogical](http://2ndquadrant.com/pglogical){target="_top"}
     supports it well).
 
 -   Replication across architectures and OSes (e.g. PPC64 Linux to
@@ -61,7 +61,7 @@ replication as implemented by BDR are:
 
 -   Replication is per-database (or even table-level), whereas physical
     replication can and must replicate all databases.
-    ([pglogical](http://2ndquadrant.com/pglogical) even
+    ([pglogical](http://2ndquadrant.com/pglogical){target="_top"} even
     supports row- and column-level filtering of replication).
 
 -   BDR\'s logical replication implementation imposes some restrictions
@@ -89,7 +89,7 @@ replication as implemented by BDR are:
 
 -   Logical replication only works via streaming, not WAL file
     archiving, and requires the use of a [replication
-    slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html).
+    slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}.
 
 -   Cascading replication is not (yet) supported by logical replication.
 

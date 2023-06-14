@@ -26,9 +26,9 @@ postgresql.org packages) you will also generally need a -dev or -devel
 package, the name of which depends on your OS and which PostgreSQL
 packages you installed.
 
-For [apt.postgresql.org](http://apt.postgresql.org/)
+For [apt.postgresql.org](http://apt.postgresql.org/){target="_top"}
 packages, install `postgresql-server-dev-9.6`{.LITERAL}. For
-[yum.postgresql.org](http://yum.postgresql.org) packages,
+[yum.postgresql.org](http://yum.postgresql.org){target="_top"} packages,
 install `postgresql96-devel`{.LITERAL}. (Or just [install BDR from
 packages](installation-packages.md)). For other package origins, see
 their documentation; you need the package that contains
@@ -40,7 +40,7 @@ their documentation; you need the package that contains
 
 Source code can be obtained by unpacking release source tarballs or
 clone from git. See
-[http://2ndquadrant.com/bdr](http://2ndquadrant.com/bdr)
+[http://2ndquadrant.com/bdr](http://2ndquadrant.com/bdr){target="_top"}
 for more information.
 :::
 
@@ -75,15 +75,15 @@ users should prefer to [install BDR as an extension to PostgreSQL
 To install Postgres-BDR 9.4 and the BDR extension the prerequisites for
 compiling PostgreSQL must be installed. These are described in
 PostgreSQL\'s documentation on [build
-requirements](http://www.postgresql.org/docs/current/install-requirements.html)
+requirements](http://www.postgresql.org/docs/current/install-requirements.md){target="_top"}
 and [build requirements for
-documentation](http://www.postgresql.org/docs/current/docguide-toolsets.html).
+documentation](http://www.postgresql.org/docs/current/docguide-toolsets.html){target="_top"}.
 
 On several systems the prerequisites for compiling Postgres-BDR and the
 BDR extension can be installed using simple commands.
 
 -   `Debian`{.LITERAL} and `Ubuntu`{.LITERAL}: First add the
-    [apt.postgresql.org](http://apt.postgresql.org/)
+    [apt.postgresql.org](http://apt.postgresql.org/){target="_top"}
     repository to your `sources.list`{.FILENAME} if you have not already
     done so. Then install the pre-requisites for building PostgreSQL
     with:
@@ -96,7 +96,7 @@ BDR extension can be installed using simple commands.
 
 -   `RHEL or CentOS 6.x or 7.x`{.LITERAL}: install the appropriate
     repository RPM for your system from
-    [yum.postgresql.org](http://yum.postgresql.org/repopackages.php).
+    [yum.postgresql.org](http://yum.postgresql.org/repopackages.php){target="_top"}.
     Then install the prerequisites for building PostgreSQL with:
 
     ``` PROGRAMLISTING
@@ -113,7 +113,7 @@ BDR extension can be installed using simple commands.
 
 Source code can be obtained by unpacking release source tarballs or
 clone from git. See
-[http://2ndquadrant.com/bdr](http://2ndquadrant.com/bdr)
+[http://2ndquadrant.com/bdr](http://2ndquadrant.com/bdr){target="_top"}
 for more information.
 :::
 
@@ -126,7 +126,7 @@ BDR plugin.
 
 The patched PostgreSQL 9.4 required for BDR on 9.4 can be compiled using
 the [normal documented
-procedures](http://www.postgresql.org/docs/current/static/installation.html).
+procedures](http://www.postgresql.org/docs/current/static/installation.md){target="_top"}.
 That will usually be something like:
 
 ``` PROGRAMLISTING

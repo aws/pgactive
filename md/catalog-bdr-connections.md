@@ -18,7 +18,7 @@ functions](functions-node-mgmt.md). It is safe to modify the
 connection string.
 
 ::: TABLE
-[]{#AEN3509}
+[]{#AEN3504}
 
 **Table 13-2. `bdr.bdr_connections`{.STRUCTNAME} Columns**
 

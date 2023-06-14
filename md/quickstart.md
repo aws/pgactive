@@ -45,7 +45,7 @@ functions](functions-node-mgmt.md).
 
 ::: NOTE
 > **Note:** BDR uses [libpq connection
-> strings](https://www.postgresql.org/docs/9.6/static/libpq-connect.html#LIBPQ-CONNSTRING)
+> strings](https://www.postgresql.org/docs/9.6/static/libpq-connect.html#LIBPQ-CONNSTRING){target="_top"}
 > throughout. The term \"DSN\" (for \"data source name\") refers to a
 > libpq connection string.
 :::

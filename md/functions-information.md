@@ -12,7 +12,7 @@
 The following functions provide information about a BDR node:
 
 ::: TABLE
-[]{#AEN3270}
+[]{#AEN3265}
 
 **Table 12-4. Node information functions**
 

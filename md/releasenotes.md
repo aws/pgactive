@@ -1,7 +1,7 @@
 ::: NAVHEADER
   [BDR 2.0.7 Documentation](index.md)
   ------------------------------------------------------------ ----------------------------------- -- -----------------------------------------------------------
-  [Prev](x4501.md "Upgrading 0.8.x to 1.0"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](release-2.0.5.md "Release 2.0.5"){accesskey="N"}
+  [Prev](x4496.md "Upgrading 0.8.x to 1.0"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](release-2.0.5.md "Release 2.0.5"){accesskey="N"}
 
 ------------------------------------------------------------------------
 :::
@@ -56,7 +56,7 @@ See also: [Upgrading BDR](upgrade.md).
 ------------------------------------------------------------------------
 
   ----------------------------------- ----------------------------------- -------------------------------------------
-  [Prev](x4501.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](release-2.0.5.md){accesskey="N"}
+  [Prev](x4496.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](release-2.0.5.md){accesskey="N"}
   Upgrading 0.8.x to 1.0                                                                                Release 2.0.5
   ----------------------------------- ----------------------------------- -------------------------------------------
 :::

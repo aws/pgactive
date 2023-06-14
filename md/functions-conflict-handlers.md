@@ -13,7 +13,7 @@ The following functions manage conflict handlers (\"conflict
 triggers\"):
 
 ::: TABLE
-[]{#AEN3216}
+[]{#AEN3211}
 
 **Table 12-3. Conflict handler management functions**
 

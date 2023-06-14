@@ -2,7 +2,7 @@
 []{#BDR}
 
 ::: TITLEPAGE
-# [BDR 2.0.6 Documentation]{#BDR} {#bdr-2.0.6-documentation .TITLE}
+# [BDR 2.0.7 Documentation]{#BDR} {#bdr-2.0.7-documentation .TITLE}
 
 ### 2ndQuadrant Ltd {#ndquadrant-ltd .CORPAUTHOR}
 
@@ -14,7 +14,7 @@ Development Group
 ::: ABSTRACT
 []{#AEN23}
 
-This book is the official documentation of BDR 2.0.6 for use with
+This book is the official documentation of BDR 2.0.7 for use with
 PostgreSQL 9.6 or with a modified version of PostgreSQL 9.4. It has been
 written by the [PostgreSQL]{.PRODUCTNAME} and BDR developers and other
 volunteers in parallel to the development of the BDR software. It
@@ -22,12 +22,12 @@ describes all the functionality that the current version of BDR
 officially supports.
 
 BDR was developed by
-[2ndQuadrant](http://2ndquadrant.com) along with
+[2ndQuadrant](http://2ndquadrant.com){target="_top"} along with
 contributions from other individuals and companies. Contributions from
 the community are appreciated and welcome - get in touch via
-[github](http://github.com/2ndQuadrant/bdr) or [the
+[github](http://github.com/2ndQuadrant/bdr){target="_top"} or [the
 mailing
-list/forum](https://groups.google.com/a/2ndquadrant.com/forum/#!forum/bdr-list).
+list/forum](https://groups.google.com/a/2ndquadrant.com/forum/#!forum/bdr-list){target="_top"}.
 Multiple 2ndQuadrant customers contribute funding to make BDR
 development possible.
 
@@ -39,21 +39,21 @@ welcome to participate in the efforts.
 
 Multiple technologies emerging from BDR development have already become
 integral part of core PostgreSQL, such as [Event
-Triggers](https://www.postgresql.org/docs/current/static/event-triggers.html),
+Triggers](https://www.postgresql.org/docs/current/static/event-triggers.html){target="_top"},
 [Logical
-Decoding](https://www.postgresql.org/docs/current/static/logicaldecoding.html),
+Decoding](https://www.postgresql.org/docs/current/static/logicaldecoding.html){target="_top"},
 [Replication
-Slots](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS),
+Slots](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS){target="_top"},
 [Background
-Workers](https://www.postgresql.org/docs/current/static/bgworker.html),
+Workers](https://www.postgresql.org/docs/current/static/bgworker.html){target="_top"},
 [Commit
-Timestamps](https://wiki.postgresql.org/wiki/What's_new_in_PostgreSQL_9.5#Commit_timestamp_tracking),
+Timestamps](https://wiki.postgresql.org/wiki/What's_new_in_PostgreSQL_9.5#Commit_timestamp_tracking){target="_top"},
 [Replication
-Origins](https://www.postgresql.org/docs/9.5/static/replication-origins.html),
+Origins](https://www.postgresql.org/docs/9.5/static/replication-origins.html){target="_top"},
 [DDL event
-capture](https://www.postgresql.org/docs/9.5/static/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS),
+capture](https://www.postgresql.org/docs/9.5/static/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS){target="_top"},
 [generic WAL messages for logical
-decoding](https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-REPLICATION-TABLE).
+decoding](https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-REPLICATION-TABLE){target="_top"}.
 :::
 
 </div>

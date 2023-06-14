@@ -41,9 +41,9 @@ Note that the status doesn\'t indicate whether the node is actually up
 right now. A node may be shut down, isolated from the network, or
 crashed and still appear as `r`{.LITERAL} in `bdr.bdr_nodes`{.LITERAL}
 because it\'s still conceptually part of the BDR group. Check
-[pg_stat_replication](http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW)
+[pg_stat_replication](http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW){target="_top"}
 and
-[pg_replication_slots](http://www.postgresql.org/docs/current/static/catalog-pg-replication-slots.html)
+[pg_replication_slots](http://www.postgresql.org/docs/current/static/catalog-pg-replication-slots.html){target="_top"}
 for the connection and replay status of a node. See
 [Monitoring](monitoring.md).
 
@@ -54,7 +54,7 @@ that have `node_state`{.LITERAL} `'k'`{.LITERAL} to re-use their node
 names.
 
 ::: TABLE
-[]{#AEN3424}
+[]{#AEN3419}
 
 **Table 13-1. `bdr.bdr_nodes`{.STRUCTNAME} Columns**
 

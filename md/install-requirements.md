@@ -28,7 +28,7 @@ unmodified community PostgreSQL 9.4, or any older version of PostgreSQL.
 As of the time of writing, Microsoft Windows is not yet a supported
 platform for BDR. Support may be added in later releases. If Windows
 support is important to you, check [BDR
-website](http://2ndquadrant.com/BDR) for the latest
+website](http://2ndquadrant.com/BDR){target="_top"} for the latest
 information.
 
 ::: SECT2

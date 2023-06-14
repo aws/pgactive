@@ -19,7 +19,7 @@ monitor for replication slot progress.
 ## [7.3.1. Monitoring connected peers using pg_stat_replication]{#MONITORING-CONNECTIONS} {#monitoring-connected-peers-using-pg_stat_replication .SECT2}
 
 Administrators may query
-[pg_catalog.pg_stat_replication](http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW)
+[pg_catalog.pg_stat_replication](http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW){target="_top"}
 to monitor actively replicating connections. It shows the pid of the
 local side of the connection (wal sender process), the application name
 sent by the peer (for BDR, this is
@@ -157,7 +157,7 @@ to advance.
 ## [7.3.3. Montitoring BDR workers]{#MONITORING-WORKERS} {#montitoring-bdr-workers .SECT2}
 
 All BDR workers (except the supervisor) show up in the system view
-[`pg_stat_activity`{.LITERAL}](https://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-ACTIVITY-VIEW)
+[`pg_stat_activity`{.LITERAL}](https://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-ACTIVITY-VIEW){target="_top"}
 so this view offers some insight into the state of a BDR system. There
 is always one *`nodename`{.REPLACEABLE}*`:perdb`{.LITERAL} worker per
 BDR node. Each connection to another node adds one

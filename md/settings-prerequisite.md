@@ -21,7 +21,7 @@ appropriate values.
 
     For more detailed information about this parameter consult the
     [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES).
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES){target="_top"}.
 
 []{#GUC-MAX-REPLICATION-SLOTS}`max_replication_slots`{.VARNAME} (`integer`{.TYPE})
 
@@ -30,7 +30,7 @@ appropriate values.
 
     For more detailed information about this parameter consult the
     [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-REPLICATION-SLOTS).
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-REPLICATION-SLOTS){target="_top"}.
 
 []{#GUC-MAX-WAL-SENDERS}`max_wal_senders`{.VARNAME} (`integer`{.TYPE})
 
@@ -43,7 +43,7 @@ appropriate values.
 
     For more detailed information about this parameter consult the
     [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-WAL-SENDERS).
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-WAL-SENDERS){target="_top"}.
 
 []{#GUC-SHARED-PRELOAD-LIBRARIES}`shared_preload_libraries`{.VARNAME} (`string`{.TYPE})
 
@@ -53,7 +53,7 @@ appropriate values.
 
     For more detailed information about this parameter consult the
     [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-client.html#GUC-SHARED-PRELOAD-LIBRARIES).
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-client.html#GUC-SHARED-PRELOAD-LIBRARIES){target="_top"}.
 
 []{#GUC-TRACK-COMMIT-TIMESTAMP}`track_commit_timestamp`{.VARNAME} (`bool`{.TYPE})
 
@@ -65,7 +65,7 @@ appropriate values.
 
     For more detailed information about this parameter consult the
     [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL).
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL){target="_top"}.
 
 []{#GUC-DEFAULT-SEQUENCEAM}`default_sequenceam`{.VARNAME} (`string`{.TYPE})
 

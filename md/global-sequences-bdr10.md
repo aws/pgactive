@@ -40,7 +40,7 @@ to list sequences. You can self-join on `pg_class.relowner`{.LITERAL} to
 find the associated table for each sequence.
 
 For upgrade and conversion advice see [Converting BDR 1.0 global
-sequences](x4384.md#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES).
+sequences](x4379.md#UPGRADE-20-CONVERT-10-GLOBAL-SEQUENCES).
 :::
 
 ::: NAVFOOTER

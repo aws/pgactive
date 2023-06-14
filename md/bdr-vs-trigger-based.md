@@ -11,9 +11,9 @@
 
 There are a number of trigger-based logical replication solutions for
 PostgreSQL, including
-[Londiste](https://wiki.postgresql.org/wiki/SkyTools),
-[Slony-I](http://slony.info/) and
-[Bucardo](https://bucardo.org/). They\'re mature, fairly
+[Londiste](https://wiki.postgresql.org/wiki/SkyTools){target="_top"},
+[Slony-I](http://slony.info/){target="_top"} and
+[Bucardo](https://bucardo.org/){target="_top"}. They\'re mature, fairly
 widely used and powerful, and like BDR they have the advantages (and
 disadvantages) of logical replication.
 

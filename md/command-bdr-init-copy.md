@@ -1,7 +1,7 @@
 ::: NAVHEADER
   [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------------- ------------------------------------ ----------------------------------- -------------------------------------------------------------------------
-  [Prev](commands.md "Command-line Utilities"){accesskey="P"}   [Up](commands.md){accesskey="U"}    Chapter 6. Command-line Utilities    [Next](command-bdr-initial-load.md "bdr_initial_load"){accesskey="N"}
+  --------------------------------------------------------------- ------------------------------------ ----------------------------------- -----------------------------------------------------
+  [Prev](commands.md "Command-line Utilities"){accesskey="P"}   [Up](commands.md){accesskey="U"}    Chapter 6. Command-line Utilities    [Next](monitoring.md "Monitoring"){accesskey="N"}
 
 ------------------------------------------------------------------------
 :::
@@ -34,7 +34,7 @@ continue to replay from the source node as a streaming replica when it
 is started up. The backup must not already be running.
 [bdr_init_copy]{.APPLICATION} will override any existing recovery target
 set in `recovery.conf`{.FILENAME}. See [the PostgreSQL
-manual](https://www.postgresql.org/docs/current/static/continuous-archiving.html#BACKUP-LOWLEVEL-BASE-BACKUP)
+manual](https://www.postgresql.org/docs/current/static/continuous-archiving.html#BACKUP-LOWLEVEL-BASE-BACKUP){target="_top"}
 for information on creating base backups.
 
 `bdr_init_copy`{.COMMAND} \[*`option`{.REPLACEABLE}*\...\]
@@ -195,8 +195,8 @@ created node.
 
 ------------------------------------------------------------------------
 
-  -------------------------------------- ------------------------------------ ------------------------------------------------------
-  [Prev](commands.md){accesskey="P"}    [Home](index.md){accesskey="H"}     [Next](command-bdr-initial-load.md){accesskey="N"}
-  Command-line Utilities                  [Up](commands.md){accesskey="U"}                                        bdr_initial_load
-  -------------------------------------- ------------------------------------ ------------------------------------------------------
+  -------------------------------------- ------------------------------------ ----------------------------------------
+  [Prev](commands.md){accesskey="P"}    [Home](index.md){accesskey="H"}     [Next](monitoring.md){accesskey="N"}
+  Command-line Utilities                  [Up](commands.md){accesskey="U"}                                Monitoring
+  -------------------------------------- ------------------------------------ ----------------------------------------
 :::

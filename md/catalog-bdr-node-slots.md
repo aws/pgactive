@@ -47,7 +47,7 @@ name, slot name, or pid as the key as appropriate.
 For more on the use of this view, see [Monitoring](monitoring.md).
 
 ::: TABLE
-[]{#AEN3621}
+[]{#AEN3616}
 
 **Table 13-3. `bdr.bdr_nodes_slots`{.STRUCTNAME} Columns**
 

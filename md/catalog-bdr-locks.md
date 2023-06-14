@@ -22,7 +22,7 @@ global DDL lock will always be different to the state on the other
 nodes.
 
 ::: TABLE
-[]{#AEN4150}
+[]{#AEN4145}
 
 **Table 13-7. `bdr.bdr_locks`{.STRUCTNAME} Columns**
 

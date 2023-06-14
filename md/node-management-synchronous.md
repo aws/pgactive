@@ -12,7 +12,7 @@
 BDR can be configured to use PostgreSQL\'s 9.6+\'s underlying n-safe
 synchronous replication support. Each node may have a priority-ordered
 of other nodes set in
-[`synchronous_standby_names`{.LITERAL}](https://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-SYNCHRONOUS-STANDBY-NAMES)
+[`synchronous_standby_names`{.LITERAL}](https://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-SYNCHRONOUS-STANDBY-NAMES){target="_top"}
 along with the minimum number that must confirm replay before the commit
 is accepted on the upstream. PostgreSQL will delay confirmation of
 `COMMIT`{.LITERAL} to the client until the highest-priority
@@ -24,7 +24,7 @@ supported using the simple list-of-standby-names syntax for
 `synchronous_standby_names`{.LITERAL}.
 
 The
-[`application_name`{.LITERAL}](https://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-APPLICATION-NAME)
+[`application_name`{.LITERAL}](https://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-APPLICATION-NAME){target="_top"}
 of each BDR apply worker\'s connection to its upstream nodes is
 *`nodename`{.REPLACEABLE}*`:send`{.LITERAL}. This is what appears in
 `pg_stat_activity`{.LITERAL} for connections from peers and what\'s used
@@ -84,7 +84,7 @@ commit, use 3-safe:
 ```
 
 See [the PostgreSQL manual on synchronous
-replication](https://www.postgresql.org/docs/current/static/warm-standby.html#SYNCHRONOUS-REPLICATION)
+replication](https://www.postgresql.org/docs/current/static/warm-standby.html#SYNCHRONOUS-REPLICATION){target="_top"}
 for a discussion of how synchronous replication works in PostgreSQL.
 Most of the same principles apply when the other end is a BDR node not a
 physical standby.

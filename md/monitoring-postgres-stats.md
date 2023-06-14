@@ -11,7 +11,7 @@
 
 Statistics on table and index usage are updated normally by the
 downstream master. This is essential for correct function of
-[autovacuum](http://www.postgresql.org/docs/current/static/routine-vacuuming.html).
+[autovacuum](http://www.postgresql.org/docs/current/static/routine-vacuuming.html){target="_top"}.
 If there are no local writes on the downstream master and stats have not
 been reset these two views should show matching results between upstream
 and downstream:
@@ -33,7 +33,7 @@ The built-in index monitoring views are:
 
 All these views are discussed in the [PostgreSQL documentation on the
 statistics
-views](http://www.postgresql.org/docs/current/static/monitoring-stats.html#MONITORING-STATS-VIEWS-TABLE).
+views](http://www.postgresql.org/docs/current/static/monitoring-stats.html#MONITORING-STATS-VIEWS-TABLE){target="_top"}.
 :::
 
 ::: NAVFOOTER

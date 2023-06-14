@@ -15,7 +15,7 @@ Fixes and improvements:
 
 -   Work around a core postgres reorderbuffer corruption bug with a
     change in the BDR output plugin. See [the mailing list
-    discussion](https://www.postgresql.org/message-id/CAMsr+YHdX=XECbZshDZ2CZNWGTyw-taYBnzqVfx4JzM4ExP5xg@mail.gmail.com)
+    discussion](https://www.postgresql.org/message-id/CAMsr+YHdX=XECbZshDZ2CZNWGTyw-taYBnzqVfx4JzM4ExP5xg@mail.gmail.com){target="_top"}
     of the issue.
 
 -   Ignore column-count mismatches if the mismatched columns are all

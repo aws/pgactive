@@ -13,7 +13,7 @@ The following function(s) are used when upgrading [BDR]{.PRODUCTNAME} to
 a new version:
 
 ::: TABLE
-[]{#AEN3357}
+[]{#AEN3352}
 
 **Table 12-5. Upgrade functions**
 

@@ -22,7 +22,7 @@ what can be used as compared to PostgreSQL without BDR.
 :::
 
 ::: SECT2
-## [8.2.1. Statements with weaker DDL locking]{#AEN1494} {#statements-with-weaker-ddl-locking .SECT2}
+## [8.2.1. Statements with weaker DDL locking]{#AEN1489} {#statements-with-weaker-ddl-locking .SECT2}
 
 Some statements don\'t require the full [DDL
 lock](ddl-replication-advice.md#DDL-REPLICATION-LOCKING) and can
@@ -48,7 +48,7 @@ delete) operations.
 :::
 
 ::: SECT2
-## [8.2.2. Not replicated DDL statements]{#AEN1524} {#not-replicated-ddl-statements .SECT2}
+## [8.2.2. Not replicated DDL statements]{#AEN1519} {#not-replicated-ddl-statements .SECT2}
 
 Some DDL statements, mainly those that affect objects that are
 PostgreSQL-instance-wide rather than database-sepecific, are not

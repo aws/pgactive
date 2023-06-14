@@ -19,7 +19,7 @@ node B=\>A. This means each node must be able to connect directly to
 each other node. Firewalls, NAT, etc must be configured accordingly.
 
 Every BDR node must have a [replication
-slot](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html)
+slot](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}
 on every other BDR node so it can replay changes from the node, and
 every node must have a replication origin for each other node so it can
 keep track of replay progress. If nodes were allowed to join while

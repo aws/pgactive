@@ -37,8 +37,6 @@ variables](bdr-configuration-variables.md)
 
 6.1. [bdr_init_copy](command-bdr-init-copy.md)
 
-6.2. [bdr_initial_load](command-bdr-initial-load.md)
-
 7\. [Monitoring](monitoring.md)
 
 7.1. [Why monitoring matters](monitoring-why.md)
@@ -150,14 +148,14 @@ functions](functions-conflict-handlers.md)
 
 14\. [Upgrading [BDR]{.PRODUCTNAME}](upgrade.md)
 
-14.1. [Upgrading 2.0.x to 2.0.y releases](x4381.md)
+14.1. [Upgrading 2.0.x to 2.0.y releases](x4376.md)
 
 14.2. [Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL
-9.6](x4384.md)
+9.6](x4379.md)
 
-14.3. [Upgrading BDR 0.9.x to 1.0](x4497.md)
+14.3. [Upgrading BDR 0.9.x to 1.0](x4492.md)
 
-14.4. [Upgrading 0.8.x to 1.0](x4501.md)
+14.4. [Upgrading 0.8.x to 1.0](x4496.md)
 :::
 :::
 :::

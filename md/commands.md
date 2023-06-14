@@ -16,8 +16,6 @@
 
 6.1.1.
 [Options](command-bdr-init-copy.md#COMMANDS-BDR-INIT-COPY-OPTIONS)
-
-6.2. [bdr_initial_load](command-bdr-initial-load.md)
 :::
 
 [BDR]{.PRODUCTNAME} provides a number of command-line utilities, which

@@ -30,7 +30,7 @@ Multi-master
     You don\'t have to write to all the masters, it\'s possible to leave
     all nodes except one read-only, or just direct writes to only one
     master. However, if you just want one-way replication look into
-    [pglogical](http://2ndquadrant.com/pglogical), which
+    [pglogical](http://2ndquadrant.com/pglogical){target="_top"}, which
     is more flexible.
 
     If you\'re interested in BDR\'s multi-master features it\'s
@@ -89,7 +89,7 @@ logical
     that each table have exactly the same structure down to details like
     dropped columns. If you need a more flexible model for continuous
     ETL, OLAP data collection etc, look at
-    [pglogical](http://2ndquadrant.com/pglogical).
+    [pglogical](http://2ndquadrant.com/pglogical){target="_top"}.
 
 replication
 
@@ -108,7 +108,7 @@ mesh topology
 :::
 
 BDR is built on the [logical
-decoding](http://www.postgresql.org/docs/current/static/logicaldecoding.html)
+decoding](http://www.postgresql.org/docs/current/static/logicaldecoding.html){target="_top"}
 features developed by the BDR project and added to PostgreSQL. It also
 relies on other core PostgreSQL features that were added with BDR in
 mind, like background workers.

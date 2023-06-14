@@ -9,26 +9,26 @@
 ::: INDEX
 # []{#BOOKINDEX}Index
 
-[A](bookindex.md#AEN5134) \| [B](bookindex.md#AEN5178) \|
-[C](bookindex.md#AEN5324) \| [D](bookindex.md#AEN5416) \|
-[F](bookindex.md#AEN5457) \| [G](bookindex.md#AEN5462) \|
-[L](bookindex.md#AEN5468) \| [M](bookindex.md#AEN5479) \|
-[N](bookindex.md#AEN5494) \| [P](bookindex.md#AEN5499) \|
-[R](bookindex.md#AEN5507) \| [S](bookindex.md#AEN5518) \|
-[T](bookindex.md#AEN5532) \| [U](bookindex.md#AEN5537) \|
-[W](bookindex.md#AEN5542)
+[A](bookindex.md#AEN5129) \| [B](bookindex.md#AEN5173) \|
+[C](bookindex.md#AEN5319) \| [D](bookindex.md#AEN5411) \|
+[F](bookindex.md#AEN5452) \| [G](bookindex.md#AEN5457) \|
+[L](bookindex.md#AEN5463) \| [M](bookindex.md#AEN5474) \|
+[N](bookindex.md#AEN5489) \| [P](bookindex.md#AEN5494) \|
+[R](bookindex.md#AEN5502) \| [S](bookindex.md#AEN5513) \|
+[T](bookindex.md#AEN5527) \| [U](bookindex.md#AEN5532) \|
+[W](bookindex.md#AEN5537)
 
 ::: INDEXDIV
-## [A]{#AEN5134} {#a .INDEXDIV}
+## [A]{#AEN5129} {#a .INDEXDIV}
 
 ALTER DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 ALTER FOREIGN DATA WRAPPER, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 ALTER INDEX, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -37,7 +37,7 @@ ALTER OPERATOR FAMILY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 ALTER SEQUENCE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
@@ -49,7 +49,7 @@ ALTER TABLE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
 
 ALTER TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 ALTER TEXT SEARCH CONFIGURATION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -58,14 +58,14 @@ ALTER TEXT SEARCH DICTIONARY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 ALTER USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [B]{#AEN5178} {#b .INDEXDIV}
+## [B]{#AEN5173} {#b .INDEXDIV}
 
 bdr.acquire_global_lock, [Node management
 functions](functions-node-mgmt.md)
@@ -215,7 +215,7 @@ functions](functions-node-mgmt.md)
 :::
 
 ::: INDEXDIV
-## [C]{#AEN5324} {#c .INDEXDIV}
+## [C]{#AEN5319} {#c .INDEXDIV}
 
 Catalogs
 
@@ -243,19 +243,19 @@ CREATE CONVERSION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE FOREIGN DATA WRAPPER, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE INDEX, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
 
 CREATE INDEX CONCURRENTLY, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE LANGUAGE, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -270,7 +270,7 @@ CREATE OPERATOR FAMILY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE SEQUENCE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
@@ -288,7 +288,7 @@ CREATE TABLE AS, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE TEXT SEARCH CONFIGURATION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -303,14 +303,14 @@ CREATE TEXT SEARCH TEMPLATE, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 CREATE USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [D]{#AEN5416} {#d .INDEXDIV}
+## [D]{#AEN5411} {#d .INDEXDIV}
 
 DDL Replication, [DDL Replication](ddl-replication.md)
 
@@ -325,42 +325,42 @@ multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX),
 [UPDATE/DELETE conflicts](conflicts-types.md#CONFLICTS-UPDATE-DELETE),
 [INSERT/UPDATE conflicts](conflicts-types.md#CONFLICTS-INSERT-UPDATE),
-[Global data conflicts](conflicts-types.md#AEN2392), [Divergent
+[Global data conflicts](conflicts-types.md#AEN2387), [Divergent
 conflicts](conflicts-types.md#CONFLICTS-DIVERGENT)
 
 DROP DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP INDEX CONCURRENTLY, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP OWNED, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 DROP ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1524)
+statements](ddl-replication-statements.md#AEN1519)
 
 DROP USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 :::
 
 ::: INDEXDIV
-## [F]{#AEN5457} {#f .INDEXDIV}
+## [F]{#AEN5452} {#f .INDEXDIV}
 
 Functions, [Functions](functions.md)
 :::
 
 ::: INDEXDIV
-## [G]{#AEN5462} {#g .INDEXDIV}
+## [G]{#AEN5457} {#g .INDEXDIV}
 
 Global Sequence
 
@@ -372,7 +372,7 @@ Global Sequence
 :::
 
 ::: INDEXDIV
-## [L]{#AEN5468} {#l .INDEXDIV}
+## [L]{#AEN5463} {#l .INDEXDIV}
 
 limitations, [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
@@ -384,11 +384,11 @@ constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX),
 [INSERT/UPDATE conflicts](conflicts-types.md#CONFLICTS-INSERT-UPDATE),
 [Exclusion constraint
 conflicts](conflicts-types.md#CONFLICTS-EXCLUSION), [Global data
-conflicts](conflicts-types.md#AEN2392)
+conflicts](conflicts-types.md#AEN2387)
 :::
 
 ::: INDEXDIV
-## [M]{#AEN5479} {#m .INDEXDIV}
+## [M]{#AEN5474} {#m .INDEXDIV}
 
 max_replication_slots configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
@@ -405,13 +405,13 @@ see also Catalogs
 :::
 
 ::: INDEXDIV
-## [N]{#AEN5494} {#n .INDEXDIV}
+## [N]{#AEN5489} {#n .INDEXDIV}
 
 Node Management, [Node Management](node-management.md)
 :::
 
 ::: INDEXDIV
-## [P]{#AEN5499} {#p .INDEXDIV}
+## [P]{#AEN5494} {#p .INDEXDIV}
 
 pg_xlog_wait_remote_apply, [Node management
 functions](functions-node-mgmt.md)
@@ -421,7 +421,7 @@ functions](functions-node-mgmt.md)
 :::
 
 ::: INDEXDIV
-## [R]{#AEN5507} {#r .INDEXDIV}
+## [R]{#AEN5502} {#r .INDEXDIV}
 
 REFRESH MATERIALIZED VIEW, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -432,7 +432,7 @@ Replication Sets, [Replication Sets](replication-sets.md)
 :::
 
 ::: INDEXDIV
-## [S]{#AEN5518} {#s .INDEXDIV}
+## [S]{#AEN5513} {#s .INDEXDIV}
 
 SECURITY LABEL, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -448,20 +448,20 @@ subscribe,
 :::
 
 ::: INDEXDIV
-## [T]{#AEN5532} {#t .INDEXDIV}
+## [T]{#AEN5527} {#t .INDEXDIV}
 
 track_commit_timestamp configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
 :::
 
 ::: INDEXDIV
-## [U]{#AEN5537} {#u .INDEXDIV}
+## [U]{#AEN5532} {#u .INDEXDIV}
 
 Upgrading BDR, [Upgrading BDR](upgrade.md)
 :::
 
 ::: INDEXDIV
-## [W]{#AEN5542} {#w .INDEXDIV}
+## [W]{#AEN5537} {#w .INDEXDIV}
 
 wal_level configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)

@@ -32,7 +32,7 @@ The most important changes are:
 There are important compatibility changes in this release. BDR 1.0
 removes UDR. If you need one-way replication on unpatched community
 PostgreSQL 9.4/9.5/9.6, use
-[pglogical](2ndquadrant.com/pglogical) instead. BDR 1.0
+[pglogical](2ndquadrant.com/pglogical){target="_top"} instead. BDR 1.0
 is also fully not interoperable with 0.9.x; it cannot join a 0.9.x group
 and 0.9.x cannot join a 1.0 group. However individual nodes in the
 existing 0.9.x cluster can be upgraded to 1.0 one by one, keeping the

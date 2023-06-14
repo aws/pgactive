@@ -41,18 +41,18 @@ requirements](install-requirements.md).
 ### [2.2.1.1. Install PostgreSQL 9.6 from yum.postgresql.org]{#AEN257} {#install-postgresql-9.6-from-yum.postgresql.org .SECT3}
 
 The BDR packages only support PostgreSQL from
-[yum.postgresql.org](http://yum.postgresql.org/). If you
+[yum.postgresql.org](http://yum.postgresql.org/){target="_top"}. If you
 are using a different PostgreSQL distribution you will need to modify
 and rebuild the packages or [install from source
 code](installation-source.md).
 
 If you do not already have PostgreSQL 9.6 from PGDG, install the PGDG
 repostitory for your OS from [the repository package
-list](https://yum.postgresql.org/repopackages.php), then
+list](https://yum.postgresql.org/repopackages.php){target="_top"}, then
 follow the instructions to install and start PostgreSQL 9.6.
 
 Red Hat / CentOS users should also [enable
-EPEL](https://fedoraproject.org/wiki/EPEL) as the PGDG
+EPEL](https://fedoraproject.org/wiki/EPEL){target="_top"} as the PGDG
 repositories expect it to be available.
 :::
 
@@ -61,7 +61,7 @@ repositories expect it to be available.
 
 To install BDR from RPMs you should first download and install the
 repository RPM for your distro. See [BDR repository
-installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/).
+installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/){target="_top"}.
 This RPM will configure the download location for the BDR packages and
 load the signing key into your RPM database so that the package digital
 signatures may be verified.
@@ -108,7 +108,7 @@ Confused? See [BDR requirements](install-requirements.md).
 ### [2.2.2.1. Add the apt.postgresql.org PGDG repository and install PostgreSQL 9.6]{#AEN289} {#add-the-apt.postgresql.org-pgdg-repository-and-install-postgresql-9.6 .SECT3}
 
 If you are not already using
-[apt.postgresql.org](http://apt.postgresql.org) (PGDG)
+[apt.postgresql.org](http://apt.postgresql.org){target="_top"} (PGDG)
 PostgreSQL packages, you should install that repository and install
 PostgreSQL 9.6 from there. Make sure PostgreSQL 9.6 is running normally
 before proceeding with these instructions.
@@ -119,7 +119,7 @@ before proceeding with these instructions.
 
 To install BDR from DEBs you first need to add the BDR repository to
 your server. See [BDR repository
-installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/).
+installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/){target="_top"}.
 
 ::: NOTE
 > **Note:** The package signing key is signed with 2ndQuadrant\'s master
@@ -151,7 +151,7 @@ Windows is not supported at this time. There is no major technical
 barrier to doing so but it has not been a time allocation priority. See
 [BDR requirements](install-requirements.md). If Windows support is
 important to you, [get in touch with
-2ndQuadrant](http://2ndquadrant.com/).
+2ndQuadrant](http://2ndquadrant.com/){target="_top"}.
 :::
 
 ::: SECT2
@@ -159,7 +159,7 @@ important to you, [get in touch with
 
 New users are encouraged to use PostgreSQL 9.6 from yum.postgresql.org
 and follow the [main rpm installation
-instructions](installation-packages-redhat). The
+instructions](installation-packages-redhat){target="_top"}. The
 following instructions are for installing BDR with BDR-Postgres 9.4, the
 modified PostgreSQL 9.4 that was used by BDR 1.0. This is mainly
 necessary for upgrading BDR. Confused? See [BDR
@@ -181,11 +181,11 @@ database so that the package digital signatures may be verified.
 
 RHEL and CentOS users should download and install the appropriate repo
 rpm: See [BDR repository
-installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/).
+installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/){target="_top"}.
 
 It is strongly recommended that you also enable the corresponding
 repository from
-[yum.postgresql.org](http://yum.postgresql.org/), as the
+[yum.postgresql.org](http://yum.postgresql.org/){target="_top"}, as the
 BDR repositories only contain the BDR extension and the PostgreSQL
 server, client, PLs, and the rest of the core PostgreSQL release. They
 do not contain PostGIS, PgBarman, or any of the other components already
@@ -193,7 +193,7 @@ included in yum.postgresql.org releases. BDR is fully compatible with
 these components.
 
 Red Hat / CentOS users should also [enable
-EPEL](https://fedoraproject.org/wiki/EPEL).
+EPEL](https://fedoraproject.org/wiki/EPEL){target="_top"}.
 :::
 
 ::: SECT3
@@ -281,10 +281,10 @@ requirements](install-requirements.md).
 
 To install BDR from DEBs you first need to add the BDR repository to
 your server. See [BDR repository
-installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/).
+installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/){target="_top"}.
 
 Install and activate the
-[apt.postgresql.org](http://apt.postgresql.org) (PGDG)
+[apt.postgresql.org](http://apt.postgresql.org){target="_top"} (PGDG)
 PostgreSQL repository. This is required by the Postgres-BDR 9.4
 packages. Do [ *not*]{.emphasis} emphasis install PostgreSQL 9.4 from
 apt.postgresql.org.

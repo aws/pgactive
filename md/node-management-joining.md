@@ -56,7 +56,7 @@ of a logical backup using [pg_dump]{.APPLICATION} and
 [pg_restore]{.APPLICATION} vs a physical copy using
 [pg_basebackup]{.APPLICATION}. See the [PostgreSQL documentation on
 backup and
-restore](http://www.postgresql.org/docs/current/static/backup.html)
+restore](http://www.postgresql.org/docs/current/static/backup.html){target="_top"}
 for more information.
 
 In general it\'s more convenient to use logical join when you have an
@@ -81,7 +81,7 @@ configuration easy, when a new node joins it automatically configures
 all existing nodes to connect to it. For this reason, every node,
 including the first BDR node created, must know the [PostgreSQL
 connection
-string](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING)
+string](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING){target="_top"}
 (sometimes referred to as a DSN, for \"data source name\") that other
 nodes can use to connect to it.
 

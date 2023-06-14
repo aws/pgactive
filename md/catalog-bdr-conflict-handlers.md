@@ -15,7 +15,7 @@ handlers](conflicts-user-defined-handlers.md). Do not modify this
 table directly.
 
 ::: TABLE
-[]{#AEN4096}
+[]{#AEN4091}
 
 **Table 13-6. `bdr.bdr_conflict_handlers`{.STRUCTNAME} Columns**
 

@@ -25,10 +25,10 @@ conflicts](conflicts-types.md#CONFLICTS-FOREIGN-KEY)
 9.2.3. [Exclusion constraint
 conflicts](conflicts-types.md#CONFLICTS-EXCLUSION)
 
-9.2.4. [Global data conflicts](conflicts-types.md#AEN2392)
+9.2.4. [Global data conflicts](conflicts-types.md#AEN2387)
 
 9.2.5. [Lock conflicts and deadlock
-aborts](conflicts-types.md#AEN2413)
+aborts](conflicts-types.md#AEN2408)
 
 9.2.6. [Divergent conflicts](conflicts-types.md#CONFLICTS-DIVERGENT)
 

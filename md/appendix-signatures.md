@@ -11,7 +11,7 @@
 
 The signing key ID used for source code and RPM releases of BDR versions
 based on PostgreSQL 9.4 is [the key
-`0x6E192B0E`{.LITERAL}](http://packages.2ndquadrant.com/postgresql-bdr94-2ndquadrant/RPM-GPG-KEY-2NDQ-BDR-94).
+`0x6E192B0E`{.LITERAL}](http://packages.2ndquadrant.com/postgresql-bdr94-2ndquadrant/RPM-GPG-KEY-2NDQ-BDR-94){target="_top"}.
 
 To download the BDR 9.4 RPM repository key to your computer:
 
@@ -30,10 +30,10 @@ then verify that the fingerprint is the expected value:
 
 The BDR / 9.4 RPM releases key is in turn signed by [the 2ndQuadrant
 master packaging/releases key with key ID
-`0x2B11E054`{.LITERAL}](http://packages.2ndquadrant.com/2NDQUADRANT-PACKAGING-MASTER-KEY.asc).
+`0x2B11E054`{.LITERAL}](http://packages.2ndquadrant.com/2NDQUADRANT-PACKAGING-MASTER-KEY.asc){target="_top"}.
 You can [verify the fingerprint of the master packaging key on the
 2ndQuadrant
-website.](http://2ndquadrant.com/signing-keys)
+website.](http://2ndquadrant.com/signing-keys){target="_top"}
 
 For checking tarballs, download the BDR release signing key as shown
 above, then use [gpg]{.APPLICATION} directly to verify, e.g.:
@@ -69,7 +69,7 @@ The packaging master key also signs the repository key for the Debian
 and Ubuntu packages. The current repository key ID for the apt
 repository is `0xAA7A6805`{.LITERAL} and can be downloaded from [the
 repository
-site](http://packages.2ndquadrant.com/bdr/apt/AA7A6805.asc).
+site](http://packages.2ndquadrant.com/bdr/apt/AA7A6805.asc){target="_top"}.
 :::
 
 ::: NAVFOOTER
