@@ -175,6 +175,8 @@ bdr_worker_shmem_startup(void)
 		/* Worker management starts unpaused */
 		BdrWorkerCtl->worker_management_paused = false;
 
+		BdrWorkerCtl->in_init_exec_dump_restore = false;
+
 		/*
 		 * The postmaster keeps track of a generation number for BDR workers
 		 * and increments it at each restart.
@@ -331,6 +333,7 @@ bdr_worker_shmem_release(void)
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	bdr_worker_slot->worker_pid = 0;
 	bdr_worker_slot->worker_proc = NULL;
+	BdrWorkerCtl->in_init_exec_dump_restore = false;
 	LWLockRelease(BdrWorkerCtl->lock);
 
 	bdr_worker_type = BDR_WORKER_EMPTY_SLOT;

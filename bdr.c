@@ -678,8 +678,23 @@ bdr_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
 	if (source != PGC_S_CLIENT)
 		return false;
 
+	/*
+	 * Allow bdr.do_not_replicate to be set only during local node is restoring
+	 * from the dump of remote node.
+	 */
+	if (BdrWorkerCtl != NULL)
+	{
+		bool in_init_exec_dump_restore;
+
+		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+		in_init_exec_dump_restore = BdrWorkerCtl->in_init_exec_dump_restore;
+		LWLockRelease(BdrWorkerCtl->lock);
+
+		if (!in_init_exec_dump_restore)
+			return false;
+	}
+
 	Assert(IsUnderPostmaster);
-	Assert(!IsBackgroundWorker);
 
 	return true;
 }
