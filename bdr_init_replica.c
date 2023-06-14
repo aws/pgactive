@@ -322,6 +322,10 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 				 tmpdir, strerror(save_errno));
 	}
 
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	BdrWorkerCtl->in_init_exec_dump_restore = true;
+	LWLockRelease(BdrWorkerCtl->lock);
+
 	/*
 	 * XXX: It's worth making number of jobs with which pg_dump and pg_restore
 	 * gets executed here configurable. Perhaps, a bdr.init_node_jobs GUC is
@@ -360,6 +364,10 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
 								PointerGetDatum(tmpdir));
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	BdrWorkerCtl->in_init_exec_dump_restore = false;
+	LWLockRelease(BdrWorkerCtl->lock);
 
 	/* Clean up temporary directory we used for storing pg_dump. */
 	bdr_init_replica_cleanup_tmpdir(0, CStringGetDatum(tmpdir));
