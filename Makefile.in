@@ -15,10 +15,10 @@ MODULE_big = bdr
 EXTENSION = bdr
 DATA = extsql/bdr--2.0.7.0.sql
 DOCS = README.bdr
-SCRIPTS_built = scripts/bdr_initial_load bdr_init_copy bdr_dump bdr_resetwal
+SCRIPTS_built = bdr_init_copy bdr_dump bdr_resetwal
 EXTRA_CLEAN = bdr_init_copy$(X) bdr_init_copy.o bdr_version.h .distgitrev \
 	tmp_check results log tmp_tap_tests regression.diffs regression.out \
-	bdr_init_copy_postgres.log home tmp_test_* scripts/bdr_initial_load \
+	bdr_init_copy_postgres.log home tmp_test_* \
 	bdr_dump$(X) $(BDR_DUMP_OBJS) bdr_resetwal$(X) $(BDR_RESETWAL_OBJS) \
 	${distdir}.tar.bz2
 
@@ -179,11 +179,6 @@ BDR_RESETWAL_OBJS := $(BDR_RESETWAL_DIR)/pg_resetwal.o
 bdr_resetwal: $(BDR_RESETWAL_OBJS)
 	$(CC) $(CFLAGS) $(BDR_RESETWAL_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -o $@$(X)
 
-scripts/bdr_initial_load: scripts/bdr_initial_load.in
-	@mkdir -p $(shell dirname $@)
-	sed -e "s/BDR_VERSION/$(BDR_VERSION)/" -e "s/PG_VERSION/$(VERSION)/" $< > $@
-	@chmod +x $@
-
 bdr_init_copy: bdr_init_copy.o bdr_common.o
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) -o $@$(X)
 
@@ -208,7 +203,7 @@ run_tests: run_tests.in  config.status configure
 configure: configure.in
 	cd ${bdr_abs_srcdir} && autoreconf
 
-all: scripts/bdr_initial_load bdr_init_copy bdr_dump bdr_resetwal
+all: bdr_init_copy bdr_dump bdr_resetwal
 
 doc:
 	$(MAKE) -C doc all
