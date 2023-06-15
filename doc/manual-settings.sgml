@@ -471,6 +471,20 @@
       </listitem>
      </varlistentry>
 
+     <varlistentry id="guc-bdr-log-min-messages" xreflabel="bdr.log_min_messages">
+      <term><varname>bdr.log_min_messages</varname> (<type>enum</type>)
+       <indexterm>
+        <primary><varname>bdr.log_min_messages</varname> configuration parameter</primary>
+       </indexterm>
+      </term>
+      <listitem>
+       <para>
+        Only affects BDR. Set the log_min_messages level for the BDR background
+        workers (default value is <literal>WARNING</literal>).
+       </para>
+      </listitem>
+     </varlistentry>
+
      <varlistentry id="guc-bdr-do-not-replicate" xreflabel="bdr.do_not_replicate">
       <term><varname>bdr.do_not_replicate</varname> (<type>boolean</type>)
        <indexterm>
