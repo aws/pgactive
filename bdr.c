@@ -93,6 +93,7 @@ bool		bdr_discard_mismatched_row_attributes;
 bool		bdr_trace_replay;
 int			bdr_trace_ddl_locks_level;
 char	   *bdr_extra_apply_connection_options;
+int			bdr_log_min_messages = WARNING;
 
 PG_MODULE_MAGIC;
 
@@ -150,6 +151,60 @@ static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
 	{"none", DDL_LOCK_TRACE_NONE, false},
 	{NULL, 0, false}
 };
+
+/*
+ * bdr_error_severity --- get string representing elevel
+ */
+const char *
+bdr_error_severity(int elevel)
+{
+	const char *elevel_char;
+
+	switch (elevel)
+	{
+		case DEBUG1:
+			elevel_char = "DEBUG1";
+			break;
+		case DEBUG2:
+			elevel_char = "DEBUG2";
+			break;
+		case DEBUG3:
+			elevel_char = "DEBUG3";
+			break;
+		case DEBUG4:
+			elevel_char = "DEBUG4";
+			break;
+		case DEBUG5:
+			elevel_char = "DEBUG5";
+			break;
+		case LOG:
+			elevel_char = "LOG";
+			break;
+		case INFO:
+			elevel_char = "INFO";
+			break;
+		case NOTICE:
+			elevel_char = "NOTICE";
+			break;
+		case WARNING:
+			elevel_char = "WARNING";
+			break;
+		case ERROR:
+			elevel_char = "ERROR";
+			break;
+		case FATAL:
+			elevel_char = "FATAL";
+			break;
+		case PANIC:
+			elevel_char = "PANIC";
+			break;
+		default:
+			elevel_char = "???";
+			break;
+	}
+
+	return elevel_char;
+}
 
 void
 bdr_sigterm(SIGNAL_ARGS)
@@ -524,6 +579,10 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	SetConfigOption("synchronous_commit",
 					bdr_synchronous_commit ? "local" : "off",
 					PGC_BACKEND, PGC_S_OVERRIDE);	/* other context? */
+
+	/* set log_min_messages */
+	SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+					PGC_POSTMASTER, PGC_S_OVERRIDE);
 
 	if (worker_type == BDR_WORKER_APPLY)
 	{
@@ -996,6 +1055,16 @@ _PG_init(void)
 							   PGC_SIGHUP,
 							   0,
 							   NULL, NULL, NULL);
+
+	DefineCustomEnumVariable("bdr.log_min_messages",
+							 gettext_noop("log_min_messages for the bdr bgworkers."),
+							 NULL,
+							 &bdr_log_min_messages,
+							 WARNING,
+							 bdr_message_level_options,
+							 PGC_SIGHUP,
+							 GUC_SUPERUSER_ONLY,
+							 NULL, NULL, NULL);
 
 	EmitWarningsOnPlaceholders("bdr");
 
