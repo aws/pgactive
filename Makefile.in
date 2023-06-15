@@ -205,12 +205,6 @@ configure: configure.in
 
 all: bdr_init_copy bdr_dump bdr_resetwal
 
-doc:
-	$(MAKE) -C doc all
-
-install-doc:
-	$(MAKE) -C doc install
-
 check: regress_check prove_check isolationcheck
 
 regress_check: all install
