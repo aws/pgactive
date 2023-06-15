@@ -20,10 +20,7 @@ EXTRA_CLEAN = bdr_init_copy$(X) bdr_init_copy.o bdr_version.h .distgitrev \
 	tmp_check results log tmp_tap_tests regression.diffs regression.out \
 	bdr_init_copy_postgres.log home tmp_test_* \
 	bdr_dump$(X) $(BDR_DUMP_OBJS) bdr_resetwal$(X) $(BDR_RESETWAL_OBJS) \
-	doc/html ${distdir}.tar.bz2
-
-# pgxs doesn't know how to handle directories of docs, or built docs, so the
-# html docs will get separate rules below.
+	${distdir}.tar.bz2
 
 # When in development add -Werror.
 PG_CPPFLAGS = -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
@@ -208,12 +205,6 @@ configure: configure.in
 
 all: bdr_init_copy bdr_dump bdr_resetwal
 
-doc:
-	$(MAKE) -C doc all
-
-install-doc:
-	$(MAKE) -C doc install
-
 check: regress_check prove_check isolationcheck
 
 regress_check: all install
@@ -318,11 +309,9 @@ git-dist: clean
 distclean maintainer-clean: clean
 # 	Place these doc clean and maintainer-clean before removing
 # 	Makefile.global down below because they need Makefile.global.
-	$(MAKE) -C doc clean
-	$(MAKE) -C doc maintainer-clean
 	rm -f config.status config.log
 	rm -f bdr_config_generated.h Makefile Makefile.global
 	rm -f run_tests
 	rm -rf autom4te.cache/
 
-.PHONY: all doc install-doc check regress_check prove_check installcheck isolationcheck git-dist distclean maintainer-clean
+.PHONY: all check regress_check prove_check installcheck isolationcheck git-dist distclean maintainer-clean
