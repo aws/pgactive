@@ -1,0 +1,1021 @@
+<chapter id="catalogs-views" xreflabel="Catalogs and Views">
+ <title>Catalogs and Views</title>
+ <indexterm>
+  <primary>Catalogs</primary>
+  <secondary>Views</secondary>
+  <seealso>Monitoring</seealso>
+ </indexterm>
+
+ <sect1 id="catalog-bdr-nodes" xreflabel="bdr.bdr_nodes">
+  <title>bdr.bdr_nodes</title>
+
+  <para>
+   The <literal>bdr.bdr_nodes</literal> table keeps track of a node's
+   membership in a &bdr; group.  A row is inserted or updated in the table
+   during the node join process, and during node removal.
+  </para>
+
+  <para>
+   The 'status' column may have the following values, which are subject to change:
+   <itemizedlist>
+    <listitem><para><literal>r</literal>- Ready: The node can function fully. Slots may be created on this node and it can participate with the &bdr group.  </para> </listitem>
+    <listitem><para><literal>b</literal>- Joining: The node is bootstrapping. This state occurs when join has been initiated but a copy has not yet been begun.</para></listitem>
+    <listitem><para><literal>i</literal>- Joining: The node is doing initial slot creation or an initial dump and load</para> </listitem>
+    <listitem><para><literal>c</literal>- Joining: The node is catching up to the target node and is not yet ready to participate with the &bdr; group.  </para> </listitem>
+    <listitem><para><literal>o</literal>- Joining: The node has caught up with the target node and is waiting for all inbound and outbound slots to be created.  </para> </listitem>
+    <listitem><para><literal>k</literal>- Parting/Parted: The node has been 'killed' or removed by the user with the function <literal>bdr.bdr_part_by_node_names</literal>.</para> </listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   Note that the status doesn't indicate whether the node is actually up right
+   now. A node may be shut down, isolated from the network, or crashed and still
+   appear as <literal>r</literal> in <literal>bdr.bdr_nodes</literal> because it's
+   still conceptually part of the BDR group. Check
+   <ulink url="http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW">pg_stat_replication</ulink>
+   and
+   <ulink url="http://www.postgresql.org/docs/current/static/catalog-pg-replication-slots.html">pg_replication_slots</ulink>
+   for the connection and replay status of a node. See <xref linkend="monitoring">.
+  </para>
+
+  <para>
+   Avoid directly modifying <literal>bdr.bdr_nodes</literal>. Use the provided
+   node management functions instead. See <xref linkend="functions-node-mgmt">.
+   It is safe to delete nodes entries that have <literal>node_state</>
+   <literal>'k'</> to re-use their node names.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_nodes</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>node_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>system_identifier from the control file of the node</entry>
+     </row>
+     <row>
+      <entry><structfield>node_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry>timeline ID of this node</entry>
+     </row>
+     <row>
+      <entry><structfield>node_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry>local database oid on the cluster (node_sysid, node_timeline)</entry>
+     </row>
+     <row>
+      <entry><structfield>node_status</structfield></entry>
+      <entry><type>char</type></entry>
+      <entry></entry>
+      <entry>Readiness of the node: [b]eginning setup, [i]nitializing, [c]atchup, creating [o]utbound slots, [r]eady, [k]illed. Doesn't indicate connected/disconnected.
+</entry>
+     </row>
+     <row>
+      <entry><structfield>node_name</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>Name of the node</entry>
+     </row>
+     <row>
+      <entry><structfield>node_local_dsn</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>Node management function:</structname><structfield>node_local_dsn</structfield></entry>
+      <entry>A local loopback or unix socket connection string that the node can use to connect to its self; this is only used during initial setup to make the database restore faster.</entry>
+     </row>
+     <row>
+      <entry><structfield>node_init_from_dsn</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>Node management function:</structname><structfield>node_external_dsn</structfield></entry>
+      <entry>Connection string of the node chosen as join target. Not used after we've joined the node.</entry>
+     </row>
+     <row>
+      <entry><structfield>node_read_only</structfield></entry>
+      <entry><type>boolean</type></entry>
+      <entry></entry>
+      <entry>False unless read-only mode for a node is turned ON.</entry>
+     </row>
+     <row>
+      <entry><structfield>node_seq_id</structfield></entry>
+      <entry><type>smallint</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+ </sect1>
+
+ <sect1 id="catalog-bdr-connections" xreflabel="bdr.bdr_connections">
+  <title>bdr.bdr_connections</title>
+
+  <para>
+   The <literal>bdr.bdr_connections</literal> table keeps track of the
+   connection strings used for each node to connect to each other node.
+  </para>
+
+  <para>
+   Avoid directly modifying <literal>bdr.bdr_connections</literal>. Use the
+   provided node management functions instead. See <xref
+   linkend="functions-node-mgmt">. It is safe to modify the connection
+   string.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_connections</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>conn_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_sysid</structfield></entry>
+      <entry>System identifer for the node this entry's dsn refers to.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_timeline</structfield></entry>
+      <entry>System timeline ID for the node this entry's dsn refers to.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_dboid</structfield></entry>
+      <entry>System database OID for the node this entry's dsn refers to</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_origin_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>If set, ignore this entry unless the local sysid is this.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_origin_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry>If set, ignore this entry unless the local timeline is this.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_origin_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry>If set, ignore this entry unless the local dboid is this.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_is_unidirectional</structfield></entry>
+      <entry><type>boolean</type></entry>
+      <entry></entry>
+      <entry>Indicates that this connection is unidirectional; there won't be a corresponding inbound connection from the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_dsn</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_local_dsn</structfield></entry>
+      <entry>A libpq-style connection string specifying how to make a connection to this node from other nodes.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_apply_delay</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>If set, milliseconds to wait before applying each transaction from the remote node. Mainly for  debugging. If null, the global default applies.</entry>
+     </row>
+     <row>
+      <entry><structfield>conn_replication_sets</structfield></entry>
+      <entry><type>text[]</type></entry>
+      <entry><structname>Node management function:</structname><structfield>replication_sets</structfield></entry>
+      <entry>Replication sets this connection should participate in, if non-default.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-node-slots" xreflabel="bdr.bdr_node_slots">
+  <title>bdr.bdr_node_slots</title>
+
+  <para>
+   The <literal>bdr.bdr_node_slots</literal> view provides a convenient
+   way to see which replication slots map to which nodes on a machine,
+   as well as the current activity of those replication slots.
+  </para>
+
+  <para>
+   It is a convenience join on <literal>bdr.bdr_nodes</literal>,
+   <literal>pg_catalog.pg_stat_replication</literal>
+   and <literal>pg_replication_slots</literal>, showing
+   which nodes have which slots, their current walsender activity
+   and their replay positions.
+  </para>
+
+  <para>
+   The columns are all the same as the corresponding columns in the
+   originating tables. An example listing might look like:
+   <programlisting>
+ node_name |                slot_name                | slot_restart_lsn | slot_confirmed_lsn | walsender_active | walsender_pid | sent_location | write_location | flush_location | replay_location 
+-----------+-----------------------------------------+------------------+--------------------+------------------+---------------+---------------+----------------+----------------+-----------------
+ nodeA     | bdr_16385_6313760193895071967_1_16385__ | 0/1A7E680        | 0/1A7E6B8          | t                |         12359 | 0/1A7E6B8     | 0/1A7E6B8      | 0/1A7E6B8      | 0/1A7E6B8
+ nodeC     | bdr_16385_6313760468754622756_1_16385__ | 0/1A7E680        | 0/1A7E6B8          | t                |         12360 | 0/1A7E6B8     | 0/1A7E6B8      | 0/1A7E6B8      | 0/1A7E6B8
+(2 rows)
+   </programlisting>
+   Note that <literal>slot_restart_lsn</literal> and
+   <literal>slot_confirmed_lsn</literal> are the <literal>restart_lsn</literal>
+   and <literal>confirmed_flush_lsn</literal> properties from
+   <literal>pg_replication_slots</literal>. The other lsn properties are from
+   <literal>pg_stat_replication</literal> and, along with the
+   <literal>walsender_pid</literal>, will be null if there's no currently
+   active replication connection for this slot.
+  </para>
+
+  <para>
+   If you want more detail from any of the joined tables, either modify the underlying
+   query obtained with <literal>SELECT pg_get_viewdef('bdr.bdr_node_slots')</literal>
+   or (preferably) join on the table(s) of interest to add more columns, using the node
+   name, slot name, or pid as the key as appropriate.
+  </para>
+
+  <para>
+   For more on the use of this view, see <xref linkend="monitoring">.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_nodes_slots</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>node_name</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_name</structfield></entry>
+      <entry>Name of peer node having a slot on current node.</entry>
+     </row>
+     <row>
+      <entry><structfield>slot_name</structfield></entry>
+      <entry><type>name</type></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.slot_name</structfield></entry>
+      <entry>A unique, cluster-wide identifier for the replication slot.</entry>
+     </row>
+     <row>
+      <entry><structfield>slot_restart_lsn</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.restrt_lsn</structfield></entry>
+      <entry>The address (LSN) of oldest WAL which still might be required by the consumer of this slot and thus won't be automatically removed during checkpoints.</entry>
+     </row>
+     <row>
+      <entry><structfield>slot_confirmed_lsn</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.slot_confirmed_flush_lsn</structfield></entry>
+      <entry>The address (LSN) up to which the logical slot's consumer has confirmed receiving data. Data older than this is not available anymore. NULL for physical slots.</entry>
+     </row>
+     <row>
+      <entry><structfield>walsender_active</structfield></entry>
+      <entry><type>boolean</type></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.active</structfield></entry>
+      <entry>True if this slot is currently actively being used.</entry>
+     </row>
+     <row>
+      <entry><structfield>walsender_pid</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry><structname>pg_replication_slots</structname><structfield>.active_pid</structfield></entry>
+      <entry>The process ID of the session using this slot if the slot is currently actively being used. NULL if inactive.</entry>
+     </row>
+     <row>
+      <entry><structfield>sent_location</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>bdr.pg_stat_replication</structname><structfield>.sent_location</structfield></entry>
+      <entry>Last transaction log position sent on this connection.</entry>
+     </row>
+     <row>
+      <entry><structfield>write_location</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>bdr.pg_stat_replication</structname><structfield>.write_location</structfield></entry>
+      <entry>Last transaction log position written to disk by this standby server.</entry>
+     </row>
+     <row>
+      <entry><structfield>flush_location</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>bdr.pg_stat_replication</structname><structfield>.flush_location</structfield></entry>
+      <entry>Last transaction log position flushed to disk by this standby server.</entry>
+     </row>
+     <row>
+      <entry><structfield>replay_location</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry><structname>bdr.pg_stat_replication</structname><structfield>.replay_location</structfield></entry>
+      <entry>Last transaction log position replayed into the database on this standby server.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+
+ </sect1>
+
+ <sect1 id="catalog-pg-stat-bdr" xreflabel="bdr.pg_stat_bdr">
+  <title>bdr.pg_stat_bdr</title>
+
+  <para>
+   Performance and conflict statistics are maintained for each node by &bdr; in
+   the <literal>bdr.pg_stat_bdr</literal> table. This table is <emphasis>not
+   replicated</emphasis> between nodes, so each node has separate stats. Each row
+   represents the &bdr; apply statistics for a different peer node.
+  </para>
+
+  <para>
+   An example listing from this table might look like:
+   <programlisting>
+   SELECT * FROM bdr.pg_stat_bdr;
+    rep_node_id | rilocalid |               riremoteid               | nr_commit | nr_rollback | nr_insert | nr_insert_conflict | nr_update | nr_update_conflict | nr_delete | nr_delete_conflict | nr_disconnect
+   -------------+-----------+----------------------------------------+-----------+-------------+-----------+--------------------+-----------+--------------------+-----------+--------------------+---------------
+              1 |         1 | bdr_6127682459268878512_1_16386_16386_ |         4 |           0 |         6 |                  0 |         1 |                  0 |         0 |                  3 |             0
+              2 |         2 | bdr_6127682494973391064_1_16386_16386_ |         1 |           0 |         0 |                  0 |         1 |                  0 |         0 |                  0 |             0
+   (2 rows)
+   </programlisting>
+  </para>
+
+  <table>
+   <title><structname>bdr.pg_stat_bdr</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>rep_node_id</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>The replication identifier for the connection with peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>relocalid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>The replication identifier for the connection with peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>riremoteid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>A unique, cluster-wide identifier for the replication slot.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_commit</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of commits on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_rollback</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of rollbacks on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_insert</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of inserts on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_insert_conflict</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of conflicts occured during inserts on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_update</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of updates on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_update_conflict</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of conflicts occured during updates on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_delete</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of deletes on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_delete_conflict</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry>Number of conflicts occured during deletes on the peer node.</entry>
+     </row>
+     <row>
+      <entry><structfield>nr_disconnect</structfield></entry>
+      <entry><type>bigint</type></entry>
+      <entry><structfield>bdr.pg_stat_get_bdr()</structfield></entry>
+      <entry></entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-conflict-history" xreflabel="bdr.bdr_conflict_history">
+  <title>bdr.bdr_conflict_history</title>
+
+  <para>
+   <literal>bdr.bdr_conflict_history</literal> contains an entry for each
+   conflict generated in the system while <xref linkend="conflicts-logging">
+   is enabled. Unless conflict logging to table is enabled this table
+   will always be empty.
+  </para>
+
+  <para>
+   This history table is <emphasis>not replicated</emphasis> between nodes, so
+   each node has separate conflict history records. This is a technical
+   limitation that may be lifted in a future release, but it also saves on
+   unnecessary replication overhead.
+  </para>
+
+  <para>
+   It is safe to <literal>TRUNCATE</literal> this table to save disk space.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_conflict_history</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>local_conflict_lsn</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry></entry>
+      <entry>xlog position at the time the conflict occured on the applying node.</entry>
+     </row>
+     <row>
+      <entry><structfield>local_conflict_time</structfield></entry>
+      <entry><type>timestamp with timezone</type></entry>
+      <entry></entry>
+      <entry>The time the conflict was detected on the applying node. This is not the conflicting transaction's commit time; see <literal>local_commit_time</literal>.</entry>
+     </row>
+     <row>
+      <entry><structfield>object_schema</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>Schema of the object involved in the conflict.</entry>
+     </row>
+     <row>
+      <entry><structfield>object_name</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>Name of the object (table, etc) involved in the conflict.</entry>
+     </row>
+     <row>
+      <entry><structfield>remote_node_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>sysid of the remote node the conflicting transaction originated from.</entry>
+     </row>
+     <row>
+      <entry><structfield>remote_xid</structfield></entry>
+      <entry><type>xid</type></entry>
+      <entry></entry>
+      <entry>xid of the remote transaction involved in the conflict.</entry>
+     </row>
+     <row>
+      <entry><structfield>remote_commit_time</structfield></entry>
+      <entry><type>timestamp with timezone</type></entry>
+      <entry></entry>
+      <entry>The time the remote transaction involved in this conflict committed.</entry>
+     </row>
+     <row>
+      <entry><structfield>remote_commit_lsn</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry></entry>
+      <entry>LSN on remote node at which conflicting transaction committed.</entry>
+     </row>
+     <row>
+      <entry><structfield>conflict_type</structfield></entry>
+      <entry><type>bdr.bdr_conflict_type</type></entry>
+      <entry></entry>
+      <entry>Nature of the conflict - insert/insert, update/delete, etc.</entry>
+     </row>
+     <row>
+      <entry><structfield>conflict_resolution</structfield></entry>
+      <entry><type>bdr.bdr_conflict_resolution</type></entry>
+      <entry></entry>
+      <entry>How the conflict was resolved/handled; see the enum definition.</entry>
+     </row>
+     <row>
+      <entry><structfield>local_tuple</structfield></entry>
+      <entry><type>json</type></entry>
+      <entry></entry>
+      <entry>For DML conflicts, the conflicting tuple from the local DB (as json), if logged.</entry>
+     </row>
+     <row>
+      <entry><structfield>remote_tuple</structfield></entry>
+      <entry><type>json</type></entry>
+      <entry></entry>
+      <entry>For DML conflicts, the conflicting tuple from the remote DB (as json), if logged</entry>
+     </row>
+     <row>
+      <entry><structfield>local_tuple_xmin</structfield></entry>
+      <entry><type>xid</type></entry>
+      <entry></entry>
+      <entry>If local_tuple is set, the xmin of the conflicting local tuple.</entry>
+     </row>
+     <row>
+      <entry><structfield>local_tuple_origin_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>The node id for the true origin of the local tuple. Differs from local_node_sysid if the tuple was originally replicated from another node.</entry>
+     </row>
+     <row>
+      <entry><structfield>error_message</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>On apply error, the error message from ereport/elog. Other error fields match.</entry>
+     </row>
+     <row>
+      <entry><structfield>error_sqlstate</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_querystring</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_cursorpos</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_detail</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_hint</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_context</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_columnname</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_typename</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_constraintname</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_filename</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_lineno</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>error_funcname</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>remote_node_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>remote_node_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>local_tuple_origin_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>local_tuple_origin_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>local_commit_time</structfield></entry>
+      <entry><type>timestamp with timezone</type></entry>
+      <entry></entry>
+      <entry>The time the local transaction involved in this conflict committed.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table> 
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-replication-set-config" xreflabel="bdr.bdr_replication_set_config">
+  <title>bdr.bdr_replication_set_config</title>
+
+  <para>
+   <literal>bdr.bdr_replication_set_config</literal> can be used to override the default
+   replication set behaviour of replicating <literal>INSERT</literal>, <literal>UPDATE</literal>
+   and <literal>DELETE</literal> operations so that it selectively replicates only one or more
+   operation types. See <xref linkend="replication-sets-changetype">.
+  </para>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-conflict-handlers" xreflabel="bdr.bdr_conflict_handlers">
+  <title>bdr.bdr_conflict_handlers</title>
+
+  <para>
+   <literal>bdr.bdr_conflict_handlers</literal> manages user-defined conflict handlers;
+   see <xref linkend="conflicts-user-defined-handlers">. Do not modify this table
+   directly.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_conflict_handlers</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>ch_name</structfield></entry>
+      <entry><type>name</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>ch_type</structfield></entry>
+      <entry><type>bdr.bdr_conflict_type</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>ch_reloid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>ch_fun</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+     <row>
+      <entry><structfield>ch_timeframe</structfield></entry>
+      <entry><type>interval</type></entry>
+      <entry></entry>
+      <entry></entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+ </sect1>
+
+ <sect1 id="catalog-bdr-locks" xreflabel="bdr.bdr_locks">
+  <title>bdr.bdr_locks</title>
+
+  <para>
+   <literal>bdr.bdr_locks</literal> is a view exposing the state of BDR's <link
+   linkend="catalog-bdr-node-slots">global DDL locking system</>. It can be used to
+   diagnose DDL locking problems and monitor the system. Query this view for lock
+   state instead of using <xref linkend="catalog-bdr-global-locks"> directly.
+  </para>
+
+  <para>
+   The information in this view is local to each node. It will not necessarily
+   be the same on every node in a BDR group. If nothing else, the
+   <structfield>lock_state</structfield> on the node acquiring or holding the
+   global DDL lock will always be different to the state on the other nodes.
+  </para>
+
+  <table>
+   <title><structname>bdr.bdr_locks</> Columns</title>
+  
+   <tgroup cols="4">
+    <thead>
+     <row>
+      <entry>Name</entry>
+      <entry>Type</entry>
+      <entry>References</entry>
+      <entry>Description</entry>
+     </row>
+    </thead>
+    <tbody>
+     <row>
+      <entry><structfield>owner_is_my_node</structfield></entry>
+      <entry><type>boolean</type></entry>
+      <entry></entry>
+      <entry>True unless another node is known to hold or be acquiring the global DDL lock</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_sysid</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_sysid</structfield></entry>
+      <entry>Node identity of the node holding or acquiring the lock</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_timeline</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_timeline</structfield></entry>
+      <entry>Node identity of the node holding or acquiring the lock</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_dboid</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_dboid</structfield></entry>
+      <entry>Node identity of the node holding or acquiring the lock</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_node_name</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry><structname>bdr.bdr_nodes</structname><structfield>.node_name</structfield></entry>
+      <entry>Node name of the node holding or acquiring the lock</entry>
+     </row>
+     <row>
+      <entry><structfield>lock_mode</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>Requested/held lock mode for DDL lock, or null if no locking currently in progress. Current modes are <literal>ddl_lock</> and <literal>write_lock</>.</entry>
+     </row>
+     <row>
+      <entry><structfield>lock_state</structfield></entry>
+      <entry><type>text</type></entry>
+      <entry></entry>
+      <entry>Progress of lock acquisition, explained in breakout below.</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_local_pid</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Process ID of backend acquiring lock if the locker is local to the current node. Null if there is no lock or the locker is on a different node. (A future version may report PIDs for remote nodes, so do not rely on this).</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_is_my_backend</structfield></entry>
+      <entry><type>boolean</type></entry>
+      <entry></entry>
+      <entry>True only if the currently querying backend on the local node is acquiring or holds the lock. A shortcut for testing <structfield>owner_local_pid</> and <structfield>owner_node_name</> etc.</entry>
+     </row>
+     <row>
+      <entry><structfield>owner_replorigin</structfield></entry>
+      <entry><type>oid</type></entry>
+      <entry><structname>pg_catalog.pg_replorigin</structname><structfield>.oid</structfield></entry>
+      <entry>Replication origin ID for the node acquiring/holding the lock. You should usually look at the node name or identity tuple instead.</entry>
+     </row>
+     <row>
+      <entry><structfield>lockcount</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Number of locks held. Debug parameter. (Always 0 or 1).</entry>
+     </row>
+     <row>
+      <entry><structfield>npeers</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Number of nodes known to be participating in locking. Debug parameter.</entry>
+     </row>
+     <row>
+      <entry><structfield>npeers_confirmed</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Number of peers for which a confirmation reply has been processed on this node, if lock acquisition is in progress (but not yet complete) and this node is the locker (state <literal>acquire_tally_confirmations</>). Debug parameter. Will rarely be equal to <structfield>npeers</> since that successfully concludes a locking request.</entry>
+     </row>
+     <row>
+      <entry><structfield>npeers_declined</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Number of peers for which a decline-lock reply has been processed on this node, if lock acquisition is in progress (but not yet complete) and this node is the locker (state <literal>acquire_tally_confirmations</>). Debug parameter. Likely to always be 0 since one decline terminates a locking request.</entry>
+     </row>
+     <row>
+      <entry><structfield>npeers_replayed</structfield></entry>
+      <entry><type>integer</type></entry>
+      <entry></entry>
+      <entry>Number of peers that have confirmed successful replay up to <replaceable>replay_lsn</> for this node. Node will be in state <literal>peer_catchup</>.</entry>
+     </row>
+     <row>
+      <entry><structfield>replay_upto</structfield></entry>
+      <entry><type>pg_lsn</type></entry>
+      <entry></entry>
+      <entry><acronym>LSN</> (Log Sequence Number, i.e. WAL position) of local node up to which peers must replay before they can send replay confirmation. The current replay position can be seen in peer nodes' <structname>pg_stat_replication</>.<structfield>replay_location</> entries for this node.</entry>
+     </row>
+    </tbody>
+   </tgroup>
+  </table>
+
+  <para>
+   See also <xref linkend="ddl-replication"> and <xref linkend="monitoring">.
+   For more information on how global DDL locking works, see <xref
+   linkend="ddl-replication-locking">.
+  </para>
+
+  <para>
+   Possible lock states are:
+   <itemizedlist>
+    <listitem><para><literal>nolock</literal> - There is no locking activity on the node</para></listitem>
+    <listitem><para><literal>acquire_tally_confirmations</literal> - This node is acquiring the global DDL lock. <structfield>owner_local_pid</structfield> contains the pid of the acquiring transaction. It has taken the local DDL lock and has sent lock requests to peers. It is waiting for all peers to respond. The count of peer responses is tallied in <structfield>npeers_confirmed</structfield>.</para></listitem>
+    <listitem><para><literal>acquire_acquired</literal> - This node has acquired the global DDL lock. <structfield>owner_local_pid</structfield> contains the pid of the acquiring transaction. All peers have confirmed that their local locks are acquired.</para></listitem>
+    <listitem><para><literal>peer_begin_catchup</literal> - This node has just received a lock request from another node that wants to acquire the DDL lock.</para></listitem>
+    <listitem><para><literal>peer_cancel_xacts</literal> - A peer node wants to acquire the global DDL lock in <literal>write_lock</literal> mode. This node is waiting for local write transactions to complete within their grace periods or respond to cancel requests.</para></listitem>
+    <listitem><para><literal>peer_catchup</literal> - A peer node wants to acquire the global DDL lock in <literal>write_lock</literal> mode. This node has no local write transactions running. It has sent replay confirmation requests for peers to confirm replay up to lsn <structfield>replay_upto</> from its peers and is waiting for their responses, which are tallied in <structfield>npeers_replayed</structfield></para></listitem>
+    <listitem><para><literal>peer_confirmed</literal> - A peer node wants to acquire the global DDL lock. This node has acquired its local DDL lock and sent confirmation to the peer.</para></listitem>
+   </itemizedlist>
+   These correspond to <type>BDRLockState</type> values in the source code.
+  </para>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-global-locks" xreflabel="bdr.bdr_global_locks">
+  <title>bdr.bdr_global_locks</title>
+
+  <para>
+   <literal>bdr.bdr_global_locks</literal> is an implementation detail for BDR's global
+   DDL locking mechanism. See <xref linkend="ddl-replication"> and <xref linkend="monitoring">.
+   <emphasis>Do not modify this table directly.</emphasis>
+  </para>
+
+  <para>
+   You are looking for <link linkend="catalog-bdr-locks"><literal>bdr.bdr_locks</></>, the information
+   view, not for this table.  See also <xref
+   linkend="ddl-replication-locking">.
+  </para>
+
+  <para>
+   You should never need to access this table.
+  </para>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-queued-commands" xreflabel="bdr.bdr_queued_commands">
+  <title>bdr.bdr_queued_commands</title>
+
+  <para>
+   <literal>bdr.bdr_queued_commands</literal> is a BDR internal implementation
+   table used for <xref linkend="ddl-replication">.  Do not modify this table
+   directly.
+  </para>
+
+  <para>
+   Every DDL operation (except table/sequence drops) that's captured and
+   replicated is inserted in this table, as is every operation manually queued
+   via <function>bdr.bdr_queue_ddl_commands()</function>. Inspecting this table
+   can be useful to determine what schema changes were made when and by whom.
+  </para>
+
+  <!-- TODO: column definitions, example content -->
+ </sect1>
+
+ <sect1 id="catalog-bdr-queued-drops" xreflabel="bdr.bdr_queued_drops">
+  <title>bdr.bdr_queued_drops</title>
+
+  <para>
+   <literal>bdr.bdr_queued_drops</literal> is a BDR internal implementation
+   table used for <xref linkend="ddl-replication">.  Do not modify this table
+   directly.
+  </para>
+
+  <para>
+   Every table/sequence drop operation that's captured and replicated is
+   inserted in this table.  Inspecting this table can be useful to determine
+   what schema changes were made when and by whom.
+  </para>
+
+  <!-- TODO: column definitions, example content -->
+ </sect1>
+
+ <sect1 id="catalog-bdr-sequence-values" xreflabel="bdr.bdr_sequence_values">
+  <title>bdr.bdr_sequence_values</title>
+
+  <para>
+   <literal>bdr.bdr_sequence_values</literal> is a BDR internal implementation
+   table used for <xref linkend="global-sequences">.  Do not modify this table
+   directly.
+  </para>
+
+  <para>
+   This table keeps track of which global sequence chunks (value ranges) have
+   been allocated to which nodes. It does <emphasis>not</emphasis> show which
+   sequence chunks have been used up. (That knowledge is only kept track of by
+   the local sequence on a node its self in the opaque binary
+   <literal>amdata</literal> field of the sequence, so it's not really
+   accessible).
+  </para>
+
+  <para>
+   You should never need to access this table.
+  </para>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-sequence-elections" xreflabel="bdr.bdr_sequence_elections">
+  <title>bdr.bdr_sequence_elections</title>
+
+  <para>
+   <literal>bdr.bdr_sequence_elections</literal> is a BDR internal implementation
+   table used for <xref linkend="global-sequences">.  Do not modify this table
+   directly. It's used when making decisions about which new sequence chunks
+   to hand out to which nodes.
+  </para>
+
+  <para>
+   You should never need to access this table.
+  </para>
+
+ </sect1>
+
+ <sect1 id="catalog-bdr-votes" xreflabel="bdr.bdr_votes">
+  <title>bdr.bdr_votes</title>
+
+  <para>
+   <literal>bdr.bdr_votes</literal> is a BDR internal implementation
+   table used for <xref linkend="global-sequences">.  Do not modify this table
+   directly. It's used when making decisions about which new sequence chunks
+   to hand out to which nodes.
+  </para>
+
+  <para>
+   You should never need to access this table.
+  </para>
+
+ </sect1>
+
+</chapter>

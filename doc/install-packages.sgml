@@ -1,0 +1,446 @@
+<sect1 id="installation-packages" xreflabel="Installing from packages">
+ <title>Installing BDR from packages</title>
+
+ <para>
+  Installation from packages is a good choice if you want the stable
+  release, as it's easier to install and to keep track of your
+  installation.
+ </para>
+ 
+ <para>
+  If you want the very latest BDR or if packages are not
+  yet available for your operating system you may instead want to
+  <link linkend="installation-source"> install from source
+  code</link>.
+ </para>
+
+ <note>
+  <para>
+   These instructions are part of the BDR source code so they will be
+   outdated if you are looking at documentation for an old BDR version.
+   Installation from packages will typically install the latest stable
+   BDR version.
+  </para>
+ </note>
+
+
+ <sect2 id="installation-packages-redhat" xreflabel="Installing from packages on RHEL, Fedora and CentOS">
+  <title>RHEL, Fedora and CentOS, PostgreSQL 9.6+</title>
+
+  <para>
+   Packages for BDR are available for Red Hat derived distros -
+   Fedora, RHEL, and CentOS. Packages are built for PostgreSQL 9.6+
+   from yum.postgresql.org ("PGDG").
+  </para>
+
+  <para>
+   If you need to install or update BDR on BDR-Postgres 9.4, see <xref
+   linkend="installation-packages-redhat">. These instructions only apply
+   to PostgreSQL 9.6. Confused? See <xref linkend="install-requirements">.
+  </para>
+
+  <sect3>
+   <title>Install PostgreSQL 9.6 from yum.postgresql.org</title>
+
+   <para>
+	The BDR packages only support PostgreSQL from <ulink
+	url="http://yum.postgresql.org/">yum.postgresql.org</ulink>. If you
+	are using a different PostgreSQL distribution you will need to modify
+	and rebuild the packages or <link linkend="installation-source">install
+	from source code</>.
+   </para>
+
+   <para>
+    If you do not already have PostgreSQL 9.6 from PGDG, install the
+	PGDG repostitory for your OS from <ulink
+	url="https://yum.postgresql.org/repopackages.php"> the repository package
+	list</>, then follow the instructions to install and start PostgreSQL 9.6.
+   </para>
+
+   <para>
+    Red Hat / CentOS users should also
+    <ulink url="https://fedoraproject.org/wiki/EPEL">enable EPEL</ulink>
+	as the PGDG repositories expect it to be available.
+   </para>
+  </sect3>
+
+  <sect3>
+   <title>Install the BDR repository RPM</title>
+
+   <para>
+	To install BDR from RPMs you should first download and install the
+	repository RPM for your distro. See <ulink
+        url="https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/">
+        BDR repository installation</ulink>.
+        This RPM will configure the download location for the BDR packages and load the
+        signing key into your RPM database so that the package digital signatures may be verified.
+   </para>
+
+   <note>
+    <para>
+     The repository RPM is signed with 2ndQuadrant's master packaging/releases
+     signing key. See <xref linkend="appendix-signatures">.
+    </para>
+   </note>
+  </sect3>
+
+  <sect3>
+   <title>Install the BDR packages</title>
+
+   <para>
+    To install the BDR-enabled PostgreSQL server, BDR extension, and the client programs, simply:
+    <programlisting>
+     sudo dnf check-update
+     sudo dnf install postgresql-bdr96-bdr
+    </programlisting>
+   </para>
+
+   <para>
+    Once BDR is installed, if this is a fresh PostgreSQL install you
+	must create a new PostgreSQL instance before proceeding, then
+    make any required changes to <filename>postgresql.conf</filename>
+    and <filename>pg_hba.conf</filename>, etc, as per any new
+    PostgreSQl install. See
+    <filename>/usr/share/doc/postgresql96/README.rpm-dist</filename>
+    for details.
+   </para>
+
+   <para>
+    You can then proceed with BDR-specific configuration per
+    <xref linkend="settings"> and <xref linkend="quickstart">.
+   </para>
+
+  </sect3>
+
+ </sect2>
+
+ <sect2 id="installation-packages-debian" xreflabel="Installing from packages on Debian or Ubuntu">
+  <title>Debian or Ubuntu, PostgreSQL 9.6</title>
+
+
+  <para>
+   These instructions are for BDR on PostgreSQL 9.6+. For BDR-Postgres 9.4, see
+   <xref linkend="installation-packages-debian-94">.  Confused? See <xref
+   linkend="install-requirements">.
+  </para>
+
+  <sect3>
+   <title>Add the apt.postgresql.org PGDG repository and install PostgreSQL 9.6</title>
+
+   <para>
+	If you are not already using <ulink
+	url="http://apt.postgresql.org">apt.postgresql.org</> (PGDG) PostgreSQL
+	packages, you should install that repository and install PostgreSQL 9.6
+	from there. Make sure PostgreSQL 9.6 is running normally before proceeding
+	with these instructions.
+   </para>
+
+  </sect3>
+
+  <sect3>
+   <title>Add the BDR repository</title>
+
+   <para>
+    To install BDR from DEBs you first need to add the BDR
+    repository to your server. See <ulink url="https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/">BDR repository installation</ulink>.
+   </para>
+
+
+   <note>
+    <para>
+     The package signing key is signed with 2ndQuadrant's master packaging/releases
+     signing key. See <xref linkend="appendix-signatures">.
+    </para>
+   </note>
+
+  </sect3>
+
+  <sect3>
+   <title>Install BDR for PostgreSQL 9.6 from packages for Debian or Ubuntu</title>
+
+   <para>
+    BDR for PostgreSQL 9.6 is just an extension. To install it, run:
+    <programlisting>
+     sudo apt-get update
+     sudo apt-get install postgresql-9.6-bdr-plugin
+    </programlisting>
+   </para>
+
+   <para>
+    Then proceed with BDR-specific configuration per
+    <xref linkend="settings"> and <xref linkend="quickstart">.
+   </para>
+
+  </sect3>
+
+ </sect2>
+
+ <sect2 id="installation-packages-windows" xreflabel="Installing from packages on Windows">
+  <title>Installing from packages on Windows</title>
+
+  <para>
+   Windows is not supported at this time. There is no major technical barrier
+   to doing so but it has not been a time allocation priority. See <xref
+   linkend="install-requirements">. If Windows support is important to you,
+   <ulink url="http://2ndquadrant.com/">get in touch with 2ndQuadrant</>.
+  </para>
+
+ </sect2>
+
+ <sect2 id="installation-packages-redhat-94" xreflabel="Installing BDR-Postgres 9.4 RPM packages">
+  <title>Installing BDR-Postgres 9.4 RPM packages</title>
+
+  <para>
+   New users are encouraged to use PostgreSQL 9.6 from yum.postgresql.org and
+   follow the <ulink url="installation-packages-redhat">main rpm installation
+   instructions</>. The following instructions are for installing BDR with
+   BDR-Postgres 9.4, the modified PostgreSQL 9.4 that was used by BDR 1.0. This
+   is mainly necessary for upgrading BDR. Confused? See <xref
+   linkend="install-requirements">.
+  </para>
+
+  <sect3>
+   <title>Install the repository RPMs</title>
+
+   <para>
+    To install BDR from RPMs you should first download and
+    install the repository RPM for your distro. This RPM will configure
+    the download location for the BDR packages and load the
+    signing key into your RPM database so that the package digital
+    signatures may be verified.
+   </para>
+
+   <note>
+    <para>
+     The repository RPM is signed with 2ndQuadrant's master packaging/releases
+     signing key. See <xref linkend="appendix-signatures">.
+    </para>
+   </note>
+
+   <para>
+    RHEL and CentOS users should download and install the appropriate repo rpm:
+    See <ulink url="https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/">BDR repository installation</ulink>.
+   </para>
+
+   <para>
+    It is strongly recommended that you also enable the
+    corresponding repository from
+    <ulink url="http://yum.postgresql.org/">yum.postgresql.org</ulink>,
+    as the BDR repositories only contain the BDR extension and the
+    PostgreSQL server, client, PLs, and the rest of the core
+    PostgreSQL release. They do not contain PostGIS, PgBarman, or
+    any of the other components already included in
+    yum.postgresql.org releases. BDR is fully compatible with these
+    components.
+   </para>
+
+   <para>
+    Red Hat / CentOS users should also
+    <ulink url="https://fedoraproject.org/wiki/EPEL">enable EPEL</ulink>.
+   </para>
+
+  </sect3>
+
+  <sect3>
+   <title>Installing PostgreSQL and BDR from packages for RHEL, Fedora or CentOS</title>
+
+   <sect4>
+    <title>Remove the <literal>postgresql94</literal> packages, if installed</title>
+
+    <note>
+     <para>If you don't already have PostgreSQL 9.4 installed, simply skip this step.</para>
+    </note>
+
+    <para>
+     BDR requires a patched version of PostgreSQL 9.4, Postgres-BDR 9.4,
+     that conflicts with the official packages from
+     yum.postgresql.org. If you already have PostgreSQL
+     9.4 installed from yum.postgresql.org, you will need
+     to make a dump of all your databases, then uninstall the PGDG
+     PostgreSQL 9.4 packages before you can install BDR
+    </para>
+
+    <para>
+     The BDR RPMs cannot co-exist with stock PostgreSQL
+     9.4, and BDR does not share the same data directory
+     as stock 9.4, so it will not be able to read your
+     existing databases. (They will not be deleted, and uninstalling
+     BDR then reinstalling stock PGDG 9.4 will get you
+     access to them again, but it is strongly recommended that you
+     dump them before installing BDR). 
+    </para>
+
+    <para>
+     Once you have fully backed up all your databases:
+     <programlisting>
+      yum remove postgresql94\*
+     </programlisting>
+     Check the list of packages to be removed carefully,
+     approve the removal if appropriate, and proceed with the removal.
+    </para>
+
+    <para>
+     Your data directory for PostgreSQL 9.4 will still
+     exist in <filename>/var/lib/pgsql/9.4</filename> but
+     will not be used while BDR is installed.
+    </para>
+
+   </sect4>
+
+   <sect4>
+    <title>Install the BDR packages</title>
+
+    <para>
+     To install the BDR-enabled PostgreSQL server, BDR extension, and the client programs, simply:
+     <programlisting>
+      sudo yum check-update
+      sudo yum install postgresql-bdr94-bdr
+     </programlisting>
+    </para>
+
+    <note>
+     <para>
+      If you attempt to install this package when you already have
+      postgresql94 installed from yum.postgresql.org, yum will report
+      a conflict refuse to install it.
+     </para>
+    </note>
+
+    <para>
+     Once BDR is installed you will need to initdb a new database,
+     make any required changes to <filename>postgresql.conf</filename>
+     and <filename>pg_hba.conf</filename>, etc, as per any new
+     PostgreSQl install. See
+     <filename>/usr/share/doc/postgresql-bdr94/README.rpm-dist</filename>
+     for details.
+    </para>
+
+    <para>
+     You can then proceed with BDR-specific configuration per
+     <xref linkend="settings"> and <xref linkend="quickstart">.
+    </para>
+
+   </sect4>
+
+  </sect3>
+
+ </sect2>
+
+ <sect2 id="installation-packages-debian-94">
+  <title>Installing BDR-Postgres 9.4 and BDR for Debian/Ubuntu</>
+
+  <para>
+   New users are encouraged to use PostgreSQL 9.6 from apt.postgresql.org and
+   follow the <link linkend="installation-packages-debian">main Debian/Ubuntu
+   installation instructions</>. The following instructions are for installing
+   BDR with BDR-Postgres 9.4, the modified PostgreSQL 9.4 that was used by BDR
+   1.0. This is mainly necessary for upgrading BDR. Confused? See <xref
+   linkend="install-requirements">.
+  </para>
+
+  <sect3>
+   <title>Add the BDR repository</title>
+
+   <para>
+    To install BDR from DEBs you first need to add the BDR repository to your server.
+    See <ulink url="https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/">BDR repository installation</ulink>.
+   </para>
+
+   <para>
+	Install and activate the <ulink
+	url="http://apt.postgresql.org">apt.postgresql.org</> (PGDG) PostgreSQL
+	repository. This is required by the Postgres-BDR 9.4 packages. Do
+	<emphasis> not</> emphasis install PostgreSQL 9.4 from apt.postgresql.org.
+   </para>
+
+
+   <note>
+    <para>
+     The package signing key is signed with 2ndQuadrant's master packaging/releases
+     signing key. See <xref linkend="appendix-signatures">.
+    </para>
+   </note>
+
+  </sect3>
+
+  <sect3>
+   <title>Installing Postgres-BDR 9.4 and BDR from packages for Debian or Ubuntu</title>
+
+   <sect4>
+    <title>Remove the <literal>postgresql-9.4</literal> packages, if installed</title>
+
+    <note>
+     <para>If you don't already have PostgreSQL 9.4 installed, simply skip this step.</para>
+    </note>
+
+    <para>
+	 BDR requires a patched version of PostgreSQL 9.4, Postgres-BDR 9.4, that
+	 conflicts with the official packages. If you already have PostgreSQL 9.4
+	 installed either from apt.postgresql.org or your official distribution
+	 repository, you will need to make a dump of all your databases, then
+	 uninstall the official PostgreSQL 9.4 packages before you can install BDR.
+    </para>
+
+    <para>
+	 The BDR Debian packages cannot co-exist with stock PostgreSQL 9.4.
+	 <emphasis>BDR uses the same data directory as stock PostgreSQL 9.4 to
+	 ensure the compatibility with system utilities, so you should always first
+	 backup the existing instalation before trying to install the BDR
+	 PostgreSQL packages.</emphasis>.
+    </para>
+
+    <para>
+     Once you have fully backed up all your databases:
+     <programlisting>
+      sudo apt-get remove postgresql-9.4
+     </programlisting>
+     Check the list of packages to be removed carefully,
+     approve the removal if appropriate, and proceed with the removal.
+    </para>
+
+   </sect4>
+
+   <sect4>
+    <title>Install the BDR packages</title>
+
+    <para>
+     To differentiate between the BDR specific packages and vanilla
+     <productname>PostgreSQL</> packages all the package names start with
+     <literal>postgresql-bdr</> instead of plain <literal>postgresql</>.
+     So if you want to install the PostgreSQL package with BDR patches
+     you should run:
+     <programlisting>
+      sudo apt-get update
+      sudo apt-get install postgresql-bdr-9.4 postgresql-bdr-9.4-bdr-plugin
+     </programlisting>
+    </para>
+
+    <note>
+     <para>
+      If you attempt to install this package when you already have
+      postgresql-9.4 installed you will get informed that the official package
+      will be removed and confirmation will be required. <emphasis>Do not
+      remove the old packages if you have existing data directory!</>
+     </para>
+    </note>
+
+    <para>
+     Once BDR is installed you will need to initdb a new database,
+     make any required changes to <filename>postgresql.conf</filename>
+     and <filename>pg_hba.conf</filename>, etc, as per any new
+     PostgreSQl install. This works with standard system utilities like
+     <command>pg_createcluster</>.
+    </para>
+
+    <para>
+     You can then proceed with BDR-specific configuration per
+     <xref linkend="settings"> and <xref linkend="quickstart">.
+    </para>
+
+   </sect4>
+
+  </sect3>
+
+ </sect2>
+
+</sect1>

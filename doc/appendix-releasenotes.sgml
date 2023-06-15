@@ -1,0 +1,819 @@
+<appendix id="releasenotes" xreflabel="Release notes">
+ <title>Release notes</title>
+ <indexterm>
+  <primary>Release notes</primary>
+ </indexterm>
+
+ <para>
+  Signficant changes to the &bdr; extension are documented
+  in the release notes. Please read the release notes for all versions between
+  yours and the version to plan to upgrade to before performing an upgrade,
+  as there may be version-specific upgrade steps.
+ </para>
+
+ <para>
+  See also: <xref linkend="upgrade">.
+ </para>
+
+ <sect1 id="release-2.0.5">
+
+  <title>Release 2.0.5</title>
+
+  <para><emphasis>Thu Mar 8, 2018</emphasis></para>
+
+  <para>
+   Fixes and improvements:
+   <itemizedlist>
+    <listitem><para>Work around a core postgres reorderbuffer corruption bug with a change in the BDR output plugin. See <ulink url="https://www.postgresql.org/message-id/CAMsr+YHdX=XECbZshDZ2CZNWGTyw-taYBnzqVfx4JzM4ExP5xg@mail.gmail.com">the mailing list discussion</ulink> of the issue.</para></listitem>
+    <listitem><para>Ignore column-count mismatches if the mismatched columns are all nullable or dropped. This makes recovery from some kinds of operator errors simpler, and with sufficient care can be used to bypass DDL locking for adding new nullable columns to tables.</para></listitem>
+    <listitem><para>Fix possible deadlock in the apply worker in the <literal>find_pkey_tuple()</literal> function.</para></listitem>
+    <listitem><para>Be stricter about memory context handling and leak prevention during apply. In particular be careful not to fall back to <literal>TopMemoryContext</literal>. May help some possible memory leak issues.</para></listitem>
+    <listitem><para>Reset the apply worker memory context on every commit, not just when all messages have been consumed. May help with some possible memory leak issues.</para></listitem>
+   </itemizedlist>
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-2.0.4">
+  <title>Release 2.0.4</title>
+
+  <para><emphasis>Tue Oct 24, 2017</></>
+
+  <para>
+   Fixes and improvements:
+   <itemizedlist>
+    <listitem><para>Block use of DML in <literal>bdr.bdr_replicate_ddl_command</literal> and <link linkend="function-bdr-replicate-ddl-command">update docs</link></></>
+    <listitem><para>Fix memory leak when <literal>bdr.trace_replay = on</literal></></>
+    <listitem><para>Fix crash on startup when restarted during DDL lock catchup state</></>
+    <listitem><para>Add new <link linkend="function-bdr-wait-slot-confirm-lsn"><literal>bdr.wait_slot_confirm_lsn</literal></link> function for node synchronisation</></>
+    <listitem><para><link linkend="release-2.0.4-applyworker">Fix possible hang in apply worker</link></></>
+    <listitem><para>Track <structfield>local_commit_time</structfield> in <link linkend="catalog-bdr-conflict-history"><literal>bdr.bdr_conflict_history</literal></link></></>
+    <listitem><para>Fix <literal>apply_delay</literal> for remote commit timestamps that are in the local node's future due to clock skew</para></listitem>
+    <listitem><para>Support compilation against PostgreSQL 10's <literal>libpq</literal>, for Debian derivative packaging</para></listitem>
+    <listitem><para>Show database name and application_name in logs for BDR workers</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <sect2 id="release-2.0.4-dml">
+   <title>Block use of DML in <literal>bdr.bdr_replicate_ddl_command</literal></title>
+
+   <para>
+    BDR 2.0.4 now blocks use of DML in
+    <function>bdr.bdr_replicate_ddl_command</function> to guard against
+    operations that could cause inconsistent data between nodes or cause
+    replication to stop.
+   </para>
+
+   <para>
+    It's almost never correct to put DML in
+    <function>bdr.replicate_ddl_command</function>. At best you'll get
+    conflicts, if your DML <literal>UPDATE</literal>s or
+    <literal>DELETE</literal>s data in a table using only immutable
+    expressions.
+   </para>
+    
+   <para>
+    More likely you'll get duplicate data if you do <literal>INSERT</literal>s
+    with synthetic keys, because it gets replicated once as a statement and
+    again as a decoded row change. The two rows might be different if you use
+    sequences, volatile functions, etc.
+   </para>
+    
+   <para>
+    If your DML is mixed with DDL, you can break replication. For example:
+    <programlisting>
+    bdr.bdr_replicate_ddl_command($DDL$
+        ALTER TABLE t1 ADD COLUMN foo integer;
+        UPDATE t1 SET foo = bar;
+        ALTER TABLE t1 DROP COLUMN bar;
+    $DDL$);
+    </programlisting>
+    
+    will break replication with the error
+    
+    <programlisting>
+    ERROR: data for dropped column
+    </programlisting>
+    
+    because BDR applies the whole compound SQL statement string from
+    <function>bdr.bdr_replicate_ddl_command</function>. Then it decodes the <literal>UPDATE</literal>d rows,
+    and tries to send them to the downstream. But the downstream already
+    applied the whole SQL statement string... so the target column 'bar'
+    doesn't exist anymore.
+   </para>
+
+   <para>
+    Replication will then fail with an error like
+    <programlisting>
+    ERROR: 42P10: remote tuple has different column count to local table
+    DETAIL: Table "public"."test" has 15 columns on local node (...) vs 16 on remote node (...)
+    </programlisting>
+    or on older BDR versions:
+    <programlisting>
+    ERROR: XX000: tuple natts mismatch, 15 vs 16
+    </programlisting>
+   </para>
+    
+   <para>
+    There's no safe way to handle this. If we suppressed logical decoding of
+    rows generated during a <function>bdr.bdr_replicate_ddl_command</function>,
+    we'd introduce the issues seen in statement-based replication with volatile
+    functions etc instead. As if we were permitting full table rewrites.
+   </para>
+    
+   <para>
+    So 2.0.4 simply disallows DML in
+    <function>bdr.bdr_replicate_ddl_command</function>. It will now fail with a
+    message like:
+    <programlisting>
+    ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
+    HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements
+    </programlisting>
+   </para>
+  </sect2>
+
+  <sect2 id="release-2.0.4-applyworker">
+   <title>Fix possible hang in apply worker</title>
+
+   <para>
+    An apply worker could get stuck while releasing a "write" mode global DDL
+    lock, causing replication to stop and the slot on the other end to become
+    inactive. The stuck worker would not respond to
+    <literal>pg_terminate_backend</literal> or <literal>kill -TERM</literal>.
+    The other end would report a network error or walsender timeout.
+   </para>
+
+   <para>
+    Recovery required a PostgreSQL shutdown with <literal>pg_ctl -m immediate
+    stop</literal>, killing of the stuck worker with
+    <literal>SIGQUIT</literal> or <literal>SIGKILL</literal> then starting
+    PostgreSQL back up.
+   </para>
+
+   <para>
+    If the underlying conditions that caused this issue are triggered, BDR will
+    now emit a log message like
+    <programlisting>
+      WARNING: DDL LOCK TRACE: backend 1234 already registered as waiter for DDL lock release
+    </programlisting>
+    and prevent the problem.
+   </para>
+
+  </sect2>
+
+ </sect1>
+
+ <sect1 id="release-2.0.3">
+  <title>Release 2.0.3</title>
+
+  <para><emphasis>Mon Jul 31, 2017</></>
+
+  <para>
+   BDR 2.0.3 is a maintenance release for the 2.0 series
+  </para>
+
+  <para>
+   Fixes and improvements:
+   <itemizedlist>
+    <listitem><para>Permit <literal>CREATE INDEX CONCURRENTLY</literal> and <literal>DROP INDEX CONCURRENTLY</literal> as raw DDL when <varname>bdr.skip_ddl_replication = on</varname> is set. It is still not accepted via <function>bdr.bdr_replicate_ddl_command</function>.</></>
+    <listitem><para>Fix an infinite loop that could occur during cancellation of write-locks (looping in <function>BackendIdGetProc</>)</></>
+    <listitem><para>Fix shmem detach when workers are paused</></>
+    <listitem><para>Support and document <application>bdr_init_copy</> on a base backup pre-copied by rsync or other tools</></>
+    <listitem><para>Ensure that <application>bdr_init_copy</application> properly respects a pre-existing <filename>recovery.conf</filename></></>
+    <listitem><para>Expand <application>bdr_init_copy</application> regression tests</></>
+    <listitem><para>Improve error message for "tuple natts mismatch" to identify affected table, ec</></>
+    <listitem><para></></>
+    <listitem><para></></>
+    <listitem><para></></>
+    <listitem><para></></>
+   </itemizedlist>
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-2.0.2">
+  <title>Release 2.0.2</title>
+
+  <para><emphasis>Thu Jun 29, 2017</></>
+
+  <para>
+   BDR 2.0.2 is a maintenance release for the 2.0 series.
+  </para>
+
+  <para>
+   Fixes and improvements:
+   <itemizedlist>
+    <listitem><para>Fix issue where COPY wasn't filtered by read-only mode</></>
+    <listitem><para>Allow <literal>bdr.permit_unsafe_ddl_commands</> to override read-only mode on a node</></>
+    <listitem><para>Fix join when postgis extension (or any other extension containing <literal>INSERT</>s in the extension script) is in use</></>
+   </itemizedlist>
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-2.0.1">
+  <title>Release 2.0.1</title>
+
+  <para><emphasis>Fri Jun 23, 2017</></>
+
+  <para>
+   BDR 2.0.1 is a maintenance release for the 2.0 series.
+  </para>
+
+  <para>
+   Fixes and improvements:
+   <itemizedlist>
+    <listitem><para>Documentation updates to reflect 2.0 changes</></>
+   </itemizedlist>
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-2.0.0">
+  <title>Release 2.0.0</title>
+
+  <para><emphasis>Fri Jun 16, 2017</></>
+
+  <para>
+   BDR 2.0 is a major update that brings compatibility with unmodified community
+   PostgreSQL 9.6, a new DDL replication model, a new implementation of global
+   sequences, and more.
+  </para>
+
+  <para>
+   It it <emphasis>crucial</> that BDR 1.0 users read the <link linkend="upgrade">
+   documentation on upgrading from BDR 1.0.</>.
+  </para>
+
+  <para>
+   Notable release highlights are:
+   <itemizedlist>
+    <listitem><para>Compatibility with community PostgreSQL 9.6</></>
+    <listitem><para>Still compatible with Postgres-BDR 9.4 for existing users</></>
+    <listitem><para>Runs as an extension on PostgreSQL 9.6, no patched PostgreSQL required</></>
+    <listitem><para>New global sequences implementation that doesn't experience exhaustion under load or network partitions</></>
+    <listitem><para>New DDL replication implementation for PostgreSQL 9.6 compatibility. This brings a different set of limitations and benefits.</></>
+    <listitem><para>Retains compatibility with BDR-Postgres 9.4</></>
+    <listitem><para>Support for joining new nodes concurrently</></>
+   </itemizedlist>
+  </para>
+
+  <para>
+   There are some important compatibility changes between BDR 1.0 and 2.0 when
+   run on PostgreSQL 9.6, due to functionality present in Postgres-BDR 9.4 that
+   is not available in community PostgreSQL 9.6. Specifically:
+   <itemizedlist>
+    <listitem>
+     <para>
+      Transparent DDL replication is not (yet) supported by BDR 2.0 on
+      PostgreSQL 9.6. All DDL must be wrapped in <link
+      linkend="function-bdr-replicate-ddl-command"><literal>bdr.bdr_replicate_ddl_command(...)</></>
+      calls.
+     </>
+    </>
+    <listitem>
+     <para>
+      BDR 1.0-style global sequences created with <literal>USING bdr</> or
+      <literal>default_sequenceam = 'bdr'</> are <emphasis>not</> supported by
+      BDR 2.0 on PostgreSQL 9.6. An <link linkend="global-sequences">alternate
+      global sequences implementation</> is provided for BDR 2.0. Users on
+      Postgres-BDR 9.4 are also encouraged to switch to the new global
+      sequences model to ease future upgrades and because the new model is more
+      resilient against network partitions.
+     </>
+    </>
+    <listitem>
+     <para>
+      Nodes are now read-only while joining, and only become read/write once
+      fully joined.
+     </para>
+    </listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   There is some more information about compatibility in <xref linkend="upgrade">.
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-1.0.2">
+  <title>Release 1.0.2</title>
+
+  <para><emphasis>Mon Nov 14, 2016</></>
+
+  <para>
+   The BDR 1.0.2 maintenance release fixes an intermittent failure in
+   <application>bdr_init_copy</> caused by failure to wait until promotion
+   of a copied node has fully completed. (#255).
+  </para>
+
+  <para>
+   Also fixes failure to replicate the <literal>ch_timeframe</> argument to
+   peers when user defined conflict handlers are created.
+  </para>
+
+  <para>
+   Alongside the bdr-plugin 1.0.2 release, BDR-Postgres is updated to 9.4.10,
+   including all fixes and improvements from PostgreSQL 9.4.10. See
+   <ulink url="https://www.postgresql.org/docs/9.4/static/release-9-4-10.html">
+   the PostgreSQL 9.4.10 release notes</>.
+  </para>
+  
+ </sect1>
+
+ <sect1 id="release-1.0.1">
+  <title>Release 1.0.1</title>
+
+  <para>
+   The 1.0.1 maintenance release fixes a significant bug in
+   <literal>bdr_group_join</> caused by <literal>bdr_dump</> running parts of
+   the binary upgrade code that it shouldn't have. This could lead to incorrect
+   frozenxids among other issues.
+  </para>
+
+  <para>
+   A variety of minor documentation and message fixes are also incorporated; see
+   the git log.
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-1.0.0">
+  <title>Release 1.0.0</title>
+
+  <para>
+   The 1.0.0 release improves schema change DDL locking, the documentation,
+   managment tools, and more. It is <link linkend="upgrade">a straightforward
+   upgrade for 0.9.x users</link>, however they should upgrade to bdr-pg 9.4.9
+   before upgrading to bdr-plugin 1.0.0.
+  </para>
+
+  <para>
+   The most important changes are:
+   <itemizedlist>
+    <listitem><para>improvements to DDL locking to reduce its operational impact by allowing write transactions a grace period before cancellation, blocking new write transactions instead of ERRORing, and allowing many DDL operations to avoid blocking row writes at all</para></listitem>
+    <listitem><para>the removal of UDR</para></listitem>
+    <listitem><para>a fix for dropped column handling when cloning new nodes via bdr_node_join</para></listitem>
+    <listitem><para>global sequence improvements to improve behavior when rapidly consuming sequence values</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   There are important compatibility changes in this release. BDR 1.0 removes
+   UDR. If you need one-way replication on unpatched community PostgreSQL
+   9.4/9.5/9.6, use <ulink url="2ndquadrant.com/pglogical">pglogical</ulink>
+   instead. BDR 1.0 is also fully not interoperable with 0.9.x; it cannot join
+   a 0.9.x group and 0.9.x cannot join a 1.0 group. However individual nodes
+   in the existing 0.9.x cluster can be upgraded to 1.0 one by one, keeping
+   the cluster as a whole available during the process.
+  </para>
+
+  <para>
+   Changes in release:
+  </para>
+
+  <para>
+   <itemizedlist>
+    <listitem><para>Fix handling of dropped columns during logical node init to prevent "tuple natts mismatch" errors (git 9323f3, #113, #114)</para></listitem>
+    <listitem><para>Remove UDR</para></listitem>
+    <listitem><para>Wait up to a minute for new sequence values from an exhausted global sequence before ERRORing (git f7e9b4)</para></listitem>
+    <listitem><para>Don't acquire global DDL lock for non-schema-qualified temp table DROPs (#124)</para></listitem>
+    <listitem><para>Add a grace period before killing all write transactions when acquiring DDL lock, configured by bdr.max_ddl_lock_delay (git 0e02cc27, 91a0d2505)</para></listitem>
+    <listitem><para>Make DML wait when DDL lock held, instead of ERRORing (git b754c0c4)</para></listitem>
+    <listitem><para>Add a DDL-lock-specific timeout, bdr.bdr_ddl_lock_timeout (git 91a0d2505)</para></listitem>
+    <listitem><para>Add a new DDL lock type that only blocks other DDL, not DML (insert/update/delete) (git 10b331fe, 6d2a09fb)</para></listitem>
+    <listitem><para>Cache more values for global sequences, make cache size configurable with cache_chunks reloption (git 071e94)</para></listitem>
+    <listitem><para>Ensure sequence cache is never re-used after physical node copy (#101)</para></listitem>
+    <listitem><para>Increase default sequence chunk size to 10k (git ff0726)</para></listitem>
+    <listitem><para>Expand node part/join sanity checks and error messages (git 6c58df and others)</para></listitem>
+    <listitem><para>Permit DML on pg_catalog tables (#102) </para></listitem>
+    <listitem><para>Create BDR's internal TRUNCATE triggers as internal triggers (git 0c96b9ff, #62)</para></listitem>
+    <listitem><para>Apply workers notice replication set changes and DSN changes without manual termination/restart (git 7faf648e)</para></listitem>
+    <listitem><para>Make bdr_apply_resume() take immediate effect (git 72eb77) </para></listitem>
+    <listitem><para>Ignore dangling bdr_connections rows without a corresponding bdr_nodes entry (git 509848, #50, #97, #126)</para></listitem>
+    <listitem><para>Don't acquire the global DDL lock when creating or dropping indexes on temporary tables (git aebd93, courtesy of Michael Allen) </para></listitem>
+    <listitem><para>Fix crash on insert into a table with an expression index (git 06f52b, courtesy of Abdul Yadi)</para></listitem>
+    <listitem><para>Make bdr_supervisordb checks less strict to fix vacuumdb -a and other tools (git dba912, #154)</para></listitem>
+    <listitem><para>Group multiple replicated TRUNCATEs into a single command to fix TRUNCATE with foreign keys or TRUNCATE CASCADE (git fcdf1b, #48)</para></listitem>
+    <listitem><para>Add management functions for connection replication sets</para></listitem>
+    <listitem><para>Add low level apply/replay tracing via bdr.trace_replay (git 4feb4004b, #185) </para></listitem>
+    <listitem><para>Add DDL lock tracing/logging via bdr.trace_ddl_locks_level (git beee79dd4)</para></listitem>
+    <listitem><para>Allow specification of connection options for all BDR connections with bdr.extra_apply_connection_options (git 491f5e90a, #173)</para></listitem>
+    <listitem><para>Enable TCP keepalives by default on apply worker (#173)</para></listitem>
+    <listitem><para>Backport access to 'pid' and 'confirmed_flush_lsn' columns of pg_replication_slots from 9.5 and 9.6 via new bdr.pg_replication_slots view (#186).</para></listitem>
+    <listitem><para>Add functions to terminate apply and walsender workers (bdr_terminate_walsender_workers and bdr_terminate_apply_workers)</para></listitem>
+    <listitem><para>Add a function to allow BDR workers to skip over changes (#181)</para></listitem>
+    <listitem><para>Add functions to control replication sets configured for a connection</para></listitem>
+    <listitem><para>Add a function to completely remove BDR from a node, bdr.remove_bdr_from_local_node()</para></listitem>
+    <listitem><para>Extensive documentation updates</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   The biggest changes are around <xref linkend="ddl-replication-locking">.
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-0.9.3">
+  <title>Release 0.9.3</title>
+
+  <para>
+   The 0.9.3 release adds a few minor fixes and improves compatibility with
+   BDR 0.7.x for upgrades. It is not a required update.
+  </para>
+ </sect1>
+
+ <sect1 id="release-0.9.2">
+  <title>Release 0.9.2</title>
+
+  <para>
+   Version 0.9.2 is a maintenance release focused on stability
+   and usability, specially in <application>bdr_init_copy</application>.
+  </para>
+
+  <para>
+   Significant improvements to &bdr; in this release include:
+   <itemizedlist>
+    <listitem><para>New nodes created by <application>bdr_init_copy</application> could re-use global sequence values (#101)</para></listitem>
+    <listitem><para>Permit DML on <literal>pg_catalog</literal> tables (#102)</para></listitem>
+    <listitem><para>Check exit code of utilities lauched by <application>bdr_init_copy</application> (#100)</para></listitem>
+    <listitem><para>Ensure log locations are writeable before <application>bdr_init_copy</application> (#99)</para></listitem>
+    <listitem><para>add <literal>--replication_sets</literal> option for <application>bdr_init_copy</application></para></listitem>
+    <listitem><para>sanity check existing data directory before doing <application>bdr_init_copy</application> (#91)</para></listitem>
+    <listitem><para>handle multiple remote BDR databases correctly with <application>bdr_init_copy</application> (#88)</para></listitem>
+    <listitem><para>set <literal>node_local_dsn</literal> and <literal>node_name</literal> correctly in <application>bdr_init_copy</application></para></listitem>
+    <listitem><para><application>bdr_init_copy</application> fixes for connection string parsing</para></listitem>
+    <listitem><para>be less strict about version string matching for <application>pg_dump</application>, etc (#89, #75)</para></listitem>
+    <listitem><para>improve error message on apply failures caused by multiple unique indexes</para></listitem>
+    <listitem><para>Make sequence pernode cache configurable</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <para>
+   There are no compatibility-affecting changes in this release.
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-0.9.1">
+  <title>Release 0.9.1</title>
+
+  <para>
+   Version 0.9.1 is a maintenance release focused on stability
+   and performance.
+  </para>
+
+  <important>
+   <para>
+    There is a minor incompatible bug fix in this release. The direction of
+    replication sets is reversed between nodes whose set memberships differ.
+    Previously, if node A was a member of set x, and node B was a member of set
+    y, then a table that is part of set x would be replicated from A=>B but not
+    B=>A. That is reversed as of BDR 0.9.1 so that nodes receive data on tables
+    that are part of their replication sets.
+   </para>
+  </important>
+
+  <para>
+   Significant improvements to &bdr; in this release include:
+   <itemizedlist>
+    <listitem><para>Fix direction of replication sets (see above)</para></listitem>
+    <listitem><para>Fix PK detection on inherited tables (BDR)</para></listitem>
+    <listitem><para>Fix bdr.bdr_replication_identifier table definition (UDR)</para></listitem>
+    <listitem><para>Don't acquire table locks in command filter (BDR/UDR)</para></listitem>
+    <listitem><para>Rename 'bdr' reserved db to 'bdr_supervisordb', prevent users from connecting, and protect against drop (BDR/UDR, #60)</para></listitem>
+    <listitem><para>Bug fixes in <application>bdr_init_copy</application> handling of connection strings (BDR/UDR, #61)</para></listitem>
+    <listitem><para>Fixes for UNLOGGED tables in the command filter (BDR/UDR, #44)</para></listitem>
+    <listitem><para>Permit fast shutdown when replication is paused (BDR/UDR, #58)</para></listitem>
+    <listitem><para>Introduce <xref linkend="guc-bdr-permit-ddl-locking"> to help prevent unintended global DDL locks</para></listitem>
+    <listitem><para>Remove slots when parting a node (BDR, #73)</para></listitem>
+    <listitem><para><literal>bdr.table_set_replication_sets</literal> no longer requires <literal>permit_unsafe_ddl_commands</literal> (UDR, #67)</para></listitem>
+    <listitem><para>Improve sequencer locking and pgstat reporting (BDR/UDR)</para></listitem>
+    <listitem><para>Add <xref linkend="function-bdr-apply-is-paused"> information function</para></listitem>
+   </itemizedlist>
+   Where available a github bug number follows the release entry. Additional
+   details are available from the changelog in git.
+  </para>
+
+  <para>
+   Two changes add minor new functionality:
+  </para>
+
+  <para>
+   As of 0.9.1 it is now possible for sessions to <literal>SET
+   bdr.permit_ddl_locking = false</literal> to cause commands that would
+   require the global DDL lock to be acquired to instead fail with an ERROR.
+   Administrators may choose to set this in <literal>postgresql.conf</literal>
+   then have sessions that intend to do DDL override it. See <xref
+   linkend="guc-bdr-permit-ddl-locking"> and <xref
+   linkend="ddl-replication"> for more information.
+  </para>
+
+  <para>
+   The new information function <xref linkend="function-bdr-apply-is-paused">
+   can be called on a node to determine whether replay from peer nodes is
+   paused on that node.
+  </para>
+
+ </sect1>
+
+ <sect1 id="release-0.9.0">
+  <title>Release 0.9.0</title>
+
+  <para>
+   The 0.9.0 release was tagged on Tue Mar 24 2015 as git tag
+   <literal>bdr-plugin/0.9.0</literal>. This release requires
+   bdr-Pg <literal>bdr-pg/REL9_4_1-1</literal> to support full
+   BDR functionality.
+  </para>
+
+   <para>
+    Development of BDR 0.9.0 was performed by the
+    <ulink url="http://2ndquadrant.com">2ndQuadrant</ulink> BDR team.
+    Multiple customers contributed funding and other resources to make this
+    release possible. 2ndQuadrant continues to fund the ongoing development of
+    BDR to meet internal needs and those of customers.
+   </para>
+
+  <para>
+   Significant features and improvements to &bdr; in this release include:
+   <itemizedlist>
+    <listitem><para>Dynamic SQL-level configuration of connections between nodes</para></listitem>
+    <listitem><para>Joining new nodes no longer requires restarting all nodes</para></listitem>
+    <listitem><para>Easy node removal</para></listitem>
+    <listitem><para><xref linkend="command-bdr-init-copy"> performs its own <application>pg_basebackup</application></para></listitem>
+    <listitem><para>Many helper and information functions</para></listitem>
+    <listitem><para>Documentation expanded and moved into the source tree</para></listitem>
+    <listitem><para>FreeBSD compatibility</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <sect2 id="release-0.9.0-dynconf" xreflabel="Dynamic configuration">
+   <title>Dynamic configuration</title>
+
+   <para>
+    The biggest change with 0.9.0 is that connections between nodes are now
+    configured using the <xref linkend="function-bdr-group-create"> and
+    <xref linkend="function-bdr-group-join"> SQL function calls. It is no
+    longer necessary to restart any existing nodes when joining a node. Even
+    the newly joining node can join without a restart if it was initially
+    configured with the settings required for running &bdr; (see
+    <xref linkend="settings-prerequisite">).
+   </para>
+
+   <para>
+    <literal>bdr.connections</literal> is now unused and ignored. If it
+    remains in <filename>postgresql.conf</filename> a warning will be issued
+    in the PostgreSQL log on startup.
+   </para>
+
+   <para>
+    For details, see the <xref linkend="node-management"> chapter.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.9.0-node-removal" xreflabel="Easy node removal">
+   <title>Easy node removal</title>
+
+   <para>
+    The new <xref linkend="function-bdr-part-by-node-names"> function allows easy
+    online node removal. There is no need to restart nodes or to manually
+    delete replication identifiers and slots. Multiple nodes may be
+    removed at once.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.9.0-init-copy" xreflabel="bdr_init_copy">
+   <title><application>bdr_init_copy</application> makes its own base backup</title>
+
+   <para>
+    <application>bdr_init_copy</application> can now make its own base backup
+    of the target node, and does so by default. Its user interface has also
+    been overhauled as part of the update to support dynamic configuration.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.9.0-docs" xreflabel="Documentation in the source tree">
+   <title>Documentation in the source tree</title>
+
+   <para>
+    Formal documentation has been written and added to the &bdr; source tree
+    to replace the prior ad-hoc wiki based documentation. This allows users
+    to more easily refer to documentation specific to their particular
+    version and permits the documentation to be updated at the same time
+    as the source code.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.9.0-freebsd" xreflabel="FreeBSD compatibility">
+   <title>FreeBSD compatibility</title>
+
+   <para>
+    &bdr; is now tested and built automatically on FreeBSD.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.9.0-functions" xreflabel="New helper functions">
+   <title>New helper functions</title>
+
+   <para>
+    Many new helper functions have been added, see <xref linkend="functions">.
+   </para>
+
+  </sect2>
+
+ </sect1>
+
+ <sect1 id="release-0.8.0">
+  <title>Release 0.8.0</title>
+
+  <para>
+   The 0.8.0 release was tagged on Fri Feb 6 2015 as git tag
+   <literal>bdr-plugin/0.8.0</literal>. This release requires
+   bdr-Pg <literal>bdr-pg/REL9_4_1-1</literal> to support full
+   BDR functionality.
+  </para>
+
+  <para>
+   Upgrading to 0.8.0 from 0.7.x requires a <application>pg_dump</application>
+   and <application>pg_restore</application> or
+   <application>pg_upgrade</application> because the on-disk format of
+   the PostgreSQL database changed between 9.4beta2 and 9.4.0 final.
+  </para>
+
+  <para>
+   Significant features and improvements to &bdr; in this release include:
+   <itemizedlist>
+    <listitem><para>UDR (Uni-Directional Replication)</para></listitem>
+    <listitem><para>Replication Sets</para></listitem>
+    <listitem><para>Global sequence performance improvements</para></listitem>
+    <listitem><para>Improvements to conflict handling</para></listitem>
+    <listitem><para>Many robustness and testing improvements</para></listitem>
+   </itemizedlist>
+  </para>
+
+  <sect2 id="release-0.8.0-replication-sets" xreflabel="Replication sets">
+   <title>Replication sets</title>
+
+   <para>
+    Replication sets have been introduced. This new feature allows admins to
+    specify sets of tables that each node should receive changes on. It is now
+    possible to exclude tables that are not of interest to a particular node, or to
+    include only a subset of tables for replication to a node. Replication sets can
+    be used for data distribution, for data integration and for limited sharding.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.8.0-global-sequence-performance" xreflabel="Global sequence performance improvements">
+   <title>Global sequence performance improvements</title>
+
+   <para>
+    The performance of global sequence voting has been greatly improved,
+    especially at higher node counts. It is now less likely for transactions to
+    fail because of global sequence exhaustion when the BDR group is under
+    significant write load.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.8.0-ddl-replication" xreflabel="DDL replication improvements">
+   <title>DDL Replication improvements</title>
+
+   <para>
+    Many more DDL commands can be replicated. Fixes have been applied for
+    issues with replicating a few of the previously supported commands.
+   </para>
+
+   <para>
+    DDL commands that will cause full table rewrites are detected and
+    prohibited early.
+   </para>
+
+   <para>
+    Commands that are disallowed on normal tables are now permitted on temp
+    tables, including <literal>CREATE TABLE ... AS SELECT ...</literal>.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.8.0-conflict-handling" xreflabel="Conflict handling enhancements">
+   <title>Conflict handling enhancements</title>
+
+   <para>
+    User defined conflict handlers can now return replacement tuples for
+    <literal>UPDATE</literal>/<literal>DELETE</literal> conflicts.
+   </para>
+
+   <para>
+    User defined conflict handlers are invoked for
+    <literal>DELETE</literal>/<literal>DELETE</literal> conflicts.
+   </para>
+
+   <para>
+    Spurious conflicts are no longer logged after node initialisation.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.8.0-source-split" xreflabel="Extension source code separation">
+   <title>Extension source code separation</title>
+
+   <para>
+    The BDR source code has been split into two parts: a set of patches to
+    PostgreSQL 9.4 and a separate PostgreSQL extension. This helps streamline
+    work on integrating the features BDR requires into core PostgreSQL for
+    releases 9.5 and onward.
+   </para>
+
+   <para>
+    The patched PostgreSQL is now tracked in git branches prefixed with
+    <filename>bdr-pg/</filename>, mainly
+    <filename>bdr-pg/REL9_4_STABLE</filename>.  The extension is now tracked in
+    git branches prefixed with <filename>bdr-plugin/</filename>, mainly
+    <filename>bdr-plugin/RELX_Y_STABLE</filename> (stable releases)
+    and <filename>bdr-plugin/next</filename> (current development tree).
+    All branches share the same working repository.
+   </para>
+
+   <para>
+    Prior releases of the BDR plugin were in the
+    <filename>contrib/bdr</filename> subdirectory of the patched PostgreSQL
+    source tree instead.
+   </para>
+
+  </sect2>
+
+  <sect2 id="release-0.8.0-other" xreflabel="Other changes">
+   <title>Other changes</title>
+
+   <itemizedlist>
+    <listitem>
+     <simpara>
+      Permit the 'bdr' output plugin to be used from the SQL interface for
+      logical replication. This is primarily useful for debugging.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      Less memory is required to replay and apply large transactions.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      The bdr_get_local_nodeid() function is available to return the local node's (sysid,timeline,dboid) tuple.
+     </simpara>
+    </listitem>
+    <listitem>
+     <simpara>
+      The <literal>bdr_version_num()</literal> and <literal>bdr_min_remote_version_num()</literal>
+      functions were added. See <xref linkend="functions">.
+     </simpara>
+    </listitem>
+   </itemizedlist>
+
+  </sect2>
+
+ </sect1>
+
+
+ <sect1 id="release-0.7" xreflabel="0.7.x Releases">
+  <title>Release 0.7.0</title>
+
+  <para>
+   BDR 0.7.0 was tagged on Tue Aug 19 2014 as git tag
+   <literal>bdr/0.7.0</literal>.  The 0.7.0 release was the first &bdr; release
+   for which RPM packages were available, and the first significant release to
+   the public.
+  </para>
+
+  <para>
+   0.7.0 was based on PostgreSQL 9.4 beta2. It is not on-disk compatible with
+   final PostgreSQL releases.
+  </para>
+
+  <para>
+   There was no separate <literal>bdr-pg</literal> for this release.
+  </para>
+
+  <para>
+   Detailed release information for 0.7.0 and prior releases may be found in
+   the git tree.
+  </para>
+
+  <para>
+   0.7.0 was followed by a bugfix release, 0.7.1 on Tue Sep 2 2014 as git tag
+   <literal>bdr/0.7.1</literal>. See the tag comments for details.
+  </para>
+
+ </sect1>
+
+
+</appendix>

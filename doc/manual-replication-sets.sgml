@@ -1,0 +1,239 @@
+<chapter id="replication-sets" xreflabel="Replication Sets">
+ <title>Replication Sets</title>
+ <indexterm>
+  <primary>Replication Sets</primary>
+ </indexterm>
+ <para>
+  Sometimes it is not desirable to replicate all changes that happen in a
+  database to all other nodes in a BDR group. E.g. it might not be convenient
+  and efficient to replicate a table containing session data.
+ </para>
+
+ <para>
+  In simple cases, application developers may simply use
+  <literal>UNLOGGED</literal> tables (a stock PostgreSQL feature). Since such
+  tables don't generate write-ahead-log (WAL) activity, they are completely
+  invisible to logical decoding and thus to BDR. No changes to unlogged tables
+  are replicated.
+ </para>
+
+ <para>
+  Where more complex arrangements are needed, replication sets are available.
+ </para>
+
+ <sect1 id="replication-sets-concepts" xreflabel="Replication Set Concepts">
+  <title>Replication Set Concepts</title>
+  <para>
+   In a BDR group, each table belongs to one or more replication sets. The
+   replication sets <literal>all</literal> and <literal>default</literal> are
+   created implicitly by &bdr;. As the names suggest, all tables are in
+   replication set <literal>all</literal>, and every table is also initially
+   in the replication set <literal>default</literal>.
+  </para>
+  <para>
+   Replication set membership is its self replicated, so tables' membership in
+   replication sets is the same on all nodes in a group. To achieve different
+   data replication to different nodes, some nodes' connections must be
+   configured to receive non-default replication sets.
+  </para>
+  <para>
+   Each node's connection settings specify the replication sets that it
+   receives from its peers. These settings may be further overridden on a
+   node-to-node basis, specifying the replication sets one node should receive
+   from some other node.
+  </para>
+  <para>
+   This means that the changes actually received by a given node from some
+   other node are determined by the replication set memberships of the table
+   being changed and which replication sets the node the node receiving the changes
+   is a member of, unless overridden by more specific replication sets
+   specified for the connection from the receiving node to the sending node. A
+   change is received if the changed table is in at least one replication set
+   that the receiver is also accepting changes from, i.e. the table replication
+   sets intersect the connection replication sets.
+  </para>
+  <para>
+   For example, if table A is in replication sets
+   <literal>{'X','default'}</literal> is modified on some node N0, some other node N1 with
+   replication sets <literal>{'default'}</literal> will receive the changes.
+   If some other node N2 has replication sets <literal>{'X'}</literal> it will
+   still receive the change because table A is still in replication set
+   <literal>X</literal>.  If another node N3 has replication sets
+   <literal>{'Y'}</literal> it will <emphasis>not</emphasis> receive the
+   change, because it isn't receiving either of the replication sets that table
+   A is a member of.
+  </para>
+  <para>
+   When a new &bdr; node is created or connected to the &bdr; cluster, it
+   defaults to replicating all changes in the <literal>default</literal>
+   replication set. This behaviour can be overridden at node join time,
+   or changed later via the replication set control functions.
+  </para>
+  <note>
+   <para>
+    Replication set membership does <emphasis>not</emphasis> affect which
+    tables' schemas are synced, either at initial node join or on subsequent
+    DDL replication operations. DDL on a table always affects all nodes,
+    regardless of replication set membership. Similarly, replication set
+    membership does not affect which tables' content data are copied in an
+    initial node join (though this may be subject to change in a future
+    release).
+   </para>
+  </note>
+
+  <warning>
+   <para>
+    Currently <literal>TRUNCATE</literal> is <emphasis>always</emphasis> replicated,
+    even if a table is not a member of any active replication set. Use
+    <literal>DELETE FROM tablename;</literal>
+    if this is not desired.
+   </para>
+  </warning>
+
+ </sect1>
+
+ <sect1 id="replication-sets-creation" xreflabel="Creating replication sets">
+  <title>Creating replication sets</title>
+
+  <para>
+   Replication sets are not created or dropped explicitly. Rather, a
+   replication set exists if it has one or more tables assigned to it or one or
+   more connections consuming it. The <literal>default</literal> replication
+   set always exists, and contains all tables that have not been explicitly
+   assigned to another replication set. Adding a table to some non-default
+   replication set <emphasis>removes it from the <literal>default</literal>
+   replication set</emphasis> unless you also explicitly name the
+   <literal>default</literal> replication set in its set memberships.
+  </para>
+ </sect1>
+
+ <sect1 id="replication-sets-nodes" xreflabel="Node Replication Control">
+  <title>Node Replication Control</title>
+  <para>
+   The names of the replications sets of which changes should be received
+   can be set when adding the node to the &bdr; cluster using the (optional)
+   <literal>replication_sets</literal> parameter to
+   <xref linkend="function-bdr-group-create">,
+   <xref linkend="function-bdr-group-join"> and
+   <xref linkend="functions-node-mgmt-subscribe">.
+   This parameter is an array of replication set names. The replication
+   set do not have to exist to be referenced by
+   <literal>replication_sets</literal>.
+  </para>
+  <para>
+   To change one node's replication sets in a running &bdr; cluster, the <xref
+   linkend="function-bdr-connection-set-rep-sets-byname"> functions
+   should be used. Changes only need to be made on one node, since BDR
+   connection configuration is its self replicated to all other nodes. The
+   global DDL lock is not taken by this operation.
+  </para>
+  <para>
+   Changes to replication set memberships will generally take effect after the
+   transaction currently being processed by a node. To force the change to take
+   effect immediately it is safe to
+   <function>pg_terminate_backend(...)</function> the BDR apply workers running
+   on all nodes. They will reconnect and resume work on the last transaction
+   they were working on, with the new replication set configuration enabled.
+  </para>
+ </sect1>
+
+ <sect1 id="replication-sets-tables" xreflabel="Table Replication Control">
+  <title>Table Replication Control</title>
+  <para>
+   A newly created table is initially part of replication set
+   <literal>default</literal>. It is assigned to more or different sets
+   by <xref linkend="function-bdr-table-set-replication-sets">.
+   This operation aquires a DDL lock and can be used in a fully functional
+   &bdr; cluster with no down/missing members.
+  </para>
+  <para>
+   The array of sets a table is part of is retrieved by
+   <xref linkend="function-bdr-table-get-replication-sets">.
+  </para>
+  <para>
+   Adding a table to a replication set does <emphasis>not</emphasis>
+   synchronize the table's contents to nodes that were not previously receiving
+   changes for that table and will now do so. This means the table remains
+   inconsistent across nodes. It is generally necessary for the administrator
+   to manually synchronize the table after adding it to a replication set. The
+   simplest way to do this, albeit inefficiently and only if there are no
+   foreign keys references to the table, is to start a transaction, copy the
+   table's contents to a temp table, truncate the original table, copy the
+   table's contents back to the original table, and commit. Alternately, the
+   admin may use <application>psql</application>'s <literal>\copy</literal>
+   with <xref linkend="guc-bdr-do-not-replicate"> to (carefully!) sync the
+   newly-replicated table's contents to the receiving node, typically
+   by joining two <application>psql</application> sessions with a pipe.
+   A future BDR release will add a built-in facility to consistently
+   resynchronize a table.
+  </para>
+  <para>
+   Removing a table from a replication set does not cause it to be emptied
+   on nodes that will no longer receive changes to it. On those nodes the
+   table just stops getting new changes, so it's frozen in time.
+  </para>
+  <para>
+   Table replication set membership changes take effect only for writes
+   performed after the set change. Any nodes still replaying old changes
+   due to replication lag/delay will continue to receive them with the prior
+   replication set memberships until they replay up to the point in the logical
+   change history where the replication set memberships changed. This means
+   you can't change a table's replication sets to get a node to skip over
+   a lot of write activity after the fact. (However, if the table was already
+   in some different replication set, you <emphasis>can</emphasis> change
+   which replication sets the node replays from to skip that set, since
+   node replication set memberships take immediate effect).
+  </para>
+ </sect1>
+
+ <sect1 id="replication-sets-changetype" xreflabel="Change-type replication sets">
+  <title>Change-type replication sets</title>
+
+  <para>
+   In addition to table- and node-level replication set control, it's also
+   possible to configure which <emphasis>operations</emphasis> replication sets
+   replicate.  A replication set can be configured to replicate only
+   <literal>INSERT</literal>s, for example. New rows inserted in the table will
+   be replicated, but <literal>UPDATE</literal>s of existing rows will not be,
+   and when a row is <literal>DELETE</literal>d the remote copies of the row
+   won't be deleted. Obviously this creates node-to-node inconsistencies, so
+   it must be used with extreme caution.
+  </para>
+
+  <para>
+   The main use of operation-level replication set control is maintaining
+   archive and DW nodes, where data removed from other nodes is retained on the
+   archive/DW node.
+  </para>
+
+  <para>
+   Operation-level replication set control is a low-level advanced feature that
+   doesn't yet have any management functions for it. To customise which operations
+   a replication set syncs, <literal>INSERT</literal> a row into
+   <literal>bdr.bdr_replication_set_config</literal>, like:
+   <programlisting>
+    INSERT INTO bdr.bdr_replication_set_config(set_name, replicate_inserts, replicate_updates, replicate_deletes)
+    VALUES ('set_name', 't', 't', 't');
+   </programlisting>
+   Adjust the replication flags as desired for the intended replication set
+   function.
+  </para>
+
+  <para>
+   Like all replication set changes, changes to the operations replicated by
+   a replication set take effect only for new data changes; no
+   already-replicated rows will be retroactively changed.
+  </para>
+
+  <warning>
+   <para>
+    Currently the <literal>TRUNCATE</literal> operation is
+    <emphasis>always</emphasis> replicated, even if a table is not a member of
+    any active replication set. Use <literal>DELETE FROM tablename;</literal>
+    if this is not desired.
+   </para>
+  </warning>
+
+ </sect1>
+
+</chapter>

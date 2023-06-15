@@ -1,0 +1,307 @@
+<chapter id="quickstart" xreflabel="Quick-start guide">
+ <title>Quick-start guide</title>
+
+ <para>
+  This section gives a quick introduction to &bdr, including setting up a
+  sample &bdr; installation and a few simple examples to try. Note that this
+  section assumes 9.6bdr and doesn't apply exactly to 9.4bdr.
+ </para>
+
+ <para>
+  These instructions are not suitable for a production install, as they neglect
+  security considerations, proper system administration procedure, etc. The
+  instructions also <emphasis>assume everything is all on one host</emphasis>
+  so all the <filename>pg_hba.conf</filename> examples etc show localhost. If
+  you're trying to set up a production &bdr; install, read the rest of the
+  &bdr; manual, starting with <xref linkend="installation"> and <xref
+  linkend="functions-node-mgmt">.
+ </para>
+
+ <note>
+  <para>
+   BDR uses <ulink
+   url="https://www.postgresql.org/docs/9.6/static/libpq-connect.html#LIBPQ-CONNSTRING">libpq
+   connection strings</ulink> throughout. The term "DSN" (for "data source
+   name") refers to a libpq connection string.
+  </para>
+ </note>
+
+ <para>
+  For this Quick Start example, we are setting up a two node cluster with two
+  PostgreSQL instances on the same server. We are using the terms node and instance
+  interchangeably because there's one node per PostgreSQL instance in this case, and
+  in most typical BDR setups.
+ </para>
+
+  <para>
+   To try out BDR you'll need to install the BDR extension. Then it's necessary
+   to <application>initdb</application> new database install(s), edit their
+   configuration files to load BDR, and start them up.
+  </para>
+
+  <para>
+   This quickstart guide only discusses BDR on PostgreSQL 9.6. For BDR on patched
+   PostgreSQL 9.4 see the main docs and install information.
+  </para>
+
+  <para>
+  Information about installing &bdr; from packages can be found in <xref linkend="installation-packages"> or installing from source
+  can be found in <xref linkend="installation-source">.
+  </para>
+
+  <sect1 id="quickstart-instances">
+    <title>Creating BDR-enabled PostgreSQL nodes/instances</title>
+    <para>
+     Since we're creating two new PostgreSQL node/instances for this example, run:
+     <programlisting>
+     mkdir -p $HOME/2ndquadrant_bdr
+     initdb -D $HOME/2ndquadrant_bdr/bdr5598 -A trust -U postgres
+     initdb -D $HOME/2ndquadrant_bdr/bdr5599 -A trust -U postgres
+     </programlisting>
+    </para>
+
+    <para>
+     Adjust the data directory path (the path after <literal>-D</literal>) if you want
+     to use a different location. The rest of these instructions will assume you
+     ran exactly the commands given above.
+    </para>
+
+    <para>
+     These commands do <emphasis>not</emphasis> start BDR, or connect
+     the two instances. They just create two independent PostgreSQL
+     instances, ready to be configured and started.
+    </para>
+
+    <note>
+     <para>
+      In a production install you should use the operating system and package
+      management system's standard locations for the data directory and startup
+      scripts. Manual initdb is mainly is suitable for test and
+      experimentation.
+     </para>
+    </note>
+
+  </sect1>
+
+  <sect1 id="quickstart-editing">
+    <title>Editing the configuration files to enable BDR</title>
+
+    <para>
+     Edit the postgresql.conf file for both nodes/instances:
+    </para>
+
+    <programlisting>
+    shared_preload_libraries = 'bdr'
+    wal_level = 'logical'
+    track_commit_timestamp = on
+    max_connections = 100
+    max_wal_senders = 10
+    max_replication_slots = 10
+    # Make sure there are enough background worker slots for BDR to run
+    max_worker_processes = 10
+
+    # These aren't required, but are useful for diagnosing problems
+    #log_error_verbosity = verbose
+    #log_min_messages = debug1
+    #log_line_prefix = 'd=%d p=%p a=%a%q '
+
+    # Useful options for playing with conflicts
+    #bdr.default_apply_delay=2000   # milliseconds
+    #bdr.log_conflicts_to_table=on
+    </programlisting>
+
+    <para>
+     Edit or uncomment authentication parameters to allow replication in the
+     pg_hba.conf file for both nodes/instances:
+    </para>
+
+    <programlisting>
+    local   replication   postgres                  trust
+    host    replication   postgres     127.0.0.1/32 trust
+    host    replication   postgres     ::1/128      trust
+    </programlisting>
+
+  </sect1>
+
+  <sect1 id="quickstart-starting">
+    <title>Starting the BDR-enabled PostgreSQL nodes/instances</title>
+
+    <para>
+     Start your nodes/instances from the command line of your operating system:
+    </para>
+
+    <programlisting>
+    pg_ctl -l $HOME/2ndquadrant_bdr/bdr5598.log -D $HOME/2ndquadrant_bdr/bdr5598 -o "-p 5598" -w start
+    pg_ctl -l $HOME/2ndquadrant_bdr/bdr5599.log -D $HOME/2ndquadrant_bdr/bdr5599 -o "-p 5599" -w start
+    </programlisting>
+
+    <para>
+     Each node/instance will start up and then will run in the background.  You'll see the following:
+     <programlisting>
+     waiting for server to start.... done
+     server started
+     </programlisting>
+    </para>
+
+    <para>
+     If you see an issue with starting your nodes/instances:
+     <programlisting>
+     waiting for server to start........ stopped waiting
+     pg_ctl: could not start server
+     </programlisting>
+     ... then take a look at the log files (<filename>bdr5598.log</filename> or
+     <filename>bdr5599.log</filename> depending on which one failed to start.)
+     Most likely you already have a PostgreSQL instance running on the target
+     port. It is also possible that your <literal>$PATH</literal> is not set
+     to point to BDR, so you're trying to use binaries from a different PostgreSQL
+     release that won't have the <filename>bdr</filename> extension or understand
+     some of the configuration parameters.
+    </para>
+
+    <note>
+     <para>
+      Because they were started manually and don't have an init script, these
+      nodes/instances won't start automatically on re-boot.
+     </para>
+    </note>
+
+  </sect1>
+
+  <sect1 id="quickstart-creating">
+    <title>Creating the demo databases</title>
+    <para>
+    Create the databases for this demo on each node/instance from the command line of your operating system:
+    </para>
+    <programlisting>
+    createdb -p 5598 -U postgres bdrdemo
+    createdb -p 5599 -U postgres bdrdemo
+    </programlisting>
+  </sect1>
+
+  <sect1 id="quickstart-enabling">
+    <title>Enabling BDR in SQL sessions for both of your nodes/instances</title>
+    <para>
+    On the first node/instance in database <quote>bdrdemo</quote> as postgreSQL superuser, create the extensions necessary for &bdr;:
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+       CREATE EXTENSION btree_gist;
+       CREATE EXTENSION bdr;
+    </programlisting>
+    <para>
+    Then you run a function that identifies a &bdr; group that delineates a connection string for other nodes to communicate with (for the first node, we will use port 5598) from the same SQL session as above on port 5598:
+    </para>
+    <programlisting>
+    SELECT bdr.bdr_group_create(
+      local_node_name := 'node1',
+      node_external_dsn := 'port=5598 dbname=bdrdemo host=localhost'
+);
+    </programlisting>
+    <para>
+    To ensure that the node is ready to replicate, run this function from the same SQL session as above on port 5598:
+    </para>
+    <programlisting>
+    SELECT bdr.bdr_node_join_wait_for_ready();
+    </programlisting>
+    <para>
+    On the second node/instance on port 5599 in database <quote>bdrdemo</quote> as postgreSQL superuser, create the extensions necessary for &bdr;:
+    </para>
+    <programlisting>
+    psql -p 5599 -U postgres bdrdemo
+
+       CREATE EXTENSION btree_gist;
+       CREATE EXTENSION bdr;
+    </programlisting>
+    <para>
+    Then run a function that joins this node/instance to your &bdr; group you created above (for the second node, we will use port 5599) from the same SQL session as above on port 5599:
+    </para>
+    <programlisting>
+    SELECT bdr.bdr_group_join(
+      local_node_name := 'node2',
+      node_external_dsn := 'port=5599 dbname=bdrdemo host=localhost',
+      join_using_dsn := 'port=5598 dbname=bdrdemo host=localhost'
+);
+    </programlisting>
+    <para>
+    To ensure that the node/instance is ready to replicate, run this function from the same SQL session as above on port 5599:
+    </para>
+    <programlisting>
+    SELECT bdr.bdr_node_join_wait_for_ready();
+    </programlisting>
+
+  </sect1>
+
+  <sect1 id="quickstart-testing">
+    <title>Testing your BDR-enabled system</title>
+    <para>
+    Create a table and insert rows from your first node/instance:
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+      SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.t1bdr (c1 INT, PRIMARY KEY (c1)); $DDL$);
+      INSERT INTO t1bdr VALUES (1);
+      INSERT INTO t1bdr VALUES (2);
+      -- you will see two rows
+      SELECT * FROM t1bdr;
+    </programlisting>
+    <para>
+    Check that the rows are there on your second node/instance. Now, delete a row:
+    </para>
+    <programlisting>
+    psql -p 5599 -U postgres bdrdemo
+
+      -- you will see two rows
+      SELECT * FROM t1bdr;
+      DELETE FROM t1bdr WHERE c1 = 2;
+      -- you will see one row
+      SELECT * FROM t1bdr;
+    </programlisting>
+    <para>
+    Check that one row has been deleted from the first node/instance::
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+      -- you will see one row
+      SELECT * FROM t1bdr;
+    </programlisting>
+    <para>
+    Create and use global sequence::
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+      -- Create a normal local sequence
+      SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL$);
+    </programlisting>
+    <para>
+    Once you've created a global sequence you may use it with bdr.global_seq_nextval(seqname).
+    Note: The destination column must be BIGINT. See <xref linkend="global-sequence-limitations">.
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+      -- Use the global sequence
+      SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (id bigint DEFAULT bdr.global_seq_nextval('public.test_seq'),name text); $DDL$);
+   
+    </programlisting>
+    <para>
+    Insert and check the id.
+    </para>
+    <programlisting>
+    psql -p 5598 -U postgres bdrdemo
+
+      -- Insert into the table
+      INSERT INTO test_tbl(name) VALUES ('first-entry');
+      -- you will see database-generated ids
+      SELECT * from test_tbl;
+ 
+    </programlisting>
+    <para>
+    To enable global sequence use on a BIGSERIAL column see <xref linkend="global-sequence-usage">.
+    </para>
+
+  </sect1>
+</chapter>
