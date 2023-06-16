@@ -589,6 +589,25 @@ bdr.extra_apply_connection_options = 'keepalives=0'
       </listitem>
      </varlistentry>
 
+     <varlistentry id="guc-bdr-init-node-parallel-jobs" xreflabel="bdr.init_node_parallel_jobs">
+      <term><varname>bdr.init_node_parallel_jobs</varname> (<type>int</type>)
+       <indexterm>
+        <primary><varname>bdr.init_node_parallel_jobs</varname> configuration parameter</primary>
+       </indexterm>
+      </term>
+      <listitem>
+       <para>
+        Sets the number of parallel jobs to be used by pg_dump and pg_restore
+        performed while logical join of a node using the
+        <xref linkend="function-bdr-group-join"> function.
+       </para>
+       <para>
+        Changes take effect on server configuration reload, a restart is not
+        required.
+       </para>
+      </listitem>
+     </varlistentry>
+
     </variablelist>
    </para>
   </sect2>

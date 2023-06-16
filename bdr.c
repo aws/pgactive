@@ -68,6 +68,17 @@
 
 #define MAXCONNINFO		1024
 
+/*
+ * Maximum number of parallel jobs allowed.
+ *
+ * Per pg_dump and pg_restore's parallel job limit.
+ */
+#ifdef WIN32
+#define PG_MAX_JOBS MAXIMUM_WAIT_OBJECTS
+#else
+#define PG_MAX_JOBS INT_MAX
+#endif
+
 volatile sig_atomic_t got_SIGTERM = false;
 volatile sig_atomic_t got_SIGHUP = false;
 
@@ -93,6 +104,7 @@ bool		bdr_discard_mismatched_row_attributes;
 bool		bdr_trace_replay;
 int			bdr_trace_ddl_locks_level;
 char	   *bdr_extra_apply_connection_options;
+int			bdr_init_node_parallel_jobs;
 
 PG_MODULE_MAGIC;
 
@@ -996,6 +1008,15 @@ _PG_init(void)
 							   PGC_SIGHUP,
 							   0,
 							   NULL, NULL, NULL);
+
+	DefineCustomIntVariable("bdr.init_node_parallel_jobs",
+							"Sets the parallel jobs to be used by dump and restore while logical join of a node",
+							"Set this to a reasonable value based on database size and number of objects it has.",
+							&bdr_init_node_parallel_jobs,
+							2, 1, PG_MAX_JOBS,
+							PGC_SIGHUP,
+							0,
+							NULL, NULL, NULL);
 
 	EmitWarningsOnPlaceholders("bdr");
 

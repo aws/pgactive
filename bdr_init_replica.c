@@ -326,23 +326,16 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	BdrWorkerCtl->in_init_exec_dump_restore = true;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	/*
-	 * XXX: It's worth making number of jobs with which pg_dump and pg_restore
-	 * gets executed here configurable. Perhaps, a bdr.init_node_jobs GUC is
-	 * better, users can set it based on their remote node database size. A
-	 * well-configured value based on remote node database size and local node
-	 * instance capacity can reduce dump and restore times, and thus can bring
-	 * up the local node to ready state faster.
-	 */
 	PG_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
 							CStringGetDatum(tmpdir));
 	{
 		/* Get contents from remote node with pg_dump */
 		appendStringInfo(cmd,
 						 "%s -T \"bdr.bdr_nodes\" -T \"bdr.bdr_connections\" "
-						 "--bdr-init-node --jobs=4 --snapshot=%s "
+						 "--bdr-init-node --jobs=%d --snapshot=%s "
 						 "--format=directory --file=%s \"%s\"",
 						 bdr_dump_path,
+						 bdr_init_node_parallel_jobs,
 						 snapshot,
 						 tmpdir,
 						 origin_dsn->data);
@@ -354,9 +347,10 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 		 * Restore contents from remote node on to local node with pg_restore.
 		 */
 		appendStringInfo(cmd,
-						 "%s --exit-on-error --jobs=4 --format=directory "
+						 "%s --exit-on-error --jobs=%d --format=directory "
 						 "--dbname=\"%s\" %s",
 						 bdr_restore_path,
+						 bdr_init_node_parallel_jobs,
 						 local_dsn->data,
 						 tmpdir);
 
