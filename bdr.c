@@ -827,8 +827,8 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 		 */
 		ereport(WARNING,
 				(errmsg("unsafe BDR configuration options can not be set globally"),
-				 errdetail("The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options."),
-				 errhint("See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.")));
+				 errdetail("The bdr option bdr.permit_unsafe_ddl_commands should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options."),
+				 errhint("See the manual for information on this options Using it without care can break replication. Use it only with SET LOCAL inside a transaction.")));
 		return false;
 	}
 
@@ -952,13 +952,13 @@ _PG_init(void)
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.skip_ddl_replication",
-							 "Internal. Set during local restore during init_replica only",
+							 "Skip DDL replication (will not be emmitted)",
 							 NULL,
 							 &bdr_skip_ddl_replication,
 							 false,
 							 PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.skip_ddl_locking",
 							 "Don't acquire global DDL locks while performing DDL.",
@@ -967,7 +967,7 @@ _PG_init(void)
 							 false,
 							 PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 NULL, NULL, NULL);
 
 	DefineCustomIntVariable("bdr.default_apply_delay",
 							"default replication apply delay, can be overwritten per connection",

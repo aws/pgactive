@@ -1,9 +1,11 @@
 -- Disallow unsafe commands via ALTER SYSTEM SET, config file, ALTER DATABASE set, etc
 
+-- Should work
 ALTER SYSTEM
   SET bdr.skip_ddl_locking = on;
 ALTER SYSTEM
   SET bdr.skip_ddl_replication = on;
+-- Should fail
 ALTER SYSTEM
   SET bdr.permit_unsafe_ddl_commands = on;
 
@@ -13,7 +15,7 @@ ALTER SYSTEM
 SELECT current_database();
 
 ALTER DATABASE postgres
-  SET bdr.skip_ddl_locking = on;
+  SET bdr.permit_unsafe_ddl_commands = on;
 
 -- An ERROR setting a GUC doesn't stop the connection to the DB
 -- from succeeding though.
@@ -21,7 +23,7 @@ ALTER DATABASE postgres
 SELECT current_database();
 
 ALTER DATABASE postgres
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.permit_unsafe_ddl_commands;
 
 \c postgres
 SELECT current_database();
@@ -32,7 +34,7 @@ SELECT current_database();
 -- This is true even when you ALTER the current database, so this
 -- commits fine, but switching back to the DB breaks:
 ALTER DATABASE regression
-  SET bdr.skip_ddl_locking = on;
+  SET bdr.permit_unsafe_ddl_commands = on;
 
 \c postgres
 SELECT current_database();
@@ -42,7 +44,7 @@ SELECT current_database();
 
 -- and fix the GUC
 ALTER DATABASE regression
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.permit_unsafe_ddl_commands;
 
 \c regression
 SELECT current_database();
@@ -53,24 +55,24 @@ SELECT current_database();
 
 -- Explicit "off" is OK
 ALTER DATABASE regression
-  SET bdr.skip_ddl_locking = off;
+  SET bdr.permit_unsafe_ddl_commands = off;
 
 ALTER SYSTEM
-  SET bdr.skip_ddl_locking = off;
+  SET bdr.permit_unsafe_ddl_commands = off;
 
 ALTER SYSTEM
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.permit_unsafe_ddl_commands;
 
 -- Per-user is OK
 
 ALTER USER super
-  SET bdr.skip_ddl_replication = on;
+  SET bdr.permit_unsafe_ddl_commands = on;
 
 ALTER USER super
-  SET bdr.skip_ddl_replication = off;
+  SET bdr.permit_unsafe_ddl_commands = off;
 
 ALTER USER super
-  RESET bdr.skip_ddl_replication;
+  RESET bdr.permit_unsafe_ddl_commands;
 
 -- Per session is OK
 SET bdr.permit_unsafe_ddl_commands = on;

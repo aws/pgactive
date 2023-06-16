@@ -454,11 +454,9 @@
       </term>
       <listitem>
        <para>
-        Only affects BDR. Skips replication of DDL changes
-        made in a session where this option is set to other systems.
-        This is primarily useful
-        for BDR internal use, but also can
-        be used for some intentional schema changes like adding a
+        Only affects BDR. Skips replication of DDL changes where this option is
+        set to other systems.  This is primarily useful for BDR internal use,
+        but also can be used for some intentional schema changes like adding a
         index only on some nodes. This option can be set at any time,
         but only by superusers.
        </para>
