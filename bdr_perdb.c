@@ -921,6 +921,9 @@ bdr_perdb_worker_main(Datum main_arg)
 		{
 			got_SIGHUP = false;
 			ProcessConfigFile(PGC_SIGHUP);
+			/* set log_min_messages */
+			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
 		/* check whether we need to start new elections */

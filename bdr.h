@@ -97,6 +97,23 @@
 
 #define BDR_SECLABEL_PROVIDER "bdr"
 
+static const struct config_enum_entry bdr_message_level_options[] = {
+	{"debug5", DEBUG5, false},
+	{"debug4", DEBUG4, false},
+	{"debug3", DEBUG3, false},
+	{"debug2", DEBUG2, false},
+	{"debug1", DEBUG1, false},
+	{"debug", DEBUG2, true},
+	{"info", INFO, false},
+	{"notice", NOTICE, false},
+	{"warning", WARNING, false},
+	{"error", ERROR, false},
+	{"log", LOG, false},
+	{"fatal", FATAL, false},
+	{"panic", PANIC, false},
+	{NULL, 0, false}
+};
+
 /*
  * Don't include libpq here, msvc infrastructure requires linking to libpq
  * otherwise.
@@ -482,6 +499,7 @@ typedef struct BDRNodeInfo
 extern Oid	bdr_lookup_relid(const char *relname, Oid schema_oid);
 
 extern bool bdr_in_extension;
+extern int  bdr_log_min_messages;
 
 /* apply support */
 extern void bdr_fetch_sysid_via_node_id(RepOriginId node_id, BDRNodeId * out_nodeid);
@@ -752,6 +770,7 @@ extern BdrWorkerType bdr_worker_type;
 extern void bdr_make_my_nodeid(BDRNodeId * const node);
 extern void bdr_nodeid_cpy(BDRNodeId * const dest, const BDRNodeId * const src);
 extern bool bdr_nodeid_eq(const BDRNodeId * const left, const BDRNodeId * const right);
+extern const char *bdr_error_severity(int elevel);
 
 /*
  * sequencer support

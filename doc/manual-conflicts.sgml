@@ -584,7 +584,7 @@
    Conflict logging to this table is only enabled when <xref
    linkend="guc-bdr-log-conflicts-to-table"> is
    <literal>true</literal>. BDR also logs conflicts to the PostgreSQL
-   log file if <literal>log_min_messages</literal> is <literal>LOG</literal>
+   log file if <literal>bdr.log_min_messages</literal> is <literal>LOG</literal>
    or lower, irrespective of the value of <literal>bdr.log_conflicts_to_table</literal>.
   </para>
 
