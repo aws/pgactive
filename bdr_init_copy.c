@@ -48,10 +48,23 @@
 
 #include "access/xlog_internal.h"
 #include "catalog/pg_control.h"
-
+#include "common/file_utils.h"
+/* cc8d41511721 introduced in PG12 */
+#if PG_VERSION_NUM >= 120000
+#include "common/logging.h"
+#endif
 #include "bdr_internal.h"
 
 #define LLOGCDIR "pg_logical/checkpoints"
+
+#if PG_VERSION_NUM < 150000
+/* 3c6f8c011f85 introduced in PG15 */
+#ifdef HAVE_LONG_INT_64
+#define strtou64(str, endptr, base) ((uint64) strtoul(str, endptr, base))
+#else
+#define strtou64(str, endptr, base) ((uint64) strtoull(str, endptr, base))
+#endif
+#endif
 
 typedef struct RemoteInfo
 {
@@ -113,7 +126,7 @@ static char *validate_replication_set_input(char *replication_sets);
 
 static void initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name,
 								  Oid dboid, char *remote_connstr, char *local_connstr);
-static void remove_unwanted_files(void);
+static void remove_unwanted_files(char *data_dir);
 static void remove_unwanted_data(PGconn *conn);
 static void reset_bdr_sequence_cache(PGconn *conn);
 static void initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid, char *remote_lsn);
@@ -123,7 +136,7 @@ static void bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 						   char *local_connstr, char *replication_sets,
 						   int apply_delay);
 
-static RemoteInfo * get_remote_info(char *connstr);
+static RemoteInfo * get_remote_info(char *connstr, uint64 *nid);
 
 static void initialize_data_dir(char *data_dir, char *connstr,
 								char *postgresql_conf, char *pg_hba_conf);
@@ -131,7 +144,7 @@ static bool check_data_dir(char *data_dir, RemoteInfo * remoteinfo);
 
 static uint64 GenerateSystemIdentifier(void);
 static uint64 read_sysid(const char *data_dir);
-static void set_sysid(uint64 sysid);
+static void set_node_identifier(const char *data_dir, uint64 nid);
 
 static void WriteConfFile(PQExpBuffer contents);
 static void CopyConfFile(char *fromfile, char *tofile);
@@ -201,6 +214,7 @@ main(int argc, char **argv)
 	int			apply_delay = 0;
 #define PG_CTL_CMD_BUF_SIZE 1000
 	char		pg_ctl_cmd_buf[PG_CTL_CMD_BUF_SIZE];
+	uint64		nid;
 
 	static struct option long_options[] = {
 		{"apply-delay", required_argument, NULL, 'y'},
@@ -228,6 +242,10 @@ main(int argc, char **argv)
 	};
 
 	argv0 = argv[0];
+/* cc8d41511721 introduced in PG12 */
+#if PG_VERSION_NUM >= 120000
+	pg_logging_init(argv[0]);
+#endif
 	progname = get_progname(argv[0]);
 	start_time = time(NULL);
 	signal(SIGINT, signal_handler);
@@ -384,7 +402,7 @@ main(int argc, char **argv)
 	/* Read the remote server identification. */
 	print_msg(VERBOSITY_NORMAL,
 			  _("Getting remote server identification ...\n"));
-	remote_info = get_remote_info(remote_connstr);
+	remote_info = get_remote_info(remote_connstr, &nid);
 
 	/* If there are no BDR enabled dbs, just bail. */
 	if (remote_info->numdbs < 1)
@@ -402,6 +420,9 @@ main(int argc, char **argv)
 	if (use_existing_data_dir &&
 		remote_info->sysid != read_sysid(data_dir))
 		die(_("Local data directory is not basebackup of remote node.\n"));
+
+	/* Let's now use BDR generated node identifier. */
+	remote_info->sysid = nid;
 
 	print_msg(VERBOSITY_NORMAL,
 			  _("Detected %d BDR database(s) on remote server\n"),
@@ -565,18 +586,14 @@ main(int argc, char **argv)
 	wait_postmaster_shutdown();
 
 	/*
-	 * Individualize the local node by changing the system identifier.
+	 * Individualize the local node by assigning a new BDR node identifier.
 	 *
 	 * We can't rely on the timeline ID alone, even though it's incremented on
 	 * promotion of the copy, because we can't make sure it's globally unique.
 	 * If node A is copied to node B, then node A is copied to node C, both
 	 * nodes B and C will have the same tlid.
-	 *
-	 * Since the core pg_resetwal doesn't know to set system identifier, we
-	 * use a patched version of pg_resetwal, called bdr_resetwal with an extra
-	 * option to set system identifier.
 	 */
-	set_sysid(node_info.local_sysid);
+	set_node_identifier(data_dir, node_info.local_sysid);
 
 	/*
 	 * Start the node again, now with BDR active so that we can join the node
@@ -818,43 +835,72 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 }
 
 /*
- * Set system identifier to system id we used for registering the slots.
+ * Set BDR node identifier. Note that this the id that we used for registering
+ * the slots.
  */
 static void
-set_sysid(uint64 sysid)
+set_node_identifier(const char *data_dir, uint64 nid)
 {
-	int			ret;
-	PQExpBuffer cmd = createPQExpBuffer();
-	char	   *exec_path;
-	char	   *cmdname = "bdr_resetwal";
+	char	path[MAXPGPATH];
+	int		fd;
 
-	exec_path = find_other_exec_or_die(argv0, cmdname);
-	appendPQExpBuffer(cmd, "%s \"-s " UINT64_FORMAT "\" \"%s\"", exec_path, sysid, data_dir);
-	pg_free(exec_path);
-	print_msg(VERBOSITY_DEBUG, _("Running %s: %s.\n"), cmdname, cmd->data);
-	ret = system(cmd->data);
-	destroyPQExpBuffer(cmd);
+	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
 
-	if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
-		return;
-	if (WIFEXITED(ret))
-		die(_("%s failed with exit status %d, cannot continue.\n"), cmdname, WEXITSTATUS(ret));
-	else if (WIFSIGNALED(ret))
-		die(_("%s exited with signal %d, cannot continue"), cmdname, WTERMSIG(ret));
-	else
-		die(_("%s exited for an unknown reason (system() returned %d)"), cmdname, ret);
+	fd = open(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0700);
+
+	if (fd < 0)
+		die(_("could not create file \"%s\""), path);
+
+	if ((write(fd, &nid, sizeof(nid))) != sizeof(nid))
+	{
+		close(fd);
+		die(_("could not write to file \"%s\""), path);
+	}
+
+/* API cc8d41511721 changed in PG12 */
+#if PG_VERSION_NUM < 120000
+	fsync_fname(path, true, progname);
+#else
+	fsync_fname(path, true);
+#endif
+
+	close(fd);
+	print_msg(VERBOSITY_VERBOSE, "Created BDR control file and written node identifier to it.\n");
 }
 
 /*
- * Cleans everything that was replicated via basebackup but we don't want it.
+ * Cleans specified files that were replicated via basebackup but we don't
+ * want it.
  */
 static void
-remove_unwanted_files(void)
+remove_unwanted_files(char *data_dir)
 {
+	char	path[MAXPGPATH];
+
 	/*
-	 * This is a no-op function for now, if needed can be used to remove
-	 * unwanted files.
+	 * We will generate a new BDR node identifier, so BDR control file (if
+	 * exists) from the basebackup won't be needed.
 	 */
+	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
+
+	if (file_exists(path))
+	{
+		char	plogicalpath[MAXPGPATH];
+
+		if (unlink(path) < 0 && errno != ENOENT)
+			die(_("could not remove file \"%s\""), path);
+
+		snprintf(plogicalpath, MAXPGPATH, "%s/pg_logical/", data_dir);
+
+/* API cc8d41511721 changed in PG12 */
+#if PG_VERSION_NUM < 120000
+		fsync_fname(path, true, progname);
+#else
+		fsync_fname(path, true);
+#endif
+
+		print_msg(VERBOSITY_VERBOSE, "Removed BDR control file.\n");
+	}
 }
 
 /*
@@ -877,7 +923,7 @@ initialize_data_dir(char *data_dir, char *connstr,
 		run_basebackup(connstr, data_dir);
 	}
 
-	remove_unwanted_files();
+	remove_unwanted_files(data_dir);
 
 	if (postgresql_conf)
 		CopyConfFile(postgresql_conf, "postgresql.conf");
@@ -956,11 +1002,12 @@ initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid)
  * Read replication info about remote connection
  */
 static RemoteInfo *
-get_remote_info(char *remote_connstr)
+get_remote_info(char *remote_connstr, uint64 *nid)
 {
 	RemoteInfo *ri = (RemoteInfo *) pg_malloc0(sizeof(RemoteInfo));
 	char	   *remote_sysid;
 	char	   *remote_tlid;
+	char	   *remote_nid;
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
@@ -1007,14 +1054,42 @@ get_remote_info(char *remote_connstr)
 	remote_sysid = PQgetvalue(res, 0, 0);
 	remote_tlid = PQgetvalue(res, 0, 1);
 
-#ifdef HAVE_STRTOULL
-	ri->sysid = strtoull(remote_sysid, NULL, 10);
-#else
-	ri->sysid = strtoul(remote_sysid, NULL, 10);
-#endif
+	PQclear(res);
+	PQfinish(remote_conn);
+	remote_conn = NULL;
+
+	ri->sysid = strtou64(remote_sysid, NULL, 10);
 
 	if (sscanf(remote_tlid, "%u", &ri->tlid) != 1)
 		die(_("Could not parse remote tlid %s\n"), remote_tlid);
+
+	/* Fetch BDR node identifier via standard SQL connection. */
+	remote_conn = PQconnectdb(remote_connstr);
+	if (PQstatus(remote_conn) != CONNECTION_OK)
+	{
+		PQclear(res);
+		die(_("Could not connect to the remote server: %s"),
+			PQerrorMessage(remote_conn));
+	}
+
+	res = PQexec(remote_conn, "SELECT * FROM bdr.bdr_get_node_identifier();");
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		PQclear(res);
+		die(_("Could not send command \"%s\": %s\n"),
+			"SELECT * FROM bdr.bdr_get_node_identifier();",
+			PQerrorMessage(remote_conn));
+	}
+
+	if (PQntuples(res) != 1 || PQnfields(res) != 1)
+	{
+		PQclear(res);
+		die(_("Could not fetch BDR node identifier: got %d rows and %d fields, expected %d row and %d field\n"),
+			PQntuples(res), PQnfields(res), 1, 1);
+	}
+
+	remote_nid = PQgetvalue(res, 0, 0);
+	*nid = strtou64(remote_nid, NULL, 10);
 
 	PQclear(res);
 	PQfinish(remote_conn);
@@ -1056,7 +1131,6 @@ get_remote_info(char *remote_connstr)
 	}
 
 	PQclear(res);
-
 	PQfinish(remote_conn);
 	remote_conn = NULL;
 

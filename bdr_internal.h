@@ -52,6 +52,8 @@ typedef enum BdrNodeStatus
 #define BDR_NODE_STATUS_READY_S "'r'"
 #define BDR_NODE_STATUS_KILLED_S "'k'"
 
+#define BDR_CONTROL_FILE	"bdr_control"
+
 /* Structure representing bdr_nodes record */
 typedef struct BDRNodeId
 {

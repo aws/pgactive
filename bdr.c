@@ -14,6 +14,8 @@
  */
 #include "postgres.h"
 
+#include <sys/stat.h>
+
 #include "bdr.h"
 #include "bdr_locks.h"
 
@@ -61,6 +63,7 @@
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/numeric.h"
 #include "catalog/pg_database.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
@@ -119,6 +122,9 @@ PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_skip_changes_upto(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_get_node_identifier(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_remove_node_identifier(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
@@ -136,12 +142,17 @@ PG_FUNCTION_INFO_V1(bdr_get_workers_info);
 PG_FUNCTION_INFO_V1(bdr_skip_changes_upto);
 PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
+PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
+PG_FUNCTION_INFO_V1(bdr_get_node_identifier);
+PG_FUNCTION_INFO_V1(bdr_remove_node_identifier);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
 static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
+
+static bool file_exists(const char *name);
 
 static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
@@ -310,22 +321,24 @@ bdr_connect(const char *conninfo,
 			BDRNodeId * remote_node)
 {
 	PGconn	   *streamConn;
+	PGconn	   *conn;
 	PGresult   *res;
+	StringInfoData conninfo_nrepl;
 	StringInfoData conninfo_repl;
 	char	   *remote_sysid;
 	char	   *remote_tlid;
 
+	initStringInfo(&conninfo_nrepl);
 	initStringInfo(&conninfo_repl);
 
-	appendStringInfo(&conninfo_repl, "replication=database "
-					 "application_name='%s' ",
-					 (appname == NULL ? "bdr" : NameStr(*appname)));
+	appendStringInfo(&conninfo_nrepl, "application_name='%s' %s %s %s",
+					 (appname == NULL ? "bdr" : NameStr(*appname)),
+					 bdr_default_apply_connection_options,
+					 bdr_extra_apply_connection_options,
+					 conninfo);
 
-	appendStringInfoString(&conninfo_repl, bdr_default_apply_connection_options);
-	appendStringInfoChar(&conninfo_repl, ' ');
-	appendStringInfoString(&conninfo_repl, bdr_extra_apply_connection_options);
-	appendStringInfoChar(&conninfo_repl, ' ');
-	appendStringInfoString(&conninfo_repl, conninfo);
+	appendStringInfo(&conninfo_repl, "%s replication=database",
+					 conninfo_nrepl.data);
 
 	streamConn = PQconnectdb(conninfo_repl.data);
 	if (PQstatus(streamConn) != CONNECTION_OK)
@@ -346,11 +359,10 @@ bdr_connect(const char *conninfo,
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) < 4 || PQnfields(res) > 5)
 	{
-		elog(ERROR, "could not identify system: got %d rows and %d fields, expected %d rows and %d or %d fields\n",
+		elog(ERROR, "could not identify system: got %d rows and %d fields, expected %d rows and %d or %d fields",
 			 PQntuples(res), PQnfields(res), 1, 4, 5);
 	}
 
-	remote_sysid = PQgetvalue(res, 0, 0);
 	remote_tlid = PQgetvalue(res, 0, 1);
 	if (PQnfields(res) == 5)
 	{
@@ -364,17 +376,50 @@ bdr_connect(const char *conninfo,
 		remote_node->dboid = bdr_get_remote_dboid(conninfo);
 	}
 
-	if (sscanf(remote_sysid, UINT64_FORMAT, &remote_node->sysid) != 1)
-		elog(ERROR, "could not parse remote sysid %s", remote_sysid);
+	remote_tlid = PQgetvalue(res, 0, 1);
 
 	if (sscanf(remote_tlid, "%u", &remote_node->timeline) != 1)
 		elog(ERROR, "could not parse remote tlid %s", remote_tlid);
 
+	PQclear(res);
+
+	/* Make a non-replication connection to get the BDR node identifier. */
+	conn = PQconnectdb(conninfo_nrepl.data);
+	if (PQstatus(conn) != CONNECTION_OK)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_CONNECTION_FAILURE),
+				 errmsg("establish BDR: %s", PQerrorMessage(conn)),
+				 errdetail("Connection string is '%s'", conninfo_nrepl.data)));
+	}
+
+	elog(DEBUG3, "sending command: SELECT * FROM bdr.bdr_get_node_identifier();");
+
+	res = PQexec(conn, "SELECT * FROM bdr.bdr_get_node_identifier();");
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		elog(ERROR, "could not send command \"%s\": %s",
+			 "SELECT * FROM bdr.bdr_get_node_identifier();", PQerrorMessage(conn));
+	}
+	if (PQntuples(res) != 1 || PQnfields(res) != 1)
+	{
+		elog(ERROR, "could not node identifier system: got %d rows and %d fields, expected %d row and %d field",
+			 PQntuples(res), PQnfields(res), 1, 1);
+	}
+
+	remote_sysid = PQgetvalue(res, 0, 0);
+
+	if (sscanf(remote_sysid, UINT64_FORMAT, &remote_node->sysid) != 1)
+		elog(ERROR, "could not parse remote BDR node identifier %s", remote_sysid);
+
+	PQclear(res);
+
 	elog(DEBUG2, "local node " BDR_NODEID_FORMAT_WITHNAME ", remote node " BDR_NODEID_FORMAT_WITHNAME,
 		 BDR_LOCALID_FORMAT_WITHNAME_ARGS, BDR_NODEID_FORMAT_WITHNAME_ARGS(*remote_node));
 
-	/* no parts of IDENTIFY_SYSTEM's response needed anymore */
-	PQclear(res);
+	pfree(conninfo_nrepl.data);
+	pfree(conninfo_repl.data);
+	PQfinish(conn);
 
 	return streamConn;
 }
@@ -421,7 +466,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "bdr");
 
-	elog(DEBUG3, "sending replication command: %s", query.data);
+	elog(LOG, "sending replication command: %s", query.data);
 
 	res = PQexec(streamConn, query.data);
 
@@ -467,7 +512,6 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	Oid	   		dboid;
 	BDRNodeId	myid;
 	char		mystatus;
-	bool		unregister = false;
 
 	Assert(IsBackgroundWorker);
 
@@ -522,6 +566,13 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	LWLockRelease(BdrWorkerCtl->lock);
 
 	/* Check if we decided to unregister this worker. */
+	if (!bdr_control_file_exists())
+	{
+		elog(LOG, "unregistering %s worker due to missing BDR control file",
+			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply");
+		goto unregister;
+	}
+
 	bdr_make_my_nodeid(&myid);
 	StartTransactionCommand();
 	SPI_connect();
@@ -542,21 +593,14 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 		elog(LOG, "unregistering %s worker due to node " BDR_NODEID_FORMAT " part",
 			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
 			 BDR_NODEID_FORMAT_ARGS(myid));
-		unregister = true;
+		goto unregister;
 	}
 	else if (mystatus == '\0')
 	{
 		elog(LOG, "unregistering %s worker due to missing bdr.bdr_nodes row for node " BDR_NODEID_FORMAT "",
 			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
 			 BDR_NODEID_FORMAT_ARGS(myid));
-		unregister = true;
-	}
-
-	if (unregister)
-	{
-		bdr_worker_shmem_free(bdr_worker_slot, NULL);
-		bdr_worker_slot = NULL;
-		proc_exit(0);			/* unregister */
+		goto unregister;
 	}
 
 	/*
@@ -622,6 +666,12 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	SetConfigOption("check_function_bodies", "off",
 					PGC_INTERNAL, PGC_S_OVERRIDE);
 
+	return;
+
+unregister:
+	bdr_worker_shmem_free(bdr_worker_slot, NULL);
+	bdr_worker_slot = NULL;
+	proc_exit(0);			/* unregister */
 }
 
 /*
@@ -712,7 +762,7 @@ bdr_establish_connection_and_slot(const char *dsn,
 		 */
 
 		/* create local replication identifier and a remote slot */
-		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
+		elog(LOG, "creating new slot %s", NameStr(*out_slot_name));
 		bdr_create_slot(streamConn, out_slot_name, remote_repident_name,
 						out_replication_identifier, out_snapshot);
 	}
@@ -1790,3 +1840,264 @@ InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
 	MemoryContextSwitchTo(old_context);
 }
 #endif
+
+static bool
+file_exists(const char *name)
+{
+	struct stat st;
+
+	AssertArg(name != NULL);
+
+	if (stat(name, &st) == 0)
+		return !S_ISDIR(st.st_mode);
+	else if (!(errno == ENOENT || errno == ENOTDIR))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not access file \"%s\": %m", name)));
+
+	return false;
+}
+
+bool
+bdr_control_file_exists(void)
+{
+	char		path[MAXPGPATH];
+
+	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
+
+	return file_exists(path);
+}
+
+uint64
+bdr_generate_node_identifier_internal(void)
+{
+	uint64	nid = 0;
+	struct timeval	tv;
+	char		path[MAXPGPATH];
+	char		tmppath[MAXPGPATH];
+	int			tmpfd;
+
+	Assert(BdrWorkerCtl != NULL);
+
+	/*
+	 * Let's do this under a lock to ensure the new node identifier gets
+	 * generated only once on this node.
+	 */
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+
+	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
+
+	if (file_exists(path))
+	{
+		ereport(NOTICE,
+				(errmsg("node identifier for this node has already been generated")));
+
+		LWLockRelease(BdrWorkerCtl->lock);
+		return nid;
+	}
+
+	snprintf(tmppath, MAXPGPATH, "pg_logical/%s.tmp", BDR_CONTROL_FILE);
+
+	/* make sure no old temp file is remaining */
+	if (unlink(tmppath) < 0 && errno != ENOENT)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not remove file \"%s\": %m", tmppath)));
+
+	tmpfd = OpenTransientFile(tmppath,
+							  O_CREAT | O_EXCL | O_WRONLY | PG_BINARY);
+	if (tmpfd < 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not create file \"%s\": %m", tmppath)));
+
+	/* generate and write node identifier */
+	gettimeofday(&tv, NULL);
+	nid = ((uint64) tv.tv_sec) << 32;
+	nid |= ((uint64) tv.tv_usec) << 12;
+	nid |= getpid() & 0xFFF;
+
+	errno = 0;
+	if ((write(tmpfd, &nid, sizeof(nid))) != sizeof(nid))
+	{
+		int			save_errno = errno;
+
+		CloseTransientFile(tmpfd);
+
+		/* if write didn't set errno, assume problem is no disk space */
+		errno = save_errno ? save_errno : ENOSPC;
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to file \"%s\": %m",
+						tmppath)));
+	}
+
+	CloseTransientFile(tmpfd);
+
+	/* fsync, rename to permanent file, fsync file and directory */
+	durable_rename(tmppath, path, ERROR);
+
+	LWLockRelease(BdrWorkerCtl->lock);
+
+	return nid;
+}
+
+/*
+ * Generate BDR node identifier, write it to BDR control file and return the
+ * generated ID. Return NULL with some info if control file already exists for
+ * this node.
+ */
+Datum
+bdr_generate_node_identifier(PG_FUNCTION_ARGS)
+{
+	uint64	nid;
+	char	buf[256];
+	Datum	result;
+
+	nid	= bdr_generate_node_identifier_internal();
+
+	if (nid == 0)
+		PG_RETURN_NULL();
+
+	/* Convert to numeric. */
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
+	result = DirectFunctionCall3(numeric_in,
+								 CStringGetDatum(buf),
+								 ObjectIdGetDatum(0),
+								 Int32GetDatum(-1));
+
+	PG_RETURN_DATUM(result);
+}
+
+uint64
+bdr_get_node_identifier_internal(void)
+{
+	uint64	nid = 0;
+	char	path[MAXPGPATH];
+	int		fd;
+
+	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
+
+	if (!file_exists(path))
+	{
+		ereport(NOTICE,
+				(errcode_for_file_access(),
+				 errmsg("BDR control file doesn't exist")));
+
+		return nid;
+	}
+
+	fd = OpenTransientFile(path, O_RDONLY | PG_BINARY);
+	if (fd < 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %m", path)));
+
+	if (read(fd, &nid, sizeof(nid)) != sizeof(nid))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not read file \"%s\": %m", path)));
+
+	if (CloseTransientFile(fd) != 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not close file \"%s\": %m", path)));
+
+	return nid;
+}
+
+/*
+ * Read node identifier from BDR control file and return it. Return NULL if
+ * control file doesn't exist.
+ */
+Datum
+bdr_get_node_identifier(PG_FUNCTION_ARGS)
+{
+	uint64 nid;
+	char	buf[256];
+	Datum	result;
+
+	nid = bdr_get_node_identifier_internal();
+
+	if (nid == 0)
+		PG_RETURN_NULL();
+
+	/* Convert to numeric. */
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
+	result = DirectFunctionCall3(numeric_in,
+								 CStringGetDatum(buf),
+								 ObjectIdGetDatum(0),
+								 Int32GetDatum(-1));
+
+	PG_RETURN_DATUM(result);
+}
+
+bool
+bdr_remove_node_identifier_internal(void)
+{
+	char	path[MAXPGPATH];
+	int		i;
+	bool	can_remove = true;
+
+	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
+
+	if (!file_exists(path))
+	{
+		ereport(NOTICE,
+				(errcode_for_file_access(),
+				 errmsg("BDR control file doesn't exist, and it may have been already removed")));
+
+		return false;
+	}
+
+	Assert(BdrWorkerCtl != NULL);
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+
+	for (i = 0; i < bdr_max_workers; i++)
+	{
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+
+		if (w->worker_type == BDR_WORKER_PERDB)
+		{
+			BdrPerdbWorker *pw = &w->data.perdb;
+
+			if (OidIsValid(pw->p_dboid) && w->worker_proc != NULL)
+			{
+				ereport(NOTICE,
+						(errmsg("cannot remove BDR control file as BDR is still active on this node for database \"%s\"",
+								get_database_name(pw->p_dboid))));
+
+				can_remove = false;
+			}
+		}
+	}
+
+	if (can_remove)
+	{
+		if (unlink(path) < 0 && errno != ENOENT)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not remove file \"%s\": %m", path)));
+
+		fsync_fname("pg_logical", true);
+	}
+
+	LWLockRelease(BdrWorkerCtl->lock);
+
+	return can_remove;
+}
+
+/*
+ * Remove BDR control file if BDR is active for no database on this node.
+ * Returns true if control file is removed, otherwise false.
+ */
+Datum
+bdr_remove_node_identifier(PG_FUNCTION_ARGS)
+{
+	bool	removed;
+
+	removed = bdr_remove_node_identifier_internal();
+
+	PG_RETURN_BOOL(removed);
+}

@@ -843,7 +843,7 @@ void
 bdr_make_my_nodeid(BDRNodeId * const ni)
 {
 	Assert(ni != NULL);
-	ni->sysid = GetSystemIdentifier();
+	ni->sysid = bdr_get_node_identifier_internal();
 	ni->timeline = ThisTimeLineID;
 	ni->dboid = MyDatabaseId;
 
