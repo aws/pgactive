@@ -1,18 +1,12 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ---------------------------------------------------------------- ---------------------------------- -- ----------------------------------------------------------------------------------------
-  [Prev](manual.md "BDR administration manual"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](settings-prerequisite.md "Prerequisite PostgreSQL parameters"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                  
+  [Prev](manual.md "BDR administration manual")   [Up](manual.md)        [Next](settings-prerequisite.md "Prerequisite PostgreSQL parameters")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
 # []{#SETTINGS}Chapter 4. Configuration Settings
 
-::: TOC
 **Table of Contents**
 
-4.1. [Prerequisite [PostgreSQL]{.PRODUCTNAME}
+4.1. [Prerequisite [PostgreSQL]
 parameters](settings-prerequisite.md)
 
 4.2. [BDR specific configuration
@@ -20,15 +14,10 @@ variables](bdr-configuration-variables.md)
 
 4.2.1. [Less common or internal configuration
 variables](bdr-configuration-variables.md#AEN783)
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------ ----------------------------------- ----------------------------------------------------
-  [Prev](manual.md){accesskey="P"}    [Home](index.md){accesskey="H"}     [Next](settings-prerequisite.md){accesskey="N"}
-  BDR administration manual             [Up](manual.md){accesskey="U"}     Prerequisite [PostgreSQL]{.PRODUCTNAME} parameters
+  [Prev](manual.md)    [Home](README.md)     [Next](settings-prerequisite.md)  
+  BDR administration manual             [Up](manual.md)     Prerequisite [PostgreSQL] parameters
   ------------------------------------ ----------------------------------- ----------------------------------------------------
-:::

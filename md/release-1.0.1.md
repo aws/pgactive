@@ -1,29 +1,21 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                                            
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
-  [Prev](release-1.0.2.md "Release 1.0.2"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-1.0.0.md "Release 1.0.0"){accesskey="N"}
+  [Prev](release-1.0.2.md "Release 1.0.2")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-1.0.0.md "Release 1.0.0")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [A.8. Release 1.0.1]{#RELEASE-1.0.1} {#a.8.-release-1.0.1 .SECT1}
+# [A.8. Release 1.0.1]
 
 The 1.0.1 maintenance release fixes a significant bug in
-`bdr_group_join`{.LITERAL} caused by `bdr_dump`{.LITERAL} running parts
+`bdr_group_join` caused by `bdr_dump` running parts
 of the binary upgrade code that it shouldn\'t have. This could lead to
 incorrect frozenxids among other issues.
 
 A variety of minor documentation and message fixes are also
 incorporated; see the git log.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-  [Prev](release-1.0.2.md){accesskey="P"}      [Home](index.md){accesskey="H"}       [Next](release-1.0.0.md){accesskey="N"}
-  Release 1.0.2                                [Up](releasenotes.md){accesskey="U"}                                Release 1.0.0
+  [Prev](release-1.0.2.md)      [Home](README.md)       [Next](release-1.0.0.md)  
+  Release 1.0.2                                [Up](releasenotes.md)                                Release 1.0.0
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-:::

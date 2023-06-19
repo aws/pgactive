@@ -1,23 +1,16 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ---------------------------------------------------------------------------------- ----------------------------------- -- ---------------------------------------------------------------
-  [Prev](quickstart-testing.md "Testing your BDR-enabled system"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](settings.md "Configuration Settings"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                     
+  [Prev](quickstart-testing.md "Testing your BDR-enabled system")   [Home](README.md)        [Next](settings.md "Configuration Settings")  
 
-------------------------------------------------------------------------
-:::
 
-::: PART
 []{#MANUAL}
 
-::: TITLEPAGE
-# II. BDR administration manual {#ii.-bdr-administration-manual .TITLE}
+# II. BDR administration manual {#ii.-bdr-administration-manual}
 
-::: TOC
 **Table of Contents**
 
 4\. [Configuration Settings](settings.md)
 
-4.1. [Prerequisite [PostgreSQL]{.PRODUCTNAME}
+4.1. [Prerequisite [PostgreSQL]
 parameters](settings-prerequisite.md)
 
 4.2. [BDR specific configuration
@@ -58,7 +51,7 @@ variables](bdr-configuration-variables.md)
 8.2. [Statement specific DDL replication
 concerns](ddl-replication-statements.md)
 
-9\. [Multi-master conflicts](conflicts.md)
+9\. [Active-Active conflicts](conflicts.md)
 
 9.1. [How conflicts happen](conflicts-how.md)
 
@@ -146,7 +139,7 @@ functions](functions-conflict-handlers.md)
 
 13.14. [bdr.bdr_votes](catalog-bdr-votes.md)
 
-14\. [Upgrading [BDR]{.PRODUCTNAME}](upgrade.md)
+14\. [Upgrading [BDR]](upgrade.md)
 
 14.1. [Upgrading 2.0.x to 2.0.y releases](x4376.md)
 
@@ -156,16 +149,10 @@ functions](functions-conflict-handlers.md)
 14.3. [Upgrading BDR 0.9.x to 1.0](x4492.md)
 
 14.4. [Upgrading 0.8.x to 1.0](x4496.md)
-:::
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------------ ----------------------------------- --------------------------------------
-  [Prev](quickstart-testing.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](settings.md){accesskey="N"}
+  [Prev](quickstart-testing.md)    [Home](README.md)    [Next](settings.md)  
   Testing your BDR-enabled system                                                                      Configuration Settings
   ------------------------------------------------ ----------------------------------- --------------------------------------
-:::

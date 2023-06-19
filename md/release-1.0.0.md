@@ -1,13 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                                            
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
-  [Prev](release-1.0.1.md "Release 1.0.1"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-0.9.3.md "Release 0.9.3"){accesskey="N"}
+  [Prev](release-1.0.1.md "Release 1.0.1")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.9.3.md "Release 0.9.3")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [A.9. Release 1.0.0]{#RELEASE-1.0.0} {#a.9.-release-1.0.0 .SECT1}
+# [A.9. Release 1.0.0]
 
 The 1.0.0 release improves schema change DDL locking, the documentation,
 managment tools, and more. It is [a straightforward upgrade for 0.9.x
@@ -32,7 +28,7 @@ The most important changes are:
 There are important compatibility changes in this release. BDR 1.0
 removes UDR. If you need one-way replication on unpatched community
 PostgreSQL 9.4/9.5/9.6, use
-[pglogical](2ndquadrant.com/pglogical){target="_top"} instead. BDR 1.0
+[pglogical](2ndquadrant.com/pglogical) instead. BDR 1.0
 is also fully not interoperable with 0.9.x; it cannot join a 0.9.x group
 and 0.9.x cannot join a 1.0 group. However individual nodes in the
 existing 0.9.x cluster can be upgraded to 1.0 one by one, keeping the
@@ -131,14 +127,10 @@ Changes in release:
 
 The biggest changes are around [DDL
 Locking](ddl-replication-advice.md#DDL-REPLICATION-LOCKING).
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-  [Prev](release-1.0.1.md){accesskey="P"}      [Home](index.md){accesskey="H"}       [Next](release-0.9.3.md){accesskey="N"}
-  Release 1.0.1                                [Up](releasenotes.md){accesskey="U"}                                Release 0.9.3
+  [Prev](release-1.0.1.md)      [Home](README.md)       [Next](release-0.9.3.md)  
+  Release 1.0.1                                [Up](releasenotes.md)                                Release 0.9.3
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-:::

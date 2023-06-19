@@ -357,9 +357,9 @@
 
   <para>
    Statistics on table and index usage are updated normally by the downstream
-   master. This is essential for correct function of
+   primary. This is essential for correct function of
    <ulink url="http://www.postgresql.org/docs/current/static/routine-vacuuming.html">autovacuum</ulink>.
-   If there are no local writes on the downstream master and stats have not
+   If there are no local writes on the downstream primary and stats have not
    been reset these two views should show matching results between upstream and
    downstream:
    <itemizedlist>

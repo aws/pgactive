@@ -1,33 +1,28 @@
-::: BOOK
 []{#BDR}
 
-::: TITLEPAGE
-# [BDR 2.0.7 Documentation]{#BDR} {#bdr-2.0.7-documentation .TITLE}
+# [BDR 2.0.7 Documentation]{#BDR} {#bdr-2.0.7-documentation}
 
-### 2ndQuadrant Ltd {#ndquadrant-ltd .CORPAUTHOR}
+### 2ndQuadrant Ltd {#ndquadrant-ltd}
 
 [Copyright](LEGALNOTICE.md) © 1996-2016 The PostgreSQL Global
 Development Group
 
-<div>
 
-::: ABSTRACT
-[]{#AEN23}
 
 This book is the official documentation of BDR 2.0.7 for use with
 PostgreSQL 9.6 or with a modified version of PostgreSQL 9.4. It has been
-written by the [PostgreSQL]{.PRODUCTNAME} and BDR developers and other
+written by the [PostgreSQL] and BDR developers and other
 volunteers in parallel to the development of the BDR software. It
 describes all the functionality that the current version of BDR
 officially supports.
 
 BDR was developed by
-[2ndQuadrant](http://2ndquadrant.com){target="_top"} along with
+[2ndQuadrant](http://2ndquadrant.com) along with
 contributions from other individuals and companies. Contributions from
 the community are appreciated and welcome - get in touch via
-[github](http://github.com/2ndQuadrant/bdr){target="_top"} or [the
+[github](http://github.com/2ndQuadrant/bdr) or [the
 mailing
-list/forum](https://groups.google.com/a/2ndquadrant.com/forum/#!forum/bdr-list){target="_top"}.
+list/forum](https://groups.google.com/a/2ndquadrant.com/forum/#!forum/bdr-list).
 Multiple 2ndQuadrant customers contribute funding to make BDR
 development possible.
 
@@ -39,29 +34,24 @@ welcome to participate in the efforts.
 
 Multiple technologies emerging from BDR development have already become
 integral part of core PostgreSQL, such as [Event
-Triggers](https://www.postgresql.org/docs/current/static/event-triggers.html){target="_top"},
+Triggers](https://www.postgresql.org/docs/current/static/event-triggers.html),
 [Logical
-Decoding](https://www.postgresql.org/docs/current/static/logicaldecoding.html){target="_top"},
+Decoding](https://www.postgresql.org/docs/current/static/logicaldecoding.html),
 [Replication
-Slots](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS){target="_top"},
+Slots](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS),
 [Background
-Workers](https://www.postgresql.org/docs/current/static/bgworker.html){target="_top"},
+Workers](https://www.postgresql.org/docs/current/static/bgworker.html),
 [Commit
-Timestamps](https://wiki.postgresql.org/wiki/What's_new_in_PostgreSQL_9.5#Commit_timestamp_tracking){target="_top"},
+Timestamps](https://wiki.postgresql.org/wiki/What's_new_in_PostgreSQL_9.5#Commit_timestamp_tracking),
 [Replication
-Origins](https://www.postgresql.org/docs/9.5/static/replication-origins.html){target="_top"},
+Origins](https://www.postgresql.org/docs/9.5/static/replication-origins.html),
 [DDL event
-capture](https://www.postgresql.org/docs/9.5/static/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS){target="_top"},
+capture](https://www.postgresql.org/docs/9.5/static/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS),
 [generic WAL messages for logical
-decoding](https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-REPLICATION-TABLE){target="_top"}.
-:::
+decoding](https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-REPLICATION-TABLE).
 
-</div>
 
-------------------------------------------------------------------------
-:::
 
-::: TOC
 **Table of Contents**
 
 I. [Getting started](getting-started.md)
@@ -84,7 +74,7 @@ II\. [BDR administration manual](manual.md)
 
 8\. [DDL Replication](ddl-replication.md)
 
-9\. [Multi-master conflicts](conflicts.md)
+9\. [Active-Active conflicts](conflicts.md)
 
 10\. [Global Sequences](global-sequences.md)
 
@@ -94,7 +84,7 @@ II\. [BDR administration manual](manual.md)
 
 13\. [Catalogs and Views](catalogs-views.md)
 
-14\. [Upgrading [BDR]{.PRODUCTNAME}](upgrade.md)
+14\. [Upgrading [BDR]](upgrade.md)
 
 A. [Release notes](releasenotes.md)
 
@@ -139,15 +129,10 @@ C.2. [DDL locking details](technotes-ddl-locking.md)
 C.3. [Full table rewrites](technotes-rewrites.md)
 
 [Index](bookindex.md)
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --- --- ---------------------------------------------
-            [Next](getting-started.md){accesskey="N"}
+            [Next](getting-started.md)  
                                         Getting started
   --- --- ---------------------------------------------
-:::

@@ -1,13 +1,8 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ----------------------------------------------------------------------------- -------------------------------------- ----------------------- ------------------------------------------------------------------------------
-  [Prev](monitoring-peers.md "Monitoring replication peers"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-conflict-stats.md "Monitoring conflicts"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                        
+  [Prev](monitoring-peers.md "Monitoring replication peers")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-conflict-stats.md "Monitoring conflicts")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [7.4. Monitoring global DDL locks]{#MONITORING-DDL-LOCK} {#monitoring-global-ddl-locks .SECT1}
+# [7.4. Monitoring global DDL locks]
 
 The global DDL lock, used in [DDL replication](ddl-replication.md),
 can cancel and/or block concurrent writes and other DDL. So it can be
@@ -26,14 +21,10 @@ into the current DDL locking state of a node.
 
 See [DDL Locking](ddl-replication-advice.md#DDL-REPLICATION-LOCKING)
 for more detail on how the global DDL lock works.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ---------------------------------------------- -------------------------------------- -------------------------------------------------------
-  [Prev](monitoring-peers.md){accesskey="P"}     [Home](index.md){accesskey="H"}      [Next](monitoring-conflict-stats.md){accesskey="N"}
-  Monitoring replication peers                    [Up](monitoring.md){accesskey="U"}                                     Monitoring conflicts
+  [Prev](monitoring-peers.md)     [Home](README.md)      [Next](monitoring-conflict-stats.md)  
+  Monitoring replication peers                    [Up](monitoring.md)                                     Monitoring conflicts
   ---------------------------------------------- -------------------------------------- -------------------------------------------------------
-:::

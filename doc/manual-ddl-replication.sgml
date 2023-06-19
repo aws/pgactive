@@ -42,7 +42,7 @@
 
   <para>
    A BDR group is not the same as a standalone PostgreSQL server. It
-   is based on asynchronous multi-master replication without a central
+   is based on asynchronous Active-Active replication without a central
    locking and transaction co-ordinator. This has important implications
    when executing DDL.
   </para>
@@ -54,7 +54,7 @@
 
   <para>
    To safely manipulate the database schema in an asynchronous
-   multimaster setup, all pending changes have to be replicated first.
+   Active-Active setup, all pending changes have to be replicated first.
    Otherwise it is possible that a row being replicated contains data
    for a row that has been dropped, or has no data for a row that is
    marked <literal>NOT NULL</literal>. More complex cases also exist.  To handle

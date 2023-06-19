@@ -239,7 +239,7 @@
         Using <literal>bdr.synchronous_commit = on</literal> and putting bdr
         nodes in <literal>synchronous_standby_names</literal> will
         <emphasis>not</emphasis> prevent the replication conflicts that arise
-        with multi-master use of BDR. There is still no locking between nodes
+        with Active-Active use of BDR. There is still no locking between nodes
         and no global snapshot management so concurrent transactions on
         different nodes can still change the same tuple. Transactions still
         only start to replicate after they commit on the upstream node.
@@ -468,20 +468,6 @@
          replication setups.
         </para>
        </warning>
-      </listitem>
-     </varlistentry>
-
-     <varlistentry id="guc-bdr-log-min-messages" xreflabel="bdr.log_min_messages">
-      <term><varname>bdr.log_min_messages</varname> (<type>enum</type>)
-       <indexterm>
-        <primary><varname>bdr.log_min_messages</varname> configuration parameter</primary>
-       </indexterm>
-      </term>
-      <listitem>
-       <para>
-        Only affects BDR. Set the log_min_messages level for the BDR background
-        workers (default value is <literal>WARNING</literal>).
-       </para>
       </listitem>
      </varlistentry>
 

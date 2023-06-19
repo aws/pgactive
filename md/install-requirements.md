@@ -1,13 +1,8 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------- ---------------------------------------- ------------------------- ----------------------------------------------------------------------------------
-  [Prev](installation.md "Installation"){accesskey="P"}   [Up](installation.md){accesskey="U"}    Chapter 2. Installation    [Next](installation-packages.md "Installing BDR from packages"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                        
+  [Prev](installation.md "Installation")   [Up](installation.md)    Chapter 2. Installation    [Next](installation-packages.md "Installing BDR from packages")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [2.1. BDR requirements]{#INSTALL-REQUIREMENTS} {#bdr-requirements .SECT1}
+# [2.1. BDR requirements]
 
 BDR runs on unmodified PostgreSQL 9.6 as distributed by the PostgreSQL
 Development Group (PGDG), i.e. postgresql.org. The source code will also
@@ -28,19 +23,18 @@ unmodified community PostgreSQL 9.4, or any older version of PostgreSQL.
 As of the time of writing, Microsoft Windows is not yet a supported
 platform for BDR. Support may be added in later releases. If Windows
 support is important to you, check [BDR
-website](http://2ndquadrant.com/BDR){target="_top"} for the latest
+website](http://2ndquadrant.com/BDR) for the latest
 information.
 
-::: SECT2
-## [2.1.1. BDR Requirements (BDR-Postgres 9.4)]{#INSTALL-REQUIREMENTS-94} {#bdr-requirements-bdr-postgres-9.4 .SECT2}
+## [2.1.1. BDR Requirements (BDR-Postgres 9.4)]
 
 To run on PostgreSQL 9.4, BDR requires a modified PostgreSQL called
 BDR-Postgres 9.4. The modified PostgreSQL adds functionality BDR needs
-to support DDL replication, multi-master conflict resolution,
+to support DDL replication, Active-Active conflict resolution,
 user-defined conflict handlers, etc. It is available from the BDR
 download page alongside the extension in both package and source form.
 This requirement means that [*you can\'t use BDR on unmodified
-PostgreSQL 9.4*]{.emphasis}.
+PostgreSQL 9.4*].
 
 Some of these modifications make small changes to PostgreSQL data
 directory. As a result the modified PostgreSQL 9.4 used by BDR can\'t
@@ -50,15 +44,10 @@ PostgreSQL 9.4. See [Installation](installation.md).
 
 This is not the case for BDR running on PostgreSQL 9.6, where no
 modified PostgreSQL is required.
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------ ---------------------------------------- ---------------------------------------------------
-  [Prev](installation.md){accesskey="P"}      [Home](index.md){accesskey="H"}       [Next](installation-packages.md){accesskey="N"}
-  Installation                                [Up](installation.md){accesskey="U"}                         Installing BDR from packages
+  [Prev](installation.md)      [Home](README.md)       [Next](installation-packages.md)  
+  Installation                                [Up](installation.md)                         Installing BDR from packages
   ------------------------------------------ ---------------------------------------- ---------------------------------------------------
-:::

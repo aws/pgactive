@@ -361,7 +361,7 @@
   </para>
 
   <para>
-   BDR users may use any other multimaster-safe sequence/key generation
+   BDR users may use any other Active-Active-safe sequence/key generation
    strategy. It is not necessary to use global sequences. The approaches
    described below will be superior for many applications' needs, and
    more sophisticated approaches also exist.

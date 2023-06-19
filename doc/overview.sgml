@@ -2,7 +2,7 @@
  <title>BDR overview</title>
 
  <para>
-  The BDR (Bi-Directional Replication) project adds multi-master replication
+  The BDR (Bi-Directional Replication) project adds Active-Active replication
   to PostgreSQL. This chapter explains what BDR is, how it works, and where
   to best apply it. See <xref linkend="bdr-concepts"> to learn about
   what BDR does and how it does it.
@@ -12,7 +12,7 @@
   <title>Concepts</title>
 
   <para>
-   BDR provides loosely-coupled asynchronous multi-master logical replication
+   BDR provides loosely-coupled asynchronous Active-Active logical replication
    with mesh topology. This means that you can write to any server and the
    changes will, after they have been committed, be sent row-by-row to all the
    other servers that are part of the same BDR group<footnote><simpara>We'd say
@@ -26,31 +26,31 @@
    <variablelist>
 
     <varlistentry>
-     <term>Multi-master</term>
+     <term>Active-Active</term>
      <listitem>
       <simpara>
        Each database ("node") participating in a BDR group both receives
        changes from other members and can be written to directly by the user.
-       This is distinct from hot or warm standby, where only the single master
+       This is distinct from hot or warm standby, where only the single primary
        server that all others replicate from can be written to.
       </simpara>
 
       <simpara>
-       You don't have to write to all the masters, it's possible to leave
+       You don't have to write to all the Active-Active nodes, it's possible to leave
        all nodes except one read-only, or just direct writes to only one
-       master. However, if you just want one-way replication look into <ulink
-       url="http://2ndquadrant.com/pglogical">pglogical</>, which
+       Active node. However, if you just want one-way replication look into <ulink
+       url="https://github.com/2ndQuadrant/pglogical">pglogical</>, which
        is more flexible.
       </simpara>
 
       <simpara>
-       If you're interested in BDR's multi-master features it's important to
-       understand some of the concepts behind multi-master, both in general and
+       If you're interested in BDR's Active-Active features it's important to
+       understand some of the concepts behind Active-Active, both in general and
        as BDR implements it.  Application developers
        <emphasis>must</emphasis> be aware that applications may need changes
-       for multi-master BDR and cannot be written exactly as if they are
-       talking to a standalone or single-master system. See <xref
-       linkend="weak-coupled-multimaster">.
+       for Active-Active BDR and cannot be written exactly as if they are
+       talking to a standalone or single-primary system. See <xref
+       linkend="weak-coupled-activeactive">.
       </simpara>
 
      </listitem>
@@ -74,7 +74,7 @@
       </simpara>
 
       <simpara>
-       When combined with multi-master, asynchronous replication is often
+       When combined with Active-Active, asynchronous replication is often
        called an "eventually consistent" architecture. At any given time
        the data can look different when viewed from different nodes, but
        over time the nodes sync with each other. If writes stop then after
@@ -99,7 +99,7 @@
       <simpara>
        This means nodes run more independently and are highly tolerant of
        network interruptions and partitions. But it also means that <link
-       linkend="weak-coupled-multimaster">replication conflicts</> may occur.
+       linkend="weak-coupled-activeactive">replication conflicts</> may occur.
       </simpara>
      </listitem>
     </varlistentry>
@@ -119,7 +119,7 @@
        The logical replication performed by BDR is low-level and requires that each
        table have exactly the same structure down to details like dropped columns.
        If you need a more flexible model for continuous ETL, OLAP data collection
-       etc, look at <ulink url="http://2ndquadrant.com/pglogical">pglogical</>.
+       etc, look at <ulink url="https://github.com/2ndQuadrant/pglogical">pglogical</>.
       </simpara>
      </listitem>
     </varlistentry>
@@ -190,7 +190,7 @@
    replication is a lot simpler, has less lag for big transactions, is
    supported by older versions and may require less disk I/O, but generally
    consumes more network bandwidth, can't replicate a subset of databases or
-   tables, and can't support multi-master or cross-version/cross-arch
+   tables, and can't support Active-Active or cross-version/cross-arch
    replication. Which solution you should use depends on what you need to do.
   </para>
 
@@ -198,7 +198,7 @@
    The major differences between physical replication and logical replication as implemented by BDR are:
    <itemizedlist>
     <listitem>
-     <simpara>Multi-master replication is possible. All members are writable nodes that replicate changes.</simpara>
+     <simpara>Active-Active replication is possible. All members are writable nodes that replicate changes.</simpara>
     </listitem>
     <listitem>
      <simpara>Data from index writes, <literal>VACUUM</literal>, hint bits, etc are not sent over the network, so bandwidth requirements may be reduced - especially when compared to physical replication with <literal>full_page_writes</literal>.</simpara>
@@ -213,13 +213,13 @@
      <simpara>Tables that aren't being replicated from elsewhere may be written to BDR.</simpara>
     </listitem>
     <listitem>
-     <simpara>Replication across major versions (e.g. 9.4 to 9.5) can be supported (though BDR imposes limitations on that, <ulink url="http://2ndquadrant.com/pglogical">pglogical</> supports it well).</simpara>
+     <simpara>Replication across major versions (e.g. 9.4 to 9.5) can be supported (though BDR imposes limitations on that, <ulink url="https://github.com/2ndQuadrant/pglogical">pglogical</> supports it well).</simpara>
     </listitem>
     <listitem>
      <simpara>Replication across architectures and OSes (e.g. PPC64 Linux to x86_64 OS X) is supported.</simpara>
     </listitem>
     <listitem>
-     <simpara>Replication is per-database (or even table-level), whereas physical replication can and must replicate all databases. (<ulink url="http://2ndquadrant.com/pglogical">pglogical</> even supports row- and column-level filtering of replication).</simpara>
+     <simpara>Replication is per-database (or even table-level), whereas physical replication can and must replicate all databases. (<ulink url="https://github.com/2ndQuadrant/pglogical">pglogical</> even supports row- and column-level filtering of replication).</simpara>
     </listitem>
     <listitem>
      <simpara>BDR's logical replication implementation imposes some restrictions on supported DDL (see: <xref linkend="ddl-replication">) that do not apply for physical replication</simpara>
@@ -249,7 +249,7 @@
      <simpara>Large objects (pg_largeobject, lo_create, and so on) are not handled by logical decoding, so it cannot be replicated by BDR</simpara>
     </listitem>
     <listitem>
-     <simpara>Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in a multimaster environment anyway, so BDR offers alternatives.</simpara>
+     <simpara>Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in a Active-Active environment anyway, so BDR offers alternatives.</simpara>
     </listitem>
    </itemizedlist>
   </para>
@@ -259,7 +259,7 @@
    redundancy, high availability, backup and PITR.  Logical replication is well
    suited to data integration, data movement and data aggregation (often as an
    alternative to or combined with ETL), for scale-out and for distributed
-   multi-master deployments.
+   Active-Active deployments.
   </para>
 
   <para>
@@ -358,26 +358,26 @@
    compare tables between the publisher and subscriber. Slony-I supports
    events and confirmations. Slony-I provides infrastructure for handling
    DDL while also running on unmodified PostgreSQL 9.4. Bucardo supports
-   multi-master on unmodified PostgreSQL 9.4. So while BDR offers some
+   Active-Active on unmodified PostgreSQL 9.4. So while BDR offers some
    significant benefits it won't suit every need and every workload. Evaluate
    your needs carefully before choosing a technology.
   </para>
 
  </sect1>
 
- <sect1 id="weak-coupled-multimaster"
-        xreflabel="BDR: Weakly coupled multi-master replication">
-  <title>BDR: Weakly coupled multi-master replication</title>
+ <sect1 id="weak-coupled-activeactive"
+        xreflabel="BDR: Weakly coupled Active-Active replication">
+  <title>BDR: Weakly coupled Active-Active replication</title>
 
   <para>
-   When considering multi-master clustering or replication (with BDR
+   When considering Active-Active clustering or replication (with BDR
    or another technology) it is important to understand what's involved,
-   and that not all multi-master systems are equal.
+   and that not all Active-Active systems are equal.
   </para>
 
   <note>
    <para>
-    You don't have to use BDR for multi-master. It's quite reasonable
+    You don't have to use BDR for Active-Active. It's quite reasonable
     to write to only one node, using BDR like an improved read-replica
     system. It's also possible to make sure that any given table/schema
     is only written to on one particular node, so no conflicts can arise.
@@ -394,15 +394,15 @@
   </note>
 
   <para>
-   Some multi-master systems are <emphasis>tightly-coupled</emphasis>; these
+   Some Active-Active systems are <emphasis>tightly-coupled</emphasis>; these
    tend to make all nodes appear to be part of the same virtual database to
    outside clients, complete with cross-node locking, transaction isolation,
    etc. They also often - but not always - use shared storage, where each node
    connects to the same underlying database files over a SAN or similar. This
    makes life easier for application developers who're used to working with
-   stand-alone or single-master databases because they can do everything just
+   stand-alone or single-primary databases because they can do everything just
    like they did before. Like with anything there's a price, though: a tightly
-   coupled multi-master system does not scale out very well, especially for
+   coupled Active-Active system does not scale out very well, especially for
    writes, and isn't very tolerant of latency, node outages, or network
    partitions.
   </para>
@@ -425,14 +425,14 @@
   </para>
 
   <para>
-   BDR is a loosely coupled shared-nothing multi-master design.
+   BDR is a loosely coupled shared-nothing Active-Active design.
   </para>
 
   <para>
    This is a broad and overly simplified characterisation of replication, but
-   it's enough to explain why applications that use BDR for multi-master
+   it's enough to explain why applications that use BDR for Active-Active
    writes need to be aware of the anomalies that can be introduced by
-   asynchronous multi-master replication. It should also help illustrate
+   asynchronous Active-Active replication. It should also help illustrate
    that applications get some significant benefits in exchange:
    <itemizedlist>
     <listitem>
@@ -443,9 +443,9 @@
     </listitem>
     <listitem>
      <simpara>
-      There is no complex election of a new master if a node goes down or
+      There is no complex election of a new primary if a node goes down or
       network problems arise. There is no wait for failover. Each node is
-      always a master and always directly writeable.
+      always a Primary and always directly writeable.
      </simpara>
     </listitem>
     <listitem>
@@ -496,7 +496,7 @@
    <literal>SELECT ... FOR UPDATE / SHARE</literal>, but most applications
    rely on it implicitly via <literal>UPDATE</literal> and
    <literal>DELETE</literal> row-locking, so the absence of explicit locking
-   does not mean an app is automatically multi-master safe.
+   does not mean an app is automatically Active-Active safe.
   </para>
 
   <para>
@@ -509,7 +509,7 @@
    conflict handlers. Either way the application design needs to consider
    that conflicts may occur, and where possible minimise them. Na&iuml;ive
    applications that ignore the the possibility of conflicts when writing
-   to multiple masters may suffer from lost-updates and other undesirable
+   to multiple nodes may suffer from lost-updates and other undesirable
    data anomalies.
   </para>
 

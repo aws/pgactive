@@ -494,7 +494,7 @@
    <para>
     The function <function>bdr.bdr_subscribe</> has been removed from BDR. For
     uni-directional replication, look at the
-    <ulink url="http://2ndquadrant.com/pglogical">pglogical project</ulink>
+    <ulink url="https://github.com/2ndQuadrant/pglogical">pglogical project</ulink>
     project or tools like Londiste.
    </para>
 

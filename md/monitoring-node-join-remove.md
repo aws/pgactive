@@ -1,13 +1,8 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------------------- -------------------------------------- ----------------------- -----------------------------------------------------------------------------
-  [Prev](monitoring-why.md "Why monitoring matters"){accesskey="P"}   [Up](monitoring.md){accesskey="U"}    Chapter 7. Monitoring    [Next](monitoring-peers.md "Monitoring replication peers"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                
+  [Prev](monitoring-why.md "Why monitoring matters")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-peers.md "Monitoring replication peers")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [7.2. Monitoring node join/removal]{#MONITORING-NODE-JOIN-REMOVE} {#monitoring-node-joinremoval .SECT1}
+# [7.2. Monitoring node join/removal]
 
 Node join and removal is asynchronous in BDR. The [Node management
 functions](functions-node-mgmt.md) return immediately, without first
@@ -25,10 +20,10 @@ will be added over time.
 For other node status monitoring [bdr.bdr_nodes](catalog-bdr-nodes.md)
 or must be queried directly.
 
-Here is an example of a `SELECT`{.LITERAL} from
-`bdr.bdr_nodes`{.LITERAL} that indicates that one node is ready
-(`r`{.LITERAL}), one node has been removed/killed (`k`{.LITERAL}), and
-one node is initializing (`i`{.LITERAL}):
+Here is an example of a `SELECT` from
+`bdr.bdr_nodes` that indicates that one node is ready
+(`r`), one node has been removed/killed (`k`), and
+one node is initializing (`i`):
 
 ``` PROGRAMLISTING
     SELECT * FROM bdr.bdr_nodes;
@@ -38,16 +33,12 @@ one node is initializing (`i`{.LITERAL}):
      6125823714403985168 |             1 |      16386 | k           | node2     | port=5599 dbname=bdrdemo | port=5598 dbname=bdrdemo
      6125847382076805699 |             1 |      16386 | i           | node3     | port=6000 dbname=bdrdemo | port=5598 dbname=bdrdemo
     (3 rows)
-
+    
 ```
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   -------------------------------------------- -------------------------------------- ----------------------------------------------
-  [Prev](monitoring-why.md){accesskey="P"}     [Home](index.md){accesskey="H"}      [Next](monitoring-peers.md){accesskey="N"}
-  Why monitoring matters                        [Up](monitoring.md){accesskey="U"}                    Monitoring replication peers
+  [Prev](monitoring-why.md)     [Home](README.md)      [Next](monitoring-peers.md)  
+  Why monitoring matters                        [Up](monitoring.md)                    Monitoring replication peers
   -------------------------------------------- -------------------------------------- ----------------------------------------------
-:::

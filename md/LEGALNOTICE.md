@@ -1,22 +1,18 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)         
   --------------------------------------- -- -- --
 
-------------------------------------------------------------------------
-:::
 
-::: LEGALNOTICE
 []{#LEGALNOTICE}
 
 **Legal Notice**
 
-[Postgres BDR]{.PRODUCTNAME} is Copyright © 2013-2016 by the PostgreSQL
+[Postgres BDR] is Copyright © 2013-2016 by the PostgreSQL
 Global Development Group.
 
-[PostgreSQL]{.PRODUCTNAME} is Copyright © 1996-2016 by the PostgreSQL
+[PostgreSQL] is Copyright © 1996-2016 by the PostgreSQL
 Global Development Group.
 
-[Postgres95]{.PRODUCTNAME} is Copyright © 1994-5 by the Regents of the
+[Postgres95] is Copyright © 1994-5 by the Regents of the
 University of California.
 
 Permission to use, copy, modify, and distribute this software and its
@@ -34,16 +30,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
 AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS
-ON AN [\"AS-IS\"]{.QUOTE} BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO
+ON AN [\"AS-IS\"] BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO
 OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR
 MODIFICATIONS.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --- ----------------------------------- ---
-       [Home](index.md){accesskey="H"}     
+       [Home](README.md)     
   --- ----------------------------------- ---
-:::

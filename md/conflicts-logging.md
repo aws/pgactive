@@ -1,23 +1,18 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ---------------------------------------------------------------------------------------------- ------------------------------------- ----------------------------------- -----------------------------------------------------------------
-  [Prev](conflicts-user-defined-handlers.md "User defined conflict handlers"){accesskey="P"}   [Up](conflicts.md){accesskey="U"}    Chapter 9. Multi-master conflicts    [Next](global-sequences.md "Global Sequences"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                                                     
+  [Prev](conflicts-user-defined-handlers.md "User defined conflict handlers")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](global-sequences.md "Global Sequences")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [9.5. Conflict logging]{#CONFLICTS-LOGGING} {#conflict-logging .SECT1}
+# [9.5. Conflict logging]
 
-To make diagnosis and handling of multi-master conflicts easier,
-[BDR]{.PRODUCTNAME} supports logging of each conflict incident in a
+To make diagnosis and handling of Active-Active conflicts easier,
+[BDR] supports logging of each conflict incident in a
 [bdr.bdr_conflict_history](catalog-bdr-conflict-history.md) table.
 
 Conflict logging to this table is only enabled when
 [bdr.log_conflicts_to_table](bdr-configuration-variables.md#GUC-BDR-LOG-CONFLICTS-TO-TABLE)
-is `true`{.LITERAL}. BDR also logs conflicts to the PostgreSQL log file
-if `log_min_messages`{.LITERAL} is `LOG`{.LITERAL} or lower,
-irrespective of the value of `bdr.log_conflicts_to_table`{.LITERAL}.
+is `true`. BDR also logs conflicts to the PostgreSQL log file
+if `log_min_messages` is `LOG` or lower,
+irrespective of the value of `bdr.log_conflicts_to_table`.
 
 You can use the conflict history table to determine how rapidly your
 application creates conflicts and where those conflicts occur, allowing
@@ -38,19 +33,15 @@ rows that may trigger conflicts.
 Because the conflict history table contains data on every table in the
 database so each row\'s schema might be different, if row values are
 logged they are stored as json fields. The json is created with
-`row_to_json`{.FUNCTION}, just like if you\'d called it on the row
-yourself from SQL. There is no corresponding `json_to_row`{.FUNCTION}
+`row_to_json`, just like if you\'d called it on the row
+yourself from SQL. There is no corresponding `json_to_row`
 function in PostgreSQL at this time, so you\'ll need table-specific code
 (pl/pgsql, pl/python, pl/perl, whatever) if you want to reconstruct a
 composite-typed tuple from the logged json.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------------------------- ------------------------------------- ----------------------------------------------
-  [Prev](conflicts-user-defined-handlers.md){accesskey="P"}     [Home](index.md){accesskey="H"}     [Next](global-sequences.md){accesskey="N"}
-  User defined conflict handlers                                 [Up](conflicts.md){accesskey="U"}                                Global Sequences
+  [Prev](conflicts-user-defined-handlers.md)     [Home](README.md)     [Next](global-sequences.md)  
+  User defined conflict handlers                                 [Up](conflicts.md)                                Global Sequences
   ------------------------------------------------------------- ------------------------------------- ----------------------------------------------
-:::
