@@ -2,7 +2,7 @@
   [Prev](node-management-synchronous.md "n-safe synchronous replication")   [Up](manual.md)        [Next](command-bdr-init-copy.md "bdr_init_copy")  
 
 
-# []{#COMMANDS}Chapter 6. Command-line Utilities
+# Chapter 6. Command-line Utilities
 
 **Table of Contents**
 

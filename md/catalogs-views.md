@@ -3,7 +3,7 @@
   [Prev](functions-upgrade.md "Upgrade functions")   [Up](manual.md)        [Next](catalog-bdr-nodes.md "bdr.bdr_nodes")  
 
 
-# []{#CATALOGS-VIEWS}Chapter 13. Catalogs and Views
+# Chapter 13. Catalogs and Views
 
 **Table of Contents**
 

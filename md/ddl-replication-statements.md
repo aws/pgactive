@@ -71,7 +71,7 @@ approach, e.g.:
 The statements that are applied locally but not replicated are:
 
 
-[]{#DDL-CREATE-INDEX-CONCURRENTLY}`CREATE INDEX CONCURRENTLY`
+`CREATE INDEX CONCURRENTLY`
 
     `CREATE INDEX CONCURRENTLY` is not replicated. It requires
     a top-level transaction so it cannot be run via
@@ -96,18 +96,18 @@ The statements that are applied locally but not replicated are:
             
     ```
 
-[]{#DDL-DROP-INDEX-CONCURRENTLY}`DROP INDEX CONCURRENTLY`
+`DROP INDEX CONCURRENTLY`
 
     `DROP INDEX CONCURRENTLY` is not replicated for the same
     reasons as `CREATE INDEX CONCURRENTLY`. The same
     requirements and workarounds apply.
 
-[]{#DDL-CREATE-DATABASE}`CREATE DATABASE`
+`CREATE DATABASE`
 
     `CREATE DATABASE` cannot be replicated because
     [BDR] works on a per database level.
 
-[]{#DDL-CREATE-ROLE}`CREATE ROLE/USER/GROUP`
+`CREATE ROLE/USER/GROUP`
 
     `CREATE ROLE` cannot be replicated because
     [BDR] works on a per database level. It is possible
@@ -118,7 +118,7 @@ The statements that are applied locally but not replicated are:
       Not creating roles of the same name (not necessarily with the same access details otherwise though) on all systems can break replication when statements like `ALTER TABLE ... OWNER TO` are replicated.
     :::
 
-[]{#DDL-CREATE-TABLESPACE}`CREATE TABLESPACE`
+`CREATE TABLESPACE`
 
     `CREATE TABLESPACE` cannot be replicated because
     [BDR] works on a per database level.
@@ -128,7 +128,7 @@ The statements that are applied locally but not replicated are:
       Not creating tablespaces of the same name (not necessarily with the same location though) on all systems can break replication when statements like `ALTER TABLE ... SET TABLESPACE` are replicated.
     :::
 
-[]{#DDL-DROP-DATABASE}`DROP DATABASE`
+`DROP DATABASE`
 
     `DROP DATABASE` cannot be replicated because
     [BDR] works on a per database level.
@@ -136,7 +136,7 @@ The statements that are applied locally but not replicated are:
     Note that a database that is configured for [BDR]
     cannot be dropped while that is the case.
 
-[]{#DDL-DROP-TABLESPACE}`DROP TABLESPACE`
+`DROP TABLESPACE`
 
     `DROP TABLESPACE` cannot be replicated because
     [BDR] works on a per database level.
@@ -146,7 +146,7 @@ The statements that are applied locally but not replicated are:
       Dropping tablespaces only on some nodes can cause problems when relations on other nodes are moved into the tablespace that does not exist locally anymore.
     :::
 
-[]{#DDL-DROP-ROLE}`DROP ROLE/USER/GROUP`
+`DROP ROLE/USER/GROUP`
 
     `DROP ROLE` cannot be replicated because
     [BDR] works on a per database level. It is possible
@@ -157,7 +157,7 @@ The statements that are applied locally but not replicated are:
       Dropping role only on some nodes can cause problems when objects on other nodes are assigned to roles that do not exist locally anymore.
     :::
 
-[]{#DDL-ALTER-ROLE}`ALTER ROLE/USER/GROUP`
+`ALTER ROLE/USER/GROUP`
 
     `ALTER ROLE` cannot be replicated because
     [BDR] works on a per database level. It is possible
@@ -172,7 +172,7 @@ The statements that are applied locally but not replicated are:
       Renaming a role only on some nodes can lead to problems due to replicated DDL statements not being able to execute anymore.
     :::
 
-[]{#DDL-ALTER-DATABASE}`ALTER DATABASE`
+`ALTER DATABASE`
 
     `ALTER DATABASE` cannot be replicated because
     [BDR] works on a per database level.
@@ -187,7 +187,7 @@ The statements that are applied locally but not replicated are:
       Renaming a database can lead to the connection information stored on some of the nodes not being valid anymore.
     :::
 
-[]{#DDL-ALTER-TABLESPACE}`ALTER TABLESPACE`
+`ALTER TABLESPACE`
 
     `ALTER TABLSPACE` cannot be replicated because
     [BDR] works on a per database level. It is safe to
@@ -213,102 +213,102 @@ The following DDL commands are rejected by [BDR] when
 `ERROR`:
 
 
-[]{#DDL-CREATE-TABLE-AS}`CREATE TABLE AS/SELECT INTO`
+`CREATE TABLE AS/SELECT INTO`
 
     `CREATE TABLE AS/SELECT INTO` are prohibited unless
     `UNLOGGED` or `UNLOGGED` temporary is specified.
 
-[]{#DDL-CREATE-TABLE-OF-TYPE}`CREATE TABLE ... OF TYPE`
+`CREATE TABLE ... OF TYPE`
 
     `CREATE TABLE ... OF TYPE` is prohibited unless
     `UNLOGGED` or `UNLOGGED` temporary is specified.
 
-[]{#DDL-CREATE-TEXT-SEARCH-PARSER}`CREATE TEXT SEARCH PARSER`
+`CREATE TEXT SEARCH PARSER`
 
     `CREATE TEXT SEARCH PARSER` is prohibited.
 
-[]{#DDL-CREATE-TEXT-SEARCH-DICTIONARY}`CREATE TEXT SEARCH DICTIONARY`
+`CREATE TEXT SEARCH DICTIONARY`
 
     `CREATE TEXT SEARCH DICTIONARY` is prohibited.
 
-[]{#DDL-ALTER-TEXT-SEARCH-DICTIONARY}`ALTER TEXT SEARCH DICTIONARY`
+`ALTER TEXT SEARCH DICTIONARY`
 
     `ALTER TEXT SEARCH DICTIONARY` is prohibited.
 
-[]{#DDL-CREATE-TEXT-SEARCH-TEMPLATE}`CREATE TEXT SEARCH TEMPLATE`
+`CREATE TEXT SEARCH TEMPLATE`
 
     `CREATE TEXT SEARCH TEMPLATE` is prohibited.
 
-[]{#DDL-CREATE-TEXT-SEARCH-CONFIGURATION}`CREATE TEXT SEARCH CONFIGURATION`
+`CREATE TEXT SEARCH CONFIGURATION`
 
     `CREATE TEXT SEARCH template` is prohibited.
 
-[]{#DDL-ALTER-TEXT-SEARCH-CONFIGURATION}`ALTER TEXT SEARCH CONFIGURATION`
+`ALTER TEXT SEARCH CONFIGURATION`
 
     `ALTER TEXT SEARCH template` is prohibited.
 
-[]{#DDL-CREATE-COLLATION}`CREATE COLLATION`
+`CREATE COLLATION`
 
     `CREATE CREATE COLLATION` is prohibited.
 
-[]{#DDL-ALTER-EXTENSION}`ALTER EXTENSION`
+`ALTER EXTENSION`
 
     `ALTER EXTENSION` currently is prohibited.
 
-[]{#DDL-CREATE-FOREIGN-DATA-WRAPPER}`CREATE FOREIGN DATA WRAPPER`
+`CREATE FOREIGN DATA WRAPPER`
 
     `CREATE FOREIGN DATA WRAPPER` currently is prohibited.
 
-[]{#DDL-ALTER-FOREIGN-DATA-WRAPPER}`ALTER FOREIGN DATA WRAPPER`
+`ALTER FOREIGN DATA WRAPPER`
 
     `ALTER FOREIGN DATA WRAPPER` currently is prohibited.
 
-[]{#DDL-CREATE-SERVER}`CREATE SERVER`
+`CREATE SERVER`
 
     `CREATE SERVER` currently is prohibited.
 
-[]{#DDL-ALTER-SERVER}`ALTER SERVER`
+`ALTER SERVER`
 
     `ALTER SERVER` currently is prohibited.
 
-[]{#DDL-CREATE-USER-MAPPING}`CREATE USER MAPPING`
+`CREATE USER MAPPING`
 
     `CREATE USER MAPPING` currently is prohibited.
 
-[]{#DDL-ALTER-USER-MAPPING}`ALTER USER MAPPING`
+`ALTER USER MAPPING`
 
     `ALTER USER MAPPING` currently is prohibited.
 
-[]{#DDL-DROP-USER-MAPPING}`DROP USER MAPPING`
+`DROP USER MAPPING`
 
     `DROP USER MAPPING` currently is prohibited.
 
-[]{#DDL-CREATEH-MATERIALIZED-VIEW}`CREATE MATERIALIZED VIEW`
+`CREATE MATERIALIZED VIEW`
 
     `CREATE MATERIALIZED VIEW` currently is prohibited.
 
-[]{#DDL-REFRESH-MATERIALIZED-VIEW}`REFRESH MATERIALIZED VIEW`
+`REFRESH MATERIALIZED VIEW`
 
     `REFRESH MATERIALIZED VIEW` currently is prohibited.
 
-[]{#DDL-CREATE-LANGUAGE}`CREATE LANGUAGE`
+`CREATE LANGUAGE`
 
     `CREATE LANGUAGE` currently is prohibited. Note that
     nearly all procedual languages are available as an extension and
     `CREATE EXTENSION` is supported.
 
-[]{#DDL-CREATE-CONVERSION}`CREATE CONVERSION`
+`CREATE CONVERSION`
 
     `CREATE CONVERSION` currently is prohibited.
 
-[]{#DDL-CREATE-CAST}`CREATE CAST`
+`CREATE CAST`
 
     ::: NOTE
     > **Note:** `CREATE CAST` currently is prohibited. Note
     > that `CREATE CAST` inside an extension is supported.
     :::
 
-[]{#DDL-CREATE-OPERATOR-FAMILY}`CREATE OPERATOR FAMILY`
+`CREATE OPERATOR FAMILY`
 
     ::: NOTE
     > **Note:** `CREATE OPERATOR FAMILY` currently is
@@ -316,7 +316,7 @@ The following DDL commands are rejected by [BDR] when
     > extension is supported.
     :::
 
-[]{#DDL-ALTER-OPERATOR-FAMILY}`ALTER OPERATOR FAMILY`
+`ALTER OPERATOR FAMILY`
 
     `ALTER OPERATOR FAMILY` currently is prohibited.
 
@@ -325,7 +325,7 @@ The following DDL commands are rejected by [BDR] when
     > extension is supported.
     :::
 
-[]{#DDL-CREATE-OPERATOR-CLASS}`CREATE OPERATOR CLASS`
+`CREATE OPERATOR CLASS`
 
     `CREATE OPERATOR CLASS` currently is prohibited.
 
@@ -334,11 +334,11 @@ The following DDL commands are rejected by [BDR] when
     > extension is supported.
     :::
 
-[]{#DDL-DROP-OWNED}`DROP OWNED`
+`DROP OWNED`
 
     `DROP OWNED` is prohibited.
 
-[]{#DDL-SECURITY-LABEL}`SECURITY LABEL`
+`SECURITY LABEL`
 
     Except for some [BDR] internal use
     `SECURITY LABEL` is prohibited.
@@ -374,7 +374,7 @@ The following statements or statement options are not currently
 permitted when BDR is active on a database:
 
 
-[]{#DDL-CREATE-TABLE}`CREATE TABLE`
+`CREATE TABLE`
 
     Generally `CREATE TABLE` is allowed. There are a few
     options/subcommands that are not supported.
@@ -388,7 +388,7 @@ permitted when BDR is active on a database:
 
     -   `CONSTRAINT ... EXCLUDE` - not supported yet
 
-[]{#DDL-ALTER-TABLE}`ALTER TABLE`
+`ALTER TABLE`
 
     Generally `ALTER TABLE` commands are allowed. There are a
     however several sub-commands that are not supported, mainly those
@@ -431,19 +431,19 @@ permitted when BDR is active on a database:
 
     -   `SET (..)` - is not supported at the moment.
 
-[]{#DDL-CREATE-INDEX}`CREATE INDEX`
+`CREATE INDEX`
 
     Generally `CREATE INDEX` is supported, but
     `CREATE UNIQUE INDEX ... WHERE`, i.e. partial unique
     indexes are not allowed.
 
-[]{#DDL-CREATE-SEQUENCE}`CREATE SEQUENCE`
+`CREATE SEQUENCE`
 
     Generally `CREATE SEQUENCE` is supported, but when using
     [BDR]\'s distributed sequences, some options are
     prohibited.
 
-[]{#DDL-ALTER-SEQUENCE}`ALTER SEQUENCE`
+`ALTER SEQUENCE`
 
     Generally `ALTER SEQUENCE` is supported, but when using
     [BDR]\'s distributed sequences, some options like

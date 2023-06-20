@@ -2,7 +2,7 @@
   [Prev](ddl-replication-statements.md "Statement specific DDL replication concerns")   [Up](manual.md)        [Next](conflicts-how.md "How conflicts happen")  
 
 
-# []{#CONFLICTS}Chapter 9. Active-Active conflicts
+# Chapter 9. Active-Active conflicts
 
 **Table of Contents**
 

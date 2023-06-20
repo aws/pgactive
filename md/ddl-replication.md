@@ -2,7 +2,7 @@
   [Prev](monitoring-postgres-stats.md "PostgreSQL statistics views")   [Up](manual.md)        [Next](ddl-replication-advice.md "Executing DDL on BDR systems")  
 
 
-# []{#DDL-REPLICATION}Chapter 8. DDL Replication
+# Chapter 8. DDL Replication
 
 **Table of Contents**
 

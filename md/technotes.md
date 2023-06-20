@@ -2,7 +2,7 @@
   [Prev](appendix-signatures.md "Verifying digital signatures")   [Home](README.md)        [Next](technotes-mesh.md "BDR network structure")  
 
 
-# []{#TECHNOTES}Appendix C. Technical notes
+# Appendix C. Technical notes
 
 **Table of Contents**
 

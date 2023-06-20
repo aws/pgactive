@@ -2,7 +2,7 @@
   [Prev](bdr-configuration-variables.md "BDR specific configuration variables")   [Up](manual.md)        [Next](node-management-joining.md "Joining a node")  
 
 
-# []{#NODE-MANAGEMENT}Chapter 5. Node Management
+# Chapter 5. Node Management
 
 **Table of Contents**
 

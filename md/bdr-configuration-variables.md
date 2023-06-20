@@ -12,18 +12,18 @@ per-database or per-session, but most require a server reload or a full
 server restart to take effect.
 
 
-[]{#GUC-BDR-CONFLICT-LOGGING-INCLUDE-TUPLES}`bdr.conflict_logging_include_tuples` (`boolean`)
+`bdr.conflict_logging_include_tuples` (`boolean`)
 
     Log whole tuples when logging BDR tuples. Requires a server reload
     to take effect.
 
-[]{#GUC-BDR-LOG-CONFLICTS-TO-TABLE}`bdr.log_conflicts_to_table` (`boolean`)
+`bdr.log_conflicts_to_table` (`boolean`)
 
     This boolean option controls whether detected BDR conflicts get
     logged to the bdr.bdr_conflict_history table. See Conflict logging
     for details. Requires a server reload to take effect.
 
-[]{#GUC-BDR-SYNCHRONOUS-COMMIT}`bdr.synchronous_commit` (`boolean`)
+`bdr.synchronous_commit` (`boolean`)
 
     This boolean option controls whether the
     `synchronous_commit` setting in [BDR] apply
@@ -60,7 +60,7 @@ server restart to take effect.
     > always-consistent system. See the [Overview](overview.md).
     :::
 
-[]{#GUC-TEMP-DUMP-DIRECTORY}`bdr.temp_dump_directory` (`string`)
+`bdr.temp_dump_directory` (`string`)
 
     Specifies the path to a temporary storage location, writable by the
     postgres user, that needs to have enough storage space to contain a
@@ -69,7 +69,7 @@ server restart to take effect.
     This setting is only used during initial bringup via logical copy.
     It is not used by [bdr_init_copy].
 
-[]{#GUC-BDR-MAX-DDL-LOCK-DELAY}`bdr.max_ddl_lock_delay` (`milliseconds`)
+`bdr.max_ddl_lock_delay` (`milliseconds`)
 
     Controls how long a DDL lock attempt can wait for concurrent write
     transactions to commit or roll back before it forcibly aborts them.
@@ -78,7 +78,7 @@ server restart to take effect.
     like `'10s'`. See [DDL
     Locking](ddl-replication-advice.md#DDL-REPLICATION-LOCKING).
 
-[]{#GUC-BDR-DDL-LOCK-TIMEOUT}`bdr.ddl_lock_timeout` (`milliseconds`)
+`bdr.ddl_lock_timeout` (`milliseconds`)
 
     Controls how long a DDL lock attempt can wait to acquire the lock.
     The default value `-1` (the default) uses the value of
@@ -91,14 +91,14 @@ server restart to take effect.
     acquired. To limit overall duration use a
     `statement_timeout`.
 
-[]{#GUC-BDR-PERMIT-DDL-LOCKING}`bdr.permit_ddl_locking` (`boolean`)
+`bdr.permit_ddl_locking` (`boolean`)
 
     Allow sessions to run DDL commands that acquire the global DDL lock.
     See [DDL replication](ddl-replication.md) for details on the DDL
     lock. Setting this to off by default means that unintended DDL that
     can be disruptive to production is prevented.
 
-[]{#GUC-BDR-TRACE-DDL-LOCKS-LEVEL}`bdr.trace_ddl_locks_level` (`boolean`)
+`bdr.trace_ddl_locks_level` (`boolean`)
 
     Override the default debug log level for BDR DDL locking (used in
     [DDL replication](ddl-replication.md)) so that DDL-lock related
@@ -128,7 +128,7 @@ server restart to take effect.
 ## 4.2.1. Less common or internal configuration variables
 
 
-[]{#GUC-BDR-DEFAULT-APPLY-DELAY}`bdr.default_apply_delay` (`integer`)
+`bdr.default_apply_delay` (`integer`)
 
     Sets a default apply delay (in milliseconds) for all configured
     connections that don\'t have a explicitly configured apply delay in
@@ -147,7 +147,7 @@ server restart to take effect.
     This parameter requires a server reload or restart of the apply
     workers to take effect.
 
-[]{#GUC-BDR-SKIP-DDL-LOCKING}`bdr.skip_ddl_locking` (`boolean`)
+`bdr.skip_ddl_locking` (`boolean`)
 
     Only affects BDR. Prevents acquisiton of the the global DDL lock
     when executing DDL statement. This is mainly used internally, but
@@ -159,7 +159,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-[]{#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS}`bdr.permit_unsafe_ddl_commands` (`boolean`)
+`bdr.permit_unsafe_ddl_commands` (`boolean`)
 
     Only affects BDR. Permits execution of schema changes that cannot
     safely be replicated and overrides the read-only status of a node.
@@ -171,7 +171,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-[]{#GUC-BDR-SKIP-DDL-REPLICATION}`bdr.skip_ddl_replication` (`boolean`)
+`bdr.skip_ddl_replication` (`boolean`)
 
     Only affects BDR. Skips replication of DDL changes made in a session
     where this option is set to other systems. This is primarily useful
@@ -184,7 +184,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-[]{#GUC-BDR-DO-NOT-REPLICATE}`bdr.do_not_replicate` (`boolean`)
+`bdr.do_not_replicate` (`boolean`)
 
     This parameter is intended for internal use only. Changes made in a
     transaction with this parameter set will not be queued for
@@ -195,7 +195,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-[]{#GUC-BDR-DISCARD-MISMATCHED-ROW-ATTRIBUTES}`bdr.discard_mismatched_row_attributes` (`boolean`)
+`bdr.discard_mismatched_row_attributes` (`boolean`)
 
     This parameter is intended for specialist use only. It is only
     useful when a problem has arisen where rows on the incoming
@@ -212,7 +212,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-[]{#GUC-BDR-TRACE-REPLAY}`bdr.trace_replay` (`boolean`)
+`bdr.trace_replay` (`boolean`)
 
     When `on`, emits a log message for each remote action
     processed by a BDR downstream apply worker. The message records the
@@ -231,7 +231,7 @@ server restart to take effect.
     > `VERBOSE_DELETE` defined if you want row values.
     :::
 
-[]{#GUC-BDR-EXTRA-APPLY-CONNECTION-OPTIONS}`bdr.extra_apply_connection_options` (`boolean`)
+`bdr.extra_apply_connection_options` (`boolean`)
 
     Add connection parameters to all connections made by BDR nodes to
     their peers. This is useful for configuring keepalives, SSL modes,

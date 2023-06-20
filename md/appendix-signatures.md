@@ -3,7 +3,7 @@
   [Prev](release-0.7.md "Release 0.7.0")   [Home](README.md)        [Next](technotes.md "Technical notes")  
 
 
-# []{#APPENDIX-SIGNATURES}Appendix B. Verifying digital signatures
+# Appendix B. Verifying digital signatures
 
 The signing key ID used for source code and RPM releases of BDR versions
 based on PostgreSQL 9.4 is [the key

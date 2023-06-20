@@ -3,7 +3,7 @@
   [Prev](getting-started.md "Getting started")   [Up](getting-started.md)        [Next](bdr-concepts.md "Concepts")  
 
 
-# []{#OVERVIEW}Chapter 1. BDR overview
+# Chapter 1. BDR overview
 
 **Table of Contents**
 

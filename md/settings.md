@@ -2,7 +2,7 @@
   [Prev](manual.md "BDR administration manual")   [Up](manual.md)        [Next](settings-prerequisite.md "Prerequisite PostgreSQL parameters")  
 
 
-# []{#SETTINGS}Chapter 4. Configuration Settings
+# Chapter 4. Configuration Settings
 
 **Table of Contents**
 

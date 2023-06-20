@@ -2,7 +2,7 @@
   [Prev](installation-source.md "Installing BDR from source")   [Up](getting-started.md)        [Next](quickstart-instances.md "Creating BDR-enabled PostgreSQL nodes/instances")  
 
 
-# []{#QUICKSTART}Chapter 3. Quick-start guide
+# Chapter 3. Quick-start guide
 
 **Table of Contents**
 

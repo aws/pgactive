@@ -3,7 +3,7 @@
   [Prev](x4496.md "Upgrading 0.8.x to 1.0")   [Home](README.md)        [Next](release-2.0.5.md "Release 2.0.5")  
 
 
-# []{#RELEASENOTES}Appendix A. Release notes
+# Appendix A. Release notes
 
 **Table of Contents**
 

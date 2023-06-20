@@ -8,7 +8,7 @@ BDR require certain [PostgreSQL] settings to be set to
 appropriate values.
 
 
-[]{#GUC-MAX-WORKER-PROCESSES}`max_worker_processes` (`integer`)
+`max_worker_processes` (`integer`)
 
     For BDR this has to be set to a big enough value to have one worker
     per configured database, and one worker per connection.
@@ -17,7 +17,7 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES).
 
-[]{#GUC-MAX-REPLICATION-SLOTS}`max_replication_slots` (`integer`)
+`max_replication_slots` (`integer`)
 
     For BDR this needs to be set big enough so that every connection to
     this node has a free replication slot.
@@ -26,7 +26,7 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-REPLICATION-SLOTS).
 
-[]{#GUC-MAX-WAL-SENDERS}`max_wal_senders` (`integer`)
+`max_wal_senders` (`integer`)
 
     For BDR this needs to be set big enough so that every connection to
     this node has a free wal sender process.
@@ -39,7 +39,7 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-WAL-SENDERS).
 
-[]{#GUC-SHARED-PRELOAD-LIBRARIES}`shared_preload_libraries` (`string`)
+`shared_preload_libraries` (`string`)
 
     For BDR this parameter has to include `bdr` as one of the
     comma separated values. The parameter can only be changed at server
@@ -49,11 +49,11 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-client.html#GUC-SHARED-PRELOAD-LIBRARIES).
 
-[]{#GUC-TRACK-COMMIT-TIMESTAMP}`track_commit_timestamp` (`bool`)
+`track_commit_timestamp` (`bool`)
 
     To use BDR this parameter has to be set to `true`.
 
-[]{#GUC-WAL-LEVEL}`wal_level` (`enum`)
+`wal_level` (`enum`)
 
     For BDR this parameter has to be set to `logical`.
 
@@ -61,7 +61,7 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL).
 
-[]{#GUC-DEFAULT-SEQUENCEAM}`default_sequenceam` (`string`)
+`default_sequenceam` (`string`)
 
     This option is deprecated. On PostgreSQL 9.6 it is not supported and
     may not be set. On BDR-Postgres 9.4 it can be used to activate the

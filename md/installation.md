@@ -2,7 +2,7 @@
   [Prev](weak-coupled-activeactive.md "BDR: Weakly coupled Active-Active replication")   [Up](getting-started.md)        [Next](install-requirements.md "BDR requirements")  
 
 
-# []{#INSTALLATION}Chapter 2. Installation
+# Chapter 2. Installation
 
 **Table of Contents**
 

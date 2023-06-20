@@ -3,7 +3,7 @@
   [Prev](technotes-rewrites.md "Full table rewrites")   [Home](README.md)         
 
 
-# []{#BOOKINDEX}Index
+# Index
 
 [A](bookindex.md#AEN5129) \| [B](bookindex.md#AEN5173) \|
 [C](bookindex.md#AEN5319) \| [D](bookindex.md#AEN5411) \|

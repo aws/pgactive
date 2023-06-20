@@ -2,7 +2,7 @@
   [Prev](conflicts-logging.md "Conflict logging")   [Up](manual.md)        [Next](global-sequences-purpose.md "Purpose of global sequences")  
 
 
-# []{#GLOBAL-SEQUENCES}Chapter 10. Global Sequences
+# Chapter 10. Global Sequences
 
 **Table of Contents**
 

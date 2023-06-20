@@ -2,7 +2,7 @@
   [Prev](global-sequences-bdr10.md "BDR 1.0 global sequences")   [Up](manual.md)        [Next](replication-sets-concepts.md "Replication Set Concepts")  
 
 
-# []{#REPLICATION-SETS}Chapter 11. Replication Sets
+# Chapter 11. Replication Sets
 
 **Table of Contents**
 

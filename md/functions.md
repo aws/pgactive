@@ -2,7 +2,7 @@
   [Prev](replication-sets-changetype.md "Change-type replication sets")   [Up](manual.md)        [Next](functions-node-mgmt.md "Node management functions")  
 
 
-# []{#FUNCTIONS}Chapter 12. Functions
+# Chapter 12. Functions
 
 **Table of Contents**
 

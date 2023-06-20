@@ -3,7 +3,7 @@
   [Prev](command-bdr-init-copy.md "bdr_init_copy")   [Up](manual.md)        [Next](monitoring-why.md "Why monitoring matters")  
 
 
-# []{#MONITORING}Chapter 7. Monitoring
+# Chapter 7. Monitoring
 
 **Table of Contents**
 
