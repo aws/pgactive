@@ -1897,7 +1897,7 @@ bdr_generate_node_identifier_internal(void)
 	if (file_exists(path))
 	{
 		ereport(NOTICE,
-				(errmsg("node identifier for this node has already been generated")));
+				(errmsg("BDR node identifier for this node has already been generated")));
 
 		LWLockRelease(BdrWorkerCtl->lock);
 		return nid;
