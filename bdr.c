@@ -327,6 +327,7 @@ bdr_connect(const char *conninfo,
 	StringInfoData conninfo_repl;
 	char	   *remote_sysid;
 	char	   *remote_tlid;
+	StringInfo	cmd;
 
 	initStringInfo(&conninfo_nrepl);
 	initStringInfo(&conninfo_repl);
@@ -393,17 +394,21 @@ bdr_connect(const char *conninfo,
 				 errdetail("Connection string is '%s'", conninfo_nrepl.data)));
 	}
 
-	elog(DEBUG3, "sending command: SELECT * FROM bdr.bdr_get_node_identifier();");
+	cmd = makeStringInfo();
+	appendStringInfoString(cmd,
+		"SELECT * FROM bdr.bdr_get_node_identifier();");
 
-	res = PQexec(conn, "SELECT * FROM bdr.bdr_get_node_identifier();");
+	elog(DEBUG3, "sending command: \"%s\"", cmd->data);
+
+	res = PQexec(conn, cmd->data);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		elog(ERROR, "could not send command \"%s\": %s",
-			 "SELECT * FROM bdr.bdr_get_node_identifier();", PQerrorMessage(conn));
+			 cmd->data, PQerrorMessage(conn));
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
-		elog(ERROR, "could not node identifier system: got %d rows and %d fields, expected %d row and %d field",
+		elog(ERROR, "could not fetch BDR node identifier: got %d rows and %d columns, expected %d row and %d column",
 			 PQntuples(res), PQnfields(res), 1, 1);
 	}
 
@@ -412,6 +417,8 @@ bdr_connect(const char *conninfo,
 	if (sscanf(remote_sysid, UINT64_FORMAT, &remote_node->sysid) != 1)
 		elog(ERROR, "could not parse remote BDR node identifier %s", remote_sysid);
 
+	pfree(cmd->data);
+	pfree(cmd);
 	PQclear(res);
 
 	elog(DEBUG2, "local node " BDR_NODEID_FORMAT_WITHNAME ", remote node " BDR_NODEID_FORMAT_WITHNAME,

@@ -885,12 +885,8 @@ remove_unwanted_files(char *data_dir)
 
 	if (file_exists(path))
 	{
-		char	plogicalpath[MAXPGPATH];
-
 		if (unlink(path) < 0 && errno != ENOENT)
 			die(_("could not remove file \"%s\""), path);
-
-		snprintf(plogicalpath, MAXPGPATH, "%s/pg_logical/", data_dir);
 
 /* API cc8d41511721 changed in PG12 */
 #if PG_VERSION_NUM < 120000
@@ -1011,6 +1007,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
+	StringInfo	cmd;
 
 	/*
 	 * Fetch the system identification info (sysid, tlid) via replication
@@ -1072,25 +1069,30 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 			PQerrorMessage(remote_conn));
 	}
 
-	res = PQexec(remote_conn, "SELECT * FROM bdr.bdr_get_node_identifier();");
+	cmd = makeStringInfo();
+	appendStringInfoString(cmd,
+		"SELECT * FROM bdr.bdr_get_node_identifier();");
+
+	res = PQexec(remote_conn, cmd->data);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		PQclear(res);
-		die(_("Could not send command \"%s\": %s\n"),
-			"SELECT * FROM bdr.bdr_get_node_identifier();",
+		die(_("Could not send command \"%s\": %s\n"), cmd->data,
 			PQerrorMessage(remote_conn));
 	}
 
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
 		PQclear(res);
-		die(_("Could not fetch BDR node identifier: got %d rows and %d fields, expected %d row and %d field\n"),
+		die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected %d row and %d column\n"),
 			PQntuples(res), PQnfields(res), 1, 1);
 	}
 
 	remote_nid = PQgetvalue(res, 0, 0);
 	*nid = strtou64(remote_nid, NULL, 10);
 
+	pfree(cmd->data);
+	pfree(cmd);
 	PQclear(res);
 	PQfinish(remote_conn);
 	remote_conn = NULL;
