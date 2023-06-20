@@ -1007,7 +1007,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
-	StringInfo	cmd;
+	PQExpBuffer	cmd;
 
 	/*
 	 * Fetch the system identification info (sysid, tlid) via replication
@@ -1069,8 +1069,8 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 			PQerrorMessage(remote_conn));
 	}
 
-	cmd = makeStringInfo();
-	appendStringInfoString(cmd,
+	cmd = createPQExpBuffer();
+	appendPQExpBufferStr(cmd,
 		"SELECT * FROM bdr.bdr_get_node_identifier();");
 
 	res = PQexec(remote_conn, cmd->data);
@@ -1091,8 +1091,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	remote_nid = PQgetvalue(res, 0, 0);
 	*nid = strtou64(remote_nid, NULL, 10);
 
-	pfree(cmd->data);
-	pfree(cmd);
+	destroyPQExpBuffer(cmd);
 	PQclear(res);
 	PQfinish(remote_conn);
 	remote_conn = NULL;
