@@ -396,7 +396,7 @@ bdr_connect(const char *conninfo,
 
 	cmd = makeStringInfo();
 	appendStringInfoString(cmd,
-		"SELECT node_id FROM bdr.bdr_get_node_identifier();");
+		"SELECT bdr.bdr_get_node_identifier() AS node_id;");
 
 	elog(DEBUG3, "sending command: \"%s\"", cmd->data);
 
@@ -2038,14 +2038,7 @@ bdr_get_node_identifier(PG_FUNCTION_ARGS)
 {
 	uint64 nid;
 	char	buf[256];
-	Datum		values[1];
-	bool		nulls[1] = {false};
-	TupleDesc	tupdesc;
-	HeapTuple	tuple;
 	Datum		result;
-
-	if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
 
 	nid = bdr_get_node_identifier_internal();
 
@@ -2054,13 +2047,10 @@ bdr_get_node_identifier(PG_FUNCTION_ARGS)
 
 	/* Convert to numeric. */
 	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
-	values[0] = DirectFunctionCall3(numeric_in,
-									CStringGetDatum(buf),
-									ObjectIdGetDatum(0),
-									Int32GetDatum(-1));
-
-	tuple = heap_form_tuple(tupdesc, values, nulls);
-	result = HeapTupleGetDatum(tuple);
+	result = DirectFunctionCall3(numeric_in,
+								 CStringGetDatum(buf),
+								 ObjectIdGetDatum(0),
+								 Int32GetDatum(-1));
 
 	PG_RETURN_DATUM(result);
 }

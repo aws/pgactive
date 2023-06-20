@@ -1080,7 +1080,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 	cmd = createPQExpBuffer();
 	appendPQExpBufferStr(cmd,
-		"SELECT node_id FROM bdr.bdr_get_node_identifier();");
+		"SELECT bdr.bdr_get_node_identifier() AS node_id;");
 
 	res = PQexec(remote_conn, cmd->data);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
