@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-locks.md "bdr.bdr_locks")  
 
 
-# [13.7. bdr.bdr_conflict_handlers]
+# 13.7. bdr.bdr_conflict_handlers
 
 `bdr.bdr_conflict_handlers` manages user-defined conflict
 handlers; see [User defined conflict

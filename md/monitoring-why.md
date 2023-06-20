@@ -2,7 +2,7 @@
   [Prev](monitoring.md "Monitoring")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-node-join-remove.md "Monitoring node join/removal")  
 
 
-# [7.1. Why monitoring matters]
+# 7.1. Why monitoring matters
 
 If one or more nodes are down in a BDR group then [DDL
 locking](ddl-replication-advice.md#DDL-REPLICATION-LOCKING) for [DDL

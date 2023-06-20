@@ -2,7 +2,7 @@
   [Prev](functions-conflict-handlers.md "Conflict handler management functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-upgrade.md "Upgrade functions")  
 
 
-# [12.4. Information functions]
+# 12.4. Information functions
 
 The following functions provide information about a BDR node:
 
@@ -38,7 +38,6 @@ integer
 Return the oldest version of the [BDR] extension that this
 node can compatibly receive streamed changes from.
 
-[]{#FUNCTIONS-BDR-GET-LOCAL-NODE-NAME}
 
 `bdr.bdr_get_local_node_name()`
 
@@ -47,7 +46,6 @@ text
 Look up the local node in `bdr.bdr_nodes` and return the node
 name - or null if the node is not a [BDR] peer
 
-[]{#FUNCTIONS-BDR-GET-LOCAL-NODE-ID}
 
 `bdr.bdr_get_local_nodeid()`
 

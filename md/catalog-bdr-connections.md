@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-nodes.md "bdr.bdr_nodes")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-node-slots.md "bdr.bdr_node_slots")  
 
 
-# [13.2. bdr.bdr_connections]
+# 13.2. bdr.bdr_connections
 
 The `bdr.bdr_connections` table keeps track of the connection
 strings used for each node to connect to each other node.

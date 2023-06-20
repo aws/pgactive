@@ -3,7 +3,7 @@
   [Prev](release-0.9.2.md "Release 0.9.2")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.9.0.md "Release 0.9.0")  
 
 
-# [A.12. Release 0.9.1]
+# A.12. Release 0.9.1
 
 Version 0.9.1 is a maintenance release focused on stability and
 performance.

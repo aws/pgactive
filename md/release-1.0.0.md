@@ -3,7 +3,7 @@
   [Prev](release-1.0.1.md "Release 1.0.1")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.9.3.md "Release 0.9.3")  
 
 
-# [A.9. Release 1.0.0]
+# A.9. Release 1.0.0
 
 The 1.0.0 release improves schema change DDL locking, the documentation,
 managment tools, and more. It is [a straightforward upgrade for 0.9.x

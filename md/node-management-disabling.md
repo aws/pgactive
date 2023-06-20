@@ -2,7 +2,7 @@
   [Prev](node-management-removing.md "Parting (removing) a node")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-synchronous.md "n-safe synchronous replication")  
 
 
-# [5.3. Completely removing BDR]
+# 5.3. Completely removing BDR
 
 To take a BDR node that has already been parted, or one that has been
 restored from a base backup, and turn it back into a normal PostgreSQL

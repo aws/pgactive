@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-conflict-history.md "bdr.bdr_conflict_history")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-conflict-handlers.md "bdr.bdr_conflict_handlers")  
 
 
-# [13.6. bdr.bdr_replication_set_config]
+# 13.6. bdr.bdr_replication_set_config
 
 `bdr.bdr_replication_set_config` can be used to override the
 default replication set behaviour of replicating `INSERT`,

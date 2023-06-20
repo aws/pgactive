@@ -2,7 +2,7 @@
   [Prev](monitoring-peers.md "Monitoring replication peers")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-conflict-stats.md "Monitoring conflicts")  
 
 
-# [7.4. Monitoring global DDL locks]
+# 7.4. Monitoring global DDL locks
 
 The global DDL lock, used in [DDL replication](ddl-replication.md),
 can cancel and/or block concurrent writes and other DDL. So it can be

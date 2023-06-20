@@ -2,7 +2,7 @@
   [Prev](monitoring-why.md "Why monitoring matters")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-peers.md "Monitoring replication peers")  
 
 
-# [7.2. Monitoring node join/removal]
+# 7.2. Monitoring node join/removal
 
 Node join and removal is asynchronous in BDR. The [Node management
 functions](functions-node-mgmt.md) return immediately, without first

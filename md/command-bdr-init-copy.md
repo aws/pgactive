@@ -3,7 +3,7 @@
   [Prev](commands.md "Command-line Utilities")   [Up](commands.md)    Chapter 6. Command-line Utilities    [Next](monitoring.md "Monitoring")  
 
 
-# [6.1. bdr_init_copy]
+# 6.1. bdr_init_copy
 
 The [bdr_init_copy] command is used to initialize a new
 [BDR] node by making physical copy of an existing node and
@@ -35,7 +35,7 @@ for information on creating base backups.
 
 `bdr_init_copy` \[*`option`*\...\]
 
-## [6.1.1. Options]
+## 6.1.1. Options
 
 The following command-line options control the behaviour of
 [bdr_init_copy].

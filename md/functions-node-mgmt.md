@@ -2,7 +2,7 @@
   [Prev](functions.md "Functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-replication-sets.md "Replication Set functions")  
 
 
-# [12.1. Node management functions]
+# 12.1. Node management functions
 
 [BDR] uses functions to manage the addition and removal of
 nodes and related replication control functions. See [Node
@@ -20,7 +20,6 @@ Return Type
 
 Description
 
-[]{#FUNCTION-BDR-GROUP-CREATE}
 
 `bdr.bdr_group_create(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
 
@@ -49,7 +48,6 @@ node](node-management-joining.md) for details on node joining and
 creation, and [Replication Sets](replication-sets.md) for more on how
 replication sets work.
 
-[]{#FUNCTION-BDR-GROUP-JOIN}
 
 `bdr.bdr_group_join(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
 
@@ -75,7 +73,6 @@ node you removed with `bdr.bdr_part_by_node_names()`. See
 joining and creation, and [Replication Sets](replication-sets.md) for
 more on how replication sets work.
 
-[]{#FUNCTION-BDR-PART-BY-NODE-NAMES}
 
 `bdr.bdr_part_by_node_names(`*`p_nodes text[]`*`)`
 
@@ -87,7 +84,6 @@ succeed. This function must be run on a node that is not being removed.
 There is no way to re-join a node once removed; a new node must be
 created and joined to replace the parted one if required.
 
-[]{#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE}
 
 `bdr.remove_bdr_from_local_node(`*`force boolean`*`, `*`convert_global_sequences boolean`*`)`
 
@@ -103,7 +99,6 @@ See [Turning a BDR node back into a normal
 database](node-management-disabling.md) for details, including
 important caveats with conversion of sequences.
 
-[]{#FUNCTION-BDR-NODE-JOIN-WAIT-FOR-READY}
 
 `bdr.bdr_node_join_wait_for_ready()`
 
@@ -111,7 +106,6 @@ void
 
 Wait till all in-progress node joins have completed.
 
-[]{#FUNCTION-BDR-IS-ACTIVE-IN-DB}
 
 `bdr.bdr_is_active_in_db()`
 
@@ -144,7 +138,6 @@ void
 Resume replaying changes from peer nodes after replay has been paused by
 `bdr.bdr_apply_pause()`.
 
-[]{#FUNCTION-BDR-APPLY-IS-PAUSED}
 
 `bdr.bdr_apply_is_paused()`
 
@@ -173,7 +166,6 @@ name of the local node.
 [bdr.permit_unsafe_ddl_commands](bdr-configuration-variables.md#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS)
 can override read-only mode on a per-session basis.
 
-[]{#FUNCTION-BDR-REPLICATE-DDL-COMMAND}
 
 `bdr.bdr_replicate_ddl_command(`*`cmd text`*`)`
 
@@ -202,7 +194,6 @@ completely.
 Wrap individual DDL commands in
 `bdr.bdr_replicate_ddl_command`, rather than entire scripts.
 
-[]{#FUNCTION-BDR-ACQUIRE-GLOBAL-LOCK}
 
 `bdr.acquire_global_lock(`*`mode text`*`)`
 
@@ -220,7 +211,6 @@ function is mostly useful for test and diagnostic purposes. Possible
 lock modes are `ddl_lock` and `write_lock`. See also
 [bdr.bdr_locks](catalog-bdr-locks.md).
 
-[]{#FUNCTION-BDR-WAIT-SLOT-CONFIRM-LSN}
 
 `bdr.wait_slot_confirm_lsn(`*`slotname name`*`, `*`upto pg_lsn`*`)`
 
@@ -272,7 +262,7 @@ Discard (skip over) changes in the replication stream. Used for
 recovering from replication failures. See [details
 below](functions-node-mgmt.md#FUNCTION-BDR-SKIP-CHANGES-UPTO).
 
-## [12.1.1. `bdr.skip_changes_upto`]
+## 12.1.1. `bdr.skip_changes_upto`
 
 Discard (skip over) changes not yet replayed from the peer with identity
 (*`sysid`*,*`timeline`*,*`dboid`*),
@@ -311,14 +301,14 @@ some nodes or manually applying them on the other nodes.
 > replicate\... and those numbers change when you drop and re-create a
 > column.
 
-## [12.1.2. `bdr.bdr_subscribe`]
+## 12.1.2. `bdr.bdr_subscribe`
 
 The function `bdr.bdr_subscribe` has been removed from BDR.
 For uni-directional replication, look at the [pglogical
 project](https://github.com/2ndQuadrant/pglogical)
 project or tools like Londiste.
 
-## [12.1.3. Node management function examples]
+## 12.1.3. Node management function examples
 
 These examples show libpq connection strings without a host or hostadd.
 

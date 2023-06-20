@@ -2,7 +2,7 @@
   [Prev](functions-node-mgmt.md "Node management functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-conflict-handlers.md "Conflict handler management functions")  
 
 
-# [12.2. Replication Set functions]
+# 12.2. Replication Set functions
 
 The following functions exist to manage [Replication
 Sets](replication-sets.md).
@@ -16,7 +16,6 @@ Return Type
 
 Description
 
-[]{#FUNCTION-BDR-TABLE-SET-REPLICATION-SETS}
 
 `bdr.table_set_replication_sets(`*`p_relation regclass`*`, `*`p_sets text[]`*`)`
 
@@ -31,7 +30,6 @@ it to be emptied on nodes that will newly stop receiving changes. See
 `NULL` (not the empty array) as the replication sets to
 restore a table\'s replication sets to defaults.
 
-[]{#FUNCTION-BDR-TABLE-GET-REPLICATION-SETS}
 
 `bdr.table_get_replication_sets(`*`relation regclass`*`)`
 
@@ -39,7 +37,6 @@ text\[\]
 
 Returns the replication sets the specified table is part of.
 
-[]{#FUNCTION-BDR-CONNECTION-SET-REP-SETS-BYNAME}
 
 `bdr.connection_set_replication_sets(`*`replication_sets text[]`*`, `*`node_name text`*`)`
 
@@ -51,7 +48,6 @@ for individual nodes (where the `origin_sysid` etc in
 `bdr.bdr_connections` are nonzero) are left unchanged; a
 warning will be emitted if any are present.
 
-[]{#FUNCTION-BDR-CONNECTION-GET-REP-SETS-BYNAME}
 
 `bdr.connection_get_replication_sets(`*`node_name text`*`)`
 
@@ -62,7 +58,6 @@ to the named node. Any override connections for individual nodes (where
 the `origin_sysid` etc in `bdr.bdr_connections` are
 nonzero) are ignored and a warning is issued if any are present.
 
-[]{#FUNCTION-BDR-CONNECTION-SET-REP-SETS-BYID}
 
 `bdr.connection_set_replication_sets(`*`replication_sets text[]`*`, `*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
 
@@ -75,7 +70,6 @@ modified. Otherwise the override connection for the given node is
 updated instead. In almost all cases it\'s simpler to just use the
 node-name variant; this is for advanced uses.
 
-[]{#FUNCTION-BDR-CONNECTION-GET-REP-SETS-BYID}
 
 `bdr.connection_get_replication_sets(`*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
 

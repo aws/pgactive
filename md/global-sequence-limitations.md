@@ -2,7 +2,7 @@
   [Prev](global-sequence-usage.md "Using global sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-orms.md "Global sequences and ORMs")  
 
 
-# [10.4. Global sequence limitations]
+# 10.4. Global sequence limitations
 
 A few limitations and caveats apply to global sequences at time of
 writing, in addition to those discussed in [when to use global

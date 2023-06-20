@@ -2,7 +2,7 @@
   [Prev](node-management.md "Node Management")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-removing.md "Parting (removing) a node")  
 
 
-# [5.1. Joining a node]
+# 5.1. Joining a node
 
 When a new BDR node is joined to an existing BDR group, node is
 subscribed to an upstream peer, the system must copy the existing data
@@ -63,7 +63,7 @@ PostgreSQL install.
 For the details, see [Joining or creating a BDR
 node](node-management-joining.md#NODE-MANAGEMENT-JOINING-BDR).
 
-## [5.1.1. Joining or creating a BDR node]
+## 5.1.1. Joining or creating a BDR node
 
 > **Note:** Read [Joining a node](node-management-joining.md) before
 > this section.

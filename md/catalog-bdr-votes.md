@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-sequence-elections.md "bdr.bdr_sequence_elections")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](upgrade.md "Upgrading BDR")  
 
 
-# [13.14. bdr.bdr_votes]
+# 13.14. bdr.bdr_votes
 
 `bdr.bdr_votes` is a BDR internal implementation table used
 for [Global sequences](global-sequences.md). Do not modify this table

@@ -2,9 +2,8 @@
   [Prev](quickstart-testing.md "Testing your BDR-enabled system")   [Home](README.md)        [Next](settings.md "Configuration Settings")  
 
 
-[]{#MANUAL}
 
-# II. BDR administration manual {#ii.-bdr-administration-manual}
+# II. BDR administration manual
 
 **Table of Contents**
 

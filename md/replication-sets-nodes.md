@@ -2,7 +2,7 @@
   [Prev](replication-sets-creation.md "Creating replication sets")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-tables.md "Table Replication Control")  
 
 
-# [11.3. Node Replication Control]
+# 11.3. Node Replication Control
 
 The names of the replications sets of which changes should be received
 can be set when adding the node to the [BDR] cluster using

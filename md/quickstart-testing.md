@@ -2,7 +2,7 @@
   [Prev](quickstart-enabling.md "Enabling BDR in SQL sessions for both of your nodes/instances")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](manual.md "BDR administration manual")  
 
 
-# [3.6. Testing your BDR-enabled system]
+# 3.6. Testing your BDR-enabled system
 
 Create a table and insert rows from your first node/instance:
 

@@ -2,7 +2,7 @@
   [Prev](technotes.md "Technical notes")   [Up](technotes.md)    Appendix C. Technical notes    [Next](technotes-ddl-locking.md "DDL locking details")  
 
 
-# [C.1. BDR network structure]
+# C.1. BDR network structure
 
 BDR uses a mesh topology, where every node can communicate directly with
 every other node. It doesn\'t support circular replication, forwarding,

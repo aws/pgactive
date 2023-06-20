@@ -2,7 +2,7 @@
   [Prev](installation.md "Installation")   [Up](installation.md)    Chapter 2. Installation    [Next](installation-packages.md "Installing BDR from packages")  
 
 
-# [2.1. BDR requirements]
+# 2.1. BDR requirements
 
 BDR runs on unmodified PostgreSQL 9.6 as distributed by the PostgreSQL
 Development Group (PGDG), i.e. postgresql.org. The source code will also
@@ -26,7 +26,7 @@ support is important to you, check [BDR
 website](http://2ndquadrant.com/BDR) for the latest
 information.
 
-## [2.1.1. BDR Requirements (BDR-Postgres 9.4)]
+## 2.1.1. BDR Requirements (BDR-Postgres 9.4)
 
 To run on PostgreSQL 9.4, BDR requires a modified PostgreSQL called
 BDR-Postgres 9.4. The modified PostgreSQL adds functionality BDR needs

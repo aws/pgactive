@@ -2,9 +2,9 @@
   [Prev](conflicts-how.md "How conflicts happen")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](conflicts-avoidance.md "Avoiding or tolerating conflicts")  
 
 
-# [9.2. Types of conflict]
+# 9.2. Types of conflict
 
-## [9.2.1. `PRIMARY KEY` or `UNIQUE` conflicts]
+## 9.2.1. `PRIMARY KEY` or `UNIQUE` conflicts
 
 The most common conflicts are row conflicts where two operations affect
 a row with the same key in ways they could not do on a single node.
@@ -23,7 +23,7 @@ Row conflicts include:
 
 -   `DELETE` vs `DELETE`
 
-### [9.2.1.1. INSERT/INSERT conflicts]
+### 9.2.1.1. INSERT/INSERT conflicts
 
 The most common conflict, `INSERT` vs `INSERT`,
 arises where `INSERT`s on two different nodes create a tuple
@@ -45,7 +45,7 @@ violated by the incoming insert from the remote node*];
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX)
 are more problematic.
 
-### [9.2.1.2. INSERTs that violate multiple UNIQUE constraints]
+### 9.2.1.2. INSERTs that violate multiple UNIQUE constraints
 
 An `INSERT`/`INSERT` conflict can violate more than
 one `UNIQUE` constraint (of which one might be the
@@ -75,7 +75,7 @@ violate more than one local unique constraint.
 See also: [UPDATEs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX)
 
-### [9.2.1.3. UPDATE/UPDATE conflicts]
+### 9.2.1.3. UPDATE/UPDATE conflicts
 
 Where two concurrent `UPDATE`s on different nodes change the
 same tuple (but not its `PRIMARY KEY`), an
@@ -92,7 +92,7 @@ tables without a `PRIMARY KEY` with:
      
 ```
 
-### [9.2.1.4. UPDATE conflicts on the PRIMARY KEY]
+### 9.2.1.4. UPDATE conflicts on the PRIMARY KEY
 
 [BDR] cannot currently perform last-update-wins conflict
 resolution where the `PRIMARY KEY` is changed by an
@@ -104,7 +104,7 @@ Conflicts on update of the primary key are divergent conflicts that
 require manual operator intervention; see [Divergent
 conflicts](conflicts-types.md#CONFLICTS-DIVERGENT).
 
-### [9.2.1.5. UPDATEs that violate multiple UNIQUE constraints]
+### 9.2.1.5. UPDATEs that violate multiple UNIQUE constraints
 
 Like [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
@@ -115,7 +115,7 @@ where an incoming `UPDATE` violates more than one
 This is a divergent conflict that will require operator intervention;
 see [Divergent conflicts](conflicts-types.md#CONFLICTS-DIVERGENT).
 
-### [9.2.1.6. UPDATE/DELETE conflicts]
+### 9.2.1.6. UPDATE/DELETE conflicts
 
 It is possible for one node to `UPDATE` a row that another
 node simultaneously `DELETE`s. In this case a
@@ -143,7 +143,7 @@ tables without a `PRIMARY KEY` with:
 > replayed a delete for. In both cases the resolution is the same - the
 > update is discarded.
 
-### [9.2.1.7. INSERT/UPDATE conflicts]
+### 9.2.1.7. INSERT/UPDATE conflicts
 
 If one node `INSERT`s a row which is then replayed to a 2nd
 node and `UPDATE`d there, a 3rd node may receive the
@@ -157,7 +157,7 @@ lead to [*different data on different nodes*]. See
 [UPDATE/DELETE conflicts](conflicts-types.md#CONFLICTS-UPDATE-DELETE)
 for details.
 
-### [9.2.1.8. DELETE/DELETE conflicts]
+### 9.2.1.8. DELETE/DELETE conflicts
 
 A `DELETE`/`DELETE` conflict arises where two
 different nodes concurrently delete the same tuple.
@@ -165,7 +165,7 @@ different nodes concurrently delete the same tuple.
 This conflict is harmless since both `DELETE`s have the same
 effect, so one of them can be safely ignored.
 
-## [9.2.2. Foreign Key Constraint conflicts]
+## 9.2.2. Foreign Key Constraint conflicts
 
 Conflicts between a remote transaction being applied and existing local
 data can also occur for `FOREIGN KEY` constraints. These
@@ -193,7 +193,7 @@ heavyweight option and must be done in [*all*] transactions
 that may modify the related tables. So it\'s best used for rarely
 modified data where consistency is crucial.
 
-## [9.2.3. Exclusion constraint conflicts]
+## 9.2.3. Exclusion constraint conflicts
 
 [BDR] doesn\'t support exclusion constraints and restricts
 their creation.
@@ -216,7 +216,7 @@ it to progress again by removing or altering the local tuple(s) that an
 incoming remote tuple conflicts with so that the remote transaction can
 be applied.
 
-## [9.2.4. Global data conflicts]
+## 9.2.4. Global data conflicts
 
 Conflicts can also arise where nodes have global
 (PostgreSQL-system-wide) data, like roles, that differs. This can result
@@ -238,7 +238,7 @@ Administrator intervention is required to resolve this conflict by
 creating the user `fred` on node2. (It need not have the same
 permissions, but must exist).
 
-## [9.2.5. Lock conflicts and deadlock aborts]
+## 9.2.5. Lock conflicts and deadlock aborts
 
 Because [BDR] apply processes operate very like normal
 user sessions they are subject to the usual rules around row and table
@@ -277,7 +277,7 @@ Use of the
 [log_lock_waits](http://www.postgresql.org/docs/current/static/runtime-config-logging.html#GUC-LOG-LOCK-WAITS)
 facility in PostgreSQL can help identify locking related replay stalls.
 
-## [9.2.6. Divergent conflicts]
+## 9.2.6. Divergent conflicts
 
 Divergent conflicts arise when data that should be the same on different
 nodes differs unexpectedly. Divergent conflicts should not occur, but

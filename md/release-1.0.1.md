@@ -3,7 +3,7 @@
   [Prev](release-1.0.2.md "Release 1.0.2")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-1.0.0.md "Release 1.0.0")  
 
 
-# [A.8. Release 1.0.1]
+# A.8. Release 1.0.1
 
 The 1.0.1 maintenance release fixes a significant bug in
 `bdr_group_join` caused by `bdr_dump` running parts

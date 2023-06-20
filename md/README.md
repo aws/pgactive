@@ -1,4 +1,3 @@
-[]{#BDR}
 
 # [BDR 2.0.7 Documentation]{#BDR} {#bdr-2.0.7-documentation}
 

@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-locks.md "bdr.bdr_locks")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-queued-commands.md "bdr.bdr_queued_commands")  
 
 
-# [13.9. bdr.bdr_global_locks]
+# 13.9. bdr.bdr_global_locks
 
 `bdr.bdr_global_locks` is an implementation detail for BDR\'s
 global DDL locking mechanism. See [DDL

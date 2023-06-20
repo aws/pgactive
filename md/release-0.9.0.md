@@ -3,7 +3,7 @@
   [Prev](release-0.9.1.md "Release 0.9.1")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.8.0.md "Release 0.8.0")  
 
 
-# [A.13. Release 0.9.0]
+# A.13. Release 0.9.0
 
 The 0.9.0 release was tagged on Tue Mar 24 2015 as git tag
 `bdr-plugin/0.9.0`. This release requires bdr-Pg
@@ -33,7 +33,7 @@ release include:
 
 -   FreeBSD compatibility
 
-## [A.13.1. Dynamic configuration]
+## A.13.1. Dynamic configuration
 
 The biggest change with 0.9.0 is that connections between nodes are now
 configured using the
@@ -52,7 +52,7 @@ log on startup.
 
 For details, see the [Node management](node-management.md) chapter.
 
-## [A.13.2. Easy node removal]
+## A.13.2. Easy node removal
 
 The new
 [bdr.bdr_part_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
@@ -60,13 +60,13 @@ function allows easy online node removal. There is no need to restart
 nodes or to manually delete replication identifiers and slots. Multiple
 nodes may be removed at once.
 
-## [A.13.3. [bdr_init_copy] makes its own base backup]
+## A.13.3. [bdr_init_copy] makes its own base backup
 
 [bdr_init_copy] can now make its own base backup of the
 target node, and does so by default. Its user interface has also been
 overhauled as part of the update to support dynamic configuration.
 
-## [A.13.4. Documentation in the source tree]
+## A.13.4. Documentation in the source tree
 
 Formal documentation has been written and added to the
 [BDR] source tree to replace the prior ad-hoc wiki based
@@ -74,11 +74,11 @@ documentation. This allows users to more easily refer to documentation
 specific to their particular version and permits the documentation to be
 updated at the same time as the source code.
 
-## [A.13.5. FreeBSD compatibility]
+## A.13.5. FreeBSD compatibility
 
 [BDR] is now tested and built automatically on FreeBSD.
 
-## [A.13.6. New helper functions]
+## A.13.6. New helper functions
 
 Many new helper functions have been added, see [SQL
 functions](functions.md).

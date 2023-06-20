@@ -2,7 +2,7 @@
   [Prev](bdr-concepts.md "Concepts")   [Up](overview.md)    Chapter 1. BDR overview    [Next](bdr-vs-trigger-based.md "Differences between BDR and trigger-based replication")  
 
 
-# [1.2. Differences between logical (row level) and physical (block level) replication]
+# 1.2. Differences between logical (row level) and physical (block level) replication
 
 BDR uses [PostgreSQL\'s logical decoding
 feature](http://www.postgresql.org/docs/current/static/logicaldecoding.html)

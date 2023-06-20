@@ -2,7 +2,7 @@
   [Prev](global-sequences.md "Global Sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-when.md "When to use global sequences")  
 
 
-# [10.1. Purpose of global sequences]
+# 10.1. Purpose of global sequences
 
 Many applications require unique values be assigned to database entries.
 Some applications use [UUID]s/[GUID]s

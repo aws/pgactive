@@ -2,7 +2,7 @@
   [Prev](replication-sets-tables.md "Table Replication Control")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](functions.md "Functions")  
 
 
-# [11.5. Change-type replication sets]
+# 11.5. Change-type replication sets
 
 In addition to table- and node-level replication set control, it\'s also
 possible to configure which [*operations*] replication sets

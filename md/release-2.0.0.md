@@ -3,7 +3,7 @@
   [Prev](release-2.0.1.md "Release 2.0.1")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-1.0.2.md "Release 1.0.2")  
 
 
-# [A.6. Release 2.0.0]
+# A.6. Release 2.0.0
 
 [*Fri Jun 16, 2017*]
 

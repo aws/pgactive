@@ -2,7 +2,7 @@
   [Prev](monitoring-ddl-lock.md "Monitoring global DDL locks")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-postgres-stats.md "PostgreSQL statistics views")  
 
 
-# [7.5. Monitoring conflicts]
+# 7.5. Monitoring conflicts
 
 [Active-Active conflicts](conflicts.md) can arise when multiple nodes
 make changes that affect the same tables in ways that can interact with

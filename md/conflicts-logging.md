@@ -2,7 +2,7 @@
   [Prev](conflicts-user-defined-handlers.md "User defined conflict handlers")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](global-sequences.md "Global Sequences")  
 
 
-# [9.5. Conflict logging]
+# 9.5. Conflict logging
 
 To make diagnosis and handling of Active-Active conflicts easier,
 [BDR] supports logging of each conflict incident in a

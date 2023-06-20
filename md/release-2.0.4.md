@@ -3,7 +3,7 @@
   [Prev](release-2.0.5.md "Release 2.0.5")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-2.0.3.md "Release 2.0.3")  
 
 
-# [A.2. Release 2.0.4]
+# A.2. Release 2.0.4
 
 [*Tue Oct 24, 2017*]
 
@@ -35,7 +35,7 @@ Fixes and improvements:
 
 -   Show database name and application_name in logs for BDR workers
 
-## [A.2.1. Block use of DML in `bdr.bdr_replicate_ddl_command`]
+## A.2.1. Block use of DML in `bdr.bdr_replicate_ddl_command`
 
 BDR 2.0.4 now blocks use of DML in
 `bdr.bdr_replicate_ddl_command` to guard against operations
@@ -107,7 +107,7 @@ message like:
     
 ```
 
-## [A.2.2. Fix possible hang in apply worker]
+## A.2.2. Fix possible hang in apply worker
 
 An apply worker could get stuck while releasing a \"write\" mode global
 DDL lock, causing replication to stop and the slot on the other end to

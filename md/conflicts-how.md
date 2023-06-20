@@ -3,7 +3,7 @@
   [Prev](conflicts.md "Active-Active conflicts")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](conflicts-types.md "Types of conflict")  
 
 
-# [9.1. How conflicts happen]
+# 9.1. How conflicts happen
 
 Inter-node conflicts arise as a result of sequences of events that could
 not happen if all the involved transactions happened concurrently on the

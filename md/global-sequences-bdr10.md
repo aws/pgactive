@@ -2,7 +2,7 @@
   [Prev](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](replication-sets.md "Replication Sets")  
 
 
-# [10.8. BDR 1.0 global sequences]
+# 10.8. BDR 1.0 global sequences
 
 BDR 1.0 provided a different implementatoin of global sequences. They
 intercepted `nextval(...)` function calls and negotiated

@@ -2,14 +2,14 @@
   [Prev](monitoring-conflict-stats.md "Monitoring conflicts")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](ddl-replication.md "DDL Replication")  
 
 
-# [7.6. PostgreSQL statistics views]
+# 7.6. PostgreSQL statistics views
 
 Statistics on table and index usage are updated normally by the
-downstream primary. This is essential for correct function of
+downstream. This is essential for correct function of
 [autovacuum](http://www.postgresql.org/docs/current/static/routine-vacuuming.html).
-If there are no local writes on the downstream primary and stats have
-not been reset these two views should show matching results between
-upstream and downstream:
+If there are no local writes on the downstream and stats have not been
+reset these two views should show matching results between upstream and
+downstream:
 
 -   `pg_stat_user_tables`
 

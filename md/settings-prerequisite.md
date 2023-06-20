@@ -2,7 +2,7 @@
   [Prev](settings.md "Configuration Settings")   [Up](settings.md)    Chapter 4. Configuration Settings    [Next](bdr-configuration-variables.md "BDR specific configuration variables")  
 
 
-# [4.1. Prerequisite [PostgreSQL] parameters]
+# 4.1. Prerequisite [PostgreSQL] parameters
 
 BDR require certain [PostgreSQL] settings to be set to
 appropriate values.

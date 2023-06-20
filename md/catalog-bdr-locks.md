@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-conflict-handlers.md "bdr.bdr_conflict_handlers")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks.md "bdr.bdr_global_locks")  
 
 
-# [13.8. bdr.bdr_locks]
+# 13.8. bdr.bdr_locks
 
 `bdr.bdr_locks` is a view exposing the state of BDR\'s [global
 DDL locking system](catalog-bdr-node-slots.md). It can be used to

@@ -2,7 +2,7 @@
   [Prev](overview.md "BDR overview")   [Up](overview.md)    Chapter 1. BDR overview    [Next](logical-vs-physical.md "Differences between logical (row level) and physical (block level) replication")  
 
 
-# [1.1. Concepts]
+# 1.1. Concepts
 
 BDR provides loosely-coupled asynchronous Active-Active logical
 replication with mesh topology. This means that you can write to any

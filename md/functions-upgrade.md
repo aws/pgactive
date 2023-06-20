@@ -2,7 +2,7 @@
   [Prev](functions-information.md "Information functions")   [Up](functions.md)    Chapter 12. Functions    [Next](catalogs-views.md "Catalogs and Views")  
 
 
-# [12.5. Upgrade functions]
+# 12.5. Upgrade functions
 
 The following function(s) are used when upgrading [BDR] to
 a new version:

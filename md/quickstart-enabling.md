@@ -2,7 +2,7 @@
   [Prev](quickstart-creating.md "Creating the demo databases")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-testing.md "Testing your BDR-enabled system")  
 
 
-# [3.5. Enabling BDR in SQL sessions for both of your nodes/instances]
+# 3.5. Enabling BDR in SQL sessions for both of your nodes/instances
 
 On the first node/instance in database [\"bdrdemo\"] as
 postgreSQL superuser, create the extensions necessary for

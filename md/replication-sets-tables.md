@@ -2,7 +2,7 @@
   [Prev](replication-sets-nodes.md "Node Replication Control")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-changetype.md "Change-type replication sets")  
 
 
-# [11.4. Table Replication Control]
+# 11.4. Table Replication Control
 
 A newly created table is initially part of replication set
 `default`. It is assigned to more or different sets by

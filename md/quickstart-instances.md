@@ -2,7 +2,7 @@
   [Prev](quickstart.md "Quick-start guide")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-editing.md "Editing the configuration files to enable BDR")  
 
 
-# [3.1. Creating BDR-enabled PostgreSQL nodes/instances]
+# 3.1. Creating BDR-enabled PostgreSQL nodes/instances
 
 Since we\'re creating two new PostgreSQL node/instances for this
 example, run:

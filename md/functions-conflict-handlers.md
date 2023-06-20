@@ -2,7 +2,7 @@
   [Prev](functions-replication-sets.md "Replication Set functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-information.md "Information functions")  
 
 
-# [12.3. Conflict handler management functions]
+# 12.3. Conflict handler management functions
 
 The following functions manage conflict handlers (\"conflict
 triggers\"):

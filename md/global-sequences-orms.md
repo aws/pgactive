@@ -2,7 +2,7 @@
   [Prev](global-sequence-limitations.md "Global sequence limitations")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequence-voting.md "Global sequence voting")  
 
 
-# [10.5. Global sequences and ORMs]
+# 10.5. Global sequences and ORMs
 
 Some applications and ORM (Object-Relational Mapper) tools expect to
 call `nextval` on a sequence directly, rather than using the

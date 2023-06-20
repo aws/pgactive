@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-node-slots.md "bdr.bdr_node_slots")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-conflict-history.md "bdr.bdr_conflict_history")  
 
 
-# [13.4. bdr.pg_stat_bdr]
+# 13.4. bdr.pg_stat_bdr
 
 Performance and conflict statistics are maintained for each node by
 [BDR] in the `bdr.pg_stat_bdr` table. This table

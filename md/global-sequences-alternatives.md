@@ -2,7 +2,7 @@
   [Prev](global-sequence-voting.md "Global sequence voting")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-bdr10.md "BDR 1.0 global sequences")  
 
 
-# [10.7. Traditional approaches to sequences in distributed DBs]
+# 10.7. Traditional approaches to sequences in distributed DBs
 
 Global sequences provide a mostly-application-transparent alternative to
 using offset-step sequences or UUID/GUID keys, but they are not without
@@ -16,7 +16,7 @@ sophisticated approaches also exist.
   **Warning**
   Applications can [*not*] safely use counter-table based approaches relying on `SELECT ... FOR UPDATE`, `UPDATE ... RETURNING ...` etc for sequence generation in BDR. Because BDR is asynchronous and doesn\'t take row locks between nodes, the same values will be generated on more than one node. For the same reason the usual strategies for \"gapless\" sequence generation do not work with BDR. In most cases the application should coordinate generation of sequences that must be gapless from some external source using two-phase commit, or it should only generate them on one node in the BDR group.
 
-## [10.7.1. Step/offset sequences]
+## 10.7.1. Step/offset sequences
 
 In offset-step sequences a normal PostgreSQL sequence is used on each
 node. Each sequence increments by the same amount and starts at
@@ -71,7 +71,7 @@ per second to have any chance of approaching exhaustion.
 BDR does not currently offer any automation for configuration of the
 per-node offsets on such step/offset sequences.
 
-## [10.7.2. Composite keys]
+## 10.7.2. Composite keys
 
 A variant on step/offset sequences is to use a composite key composed of
 `PRIMARY KEY (node_number, generated_value)` where the node
@@ -81,7 +81,7 @@ disabling DDL replication and creating a constant SQL function, or by
 using a one-row table that isn\'t part of a replication set to store a
 different value in each node.
 
-## [10.7.3. UUIDs]
+## 10.7.3. UUIDs
 
 UUID keys instead eschew sequences entirely and use 128-bit universal
 unique identifiers. These are large random or pseudorandom values that

@@ -3,7 +3,7 @@
   [Prev](release-0.9.3.md "Release 0.9.3")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.9.1.md "Release 0.9.1")  
 
 
-# [A.11. Release 0.9.2]
+# A.11. Release 0.9.2
 
 Version 0.9.2 is a maintenance release focused on stability and
 usability, specially in [bdr_init_copy].

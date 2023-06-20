@@ -2,7 +2,7 @@
   [Prev](global-sequences-when.md "When to use global sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequence-limitations.md "Global sequence limitations")  
 
 
-# [10.3. Using global sequences]
+# 10.3. Using global sequences
 
 To use a global sequence, create a local sequence with
 `CREATE SEQUENCE ...` like normal. Then instead of using

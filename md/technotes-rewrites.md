@@ -2,7 +2,7 @@
   [Prev](technotes-ddl-locking.md "DDL locking details")   [Up](technotes.md)    Appendix C. Technical notes    [Next](bookindex.md "Index")  
 
 
-# [C.3. Full table rewrites]
+# C.3. Full table rewrites
 
 There are a number of reasons why BDR doesn\'t support DDL operations
 that perform full table rewrites.

@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-queued-commands.md "bdr.bdr_queued_commands")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-sequence-values.md "bdr.bdr_sequence_values")  
 
 
-# [13.11. bdr.bdr_queued_drops]
+# 13.11. bdr.bdr_queued_drops
 
 `bdr.bdr_queued_drops` is a BDR internal implementation table
 used for [DDL replication](ddl-replication.md). Do not modify this

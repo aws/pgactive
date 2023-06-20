@@ -3,7 +3,7 @@
   [Prev](catalog-bdr-votes.md "bdr.bdr_votes")   [Up](manual.md)        [Next](x4376.md "Upgrading 2.0.x to 2.0.y releases")  
 
 
-# []{#UPGRADE}Chapter 14. Upgrading [BDR]
+# ]{#UPGRADE}Chapter 14. Upgrading [BDR
 
 **Table of Contents**
 

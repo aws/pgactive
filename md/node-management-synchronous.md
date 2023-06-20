@@ -2,7 +2,7 @@
   [Prev](node-management-disabling.md "Completely removing BDR")   [Up](node-management.md)    Chapter 5. Node Management    [Next](commands.md "Command-line Utilities")  
 
 
-# [5.4. n-safe synchronous replication]
+# 5.4. n-safe synchronous replication
 
 BDR can be configured to use PostgreSQL\'s 9.6+\'s underlying n-safe
 synchronous replication support. Each node may have a priority-ordered

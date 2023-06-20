@@ -2,7 +2,7 @@
   [Prev](ddl-replication-advice.md "Executing DDL on BDR systems")   [Up](ddl-replication.md)    Chapter 8. DDL Replication    [Next](conflicts.md "Active-Active conflicts")  
 
 
-# [8.2. Statement specific DDL replication concerns]
+# 8.2. Statement specific DDL replication concerns
 
 Not all commands can be replicated automatically. Some are allowed
 regardless - generally ones that have affect on more than one database.
@@ -14,7 +14,7 @@ what can be used as compared to PostgreSQL without BDR.
 > should be applied on each node if the created objects will be
 > referenced by a BDR-enabled database.
 
-## [8.2.1. Statements with weaker DDL locking]
+## 8.2.1. Statements with weaker DDL locking
 
 Some statements don\'t require the full [DDL
 lock](ddl-replication-advice.md#DDL-REPLICATION-LOCKING) and can
@@ -38,7 +38,7 @@ delete) operations.
 
 -   `ALTER ... OWNER TO ...`
 
-## [8.2.2. Not replicated DDL statements]
+## 8.2.2. Not replicated DDL statements
 
 Some DDL statements, mainly those that affect objects that are
 PostgreSQL-instance-wide rather than database-sepecific, are not
@@ -193,7 +193,7 @@ The statements that are applied locally but not replicated are:
     [BDR] works on a per database level. It is safe to
     execute on the individual nodes though.
 
-## [8.2.3. Prohibited DDL statements]
+## 8.2.3. Prohibited DDL statements
 
 BDR prevents some DDL statements from running when it is active on a
 database. This protects the consistency of the system by disallowing
@@ -343,7 +343,7 @@ The following DDL commands are rejected by [BDR] when
     Except for some [BDR] internal use
     `SECURITY LABEL` is prohibited.
 
-## [8.2.4. DDL statements with restrictions]
+## 8.2.4. DDL statements with restrictions
 
 BDR prevents some DDL statements from running when it is active on a
 database. This protects the consistency of the system by disallowing
@@ -451,7 +451,7 @@ permitted when BDR is active on a database:
     aforementioned `START` can be specified during
     `CREATE SEQUENCE`.
 
-## [8.2.5. How to work around restricted DDL]
+## 8.2.5. How to work around restricted DDL
 
 As noted in [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS),
@@ -463,7 +463,7 @@ changes, but not always simple. The same decomposition into smaller
 operations that\'s done for BDR is what\'s typically needed for
 low-lock, low-downtime schema changes on high load systems, though.
 
-### [8.2.5.1. Adding a column]
+### 8.2.5.1. Adding a column
 
 Usually you can just `ALTER TABLE ... ADD COLUMN ...`. But you
 cannot add columns with a `DEFAULT`, and therefore cannot add
@@ -497,7 +497,7 @@ table rewrite limitations. It\'s fine to create the column and alter it
 to add a default in a single transaction, but the update and final alter
 should be separate transactions.
 
-### [8.2.5.2. Changing a column\'s type]
+### 8.2.5.2. Changing a column\'s type
 
 Similarly, to change a column\'s type:
 

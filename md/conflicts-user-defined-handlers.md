@@ -2,7 +2,7 @@
   [Prev](conflicts-avoidance.md "Avoiding or tolerating conflicts")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](conflicts-logging.md "Conflict logging")  
 
 
-# [9.4. User defined conflict handlers]
+# 9.4. User defined conflict handlers
 
 [BDR] provides facilities for users to override the
 default last-update-wins data row conflict resolution strategy on row

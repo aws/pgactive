@@ -2,7 +2,7 @@
   [Prev](catalog-bdr-connections.md "bdr.bdr_connections")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr")  
 
 
-# [13.3. bdr.bdr_node_slots]
+# 13.3. bdr.bdr_node_slots
 
 The `bdr.bdr_node_slots` view provides a convenient way to see
 which replication slots map to which nodes on a machine, as well as the

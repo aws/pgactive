@@ -2,7 +2,7 @@
   [Prev](release-0.8.0.md "Release 0.8.0")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](appendix-signatures.md "Verifying digital signatures")  
 
 
-# [A.15. Release 0.7.0]
+# A.15. Release 0.7.0
 
 BDR 0.7.0 was tagged on Tue Aug 19 2014 as git tag
 `bdr/0.7.0`. The 0.7.0 release was the first

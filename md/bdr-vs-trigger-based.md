@@ -2,7 +2,7 @@
   [Prev](logical-vs-physical.md "Differences between logical (row level) and physical (block level) replication")   [Up](overview.md)    Chapter 1. BDR overview    [Next](weak-coupled-activeactive.md "BDR: Weakly coupled Active-Active replication")  
 
 
-# [1.3. Differences between BDR and trigger-based replication]
+# 1.3. Differences between BDR and trigger-based replication
 
 There are a number of trigger-based logical replication solutions for
 PostgreSQL, including

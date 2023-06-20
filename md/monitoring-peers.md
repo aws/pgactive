@@ -2,7 +2,7 @@
   [Prev](monitoring-node-join-remove.md "Monitoring node join/removal")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-ddl-lock.md "Monitoring global DDL locks")  
 
 
-# [7.3. Monitoring replication peers]
+# 7.3. Monitoring replication peers
 
 As outlined in [Why monitoring matters](monitoring-why.md) it is
 important to monitor the state of peer nodes in a BDR group. There are
@@ -10,7 +10,7 @@ two main views used for this: `pg_stat_replication` to monitor
 for actively replicating nodes, and `pg_replication_slots` to
 monitor for replication slot progress.
 
-## [7.3.1. Monitoring connected peers using pg_stat_replication]
+## 7.3.1. Monitoring connected peers using pg_stat_replication
 
 Administrators may query
 [pg_catalog.pg_stat_replication](http://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-REPLICATION-VIEW)
@@ -64,7 +64,7 @@ that node *`X`* currently has data that is
 application should write periodic timestamp tick records to a table and
 check how old the newest tick for a given node is on other nodes.
 
-## [7.3.2. Monitoring replication slots]
+## 7.3.2. Monitoring replication slots
 
 Information about replication slots (both logical and physical) is
 available in the `pg_catalog.pg_replication_slots` view. This
@@ -140,7 +140,7 @@ stop making progress during transfer and apply of big transactions,
 wheras `pg_stat_replication.write_location`\'s will continue
 to advance.
 
-## [7.3.3. Montitoring BDR workers]
+## 7.3.3. Montitoring BDR workers
 
 All BDR workers (except the supervisor) show up in the system view
 [`pg_stat_activity`](https://www.postgresql.org/docs/current/static/monitoring-stats.html#PG-STAT-ACTIVITY-VIEW)

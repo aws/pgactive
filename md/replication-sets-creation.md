@@ -2,7 +2,7 @@
   [Prev](replication-sets-concepts.md "Replication Set Concepts")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-nodes.md "Node Replication Control")  
 
 
-# [11.2. Creating replication sets]
+# 11.2. Creating replication sets
 
 Replication sets are not created or dropped explicitly. Rather, a
 replication set exists if it has one or more tables assigned to it or

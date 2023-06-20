@@ -2,7 +2,7 @@
   [Prev](global-sequences-purpose.md "Purpose of global sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequence-usage.md "Using global sequences")  
 
 
-# [10.2. When to use global sequences]
+# 10.2. When to use global sequences
 
 Using global sequences allows you to avoid the problems with insert
 conflicts. If you define a `PRIMARY KEY` or `UNIQUE`

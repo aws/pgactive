@@ -2,7 +2,7 @@
   [Prev](bdr-vs-trigger-based.md "Differences between BDR and trigger-based replication")   [Up](overview.md)    Chapter 1. BDR overview    [Next](installation.md "Installation")  
 
 
-# [1.4. BDR: Weakly coupled Active-Active replication]
+# 1.4. BDR: Weakly coupled Active-Active replication
 
 When considering Active-Active clustering or replication (with BDR or
 another technology) it is important to understand what\'s involved, and

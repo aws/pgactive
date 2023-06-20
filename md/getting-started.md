@@ -3,9 +3,8 @@
   [Prev](README.md "BDR 2.0.7 Documentation")   [Home](README.md)        [Next](overview.md "BDR overview")  
 
 
-[]{#GETTING-STARTED}
 
-# I. Getting started {#i.-getting-started}
+# I. Getting started
 
 **Table of Contents**
 

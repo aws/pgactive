@@ -3,7 +3,7 @@
   [Prev](technotes-mesh.md "BDR network structure")   [Up](technotes.md)    Appendix C. Technical notes    [Next](technotes-rewrites.md "Full table rewrites")  
 
 
-# [C.2. DDL locking details]
+# C.2. DDL locking details
 
 To ensure complete consistency of some types of schema change operations
 (DDL), BDR must be able to sometimes go into fully synchronous mode,
@@ -33,7 +33,7 @@ transitively with their peers in turn. Only the DDL write lock now
 requires that all nodes confirm that they have flushed all pending
 transactions to all other nodes.
 
-## [C.2.1. How the DDL lock works]
+## C.2.1. How the DDL lock works
 
 If you don\'t care how the global DDL lock works you can skip this
 section, but understanding it will be useful when you\'re diagnosing

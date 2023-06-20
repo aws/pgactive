@@ -2,7 +2,7 @@
   [Prev](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")  
 
 
-# [13.5. bdr.bdr_conflict_history]
+# 13.5. bdr.bdr_conflict_history
 
 `bdr.bdr_conflict_history` contains an entry for each conflict
 generated in the system while [Conflict logging](conflicts-logging.md)

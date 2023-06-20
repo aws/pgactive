@@ -2,7 +2,7 @@
   [Prev](replication-sets.md "Replication Sets")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-creation.md "Creating replication sets")  
 
 
-# [11.1. Replication Set Concepts]
+# 11.1. Replication Set Concepts
 
 In a BDR group, each table belongs to one or more replication sets. The
 replication sets `all` and `default` are created

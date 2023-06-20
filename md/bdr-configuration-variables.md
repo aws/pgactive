@@ -2,7 +2,7 @@
   [Prev](settings-prerequisite.md "Prerequisite PostgreSQL parameters")   [Up](settings.md)    Chapter 4. Configuration Settings    [Next](node-management.md "Node Management")  
 
 
-# [4.2. BDR specific configuration variables]
+# 4.2. BDR specific configuration variables
 
 The BDR extension exposes a number of configuration parameters via
 PostgreSQL\'s usual configuration mechanism. You can set these in the
@@ -125,7 +125,7 @@ server restart to take effect.
 
     See also [Monitoring global DDL locks](monitoring-ddl-lock.md).
 
-## [4.2.1. Less common or internal configuration variables]
+## 4.2.1. Less common or internal configuration variables
 
 
 []{#GUC-BDR-DEFAULT-APPLY-DELAY}`bdr.default_apply_delay` (`integer`)

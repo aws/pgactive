@@ -2,7 +2,7 @@
   [Prev](ddl-replication.md "DDL Replication")   [Up](ddl-replication.md)    Chapter 8. DDL Replication    [Next](ddl-replication-statements.md "Statement specific DDL replication concerns")  
 
 
-# [8.1. Executing DDL on BDR systems]
+# 8.1. Executing DDL on BDR systems
 
 A BDR group is not the same as a standalone PostgreSQL server. It is
 based on asynchronous Active-Active replication without a central
@@ -38,7 +38,7 @@ configuration (using
 first. (Once removed, a node cannot be added back; it must be
 decomissioned and a new node joined in its place.)
 
-## [8.1.1. The DDL lock]
+## 8.1.1. The DDL lock
 
 DDL is a heavier weight operation than on standalone PostgreSQL.
 Performing DDL on any node will acquire a \"global DDL lock\". The
@@ -112,7 +112,7 @@ without blocking concurrent writes, only other DDL. See [Statement
 specific DDL replication concerns](ddl-replication-statements.md) for
 details. Most DDL still requires a full write lock.
 
-## [8.1.2. Minimising the impact of DDL]
+## 8.1.2. Minimising the impact of DDL
 
 To minimise the impact of DDL, transactions performing DDL should be
 short, should not be combined with lots of row changes, and should avoid

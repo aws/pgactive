@@ -3,7 +3,7 @@
   [Prev](release-0.9.0.md "Release 0.9.0")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-0.7.md "Release 0.7.0")  
 
 
-# [A.14. Release 0.8.0]
+# A.14. Release 0.8.0
 
 The 0.8.0 release was tagged on Fri Feb 6 2015 as git tag
 `bdr-plugin/0.8.0`. This release requires bdr-Pg
@@ -27,7 +27,7 @@ release include:
 
 -   Many robustness and testing improvements
 
-## [A.14.1. Replication sets]
+## A.14.1. Replication sets
 
 Replication sets have been introduced. This new feature allows admins to
 specify sets of tables that each node should receive changes on. It is
@@ -36,14 +36,14 @@ node, or to include only a subset of tables for replication to a node.
 Replication sets can be used for data distribution, for data integration
 and for limited sharding.
 
-## [A.14.2. Global sequence performance improvements]
+## A.14.2. Global sequence performance improvements
 
 The performance of global sequence voting has been greatly improved,
 especially at higher node counts. It is now less likely for transactions
 to fail because of global sequence exhaustion when the BDR group is
 under significant write load.
 
-## [A.14.3. DDL Replication improvements]
+## A.14.3. DDL Replication improvements
 
 Many more DDL commands can be replicated. Fixes have been applied for
 issues with replicating a few of the previously supported commands.
@@ -54,7 +54,7 @@ prohibited early.
 Commands that are disallowed on normal tables are now permitted on temp
 tables, including `CREATE TABLE ... AS SELECT ...`.
 
-## [A.14.4. Conflict handling enhancements]
+## A.14.4. Conflict handling enhancements
 
 User defined conflict handlers can now return replacement tuples for
 `UPDATE`/`DELETE` conflicts.
@@ -64,7 +64,7 @@ User defined conflict handlers are invoked for
 
 Spurious conflicts are no longer logged after node initialisation.
 
-## [A.14.5. Extension source code separation]
+## A.14.5. Extension source code separation
 
 The BDR source code has been split into two parts: a set of patches to
 PostgreSQL 9.4 and a separate PostgreSQL extension. This helps
@@ -81,7 +81,7 @@ tree). All branches share the same working repository.
 Prior releases of the BDR plugin were in the `contrib/bdr`
 subdirectory of the patched PostgreSQL source tree instead.
 
-## [A.14.6. Other changes]
+## A.14.6. Other changes
 
 -   Permit the \'bdr\' output plugin to be used from the SQL interface
     for logical replication. This is primarily useful for debugging.

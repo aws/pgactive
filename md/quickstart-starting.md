@@ -2,7 +2,7 @@
   [Prev](quickstart-editing.md "Editing the configuration files to enable BDR")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-creating.md "Creating the demo databases")  
 
 
-# [3.3. Starting the BDR-enabled PostgreSQL nodes/instances]
+# 3.3. Starting the BDR-enabled PostgreSQL nodes/instances
 
 Start your nodes/instances from the command line of your operating
 system:

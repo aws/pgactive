@@ -2,7 +2,7 @@
   [Prev](catalogs-views.md "Catalogs and Views")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-connections.md "bdr.bdr_connections")  
 
 
-# [13.1. bdr.bdr_nodes]
+# 13.1. bdr.bdr_nodes
 
 The `bdr.bdr_nodes` table keeps track of a node\'s membership
 in a [BDR] group. A row is inserted or updated in the
