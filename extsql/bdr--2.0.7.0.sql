@@ -2173,9 +2173,10 @@ REVOKE ALL ON FUNCTION bdr_generate_node_identifier() FROM PUBLIC;
 COMMENT ON FUNCTION bdr_generate_node_identifier()
 IS 'Generate BDR node identifier and write it to BDR control file';
 
-CREATE FUNCTION bdr_get_node_identifier()
-RETURNS numeric
-LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_get_node_identifier';
+CREATE FUNCTION bdr_get_node_identifier(OUT node_id numeric)
+RETURNS RECORD
+LANGUAGE INTERNAL STRICT VOLATILE
+AS 'MODULE_PATHNAME','bdr_get_node_identifier';
 
 REVOKE ALL ON FUNCTION bdr_get_node_identifier() FROM PUBLIC;
 

@@ -49,16 +49,18 @@
 #include "access/xlog_internal.h"
 #include "catalog/pg_control.h"
 #include "common/file_utils.h"
-/* cc8d41511721 introduced in PG12 */
+
+/* Postgres commit cc8d41511721 introduced this header file in version 12. */
 #if PG_VERSION_NUM >= 120000
 #include "common/logging.h"
 #endif
+
 #include "bdr_internal.h"
 
 #define LLOGCDIR "pg_logical/checkpoints"
 
+/* Postgres commit 3c6f8c011f85 introduced this macro in version 15. */
 #if PG_VERSION_NUM < 150000
-/* 3c6f8c011f85 introduced in PG15 */
 #ifdef HAVE_LONG_INT_64
 #define strtou64(str, endptr, base) ((uint64) strtoul(str, endptr, base))
 #else
@@ -242,7 +244,8 @@ main(int argc, char **argv)
 	};
 
 	argv0 = argv[0];
-/* cc8d41511721 introduced in PG12 */
+
+	/* Postgres commit cc8d41511721 introduced this function in version 12. */
 #if PG_VERSION_NUM >= 120000
 	pg_logging_init(argv[0]);
 #endif
@@ -857,7 +860,10 @@ set_node_identifier(const char *data_dir, uint64 nid)
 		die(_("could not write to file \"%s\""), path);
 	}
 
-/* API cc8d41511721 changed in PG12 */
+	/*
+	 * Postgres commit cc8d41511721 changed this function input parameters in
+	 * version 12.
+	 */
 #if PG_VERSION_NUM < 120000
 	fsync_fname(path, true, progname);
 #else
@@ -888,7 +894,10 @@ remove_unwanted_files(char *data_dir)
 		if (unlink(path) < 0 && errno != ENOENT)
 			die(_("could not remove file \"%s\""), path);
 
-/* API cc8d41511721 changed in PG12 */
+		/*
+		 * Postgres commit cc8d41511721 changed this function input parameters
+		 * in version 12.
+		 */
 #if PG_VERSION_NUM < 120000
 		fsync_fname(path, true, progname);
 #else
@@ -1071,7 +1080,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 	cmd = createPQExpBuffer();
 	appendPQExpBufferStr(cmd,
-		"SELECT * FROM bdr.bdr_get_node_identifier();");
+		"SELECT node_id FROM bdr.bdr_get_node_identifier();");
 
 	res = PQexec(remote_conn, cmd->data);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
