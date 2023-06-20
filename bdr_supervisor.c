@@ -458,7 +458,7 @@ check_for_multiple_perdb_workers(void)
 #endif
 
 /*
- * The BDR supervisor is a static bgworker that serves as the master/supervisor
+ * The BDR supervisor is a static bgworker that serves as the supervisor
  * for all BDR workers. It exists so that BDR can be enabled and disabled
  * dynamically for databases.
  *
