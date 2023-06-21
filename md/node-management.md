@@ -1,15 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------------------------------ ---------------------------------- -- ----------------------------------------------------------------------
-  [Prev](bdr-configuration-variables.md "BDR specific configuration variables"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](node-management-joining.md "Joining a node"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                  
+  [Prev](bdr-configuration-variables.md "BDR specific configuration variables")   [Up](manual.md)        [Next](node-management-joining.md "Joining a node")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#NODE-MANAGEMENT}Chapter 5. Node Management
+# Chapter 5. Node Management
 
-::: TOC
 **Table of Contents**
 
 5.1. [Joining a node](node-management-joining.md)
@@ -22,15 +16,10 @@ node](node-management-joining.md#NODE-MANAGEMENT-JOINING-BDR)
 5.3. [Completely removing BDR](node-management-disabling.md)
 
 5.4. [n-safe synchronous replication](node-management-synchronous.md)
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --------------------------------------------------------- ----------------------------------- -----------------------------------------------------
-  [Prev](bdr-configuration-variables.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](node-management-joining.md){accesskey="N"}
-  BDR specific configuration variables                       [Up](manual.md){accesskey="U"}                                          Joining a node
+  [Prev](bdr-configuration-variables.md)    [Home](README.md)    [Next](node-management-joining.md)  
+  BDR specific configuration variables                       [Up](manual.md)                                          Joining a node
   --------------------------------------------------------- ----------------------------------- -----------------------------------------------------
-:::

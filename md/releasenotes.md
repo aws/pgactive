@@ -1,15 +1,10 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                               
   ------------------------------------------------------------ ----------------------------------- -- -----------------------------------------------------------
-  [Prev](x4496.md "Upgrading 0.8.x to 1.0"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](release-2.0.5.md "Release 2.0.5"){accesskey="N"}
+  [Prev](x4496.md "Upgrading 0.8.x to 1.0")   [Home](README.md)        [Next](release-2.0.5.md "Release 2.0.5")  
 
-------------------------------------------------------------------------
-:::
 
-::: APPENDIX
-# []{#RELEASENOTES}Appendix A. Release notes
+# Appendix A. Release notes
 
-::: TOC
 **Table of Contents**
 
 A.1. [Release 2.0.5](release-2.0.5.md)
@@ -41,22 +36,17 @@ A.13. [Release 0.9.0](release-0.9.0.md)
 A.14. [Release 0.8.0](release-0.8.0.md)
 
 A.15. [Release 0.7.0](release-0.7.md)
-:::
 
-Signficant changes to the [BDR]{.PRODUCTNAME} extension are documented
+Signficant changes to the [BDR] extension are documented
 in the release notes. Please read the release notes for all versions
 between yours and the version to plan to upgrade to before performing an
 upgrade, as there may be version-specific upgrade steps.
 
 See also: [Upgrading BDR](upgrade.md).
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ----------------------------------- ----------------------------------- -------------------------------------------
-  [Prev](x4496.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](release-2.0.5.md){accesskey="N"}
+  [Prev](x4496.md)    [Home](README.md)    [Next](release-2.0.5.md)  
   Upgrading 0.8.x to 1.0                                                                                Release 2.0.5
   ----------------------------------- ----------------------------------- -------------------------------------------
-:::

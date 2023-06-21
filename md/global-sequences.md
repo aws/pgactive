@@ -1,15 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------ ---------------------------------- -- ------------------------------------------------------------------------------------
-  [Prev](conflicts-logging.md "Conflict logging"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](global-sequences-purpose.md "Purpose of global sequences"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                    
+  [Prev](conflicts-logging.md "Conflict logging")   [Up](manual.md)        [Next](global-sequences-purpose.md "Purpose of global sequences")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#GLOBAL-SEQUENCES}Chapter 10. Global Sequences
+# Chapter 10. Global Sequences
 
-::: TOC
 **Table of Contents**
 
 10.1. [Purpose of global sequences](global-sequences-purpose.md)
@@ -37,33 +31,22 @@ keys](global-sequences-alternatives.md#GLOBAL-SEQUENCES-ALTERNATIVE-COMPOSITE)
 [UUIDs](global-sequences-alternatives.md#GLOBAL-SEQUENCES-ALTERNATIVE-UUID)
 
 10.8. [BDR 1.0 global sequences](global-sequences-bdr10.md)
-:::
 
 BDR global sequences provide an easy way for applications to use the
 database to generate unique synthetic keys in an asynchronous
 distributed system.
 
-::: IMPORTANT
 > **Important:** This chapter refers to the global sequences
 > implementation in BDR 2.0 and newer. See the BDR 1.0 documentation and
 > the upgrade guide for details on the quite different global sequences
 > implementation in BDR 1.0.
-:::
 
-::: WARNING
-  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   **Warning**
-  Object-relational mappers and applications that hardcode calls to the `nextval`{.LITERAL} function may require special configuration to work with BDR 2.0 global sequences.
-  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-:::
-:::
+  Object-relational mappers and applications that hardcode calls to the `nextval` function may require special configuration to work with BDR 2.0 global sequences.
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ----------------------------------------------- ----------------------------------- ------------------------------------------------------
-  [Prev](conflicts-logging.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](global-sequences-purpose.md){accesskey="N"}
-  Conflict logging                                 [Up](manual.md){accesskey="U"}                              Purpose of global sequences
+  [Prev](conflicts-logging.md)    [Home](README.md)    [Next](global-sequences-purpose.md)  
+  Conflict logging                                 [Up](manual.md)                              Purpose of global sequences
   ----------------------------------------------- ----------------------------------- ------------------------------------------------------
-:::

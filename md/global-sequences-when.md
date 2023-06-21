@@ -1,17 +1,12 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------------------ -------------------------------------------- ------------------------------ ----------------------------------------------------------------------------
-  [Prev](global-sequences-purpose.md "Purpose of global sequences"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequence-usage.md "Using global sequences"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                                            
+  [Prev](global-sequences-purpose.md "Purpose of global sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequence-usage.md "Using global sequences")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [10.2. When to use global sequences]{#GLOBAL-SEQUENCES-WHEN} {#when-to-use-global-sequences .SECT1}
+# 10.2. When to use global sequences
 
 Using global sequences allows you to avoid the problems with insert
-conflicts. If you define a `PRIMARY KEY`{.LITERAL} or `UNIQUE`{.LITERAL}
-column with a `DEFAULT bdr.global_seq_nextval(...)`{.LITERAL}
+conflicts. If you define a `PRIMARY KEY` or `UNIQUE`
+column with a `DEFAULT bdr.global_seq_nextval(...)`
 expression, it is not possible for any node to ever get the same value
 as any other node. When BDR synchronizes inserts between the nodes, they
 can never conflict.
@@ -26,12 +21,12 @@ There is no need to use a distributed sequence if:
 
     -   An externally co-ordinated natural key
 
--   You are using the data in a `TEMPORARY`{.LITERAL} or
-    `UNLOGGED`{.LITERAL} table, as these are never visible outside the
+-   You are using the data in a `TEMPORARY` or
+    `UNLOGGED` table, as these are never visible outside the
     current node.
 
 Global sequences are not suitable for applications that require an
-`INCREMENT`{.LITERAL} other than 1. See [Global Sequence
+`INCREMENT` other than 1. See [Global Sequence
 Limitations](global-sequence-limitations.md).
 
 Global sequence values are only loosely time-ordered. It is normal for
@@ -48,16 +43,12 @@ PostgreSQL install, since there is no guarantee that transactions commit
 in the same order they called nextval, so \"newer\" IDs may become
 visible before older ones.
 
-Applications that directly call `nextval`{.LITERAL}, like many ORMs,
+Applications that directly call `nextval`, like many ORMs,
 will require changes to work with BDR 2.0 global sequences.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------------------ -------------------------------------------- ---------------------------------------------------
-  [Prev](global-sequences-purpose.md){accesskey="P"}        [Home](index.md){accesskey="H"}         [Next](global-sequence-usage.md){accesskey="N"}
-  Purpose of global sequences                             [Up](global-sequences.md){accesskey="U"}                               Using global sequences
+  [Prev](global-sequences-purpose.md)        [Home](README.md)         [Next](global-sequence-usage.md)  
+  Purpose of global sequences                             [Up](global-sequences.md)                               Using global sequences
   ------------------------------------------------------ -------------------------------------------- ---------------------------------------------------
-:::

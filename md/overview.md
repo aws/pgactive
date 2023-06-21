@@ -1,15 +1,10 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                          
   --------------------------------------------------------------- ------------------------------------------- -- -----------------------------------------------------
-  [Prev](getting-started.md "Getting started"){accesskey="P"}   [Up](getting-started.md){accesskey="U"}        [Next](bdr-concepts.md "Concepts"){accesskey="N"}
+  [Prev](getting-started.md "Getting started")   [Up](getting-started.md)        [Next](bdr-concepts.md "Concepts")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#OVERVIEW}Chapter 1. BDR overview
+# Chapter 1. BDR overview
 
-::: TOC
 **Table of Contents**
 
 1.1. [Concepts](bdr-concepts.md)
@@ -20,22 +15,17 @@ replication](logical-vs-physical.md)
 1.3. [Differences between BDR and trigger-based
 replication](bdr-vs-trigger-based.md)
 
-1.4. [BDR: Weakly coupled multi-master
-replication](weak-coupled-multimaster.md)
-:::
+1.4. [BDR: Weakly coupled Active-Active
+replication](weak-coupled-activeactive.md)
 
-The BDR (Bi-Directional Replication) project adds multi-master
+The BDR (Bi-Directional Replication) project adds Active-Active
 replication to PostgreSQL. This chapter explains what BDR is, how it
 works, and where to best apply it. See [Concepts](bdr-concepts.md) to
 learn about what BDR does and how it does it.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --------------------------------------------- ------------------------------------------- ------------------------------------------
-  [Prev](getting-started.md){accesskey="P"}        [Home](index.md){accesskey="H"}        [Next](bdr-concepts.md){accesskey="N"}
-  Getting started                                [Up](getting-started.md){accesskey="U"}                                    Concepts
+  [Prev](getting-started.md)        [Home](README.md)        [Next](bdr-concepts.md)  
+  Getting started                                [Up](getting-started.md)                                    Concepts
   --------------------------------------------- ------------------------------------------- ------------------------------------------
-:::

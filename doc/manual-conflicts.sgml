@@ -1,12 +1,12 @@
-<chapter id="conflicts" xreflabel="Multi-master conflicts">
- <title>Multi-master conflicts</title>
+<chapter id="conflicts" xreflabel="Active-Active conflicts">
+ <title>Active-Active conflicts</title>
 
  <indexterm>
   <primary>Conflicts</primary>
  </indexterm>
 
  <para>
-  In multi-master use of &bdr; writes to the same or related table(s) from multiple
+  In Active-Active use of &bdr; writes to the same or related table(s) from multiple
   different nodes can result in data conflicts.
  </para>
 
@@ -314,11 +314,11 @@
    <para>
     BDR applies changes with <literal>session_replication_role = 'replica'</>
     so foreign keys are <emphasis>not</> checked when applying changes. In a
-    multi-master environment this can result in FK violations. Most are transient
+    Active-Active environment this can result in FK violations. Most are transient
     and only exist until replication catches up with changes from another node,
     but it's also possible to create dangling FKs because there's no inter-node
     row locking in BDR. This is a necessary consequence of a partition-tolerant
-    asynchronous multi-master system, since one node can insert and commit a new
+    asynchronous Active-Active system, since one node can insert and commit a new
     child row in some FK relationship at the same time another node concurrently
     deletes the parent row. It's recommended that use of FKs be constrained to
     sets of closely related entities that are generally modified from only one node,
@@ -576,7 +576,7 @@
   <title>Conflict logging</title>
 
   <para>
-   To make diagnosis and handling of multi-master conflicts easier, &bdr;
+   To make diagnosis and handling of Active-Active conflicts easier, &bdr;
    supports logging of each conflict incident in a <xref linkend="catalog-bdr-conflict-history"> table.
   </para>
 
@@ -584,7 +584,7 @@
    Conflict logging to this table is only enabled when <xref
    linkend="guc-bdr-log-conflicts-to-table"> is
    <literal>true</literal>. BDR also logs conflicts to the PostgreSQL
-   log file if <literal>bdr.log_min_messages</literal> is <literal>LOG</literal>
+   log file if <literal>log_min_messages</literal> is <literal>LOG</literal>
    or lower, irrespective of the value of <literal>bdr.log_conflicts_to_table</literal>.
   </para>
 

@@ -1,13 +1,8 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------- ------------------------------------- ----------------------------- -------------------------------------------------------------------------
-  [Prev](technotes.md "Technical notes"){accesskey="P"}   [Up](technotes.md){accesskey="U"}    Appendix C. Technical notes    [Next](technotes-ddl-locking.md "DDL locking details"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                         
+  [Prev](technotes.md "Technical notes")   [Up](technotes.md)    Appendix C. Technical notes    [Next](technotes-ddl-locking.md "DDL locking details")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [C.1. BDR network structure]{#TECHNOTES-MESH} {#c.1.-bdr-network-structure .SECT1}
+# C.1. BDR network structure
 
 BDR uses a mesh topology, where every node can communicate directly with
 every other node. It doesn\'t support circular replication, forwarding,
@@ -19,7 +14,7 @@ node B=\>A. This means each node must be able to connect directly to
 each other node. Firewalls, NAT, etc must be configured accordingly.
 
 Every BDR node must have a [replication
-slot](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}
+slot](https://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html)
 on every other BDR node so it can replay changes from the node, and
 every node must have a replication origin for each other node so it can
 keep track of replay progress. If nodes were allowed to join while
@@ -39,14 +34,10 @@ support in place and used for initial node clone.
 DDL locking enhancements would also be required; see [DDL
 replication](ddl-replication.md) and [DDL locking
 details](technotes-ddl-locking.md).
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --------------------------------------- ------------------------------------- ---------------------------------------------------
-  [Prev](technotes.md){accesskey="P"}     [Home](index.md){accesskey="H"}     [Next](technotes-ddl-locking.md){accesskey="N"}
-  Technical notes                          [Up](technotes.md){accesskey="U"}                                  DDL locking details
+  [Prev](technotes.md)     [Home](README.md)     [Next](technotes-ddl-locking.md)  
+  Technical notes                          [Up](technotes.md)                                  DDL locking details
   --------------------------------------- ------------------------------------- ---------------------------------------------------
-:::

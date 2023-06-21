@@ -1,13 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                         
   ---------------------------------------------------------------------- ----------------------------------- -- ---
-  [Prev](technotes-rewrites.md "Full table rewrites"){accesskey="P"}   [Home](index.md){accesskey="H"}         
+  [Prev](technotes-rewrites.md "Full table rewrites")   [Home](README.md)         
 
-------------------------------------------------------------------------
-:::
 
-::: INDEX
-# []{#BOOKINDEX}Index
+# Index
 
 [A](bookindex.md#AEN5129) \| [B](bookindex.md#AEN5173) \|
 [C](bookindex.md#AEN5319) \| [D](bookindex.md#AEN5411) \|
@@ -18,8 +14,7 @@
 [T](bookindex.md#AEN5527) \| [U](bookindex.md#AEN5532) \|
 [W](bookindex.md#AEN5537)
 
-::: INDEXDIV
-## [A]{#AEN5129} {#a .INDEXDIV}
+## [A]{#AEN5129}
 
 ALTER DATABASE, [Not replicated DDL
 statements](ddl-replication-statements.md#AEN1519)
@@ -62,10 +57,8 @@ statements](ddl-replication-statements.md#AEN1519)
 
 ALTER USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
-:::
 
-::: INDEXDIV
-## [B]{#AEN5173} {#b .INDEXDIV}
+## [B]{#AEN5173}
 
 bdr.acquire_global_lock, [Node management
 functions](functions-node-mgmt.md)
@@ -212,10 +205,8 @@ configuration variables](bdr-configuration-variables.md#AEN783)
 
 bdr.wait_slot_confirm_lsn, [Node management
 functions](functions-node-mgmt.md)
-:::
 
-::: INDEXDIV
-## [C]{#AEN5319} {#c .INDEXDIV}
+## [C]{#AEN5319}
 
 Catalogs
 
@@ -229,9 +220,9 @@ Configuration Settings
 
 of the server, [Configuration Settings](settings.md)
 
-:
+    
 
-Conflicts, [Multi-master conflicts](conflicts.md)
+Conflicts, [Active-Active conflicts](conflicts.md)
 
 CREATE CAST, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -307,10 +298,8 @@ statements](ddl-replication-statements.md#AEN1519)
 
 CREATE USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
-:::
 
-::: INDEXDIV
-## [D]{#AEN5411} {#d .INDEXDIV}
+## [D]{#AEN5411}
 
 DDL Replication, [DDL Replication](ddl-replication.md)
 
@@ -351,28 +340,22 @@ statements](ddl-replication-statements.md#AEN1519)
 
 DROP USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
-:::
 
-::: INDEXDIV
-## [F]{#AEN5452} {#f .INDEXDIV}
+## [F]{#AEN5452}
 
 Functions, [Functions](functions.md)
-:::
 
-::: INDEXDIV
-## [G]{#AEN5457} {#g .INDEXDIV}
+## [G]{#AEN5457}
 
 Global Sequence
 
-:
+    
 
     Distributed sequence, [Global Sequences](global-sequences.md)
 
-    :
-:::
+    :   
 
-::: INDEXDIV
-## [L]{#AEN5463} {#l .INDEXDIV}
+## [L]{#AEN5463}
 
 limitations, [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
@@ -385,10 +368,8 @@ constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX),
 [Exclusion constraint
 conflicts](conflicts-types.md#CONFLICTS-EXCLUSION), [Global data
 conflicts](conflicts-types.md#AEN2387)
-:::
 
-::: INDEXDIV
-## [M]{#AEN5474} {#m .INDEXDIV}
+## [M]{#AEN5474}
 
 max_replication_slots configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
@@ -402,26 +383,20 @@ parameters](settings-prerequisite.md)
 Monitoring, [Monitoring](monitoring.md)
 
 see also Catalogs
-:::
 
-::: INDEXDIV
-## [N]{#AEN5489} {#n .INDEXDIV}
+## [N]{#AEN5489}
 
 Node Management, [Node Management](node-management.md)
-:::
 
-::: INDEXDIV
-## [P]{#AEN5494} {#p .INDEXDIV}
+## [P]{#AEN5494}
 
 pg_xlog_wait_remote_apply, [Node management
 functions](functions-node-mgmt.md)
 
 pg_xlog_wait_remote_receive, [Node management
 functions](functions-node-mgmt.md)
-:::
 
-::: INDEXDIV
-## [R]{#AEN5502} {#r .INDEXDIV}
+## [R]{#AEN5502}
 
 REFRESH MATERIALIZED VIEW, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -429,10 +404,8 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 Release notes, [Release notes](releasenotes.md)
 
 Replication Sets, [Replication Sets](replication-sets.md)
-:::
 
-::: INDEXDIV
-## [S]{#AEN5513} {#s .INDEXDIV}
+## [S]{#AEN5513}
 
 SECURITY LABEL, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -445,35 +418,24 @@ PostgreSQL parameters](settings-prerequisite.md)
 
 subscribe,
 [bdr.bdr_subscribe](functions-node-mgmt.md#FUNCTIONS-NODE-MGMT-SUBSCRIBE)
-:::
 
-::: INDEXDIV
-## [T]{#AEN5527} {#t .INDEXDIV}
+## [T]{#AEN5527}
 
 track_commit_timestamp configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
-:::
 
-::: INDEXDIV
-## [U]{#AEN5532} {#u .INDEXDIV}
+## [U]{#AEN5532}
 
 Upgrading BDR, [Upgrading BDR](upgrade.md)
-:::
 
-::: INDEXDIV
-## [W]{#AEN5537} {#w .INDEXDIV}
+## [W]{#AEN5537}
 
 wal_level configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------------ ----------------------------------- ---
-  [Prev](technotes-rewrites.md){accesskey="P"}    [Home](index.md){accesskey="H"}     
+  [Prev](technotes-rewrites.md)    [Home](README.md)     
   Full table rewrites                                                                     
   ------------------------------------------------ ----------------------------------- ---
-:::

@@ -35,7 +35,7 @@
    <para>
     To run on PostgreSQL 9.4, BDR requires a modified PostgreSQL called
     BDR-Postgres 9.4. The modified PostgreSQL adds functionality BDR needs to
-    support DDL replication, multi-master conflict resolution, user-defined
+    support DDL replication, Active-Active conflict resolution, user-defined
     conflict handlers, etc. It is available from the BDR download page
     alongside the extension in both package and source form. This requirement
     means that <emphasis>you can't use BDR on unmodified PostgreSQL

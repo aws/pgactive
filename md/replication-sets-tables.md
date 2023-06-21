@@ -1,24 +1,19 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------------- -------------------------------------------- ------------------------------ ----------------------------------------------------------------------------------------
-  [Prev](replication-sets-nodes.md "Node Replication Control"){accesskey="P"}   [Up](replication-sets.md){accesskey="U"}    Chapter 11. Replication Sets    [Next](replication-sets-changetype.md "Change-type replication sets"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                                       
+  [Prev](replication-sets-nodes.md "Node Replication Control")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-changetype.md "Change-type replication sets")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [11.4. Table Replication Control]{#REPLICATION-SETS-TABLES} {#table-replication-control .SECT1}
+# 11.4. Table Replication Control
 
 A newly created table is initially part of replication set
-`default`{.LITERAL}. It is assigned to more or different sets by
+`default`. It is assigned to more or different sets by
 [bdr.table_set_replication_sets](functions-replication-sets.md#FUNCTION-BDR-TABLE-SET-REPLICATION-SETS).
 This operation aquires a DDL lock and can be used in a fully functional
-[BDR]{.PRODUCTNAME} cluster with no down/missing members.
+[BDR] cluster with no down/missing members.
 
 The array of sets a table is part of is retrieved by
 [bdr.table_get_replication_sets](functions-replication-sets.md#FUNCTION-BDR-TABLE-GET-REPLICATION-SETS).
 
-Adding a table to a replication set does [*not*]{.emphasis} synchronize
+Adding a table to a replication set does [*not*] synchronize
 the table\'s contents to nodes that were not previously receiving
 changes for that table and will now do so. This means the table remains
 inconsistent across nodes. It is generally necessary for the
@@ -27,11 +22,11 @@ replication set. The simplest way to do this, albeit inefficiently and
 only if there are no foreign keys references to the table, is to start a
 transaction, copy the table\'s contents to a temp table, truncate the
 original table, copy the table\'s contents back to the original table,
-and commit. Alternately, the admin may use [psql]{.APPLICATION}\'s
-`\copy`{.LITERAL} with
+and commit. Alternately, the admin may use [psql]\'s
+`\copy` with
 [bdr.do_not_replicate](bdr-configuration-variables.md#GUC-BDR-DO-NOT-REPLICATE)
 to (carefully!) sync the newly-replicated table\'s contents to the
-receiving node, typically by joining two [psql]{.APPLICATION} sessions
+receiving node, typically by joining two [psql] sessions
 with a pipe. A future BDR release will add a built-in facility to
 consistently resynchronize a table.
 
@@ -47,17 +42,13 @@ the logical change history where the replication set memberships
 changed. This means you can\'t change a table\'s replication sets to get
 a node to skip over a lot of write activity after the fact. (However, if
 the table was already in some different replication set, you
-[*can*]{.emphasis} change which replication sets the node replays from
+[*can*] change which replication sets the node replays from
 to skip that set, since node replication set memberships take immediate
 effect).
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ---------------------------------------------------- -------------------------------------------- ---------------------------------------------------------
-  [Prev](replication-sets-nodes.md){accesskey="P"}        [Home](index.md){accesskey="H"}         [Next](replication-sets-changetype.md){accesskey="N"}
-  Node Replication Control                              [Up](replication-sets.md){accesskey="U"}                               Change-type replication sets
+  [Prev](replication-sets-nodes.md)        [Home](README.md)         [Next](replication-sets-changetype.md)  
+  Node Replication Control                              [Up](replication-sets.md)                               Change-type replication sets
   ---------------------------------------------------- -------------------------------------------- ---------------------------------------------------------
-:::

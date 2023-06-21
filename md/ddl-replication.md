@@ -1,15 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------------------- ---------------------------------- -- -----------------------------------------------------------------------------------
-  [Prev](monitoring-postgres-stats.md "PostgreSQL statistics views"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](ddl-replication-advice.md "Executing DDL on BDR systems"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                       
+  [Prev](monitoring-postgres-stats.md "PostgreSQL statistics views")   [Up](manual.md)        [Next](ddl-replication-advice.md "Executing DDL on BDR systems")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#DDL-REPLICATION}Chapter 8. DDL Replication
+# Chapter 8. DDL Replication
 
-::: TOC
 **Table of Contents**
 
 8.1. [Executing DDL on BDR systems](ddl-replication-advice.md)
@@ -37,9 +31,8 @@ restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
 
 8.2.5. [How to work around restricted
 DDL](ddl-replication-statements.md#DDL-REPLICATION-HOW)
-:::
 
-[BDR]{.PRODUCTNAME} supports replicating changes to a database\'s
+[BDR] supports replicating changes to a database\'s
 schemas to other connected nodes. That makes it easier to make certain
 DDL changes without worrying about having to manually distribute the DDL
 change to all nodes and ensure they\'re consistent.
@@ -47,29 +40,23 @@ change to all nodes and ensure they\'re consistent.
 There is not currently an option to turn off DDL replication and apply
 DDL manually instead.
 
-Before doing DDL on [BDR]{.PRODUCTNAME}, read [Section
+Before doing DDL on [BDR], read [Section
 8.1](ddl-replication-advice.md) and [Statement specific DDL
 replication concerns](ddl-replication-statements.md).
 
-[BDR]{.PRODUCTNAME} is significantly different to standalone PostgreSQL
+[BDR] is significantly different to standalone PostgreSQL
 when it comes to DDL and schema changes, and treating it as the same is
 a fast path to replication problems.
 
-::: IMPORTANT
 > **Important:** While DDL is in progress on any node in the system,
-> statements that perform writes (`INSERT`{.LITERAL}, `UPDATE`{.LITERAL}
-> `DELETE`{.LITERAL}, any DDL, etc) on that node or any other node will
-> `ERROR`{.LITERAL} even if the writes have nothing to do with the
+> statements that perform writes (`INSERT`, `UPDATE`
+> `DELETE`, any DDL, etc) on that node or any other node will
+> `ERROR` even if the writes have nothing to do with the
 > objects currently being modified by the DDL in progress.
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------------------- ----------------------------------- ----------------------------------------------------
-  [Prev](monitoring-postgres-stats.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](ddl-replication-advice.md){accesskey="N"}
-  PostgreSQL statistics views                              [Up](manual.md){accesskey="U"}                           Executing DDL on BDR systems
+  [Prev](monitoring-postgres-stats.md)    [Home](README.md)    [Next](ddl-replication-advice.md)  
+  PostgreSQL statistics views                              [Up](manual.md)                           Executing DDL on BDR systems
   ------------------------------------------------------- ----------------------------------- ----------------------------------------------------
-:::

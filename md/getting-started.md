@@ -1,18 +1,11 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                
   ------------------------------------------------------------- ----------------------------------- -- -----------------------------------------------------
-  [Prev](index.md "BDR 2.0.7 Documentation"){accesskey="P"}   [Home](index.md){accesskey="H"}        [Next](overview.md "BDR overview"){accesskey="N"}
+  [Prev](README.md "BDR 2.0.7 Documentation")   [Home](README.md)        [Next](overview.md "BDR overview")  
 
-------------------------------------------------------------------------
-:::
 
-::: PART
-[]{#GETTING-STARTED}
 
-::: TITLEPAGE
-# I. Getting started {#i.-getting-started .TITLE}
+# I. Getting started
 
-::: TOC
 **Table of Contents**
 
 1\. [BDR overview](overview.md)
@@ -25,8 +18,8 @@ replication](logical-vs-physical.md)
 1.3. [Differences between BDR and trigger-based
 replication](bdr-vs-trigger-based.md)
 
-1.4. [BDR: Weakly coupled multi-master
-replication](weak-coupled-multimaster.md)
+1.4. [BDR: Weakly coupled Active-Active
+replication](weak-coupled-activeactive.md)
 
 2\. [Installation](installation.md)
 
@@ -53,16 +46,10 @@ nodes/instances](quickstart-starting.md)
 nodes/instances](quickstart-enabling.md)
 
 3.6. [Testing your BDR-enabled system](quickstart-testing.md)
-:::
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ----------------------------------- ----------------------------------- --------------------------------------
-  [Prev](index.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](overview.md){accesskey="N"}
+  [Prev](README.md)    [Home](README.md)    [Next](overview.md)  
   BDR 2.0.7 Documentation                                                                           BDR overview
   ----------------------------------- ----------------------------------- --------------------------------------
-:::
