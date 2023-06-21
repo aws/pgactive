@@ -1901,8 +1901,7 @@ bdr_generate_node_identifier_internal(void)
 		ereport(NOTICE,
 				(errmsg("BDR node identifier for this node has already been generated")));
 
-		LWLockRelease(BdrWorkerCtl->lock);
-		return nid;
+		goto done;
 	}
 
 	snprintf(tmppath, MAXPGPATH, "pg_logical/%s.tmp", BDR_CONTROL_FILE);
@@ -1950,6 +1949,7 @@ bdr_generate_node_identifier_internal(void)
 	/* fsync, rename to permanent file, fsync file and directory */
 	durable_rename(tmppath, path, ERROR);
 
+done:
 	LWLockRelease(BdrWorkerCtl->lock);
 	return nid;
 }
@@ -2003,7 +2003,7 @@ bdr_get_node_identifier_internal(void)
 				(errcode_for_file_access(),
 				 errmsg("BDR control file doesn't exist")));
 
-		return nid;
+		goto done;
 	}
 
 	fd = OpenTransientFile(path, O_RDONLY | PG_BINARY);
@@ -2022,6 +2022,7 @@ bdr_get_node_identifier_internal(void)
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m", path)));
 
+done:
 	/* Release the lock only if we acquired in this function. */
 	if (acquired_lock)
 		LWLockRelease(BdrWorkerCtl->lock);
