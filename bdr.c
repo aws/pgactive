@@ -2061,7 +2061,7 @@ bdr_remove_node_identifier_internal(void)
 {
 	char	path[MAXPGPATH];
 	int		i;
-	bool	can_remove = true;
+	bool	remove = true;
 
 	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
 
@@ -2073,8 +2073,8 @@ bdr_remove_node_identifier_internal(void)
 				(errcode_for_file_access(),
 				 errmsg("BDR control file doesn't exist, and it may have been already removed")));
 
-		LWLockRelease(BdrWorkerCtl->lock);
-		return false;
+		remove = false;
+		goto done;
 	}
 
 	for (i = 0; i < bdr_max_workers; i++)
@@ -2083,20 +2083,19 @@ bdr_remove_node_identifier_internal(void)
 
 		if (w->worker_type == BDR_WORKER_PERDB)
 		{
-			BdrPerdbWorker *pw = &w->data.perdb;
-
-			if (OidIsValid(pw->p_dboid) && w->worker_proc != NULL)
+			if (w->worker_proc != NULL)
 			{
+				Assert(OidIsValid(w->worker_proc->databaseId));
 				ereport(NOTICE,
 						(errmsg("cannot remove BDR control file as BDR is still active on this node for database \"%s\"",
-								get_database_name(pw->p_dboid))));
+								get_database_name(w->worker_proc->databaseId))));
 
-				can_remove = false;
+				remove = false;
 			}
 		}
 	}
 
-	if (can_remove)
+	if (remove)
 	{
 		if (unlink(path) < 0 && errno != ENOENT)
 			ereport(ERROR,
@@ -2106,8 +2105,9 @@ bdr_remove_node_identifier_internal(void)
 		fsync_fname("pg_logical", true);
 	}
 
+done:
 	LWLockRelease(BdrWorkerCtl->lock);
-	return can_remove;
+	return remove;
 }
 
 /*
