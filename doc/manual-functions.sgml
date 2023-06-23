@@ -108,7 +108,7 @@
 	Any node may be chosen as the join target, but if possible a node with
 	a fast and reliable network link to the new node should be preferred.
 	Note that <function>bdr.bdr_group_join()</function> can <emphasis>not</emphasis>
-	"re-join" a node you removed with <function>bdr.bdr_part_by_node_names()</function>.
+	"re-join" physically a node you removed with <function>bdr.bdr_part_by_node_names()</function>.
 	See <xref linkend="node-management-joining"> for details on node
 	joining and creation, and <xref linkend="replication-sets"> for more on
 	how replication sets work.
