@@ -1940,11 +1940,12 @@ BEGIN
     -- The trigger' dependency entry will be dangling because of how we dropped
     -- it.
     DELETE FROM pg_depend
-    WHERE classid = 'pg_trigger'::regclass
-      AND objid = _truncate_tg.tgobjid
-      AND (refclassid = 'pg_proc'::regclass AND refobjid = 'bdr.queue_truncate'::regproc)
+    WHERE classid = 'pg_trigger'::regclass AND
+      (objid = _truncate_tg.tgobjid
+       AND (refclassid = 'pg_proc'::regclass AND refobjid = 'bdr.queue_truncate'::regproc)
           OR
-          (refclassid = 'pg_class'::regclass AND refobjid = _truncate_tg.tgrelid);
+          (refclassid = 'pg_class'::regclass AND refobjid = _truncate_tg.tgrelid)
+	  );
 
   END LOOP;
 

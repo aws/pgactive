@@ -22,12 +22,21 @@ create_table_global_sequence( $node_a, 'test_table_sequence' );
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node( $node_b, $node_a );
 
+# Create a table foo
+$node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
+
 # Part node_b before completely removing BDR
 part_nodes( [$node_b], $node_a );
 sleep(10);
 
 # Remove BDR from parted node
 bdr_remove( $node_b, 1 );
+
+# Remove the table foo
+$node_b->safe_psql( $bdr_test_dbname, "drop table foo" );
+
+# Re-create the table foo
+$node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
 
 # Join a new node to first node using bdr_group_join
 my $node_c = PostgreSQL::Test::Cluster->new('node_c');
