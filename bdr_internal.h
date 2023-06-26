@@ -114,4 +114,6 @@ extern void bdr_parse_replident_name(const char *name, BDRNodeId * remote, Oid *
 extern int	bdr_find_other_exec(const char *argv0, const char *target,
 								uint32 *version, char *retpath);
 
+extern uint64 GenerateNodeIdentifier(void);
+
 #endif							/* BDR_INTERNAL_H */

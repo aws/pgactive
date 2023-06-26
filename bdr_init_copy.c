@@ -15,11 +15,10 @@
 #include <fcntl.h>
 #include <locale.h>
 #include <signal.h>
-#include <time.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 /* Note the order is important for debian here. */
@@ -145,7 +144,6 @@ static void initialize_data_dir(char *data_dir, char *connstr,
 								char *postgresql_conf, char *pg_hba_conf);
 static bool check_data_dir(char *data_dir, RemoteInfo * remoteinfo);
 
-static uint64 GenerateSystemIdentifier(void);
 static uint64 read_sysid(const char *data_dir);
 static void set_node_identifier(const char *data_dir, uint64 nid);
 
@@ -446,7 +444,7 @@ main(int argc, char **argv)
 	node_info.local_tlid = remote_info->tlid + 1;
 
 	/* Generate new identifier for local node. */
-	node_info.local_sysid = GenerateSystemIdentifier();
+	node_info.local_sysid = GenerateNodeIdentifier();
 	print_msg(VERBOSITY_VERBOSE,
 			  _("Generated new local system identifier: " UINT64_FORMAT "\n"),
 			  node_info.local_sysid);
@@ -848,7 +846,6 @@ set_node_identifier(const char *data_dir, uint64 nid)
 	char	path[MAXPGPATH];
 	char	tmppath[MAXPGPATH];
 	FILE	*fp;
-	int		ret;
 
 	snprintf(tmppath, MAXPGPATH, "%s/pg_logical/%s.tmp", data_dir,
 			 BDR_CONTROL_FILE);
@@ -865,27 +862,15 @@ set_node_identifier(const char *data_dir, uint64 nid)
 	 * Write magic number, PG version and BDR version to the control file to
 	 * verify file content correctness upon reading.
 	 */
-	ret = fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
-	if (ret < 0)
-		goto write_error;
+	fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
+	fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
+	fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
+	fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
 
-	ret = fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
-	if (ret < 0)
-		goto write_error;
-
-	ret = fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
-	if (ret < 0)
-		goto write_error;
-
-	ret = fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
-	if (ret < 0)
-		goto write_error;
-
-	ret = fclose(fp);
-	if (ret != 0)
+	if (ferror(fp) || fclose(fp))
 	{
 		unlink(tmppath);
-		die(_("could not close file \"%s\""), tmppath);
+		die(_("could not write to file \"%s\""), tmppath);
 	}
 
 	/* Rename temporary file to BDR control file to make things permanent. */
@@ -903,11 +888,6 @@ set_node_identifier(const char *data_dir, uint64 nid)
 
 	print_msg(VERBOSITY_VERBOSE, "Created BDR control file and written node identifier to it.\n");
 	return;
-
-write_error:
-	fclose(fp);
-	unlink(tmppath);
-	die(_("could not write to file \"%s\""), tmppath);
 }
 
 /*
@@ -1651,26 +1631,6 @@ get_connstr(char *connstr, char *dbname, char *dbhost, char *dbport, char *dbuse
 		PQconninfoFree(conn_opts);
 
 	return ret;
-}
-
-
-/*
- * Create a new unique installation identifier.
- *
- * See notes in xlog.c about the algorithm.
- */
-static uint64
-GenerateSystemIdentifier(void)
-{
-	uint64		sysidentifier;
-	struct timeval tv;
-
-	gettimeofday(&tv, NULL);
-	sysidentifier = ((uint64) tv.tv_sec) << 32;
-	sysidentifier |= ((uint64) tv.tv_usec) << 12;
-	sysidentifier |= getpid() & 0xFFF;
-
-	return sysidentifier;
 }
 
 /*

@@ -473,7 +473,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "bdr");
 
-	elog(LOG, "sending replication command: %s", query.data);
+	elog(DEBUG3, "sending replication command: %s", query.data);
 
 	res = PQexec(streamConn, query.data);
 
@@ -771,7 +771,7 @@ bdr_establish_connection_and_slot(const char *dsn,
 		 */
 
 		/* create local replication identifier and a remote slot */
-		elog(LOG, "creating new slot %s", NameStr(*out_slot_name));
+		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
 		bdr_create_slot(streamConn, out_slot_name, remote_repident_name,
 						out_replication_identifier, out_snapshot);
 	}
@@ -1882,12 +1882,10 @@ bdr_control_file_exists(void)
 uint64
 bdr_generate_node_identifier_internal(void)
 {
-	uint64	nid = 0;
-	struct timeval	tv;
+	uint64		nid = 0;
 	char		path[MAXPGPATH];
 	char		tmppath[MAXPGPATH];
 	FILE	  	*fp;
-	int			ret;
 
 	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
 
@@ -1923,34 +1921,20 @@ bdr_generate_node_identifier_internal(void)
 	 * Write magic number, PG version and BDR version to the control file to
 	 * verify file content correctness upon reading.
 	 */
-	ret = fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
-	if (ret < 0)
-		goto write_error;
-
-	ret = fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
-	if (ret < 0)
-		goto write_error;
-
-	ret = fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
-	if (ret < 0)
-		goto write_error;
+	fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
+	fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
+	fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
 
 	/*
 	 * Generate BDR node identifier using similar logic that Postgres uses to
 	 * generate system_identifier.
 	 */
-	gettimeofday(&tv, NULL);
-	nid = ((uint64) tv.tv_sec) << 32;
-	nid |= ((uint64) tv.tv_usec) << 12;
-	nid |= getpid() & 0xFFF;
+	nid = GenerateNodeIdentifier();
 
 	/* And, write the node identifier to BDR control file. */
-	ret = fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
-	if (ret < 0)
-		goto write_error;
+	fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
 
-	ret = FreeFile(fp);
-	if (ret != 0)
+	if (ferror(fp) || FreeFile(fp))
 	{
 		int			save_errno = errno;
 
@@ -1958,7 +1942,7 @@ bdr_generate_node_identifier_internal(void)
 		errno = save_errno;
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not close file \"%s\": %m", tmppath)));
+				 errmsg("could not write to file \"%s\": %m", tmppath)));
 	}
 
 	/* Rename temporary file to BDR control file to make things permanent. */
@@ -1967,18 +1951,6 @@ bdr_generate_node_identifier_internal(void)
 done:
 	LWLockRelease(BdrWorkerCtl->lock);
 	return nid;
-
-write_error:
-	{
-		int			save_errno = errno;
-
-		FreeFile(fp);
-		unlink(tmppath);
-		errno = save_errno;
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not write to file \"%s\": %m", tmppath)));
-	}
 }
 
 /*
@@ -2042,23 +2014,26 @@ bdr_get_node_identifier_internal(void)
 				(errcode_for_file_access(),
 				 errmsg("could not read from file \"%s\": %m", path)));
 
-	if (fscanf(fp, "MAGIC NUMBER: %u\n", &magic_number) != 1)
-		goto read_error;
-	if (magic_number != BDR_CONTROL_FILE_MAGIC_NUMBER)
-		goto data_error;
+	if (fscanf(fp, "MAGIC NUMBER: %u\n", &magic_number) != 1 ||
+		fscanf(fp, "PG VERSION: %u\n", &pg_version) != 1 ||
+		fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1 ||
+		fscanf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", &nid) != 1)
+	{
+		FreeFile(fp);
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not read from file \"%s\": %m", path)));
+	}
 
-	if (fscanf(fp, "PG VERSION: %u\n", &pg_version) != 1)
-		goto read_error;
-	if (pg_version != PG_VERSION_NUM)
-		goto data_error;
-
-	if (fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1)
-		goto read_error;
-	if (bdr_version != BDR_VERSION_NUM)
-		goto data_error;
-
-	if (fscanf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", &nid) != 1)
-		goto read_error;
+	if (magic_number != BDR_CONTROL_FILE_MAGIC_NUMBER ||
+		pg_version != PG_VERSION_NUM ||
+		bdr_version != BDR_VERSION_NUM)
+	{
+		FreeFile(fp);
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("invalid data found in file \"%s\": %m", path)));
+	}
 
 	if (ferror(fp) || FreeFile(fp))
 		ereport(ERROR,
@@ -2071,18 +2046,6 @@ done:
 		LWLockRelease(BdrWorkerCtl->lock);
 
 	return nid;
-
-read_error:
-	FreeFile(fp);
-	ereport(ERROR,
-			(errcode_for_file_access(),
-			 errmsg("could not read from file \"%s\": %m", path)));
-
-data_error:
-	FreeFile(fp);
-	ereport(ERROR,
-			(errcode_for_file_access(),
-			 errmsg("invalid data found in file \"%s\": %m", path)));
 }
 
 /*
