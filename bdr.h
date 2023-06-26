@@ -422,6 +422,7 @@ extern int	bdr_ddl_lock_timeout;
 extern bool bdr_trace_replay;
 extern int	bdr_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
+extern int	bdr_init_node_parallel_jobs;
 
 static const char *const bdr_default_apply_connection_options =
 "connect_timeout=30 "
