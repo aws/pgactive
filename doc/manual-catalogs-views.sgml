@@ -62,7 +62,7 @@
       <entry><structfield>node_sysid</structfield></entry>
       <entry><type>text</type></entry>
       <entry></entry>
-      <entry>system_identifier from the control file of the node</entry>
+      <entry>BDR generated node identifier from the BDR control file of the node</entry>
      </row>
      <row>
       <entry><structfield>node_timeline</structfield></entry>

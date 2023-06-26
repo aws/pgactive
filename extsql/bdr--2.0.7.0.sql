@@ -368,7 +368,7 @@ SELECT pg_catalog.pg_extension_config_dump('bdr_nodes', 'WHERE false');
 CREATE UNIQUE INDEX bdr_nodes_node_name ON bdr_nodes(node_name);
 
 COMMENT ON TABLE bdr_nodes IS 'All known nodes in this BDR group';
-COMMENT ON COLUMN bdr_nodes.node_sysid IS 'system_identifier from the control file of the node';
+COMMENT ON COLUMN bdr_nodes.node_sysid IS 'BDR generated node identifier from the BDR control file of the node';
 COMMENT ON COLUMN bdr_nodes.node_timeline IS 'Timeline ID of this node';
 COMMENT ON COLUMN bdr_nodes.node_dboid IS 'Local database oid on the cluster (node_sysid, node_timeline)';
 COMMENT ON COLUMN bdr_nodes.node_status IS 'Readiness of the node: [b]eginning setup, [i]nitializing, [c]atchup, creating [o]utbound slots, [r]eady, [k]illed. Doesn''t indicate connected/disconnected.';
@@ -1219,6 +1219,9 @@ BEGIN
             ERRCODE = 'feature_not_supported';
     END IF;
 
+    -- Generate BDR node identifier
+    PERFORM bdr.bdr_generate_node_identifier();
+
     PERFORM bdr.internal_begin_join(
         'bdr_group_join',
         local_node_name,
@@ -1957,6 +1960,9 @@ BEGIN
   DELETE FROM bdr.bdr_sequence_values;
   DELETE FROM bdr.bdr_votes;
 
+  -- Remove BDR control file containing node identifier.
+  PERFORM bdr.bdr_remove_node_identifier();
+
   -- We can't drop the BDR extension, we just need to tell the user to do that.
   RAISE NOTICE 'BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.';
 END;
@@ -2186,6 +2192,33 @@ BEFORE INSERT
 ON bdr.bdr_nodes
 FOR EACH ROW
 EXECUTE PROCEDURE bdr_dont_insert_or_delete_killed();
+
+CREATE FUNCTION bdr_generate_node_identifier()
+RETURNS numeric
+LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_generate_node_identifier';
+
+REVOKE ALL ON FUNCTION bdr_generate_node_identifier() FROM PUBLIC;
+
+COMMENT ON FUNCTION bdr_generate_node_identifier()
+IS 'Generate BDR node identifier and write it to BDR control file';
+
+CREATE FUNCTION bdr_get_node_identifier()
+RETURNS numeric
+LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_get_node_identifier';
+
+REVOKE ALL ON FUNCTION bdr_get_node_identifier() FROM PUBLIC;
+
+COMMENT ON FUNCTION bdr_get_node_identifier()
+IS 'Read BDR node identifier from BDR control file';
+
+CREATE FUNCTION bdr_remove_node_identifier()
+RETURNS boolean
+LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_remove_node_identifier';
+
+REVOKE ALL ON FUNCTION bdr_remove_node_identifier() FROM PUBLIC;
+
+COMMENT ON FUNCTION bdr_remove_node_identifier()
+IS 'Remove BDR node identifier from BDR control file';
 
 RESET bdr.permit_unsafe_ddl_commands;
 RESET bdr.skip_ddl_replication;

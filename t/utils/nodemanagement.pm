@@ -243,7 +243,7 @@ sub bdr_logical_join {
 
     if (!$nowait) {
         $local_node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+            qq[SELECT bdr.bdr_node_join_wait_for_ready(30)]);
     }
 }
 

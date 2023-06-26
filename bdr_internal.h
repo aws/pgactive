@@ -52,6 +52,11 @@ typedef enum BdrNodeStatus
 #define BDR_NODE_STATUS_READY_S "'r'"
 #define BDR_NODE_STATUS_KILLED_S "'k'"
 
+#define BDR_CONTROL_FILE	"bdr_control"
+
+/* Magic number identifying the bdr_control file format */
+static const uint32 BDR_CONTROL_FILE_MAGIC_NUMBER = 0x26062023;
+
 /* Structure representing bdr_nodes record */
 typedef struct BDRNodeId
 {

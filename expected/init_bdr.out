@@ -50,6 +50,7 @@ SELECT bdr.bdr_group_join(
 	node_local_dsn := 'dbname=regression',
 	replication_sets := ARRAY['default', 'important', 'for-node-2', 'for-node-2-insert', 'for-node-2-update', 'for-node-2-delete']
 	);
+NOTICE:  BDR node identifier for this node has already been generated
  bdr_group_join 
 ----------------
  

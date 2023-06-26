@@ -2441,8 +2441,6 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 	HeapTuple	returnTuple;
 	int			field;
 
-	bdr_make_my_nodeid(&myid);
-
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
@@ -2460,6 +2458,8 @@ bdr_ddl_lock_info(PG_FUNCTION_ARGS)
 	if (!state.in_use)
 		/* shouldn't happen */
 		elog(ERROR, "bdr active but lockstate not configured");
+
+	bdr_make_my_nodeid(&myid);
 
 	/* fields: */
 	memset(&values, 0, sizeof(values));

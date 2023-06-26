@@ -52,7 +52,7 @@
 #endif
 
 #define BDR_LOCALID_FORMAT_ARGS \
-	GetSystemIdentifier(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
+	bdr_get_node_identifier_internal(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
 
 /*
  * For use with BDR_NODEID_FORMAT_WITHNAME, print our node id tuple and name.
@@ -791,4 +791,8 @@ extern void bdr_sendint64(int64 i, char *buf);
 extern void InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags);
 #endif
 
+extern bool bdr_control_file_exists(void);
+extern uint64 bdr_generate_node_identifier_internal(void);
+extern uint64 bdr_get_node_identifier_internal(void);
+extern bool bdr_remove_node_identifier_internal(void);
 #endif							/* BDR_H */
