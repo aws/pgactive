@@ -2177,6 +2177,12 @@ BEGIN
 	RETURN NULL;
 
  ELSIF NEW.node_status = 'i' THEN
+
+	UPDATE bdr.bdr_nodes SET node_sysid = NEW.node_sysid
+	WHERE node_status = 'k' and node_timeline = NEW.node_timeline
+		  and node_dboid = NEW.node_dboid
+		  and node_name = NEW.node_name;
+
 	DELETE FROM bdr.bdr_nodes
 	WHERE node_status = 'k'
 		  and node_sysid = NEW.node_sysid
