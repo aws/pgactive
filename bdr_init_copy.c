@@ -56,6 +56,7 @@
 #endif
 
 #include "bdr_internal.h"
+#include "bdr_version.h"
 
 #define LLOGCDIR "pg_logical/checkpoints"
 
@@ -845,33 +846,68 @@ static void
 set_node_identifier(const char *data_dir, uint64 nid)
 {
 	char	path[MAXPGPATH];
-	int		fd;
+	char	tmppath[MAXPGPATH];
+	FILE	*fp;
+	int		ret;
 
-	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
+	snprintf(tmppath, MAXPGPATH, "%s/pg_logical/%s.tmp", data_dir,
+			 BDR_CONTROL_FILE);
 
-	fd = open(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0700);
+	/* make sure no old temp file is remaining */
+	if (unlink(tmppath) < 0 && errno != ENOENT)
+		die(_("could not remove file \"%s\""), tmppath);
 
-	if (fd < 0)
-		die(_("could not create file \"%s\""), path);
+	fp = fopen(tmppath, PG_BINARY_W);
+	if (!fp)
+		die(_("could not create file \"%s\""), tmppath);
 
-	if ((write(fd, &nid, sizeof(nid))) != sizeof(nid))
+	/*
+	 * Write magic number, PG version and BDR version to the control file to
+	 * verify file content correctness upon reading.
+	 */
+	ret = fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
+	if (ret < 0)
+		goto write_error;
+
+	ret = fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
+	if (ret < 0)
+		goto write_error;
+
+	ret = fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
+	if (ret < 0)
+		goto write_error;
+
+	ret = fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
+	if (ret < 0)
+		goto write_error;
+
+	ret = fclose(fp);
+	if (ret != 0)
 	{
-		close(fd);
-		die(_("could not write to file \"%s\""), path);
+		unlink(tmppath);
+		die(_("could not close file \"%s\""), tmppath);
 	}
+
+	/* Rename temporary file to BDR control file to make things permanent. */
+	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
 
 	/*
 	 * Postgres commit cc8d41511721 changed this function input parameters in
 	 * version 12.
 	 */
 #if PG_VERSION_NUM < 120000
-	fsync_fname(path, true, progname);
+	durable_rename(tmppath, path, progname);
 #else
-	fsync_fname(path, true);
+	durable_rename(tmppath, path);
 #endif
 
-	close(fd);
 	print_msg(VERBOSITY_VERBOSE, "Created BDR control file and written node identifier to it.\n");
+	return;
+
+write_error:
+	fclose(fp);
+	unlink(tmppath);
+	die(_("could not write to file \"%s\""), tmppath);
 }
 
 /*
