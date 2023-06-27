@@ -364,7 +364,6 @@ bdr_connect(const char *conninfo,
 			 PQntuples(res), PQnfields(res), 1, 4, 5);
 	}
 
-	remote_tlid = PQgetvalue(res, 0, 1);
 	if (PQnfields(res) == 5)
 	{
 		char	   *remote_dboid = PQgetvalue(res, 0, 4);
