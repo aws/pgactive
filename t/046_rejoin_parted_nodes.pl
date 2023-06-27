@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Test unregistering per-db/apply worker after parting.
+# Test re-joining after parting and locally removed.
 use strict;
 use warnings;
 use lib 't/';
