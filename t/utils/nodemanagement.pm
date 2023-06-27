@@ -33,11 +33,11 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     create_bdr_group
     initandstart_physicaljoin_node
     check_join_status
-    check_part_statuses
-    part_nodes
-    check_part_status
+    check_detach_status
+    detach_nodes
+    check_detach_status
     stop_nodes
-    part_and_check_nodes
+    detach_and_check_nodes
     exec_ddl
     node_isready
     wait_for_pg_isready
@@ -58,7 +58,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     generate_bdr_logical_join_query
     copy_transform_postgresqlconf
     start_bdr_init_copy
-    wait_part_completion
+    wait_detach_completion
 );
 
 BEGIN {
@@ -426,39 +426,39 @@ sub check_join_status {
     );
 }
 
-sub wait_part_completion {
-    my ($part_node, $upstream_node) = @_;
+sub wait_detach_completion {
+    my ($detach_node, $upstream_node) = @_;
 
-    if (!$upstream_node->poll_query_until($bdr_test_dbname, qq[SELECT NOT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '] . $part_node->name . "')")) {
-        cluck("replication slot for node " . $part_node->name . " on " . $upstream_node->name . " was not removed, trying to continue anyway");
+    if (!$upstream_node->poll_query_until($bdr_test_dbname, qq[SELECT NOT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '] . $detach_node->name . "')")) {
+        cluck("replication slot for node " . $detach_node->name . " on " . $upstream_node->name . " was not removed, trying to continue anyway");
     }
 }
 
-# Remove one or mote nodes from cluster using 'bdr_part_by_node_names'.
+# Remove one or mote nodes from cluster using 'bdr_detach_by_node_names'.
 #
-# Does not check part status.
+# Does not check detach status.
 #
 # Thread safe.
-sub part_nodes {
-    my $part_nodes         = shift;
+sub detach_nodes {
+    my $detach_nodes         = shift;
     my $upstream_node      = shift;
     my $upstream_node_name = $upstream_node->name();
 
-    for my $part_node (@{$part_nodes}) {
-        my $part_node_name = $part_node->name();
-        $upstream_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '$part_node_name')])
-            or BAIL_OUT("could not find existing slot for $part_node_name on $upstream_node_name before parting");
+    for my $detach_node (@{$detach_nodes}) {
+        my $detach_node_name = $detach_node->name();
+        $upstream_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '$detach_node_name')])
+            or BAIL_OUT("could not find existing slot for $detach_node_name on $upstream_node_name before detaching");
     }
 
-    my $nodelist = "ARRAY['" . join("','", map { $_->name } @{$part_nodes}) . "']";
+    my $nodelist = "ARRAY['" . join("','", map { $_->name } @{$detach_nodes}) . "']";
 
     $upstream_node->safe_psql( $bdr_test_dbname,
-        "SELECT bdr.bdr_part_by_node_names($nodelist)" );
+        "SELECT bdr.bdr_detach_by_node_names($nodelist)" );
 
-    # We can tell a part has taken effect when the downstream's slot vanishes
+    # We can tell a detach has taken effect when the downstream's slot vanishes
     # on the upstream.
-    for my $part_node (@{$part_nodes}) {
-        wait_part_completion($part_node, $upstream_node);
+    for my $detach_node (@{$detach_nodes}) {
+        wait_detach_completion($detach_node, $upstream_node);
     }
 }
 
@@ -474,81 +474,81 @@ sub stop_nodes {
 }
 
 # Check node status is 'k' on self and upstream node
-# for each parted node
-sub check_part_statuses {
-    my $part_nodes         = shift;
+# for each detached node
+sub check_detach_status {
+    my $detach_nodes         = shift;
     my $upstream_node      = shift;
     my $upstream_node_name = $upstream_node->name();
 
-    foreach my $part_node (@$part_nodes) {
-        my $part_node_name     = $part_node->name();
+    foreach my $detach_node (@$detach_nodes) {
+        my $detach_node_name     = $detach_node->name();
 
         is(
             $upstream_node->safe_psql(
                 $bdr_test_dbname,
-                "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = '$part_node_name'"
+                "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = '$detach_node_name'"
             ),
             'k',
-            qq($part_node_name status on upstream node after part is 'k')
+            qq($detach_node_name status on upstream node after detach is 'k')
         );
 
-        # It is unsafe/incorrect to expect the parted node to know it's parted and
+        # It is unsafe/incorrect to expect the detached node to know it's detached and
         # have a 'k' state. Sometimes it will, sometimes it won't, it depends on a
-        # race between the parting node terminating its connections and it
-        # receiving notification of its own parting. That's a bit of a wart in BDR,
+        # race between the detaching node terminating its connections and it
+        # receiving notification of its own detaching. That's a bit of a wart in BDR,
         # but won't be fixed in 2.0 and is actually very hard to truly "fix" in a
         # distributed system. So we allow the local node status to be 'k' or 'r'.
         #
         like(
-            $part_node->safe_psql(
+            $detach_node->safe_psql(
                 $bdr_test_dbname,
-                "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = '$part_node_name'"
+                "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = '$detach_node_name'"
             ),
             qr/^(k|r)$/,
-            qq($part_node_name status on local node after part is 'k' or 'r')
+            qq($detach_node_name status on local node after detach is 'k' or 'r')
         );
 
         # The downstream's slot on the upstream MUST be gone
         is(
-            $upstream_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '$part_node_name')]),
+            $upstream_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '$detach_node_name')]),
             'f',
-            qq(replication slot for $part_node_name on $upstream_node_name has been removed)
+            qq(replication slot for $detach_node_name on $upstream_node_name has been removed)
         );
 
         # The upstream's slot on the downstream MAY be gone, or may be present, so
         # there's no point checking. But the upstream's connection to the downstream
         # MUST be gone, so we can look for the apply worker's connection.
         is(
-            $part_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = '$upstream_node_name:send')]),
+            $detach_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = '$upstream_node_name:send')]),
             'f',
-            qq(replication connection for $upstream_node_name on $part_node_name is gone)
+            qq(replication connection for $upstream_node_name on $detach_node_name is gone)
         );
     }
 }
 
-# Shorthand for part_nodes(), check_part_statuses(), stop_nodes()
-sub part_and_check_nodes {
-    my ($part_nodes, $upstream_node) = @_;
-    part_nodes($part_nodes, $upstream_node);
-    check_part_statuses($part_nodes, $upstream_node);
-    stop_nodes($part_nodes);
+# Shorthand for detach_nodes(), check_detach_status(), stop_nodes()
+sub detach_and_check_nodes {
+    my ($detach_nodes, $upstream_node) = @_;
+    detach_nodes($detach_nodes, $upstream_node);
+    check_detach_status($detach_nodes, $upstream_node);
+    stop_nodes($detach_nodes);
 }
 
 # 
-# Remove the bdr.bdr_nodes entry for a parted node, so that its node name may
-# be re-used.  The node must already be marked as parted.
+# Remove the bdr.bdr_nodes entry for a detached node, so that its node name may
+# be re-used.  The node must already be marked as detached.
 #
-sub delete_parted_node_from_catalog {
-    my ($parted_node, $upstream_node) = @_;
-    my $part_node_name     = $parted_node->name();
+sub delete_detached_node_from_catalog {
+    my ($detached_node, $upstream_node) = @_;
+    my $detach_node_name     = $detached_node->name();
     my $upstream_node_name = $upstream_node->name();
 
     my $deleted = $upstream_node->safe_psql( $bdr_test_dbname,
-        "DELETE FROM bdr.bdr_nodes WHERE node_name = '$part_node_name' and node_status = 'k' returning 1"
+        "DELETE FROM bdr.bdr_nodes WHERE node_name = '$detach_node_name' and node_status = 'k' returning 1"
     );
 
     if ($deleted ne '1') {
-        BAIL_OUT("attempt to delete bdr.bdr_nodes row for $part_node_name from $upstream_node_name failed, node not found or status <> k");
+        BAIL_OUT("attempt to delete bdr.bdr_nodes row for $detach_node_name from $upstream_node_name failed, node not found or status <> k");
     }
 }
 

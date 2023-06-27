@@ -1084,7 +1084,7 @@ $body$;
 COMMENT ON FUNCTION bdr_group_create(text, text, text, integer, text[]) IS
 'Create a BDR group, turning a stand-alone database into the first node in a BDR group';
 
-CREATE FUNCTION bdr.bdr_part_by_node_names(p_nodes text[])
+CREATE FUNCTION bdr.bdr_detach_by_node_names(p_nodes text[])
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
 -- SET bdr.permit_unsafe_ddl_commands = on is removed for now
@@ -1100,26 +1100,26 @@ BEGIN
     LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;
     LOCK TABLE pg_catalog.pg_shseclabel IN EXCLUSIVE MODE;
 
-    -- Ensure we're not running on the node being parted.
+    -- Ensure we're not running on the node being detached.
     -- We can't safely ensure that the change gets replicated
     -- to peer nodes before we cut off our local connections
-    -- if running on the node being parted.
+    -- if running on the node being detached.
     --
     -- (This restriction can be lifted later if we add
-    --  multi-phase negotiated part).
+    --  multi-phase negotiated detach).
     --
     IF bdr.bdr_get_local_node_name() = ANY(p_nodes) THEN
         -- One exception is if we're the only live node
         IF (SELECT count(node_status) FROM bdr.bdr_nodes WHERE node_status IN (bdr.node_status_to_char('BDR_NODE_STATUS_READY'))) > 1 THEN
             RAISE USING
-                MESSAGE = 'cannot part a node from its self',
-                DETAIL = 'Attempted to bdr_part_by_node_names(...) on node '||bdr.bdr_get_local_node_name()||' which is one of the nodes being parted.',
-                HINT = 'You must call call bdr_part_by_node_names on a node that is not being removed.',
+                MESSAGE = 'cannot detach a node from its self',
+                DETAIL = 'Attempted to bdr_detach_by_node_names(...) on node '||bdr.bdr_get_local_node_name()||' which is one of the nodes being detached.',
+                HINT = 'You must call call bdr_detach_by_node_names on a node that is not being removed.',
                 ERRCODE = 'object_in_use';
         ELSE
             RAISE WARNING USING
-                MESSAGE = 'parting last node',
-                HINT = 'Marking last node as parted. To remove BDR completely use bdr.remove_bdr_from_local_node(...).';
+                MESSAGE = 'detaching last node',
+                HINT = 'Marking last node as detached. To remove BDR completely use bdr.remove_bdr_from_local_node(...).';
         END IF;
     END IF;
 
@@ -1148,7 +1148,7 @@ BEGIN
         WHERE bdr_nodes.node_status <> bdr.node_status_to_char('BDR_NODE_STATUS_READY')
     LOOP
         IF r.node_status = bdr.node_status_to_char('BDR_NODE_STATUS_KILLED') THEN
-            RAISE INFO 'node %i is already parted, ignoring', r.node_name;
+            RAISE INFO 'node %i is already detached, ignoring', r.node_name;
         ELSE
             RAISE WARNING 'node % is in state % not expected ''r'' (BDR_NODE_STATUS_READY), attempting to remove anyway',
                 r.node_name, r.node_status;
@@ -1482,7 +1482,7 @@ BEGIN
 
       PERFORM pg_sleep(5);
 
-      RAISE NOTICE 'node forced to parted state, now removing';
+      RAISE NOTICE 'node forced to detached state, now removing';
     ELSE
       RAISE EXCEPTION 'this BDR node might still be active, not removing';
     END IF;

@@ -55,7 +55,7 @@ For details, see the [Node management](node-management.md) chapter.
 ## A.13.2. Easy node removal
 
 The new
-[bdr.bdr_part_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
+[bdr.bdr_detach_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-DETACH-BY-NODE-NAMES)
 function allows easy online node removal. There is no need to restart
 nodes or to manually delete replication identifiers and slots. Multiple
 nodes may be removed at once.

@@ -61,7 +61,7 @@ is($node_a->safe_psql($bdr_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
 is($node_b->safe_psql($bdr_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
    '3', "Changes not available on node_b");
 
-note "Part node_b from BDR group\n";
-part_and_check_nodes( [ $node_b ], $upstream_node );
+note "Detach node_b from BDR group\n";
+detach_and_check_nodes( [ $node_b ], $upstream_node );
 
 done_testing();

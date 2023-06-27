@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Use pause and resume to make a test of a 3-node group where we part a node
+# Use pause and resume to make a test of a 3-node group where we detach a node
 # that has replayed changes to one of its peers but not the other. 
 #
 # This is much the same functionally as the other desync test that uses
@@ -47,7 +47,7 @@ is($node_1->safe_psql($bdr_test_dbname,"SELECT id FROM $test_table"),
 is($node_0->safe_psql($bdr_test_dbname,"SELECT id FROM $test_table"),
     '',"Changes not replayed to node_0 due to apply pause");
 
-part_and_check_nodes([$node_2],$node_1);
+detach_and_check_nodes([$node_2],$node_1);
 
 $node_0->safe_psql($bdr_test_dbname,"select bdr.bdr_apply_resume()");
 wait_for_apply($node_0,$node_1);

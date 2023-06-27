@@ -46,13 +46,13 @@ is($node_a->safe_psql($bdr_test_dbname, 'SELECT dummy FROM reptest WHERE id = 1'
 
 is($node_a->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = bdr.bdr_get_local_node_name()"), 'r', 'node status is "r"');
 
-ok(!$node_a->psql($bdr_test_dbname, "SELECT bdr.bdr_part_by_node_names(ARRAY['node_a'])"), 'parted without error');
+ok(!$node_a->psql($bdr_test_dbname, "SELECT bdr.bdr_detach_by_node_names(ARRAY['node_a'])"), 'detached without error');
 
 is($node_a->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = bdr.bdr_get_local_node_name()"), 'k', 'node status is "k"');
 
-ok($node_a->psql($bdr_test_dbname, "DROP EXTENSION bdr"), 'DROP EXTENSION fails after part');
+ok($node_a->psql($bdr_test_dbname, "DROP EXTENSION bdr"), 'DROP EXTENSION fails after detach');
 
-is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db();'), 't', 'still active after part');
+is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db();'), 't', 'still active after detach');
 
 ok(!$node_a->psql($bdr_test_dbname, 'SELECT bdr.remove_bdr_from_local_node(true);'), 'remove_bdr_from_local_node succeeds');
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Test re-joining after parting and locally removed.
+# Test re-joining after detaching and locally removed.
 use strict;
 use warnings;
 use lib 't/';
@@ -17,24 +17,24 @@ use utils::nodemanagement;
 my $nodes = make_bdr_group(3,'node_');
 my ($node_0,$node_1,$node_2) = @$nodes;
 
-# Part a node from 3 node cluster
-note "Part node_0 from 3 node cluster\n";
-part_nodes([$node_0], $node_1);
-check_part_statuses([$node_0], $node_1);
+# Detach a node from 3 node cluster
+note "Detach node_0 from 3 node cluster\n";
+detach_nodes([$node_0], $node_1);
+check_detach_status([$node_0], $node_1);
 
-# Remove BDR from the parted node
+# Remove BDR from the detached node
 $node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
 #
-# Use case 1: a parted node without relations that already exist on the other 
+# Use case 1: a detached node without relations that already exist on the other 
 # nodes is able to rejoin.
 # Such relation(s) (if any) are not replicated during the re-join.
 #
 
-# create a table on the parted and removed node
+# create a table on the detached and removed node
 $node_0->safe_psql($bdr_test_dbname, "create table db_not_empty(a int primary key)");
 
-# re-join the parted node
+# re-join the detached node
 bdr_logical_join($node_0, $node_1);
 check_join_status($node_0, $node_1);
 
@@ -46,7 +46,7 @@ my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
 like($psql_stderr, qr/relation "db_not_empty" does not exist/, "db_not_empty not replicated during re-join");
 
 #
-# Use case 2: a parted node with relations that already exist on the other 
+# Use case 2: a detached node with relations that already exist on the other 
 # nodes is failing to rejoin.
 #
 
@@ -56,15 +56,15 @@ exec_ddl($node_0, q[CREATE TABLE public.test_dup(a int primary key);]);
 # Make sure everything caught up by forcing another lock
 $node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
 
-# Part node0 from 3 node cluster
-note "Part node_0 from 3 node cluster\n";
-part_nodes([$node_0], $node_1);
-check_part_statuses([$node_0], $node_1);
+# Detach node0 from 3 node cluster
+note "Detach node_0 from 3 node cluster\n";
+detach_nodes([$node_0], $node_1);
+check_detach_status([$node_0], $node_1);
 
-# Remove BDR from the parted node
+# Remove BDR from the detached node
 $node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
-# re-join the parted node
+# re-join the detached node
 my $logstart_0 = get_log_size($node_0);
 bdr_logical_join($node_0, $node_1, nowait => 1);
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Test unregistering per-db/apply worker after parting.
+# Test unregistering per-db/apply worker after detaching.
 use strict;
 use warnings;
 use lib 't/';
@@ -17,21 +17,21 @@ use utils::nodemanagement;
 my $nodes = make_bdr_group(3,'node_');
 my ($node_0,$node_1,$node_2) = @$nodes;
 
-# Part a node from 3 node cluster
-note "Part node_0 from 3 node cluster\n";
-part_nodes([$node_0], $node_1);
-check_part_statuses([$node_0], $node_1);
+# Detach a node from 3 node cluster
+note "Detach node_0 from 3 node cluster\n";
+detach_nodes([$node_0], $node_1);
+check_detach_status([$node_0], $node_1);
 
 my $logstart_0 = get_log_size($node_0);
 my $logstart_1 = get_log_size($node_1);
 
-# Parted node must unregister apply worker
+# Detached node must unregister apply worker
 my $result = wait_for_worker_to_unregister($node_0,
 	qr!LOG: ( [A-Z0-9]+:)? unregistering apply worker due to .*!,
 	$logstart_0);
 ok($result, "unregistering apply worker on node_0 is detected");
 
-# Remove BDR from the parted node
+# Remove BDR from the Detached node
 $node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
 # per-db worker must be unregistered on a node with BDR removed
@@ -47,7 +47,7 @@ $node_1->safe_psql($bdr_test_dbname,
 		DROP EXTENSION bdr;
 	]);
 
-# Parted node must unregister apply worker
+# Detached node must unregister apply worker
 $result = wait_for_worker_to_unregister($node_1,
 	qr!LOG: ( [A-Z0-9]+:)? unregistering apply worker due to .*!,
 	$logstart_1);
