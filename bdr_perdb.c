@@ -569,11 +569,12 @@ bdr_maintain_db_workers(void)
 #endif
 		char	   *roname = (char *) lfirst(lcroname);
 
-		if (RecoveryInProgress())
-				ereport(ERROR,
-						(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-						errmsg("cannot manipulate replication origins during recovery")));
-
+		/*
+		 * Replication origins removal should not be allowed if
+		 * RecoveryInProgress() but we don't do this extra check as
+		 * RecoveryInProgress() is not possible here. Indeed, see the
+		 * RecoveryInProgress() test in bdr_supervisor_worker_main().
+		 */
 		elog(DEBUG1, "dropping replication origin %s due to node part", roname);
 #if PG_VERSION_NUM < 140000
 		roident = replorigin_by_name(roname, true);
