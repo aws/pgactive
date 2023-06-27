@@ -1329,6 +1329,9 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		case T_GrantStmt:
 			break;
 
+		case T_CallStmt:
+			break;
+
 		default:
 
 			/*
