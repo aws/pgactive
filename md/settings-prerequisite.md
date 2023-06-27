@@ -1,87 +1,76 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------------- ------------------------------------ ----------------------------------- ------------------------------------------------------------------------------------------------
-  [Prev](settings.md "Configuration Settings"){accesskey="P"}   [Up](settings.md){accesskey="U"}    Chapter 4. Configuration Settings    [Next](bdr-configuration-variables.md "BDR specific configuration variables"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [Prev](settings.md "Configuration Settings")   [Up](settings.md)    Chapter 4. Configuration Settings    [Next](bdr-configuration-variables.md "BDR specific configuration variables")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [4.1. Prerequisite [PostgreSQL]{.PRODUCTNAME} parameters]{#SETTINGS-PREREQUISITE} {#prerequisite-postgresql-parameters .SECT1}
+# 4.1. Prerequisite [PostgreSQL] parameters
 
-BDR require certain [PostgreSQL]{.PRODUCTNAME} settings to be set to
+BDR require certain [PostgreSQL] settings to be set to
 appropriate values.
 
-::: VARIABLELIST
 
-[]{#GUC-MAX-WORKER-PROCESSES}`max_worker_processes`{.VARNAME} (`integer`{.TYPE})
+`max_worker_processes` (`integer`)
 
-:   For BDR this has to be set to a big enough value to have one worker
+    For BDR this has to be set to a big enough value to have one worker
     per configured database, and one worker per connection.
 
     For more detailed information about this parameter consult the
-    [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES){target="_top"}.
+    [PostgreSQL]
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-resource.html#GUC-MAX-WORKER-PROCESSES).
 
-[]{#GUC-MAX-REPLICATION-SLOTS}`max_replication_slots`{.VARNAME} (`integer`{.TYPE})
+`max_replication_slots` (`integer`)
 
-:   For BDR this needs to be set big enough so that every connection to
+    For BDR this needs to be set big enough so that every connection to
     this node has a free replication slot.
 
     For more detailed information about this parameter consult the
-    [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-REPLICATION-SLOTS){target="_top"}.
+    [PostgreSQL]
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-REPLICATION-SLOTS).
 
-[]{#GUC-MAX-WAL-SENDERS}`max_wal_senders`{.VARNAME} (`integer`{.TYPE})
+`max_wal_senders` (`integer`)
 
-:   For BDR this needs to be set big enough so that every connection to
+    For BDR this needs to be set big enough so that every connection to
     this node has a free wal sender process.
 
     If a node also does streaming base backups and/or base backups using
-    [pg_basebackup]{.APPLICATION}, the value needs to be big enough to
+    [pg_basebackup], the value needs to be big enough to
     accomodate both that and BDR.
 
     For more detailed information about this parameter consult the
-    [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-WAL-SENDERS){target="_top"}.
+    [PostgreSQL]
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-replication.html#GUC-MAX-WAL-SENDERS).
 
-[]{#GUC-SHARED-PRELOAD-LIBRARIES}`shared_preload_libraries`{.VARNAME} (`string`{.TYPE})
+`shared_preload_libraries` (`string`)
 
-:   For BDR this parameter has to include `bdr`{.LITERAL} as one of the
+    For BDR this parameter has to include `bdr` as one of the
     comma separated values. The parameter can only be changed at server
     start.
 
     For more detailed information about this parameter consult the
-    [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-client.html#GUC-SHARED-PRELOAD-LIBRARIES){target="_top"}.
+    [PostgreSQL]
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-client.html#GUC-SHARED-PRELOAD-LIBRARIES).
 
-[]{#GUC-TRACK-COMMIT-TIMESTAMP}`track_commit_timestamp`{.VARNAME} (`bool`{.TYPE})
+`track_commit_timestamp` (`bool`)
 
-:   To use BDR this parameter has to be set to `true`{.LITERAL}.
+    To use BDR this parameter has to be set to `true`.
 
-[]{#GUC-WAL-LEVEL}`wal_level`{.VARNAME} (`enum`{.TYPE})
+`wal_level` (`enum`)
 
-:   For BDR this parameter has to be set to `logical`{.LITERAL}.
+    For BDR this parameter has to be set to `logical`.
 
     For more detailed information about this parameter consult the
-    [PostgreSQL]{.PRODUCTNAME}
-    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL){target="_top"}.
+    [PostgreSQL]
+    [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL).
 
-[]{#GUC-DEFAULT-SEQUENCEAM}`default_sequenceam`{.VARNAME} (`string`{.TYPE})
+`default_sequenceam` (`string`)
 
-:   This option is deprecated. On PostgreSQL 9.6 it is not supported and
+    This option is deprecated. On PostgreSQL 9.6 it is not supported and
     may not be set. On BDR-Postgres 9.4 it can be used to activate the
     old global sequences implementation; see [Global
     sequences](global-sequences.md) and the BDR 1.0 documentation.
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   -------------------------------------- ------------------------------------ ---------------------------------------------------------
-  [Prev](settings.md){accesskey="P"}    [Home](index.md){accesskey="H"}     [Next](bdr-configuration-variables.md){accesskey="N"}
-  Configuration Settings                  [Up](settings.md){accesskey="U"}                       BDR specific configuration variables
+  [Prev](settings.md)    [Home](README.md)     [Next](bdr-configuration-variables.md)  
+  Configuration Settings                  [Up](settings.md)                       BDR specific configuration variables
   -------------------------------------- ------------------------------------ ---------------------------------------------------------
-:::

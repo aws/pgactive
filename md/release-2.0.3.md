@@ -1,56 +1,48 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                                            
   ----------------------------------------------------------- ---------------------------------------- --------------------------- -----------------------------------------------------------
-  [Prev](release-2.0.4.md "Release 2.0.4"){accesskey="P"}   [Up](releasenotes.md){accesskey="U"}    Appendix A. Release notes    [Next](release-2.0.2.md "Release 2.0.2"){accesskey="N"}
+  [Prev](release-2.0.4.md "Release 2.0.4")   [Up](releasenotes.md)    Appendix A. Release notes    [Next](release-2.0.2.md "Release 2.0.2")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [A.3. Release 2.0.3]{#RELEASE-2.0.3} {#a.3.-release-2.0.3 .SECT1}
+# A.3. Release 2.0.3
 
-[*Mon Jul 31, 2017*]{.emphasis}
+[*Mon Jul 31, 2017*]
 
 BDR 2.0.3 is a maintenance release for the 2.0 series
 
 Fixes and improvements:
 
--   Permit `CREATE INDEX CONCURRENTLY`{.LITERAL} and
-    `DROP INDEX CONCURRENTLY`{.LITERAL} as raw DDL when
-    `bdr.skip_ddl_replication = on`{.VARNAME} is set. It is still not
-    accepted via `bdr.bdr_replicate_ddl_command`{.FUNCTION}.
+-   Permit `CREATE INDEX CONCURRENTLY` and
+    `DROP INDEX CONCURRENTLY` as raw DDL when
+    `bdr.skip_ddl_replication = on` is set. It is still not
+    accepted via `bdr.bdr_replicate_ddl_command`.
 
 -   Fix an infinite loop that could occur during cancellation of
-    write-locks (looping in `BackendIdGetProc`{.FUNCTION})
+    write-locks (looping in `BackendIdGetProc`)
 
 -   Fix shmem detach when workers are paused
 
--   Support and document [bdr_init_copy]{.APPLICATION} on a base backup
+-   Support and document [bdr_init_copy] on a base backup
     pre-copied by rsync or other tools
 
--   Ensure that [bdr_init_copy]{.APPLICATION} properly respects a
-    pre-existing `recovery.conf`{.FILENAME}
+-   Ensure that [bdr_init_copy] properly respects a
+    pre-existing `recovery.conf`
 
--   Expand [bdr_init_copy]{.APPLICATION} regression tests
+-   Expand [bdr_init_copy] regression tests
 
 -   Improve error message for \"tuple natts mismatch\" to identify
     affected table, ec
 
--
+-   
 
--
+-   
 
--
+-   
 
--
-:::
+-   
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-  [Prev](release-2.0.4.md){accesskey="P"}      [Home](index.md){accesskey="H"}       [Next](release-2.0.2.md){accesskey="N"}
-  Release 2.0.4                                [Up](releasenotes.md){accesskey="U"}                                Release 2.0.2
+  [Prev](release-2.0.4.md)      [Home](README.md)       [Next](release-2.0.2.md)  
+  Release 2.0.4                                [Up](releasenotes.md)                                Release 2.0.2
   ------------------------------------------- ---------------------------------------- -------------------------------------------
-:::

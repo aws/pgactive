@@ -1,22 +1,16 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ------------------------------------------------------------------------------------------------------ ---------------------------------- -- ------------------------------------------------------------------
-  [Prev](ddl-replication-statements.md "Statement specific DDL replication concerns"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](conflicts-how.md "How conflicts happen"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                        
+  [Prev](ddl-replication-statements.md "Statement specific DDL replication concerns")   [Up](manual.md)        [Next](conflicts-how.md "How conflicts happen")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#CONFLICTS}Chapter 9. Multi-master conflicts
+# Chapter 9. Active-Active conflicts
 
-::: TOC
 **Table of Contents**
 
 9.1. [How conflicts happen](conflicts-how.md)
 
 9.2. [Types of conflict](conflicts-types.md)
 
-9.2.1. [`PRIMARY KEY`{.LITERAL} or `UNIQUE`{.LITERAL}
+9.2.1. [`PRIMARY KEY` or `UNIQUE`
 conflicts](conflicts-types.md#CONFLICTS-KEY)
 
 9.2.2. [Foreign Key Constraint
@@ -38,10 +32,10 @@ aborts](conflicts-types.md#AEN2408)
 handlers](conflicts-user-defined-handlers.md)
 
 9.5. [Conflict logging](conflicts-logging.md)
-:::
 
-In multi-master use of [BDR]{.PRODUCTNAME} writes to the same or related
-table(s) from multiple different nodes can result in data conflicts.
+In Active-Active use of [BDR] writes to the same or
+related table(s) from multiple different nodes can result in data
+conflicts.
 
 Some clustering systems use distributed lock mechanisms to prevent
 concurrent access to data. These can perform reasonably when servers are
@@ -52,14 +46,10 @@ Distributed locking is essentially a pessimistic approach, whereas BDR
 advocates an optimistic approach: avoid conflicts where possible but
 allow some types of conflict to occur and and resolve them when they
 arise.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   -------------------------------------------------------- ----------------------------------- -------------------------------------------
-  [Prev](ddl-replication-statements.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](conflicts-how.md){accesskey="N"}
-  Statement specific DDL replication concerns               [Up](manual.md){accesskey="U"}                          How conflicts happen
+  [Prev](ddl-replication-statements.md)    [Home](README.md)    [Next](conflicts-how.md)  
+  Statement specific DDL replication concerns               [Up](manual.md)                          How conflicts happen
   -------------------------------------------------------- ----------------------------------- -------------------------------------------
-:::

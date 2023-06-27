@@ -1,13 +1,9 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                                                    
   -------------------------------------------------------------------- ------------------------------------- ----------------------------- ----------------------------------------------------------------------
-  [Prev](technotes-mesh.md "BDR network structure"){accesskey="P"}   [Up](technotes.md){accesskey="U"}    Appendix C. Technical notes    [Next](technotes-rewrites.md "Full table rewrites"){accesskey="N"}
+  [Prev](technotes-mesh.md "BDR network structure")   [Up](technotes.md)    Appendix C. Technical notes    [Next](technotes-rewrites.md "Full table rewrites")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [C.2. DDL locking details]{#TECHNOTES-DDL-LOCKING} {#c.2.-ddl-locking-details .SECT1}
+# C.2. DDL locking details
 
 To ensure complete consistency of some types of schema change operations
 (DDL), BDR must be able to sometimes go into fully synchronous mode,
@@ -37,8 +33,7 @@ transitively with their peers in turn. Only the DDL write lock now
 requires that all nodes confirm that they have flushed all pending
 transactions to all other nodes.
 
-::: SECT2
-## [C.2.1. How the DDL lock works]{#DDL-REPLICATION-LOCKING-HOWWORKS} {#c.2.1.-how-the-ddl-lock-works .SECT2}
+## C.2.1. How the DDL lock works
 
 If you don\'t care how the global DDL lock works you can skip this
 section, but understanding it will be useful when you\'re diagnosing
@@ -110,7 +105,7 @@ The (somewhat simplified) process of DDL lock acquision is:
 
 Critically, this means that for write-locks [*every BDR node must
 complete a two-way communication with every other BDR node before the
-DDL lock can be granted*]{.emphasis}. This communication is done via the
+DDL lock can be granted*]. This communication is done via the
 replication stream, so replication lag and delays, network slowness or
 outages, etc in turn delay the DDL locking process. While the system is
 in the process of acquiring the DDL lock, many nodes will hold their
@@ -130,16 +125,11 @@ hung up on a DDL lock request that\'s making no progress you can just
 cancel the statement that\'s requesting the DDL lock and everything will
 resume normal operation.
 
-Full details can be found in the comments on `bdr_locks.c`{.FILENAME}.
-:::
-:::
+Full details can be found in the comments on `bdr_locks.c`.
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   -------------------------------------------- ------------------------------------- ------------------------------------------------
-  [Prev](technotes-mesh.md){accesskey="P"}     [Home](index.md){accesskey="H"}     [Next](technotes-rewrites.md){accesskey="N"}
-  BDR network structure                         [Up](technotes.md){accesskey="U"}                               Full table rewrites
+  [Prev](technotes-mesh.md)     [Home](README.md)     [Next](technotes-rewrites.md)  
+  BDR network structure                         [Up](technotes.md)                               Full table rewrites
   -------------------------------------------- ------------------------------------- ------------------------------------------------
-:::

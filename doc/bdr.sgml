@@ -86,7 +86,7 @@
    <keyword>PostgreSQL</keyword>
    <keyword>replication</keyword>
    <keyword>asynchronous</keyword>
-   <keyword>multi-master</keyword>
+   <keyword>active-active</keyword>
    <keyword>high-availability</keyword>
    <keyword>scalability</keyword>
   </keywordset>

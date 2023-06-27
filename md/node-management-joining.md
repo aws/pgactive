@@ -1,23 +1,18 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  --------------------------------------------------------------- ------------------------------------------- ---------------------------- ----------------------------------------------------------------------------------
-  [Prev](node-management.md "Node Management"){accesskey="P"}   [Up](node-management.md){accesskey="U"}    Chapter 5. Node Management    [Next](node-management-removing.md "Parting (removing) a node"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [Prev](node-management.md "Node Management")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-removing.md "Parting (removing) a node")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [5.1. Joining a node]{#NODE-MANAGEMENT-JOINING} {#joining-a-node .SECT1}
+# 5.1. Joining a node
 
 When a new BDR node is joined to an existing BDR group, node is
 subscribed to an upstream peer, the system must copy the existing data
 from the peer node(s) to the local node before replication can begin.
 This copy has to be carefully co-ordinated so that the local and remote
-data starts out [*identical*]{.emphasis}, so it\'s not sufficient to
-just use [pg_dump]{.APPLICATION} yourself. The extension provides
+data starts out [*identical*], so it\'s not sufficient to
+just use [pg_dump] yourself. The extension provides
 built-in facilities for making this initial copy.
 
-Every BDR node must be [*online and reachable*]{.emphasis} when an
+Every BDR node must be [*online and reachable*] when an
 attempt to join a new node is made. Otherwise the join will hang
 indefinitely or fail. BDR is a mesh where every node must be able to
 communicate with every other node, and while it is tolerant of network
@@ -52,11 +47,11 @@ different PostgreSQL port if there is already a local PostgreSQL
 instance.
 
 The advantages and disadvantages of each approach roughly mirror those
-of a logical backup using [pg_dump]{.APPLICATION} and
-[pg_restore]{.APPLICATION} vs a physical copy using
-[pg_basebackup]{.APPLICATION}. See the [PostgreSQL documentation on
+of a logical backup using [pg_dump] and
+[pg_restore] vs a physical copy using
+[pg_basebackup]. See the [PostgreSQL documentation on
 backup and
-restore](http://www.postgresql.org/docs/current/static/backup.html){target="_top"}
+restore](http://www.postgresql.org/docs/current/static/backup.html)
 for more information.
 
 In general it\'s more convenient to use logical join when you have an
@@ -68,20 +63,17 @@ PostgreSQL install.
 For the details, see [Joining or creating a BDR
 node](node-management-joining.md#NODE-MANAGEMENT-JOINING-BDR).
 
-::: SECT2
-## [5.1.1. Joining or creating a BDR node]{#NODE-MANAGEMENT-JOINING-BDR} {#joining-or-creating-a-bdr-node .SECT2}
+## 5.1.1. Joining or creating a BDR node
 
-::: NOTE
 > **Note:** Read [Joining a node](node-management-joining.md) before
 > this section.
-:::
 
 For BDR every node has to have a connection to every other node. To make
 configuration easy, when a new node joins it automatically configures
 all existing nodes to connect to it. For this reason, every node,
 including the first BDR node created, must know the [PostgreSQL
 connection
-string](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING){target="_top"}
+string](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING)
 (sometimes referred to as a DSN, for \"data source name\") that other
 nodes can use to connect to it.
 
@@ -117,15 +109,10 @@ replication sets documentation for more information on this.
 
 See also: [Node management functions](functions-node-mgmt.md),
 [bdr_init_copy](command-bdr-init-copy.md).
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --------------------------------------------- ------------------------------------------- ------------------------------------------------------
-  [Prev](node-management.md){accesskey="P"}        [Home](index.md){accesskey="H"}        [Next](node-management-removing.md){accesskey="N"}
-  Node Management                                [Up](node-management.md){accesskey="U"}                               Parting (removing) a node
+  [Prev](node-management.md)        [Home](README.md)        [Next](node-management-removing.md)  
+  Node Management                                [Up](node-management.md)                               Parting (removing) a node
   --------------------------------------------- ------------------------------------------- ------------------------------------------------------
-:::

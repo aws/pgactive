@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * bdr_output_originfilter.c
- * 		pglogical plugin for multi-master replication
+ * 		pglogical plugin for Active-Active replication
  *
  * Copyright (c) 2017, PostgreSQL Global Development Group
  *

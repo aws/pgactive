@@ -1,32 +1,22 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
-  ----------------------------------------------------------------------------- -------------------------------------------- ------------------------------ -------------------------------------------------------------------------------
-  [Prev](global-sequence-voting.md "Global sequence voting"){accesskey="P"}   [Up](global-sequences.md){accesskey="U"}    Chapter 10. Global Sequences    [Next](global-sequences-bdr10.md "BDR 1.0 global sequences"){accesskey="N"}
+  [BDR 2.0.7 Documentation](README.md)                                                                                                                     
+  [Prev](global-sequence-voting.md "Global sequence voting")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-bdr10.md "BDR 1.0 global sequences")  
 
-------------------------------------------------------------------------
-:::
 
-::: SECT1
-# [10.7. Traditional approaches to sequences in distributed DBs]{#GLOBAL-SEQUENCES-ALTERNATIVES} {#traditional-approaches-to-sequences-in-distributed-dbs .SECT1}
+# 10.7. Traditional approaches to sequences in distributed DBs
 
 Global sequences provide a mostly-application-transparent alternative to
 using offset-step sequences or UUID/GUID keys, but they are not without
 downsides.
 
-BDR users may use any other multimaster-safe sequence/key generation
+BDR users may use any other Active-Active-safe sequence/key generation
 strategy. It is not necessary to use global sequences. The approaches
 described below will be superior for many applications\' needs, and more
 sophisticated approaches also exist.
 
-::: WARNING
-  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   **Warning**
-  Applications can [*not*]{.emphasis} safely use counter-table based approaches relying on `SELECT ... FOR UPDATE`{.LITERAL}, `UPDATE ... RETURNING ...`{.LITERAL} etc for sequence generation in BDR. Because BDR is asynchronous and doesn\'t take row locks between nodes, the same values will be generated on more than one node. For the same reason the usual strategies for \"gapless\" sequence generation do not work with BDR. In most cases the application should coordinate generation of sequences that must be gapless from some external source using two-phase commit, or it should only generate them on one node in the BDR group.
-  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-:::
+  Applications can [*not*] safely use counter-table based approaches relying on `SELECT ... FOR UPDATE`, `UPDATE ... RETURNING ...` etc for sequence generation in BDR. Because BDR is asynchronous and doesn\'t take row locks between nodes, the same values will be generated on more than one node. For the same reason the usual strategies for \"gapless\" sequence generation do not work with BDR. In most cases the application should coordinate generation of sequences that must be gapless from some external source using two-phase commit, or it should only generate them on one node in the BDR group.
 
-::: SECT2
-## [10.7.1. Step/offset sequences]{#GLOBAL-SEQUENCES-ALTERNATIVE-STEPOFFSET} {#stepoffset-sequences .SECT2}
+## 10.7.1. Step/offset sequences
 
 In offset-step sequences a normal PostgreSQL sequence is used on each
 node. Each sequence increments by the same amount and starts at
@@ -48,10 +38,10 @@ the desired sequence on one node like
       CREATE SEQUENCE some_seq INCREMENT 1000 OWNED BY some_table.generated_value;
 
       ALTER TABLE some_table ALTER COLUMN generated_value SET DEFAULT nextval('some_seq');
-
+    
 ```
 
-\... then on each node calling `setval`{.FUNCTION} to give each node a
+\... then on each node calling `setval` to give each node a
 different offset starting value, e.g.
 
 ``` PROGRAMLISTING
@@ -62,15 +52,15 @@ different offset starting value, e.g.
       SELECT setval('some_seq', 2);
 
       -- ... etc
-
+  
 ```
 
-You should be sure to allow a large enough `INCREMENT`{.LITERAL} to
+You should be sure to allow a large enough `INCREMENT` to
 leave room for all the nodes you may ever want to add since changing it
 in future is difficult and disruptive.
 
-On BDR-Postgres 9.4, create the sequence with `USING local`{.LITERAL} to
-make sure there\'s no conflict with any `default_sequenceam`{.LITERAL}
+On BDR-Postgres 9.4, create the sequence with `USING local` to
+make sure there\'s no conflict with any `default_sequenceam`
 setting.
 
 If you use bigint values there is no practial concern about key
@@ -80,22 +70,18 @@ per second to have any chance of approaching exhaustion.
 
 BDR does not currently offer any automation for configuration of the
 per-node offsets on such step/offset sequences.
-:::
 
-::: SECT2
-## [10.7.2. Composite keys]{#GLOBAL-SEQUENCES-ALTERNATIVE-COMPOSITE} {#composite-keys .SECT2}
+## 10.7.2. Composite keys
 
 A variant on step/offset sequences is to use a composite key composed of
-`PRIMARY KEY (node_number, generated_value)`{.LITERAL} where the node
+`PRIMARY KEY (node_number, generated_value)` where the node
 number is usually obtained from a function that returns a different
 number on each node. Such a function may be created by temporarily
 disabling DDL replication and creating a constant SQL function, or by
 using a one-row table that isn\'t part of a replication set to store a
 different value in each node.
-:::
 
-::: SECT2
-## [10.7.3. UUIDs]{#GLOBAL-SEQUENCES-ALTERNATIVE-UUID} {#uuids .SECT2}
+## 10.7.3. UUIDs
 
 UUID keys instead eschew sequences entirely and use 128-bit universal
 unique identifiers. These are large random or pseudorandom values that
@@ -106,34 +92,29 @@ communication when using UUID keys.
 In the incredibly unlikely event of a collision, conflict detection will
 choose the newer of the two inserted records to retain. Conflict
 logging, if enabled, will record such an event, but it is
-[*exceptionally*]{.emphasis} unlikely to ever occur, since collisions
+[*exceptionally*] unlikely to ever occur, since collisions
 only become practically likely after about 2\^64 keys have been
 generated.
 
 The main downside of UUID keys is that they\'re somewhat space- and
 network-inefficient, consuming more space not only as a primary key, but
 also where referenced in foreign keys and when transmitted on the wire.
-Additionally, not all applications cope well with [UUID]{.APPLICATION}
+Additionally, not all applications cope well with [UUID]
 keys.
 
-PostgreSQL has a built-in `uuid`{.LITERAL} data type and the
-`uuid-ossp`{.LITERAL} extension will generate UUIDs, e.g.
+PostgreSQL has a built-in `uuid` data type and the
+`uuid-ossp` extension will generate UUIDs, e.g.
 
 ``` PROGRAMLISTING
      CREATE EXTENSION "uuid-ossp";
 
      SELECT uuid_generate_v4();
-
+    
 ```
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ---------------------------------------------------- -------------------------------------------- ----------------------------------------------------
-  [Prev](global-sequence-voting.md){accesskey="P"}        [Home](index.md){accesskey="H"}         [Next](global-sequences-bdr10.md){accesskey="N"}
-  Global sequence voting                                [Up](global-sequences.md){accesskey="U"}                              BDR 1.0 global sequences
+  [Prev](global-sequence-voting.md)        [Home](README.md)         [Next](global-sequences-bdr10.md)  
+  Global sequence voting                                [Up](global-sequences.md)                              BDR 1.0 global sequences
   ---------------------------------------------------- -------------------------------------------- ----------------------------------------------------
-:::

@@ -278,6 +278,27 @@
 
  </sect1>
 
+ <sect1 id="node-management-rejoining" xreflabel="Rejoining a parted/removed BDR node">
+  <title>Rejoining a BDR node</>
+
+  <para>
+   It's possible to rejoin a BDR node that has already been parted and locally
+   removed by using the <xref linkend="function-bdr-group-join"> function.
+  </para>
+
+  <para>
+   If the node to rejoin does contain relations that already exist in the other
+   BDR group members then the rejoin would fail.
+  </para>
+   
+  <para>
+    Use cases examples to rejoin: one does want to rejoin the same database
+    without having to re-create the whole instance. A node was down, associated
+    replication slots removed on the non parted node(s).
+  </para>
+
+ </sect1>
+
  <sect1 id="node-management-synchronous" xreflabel="n-safe synchronous replication">
   <title>n-safe synchronous replication</>
 

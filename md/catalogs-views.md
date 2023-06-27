@@ -1,15 +1,10 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                     
   ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------
-  [Prev](functions-upgrade.md "Upgrade functions"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](catalog-bdr-nodes.md "bdr.bdr_nodes"){accesskey="N"}
+  [Prev](functions-upgrade.md "Upgrade functions")   [Up](manual.md)        [Next](catalog-bdr-nodes.md "bdr.bdr_nodes")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#CATALOGS-VIEWS}Chapter 13. Catalogs and Views
+# Chapter 13. Catalogs and Views
 
-::: TOC
 **Table of Contents**
 
 13.1. [bdr.bdr_nodes](catalog-bdr-nodes.md)
@@ -40,15 +35,10 @@
 13.13. [bdr.bdr_sequence_elections](catalog-bdr-sequence-elections.md)
 
 13.14. [bdr.bdr_votes](catalog-bdr-votes.md)
-:::
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   ----------------------------------------------- ----------------------------------- -----------------------------------------------
-  [Prev](functions-upgrade.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](catalog-bdr-nodes.md){accesskey="N"}
-  Upgrade functions                                [Up](manual.md){accesskey="U"}                                     bdr.bdr_nodes
+  [Prev](functions-upgrade.md)    [Home](README.md)    [Next](catalog-bdr-nodes.md)  
+  Upgrade functions                                [Up](manual.md)                                     bdr.bdr_nodes
   ----------------------------------------------- ----------------------------------- -----------------------------------------------
-:::

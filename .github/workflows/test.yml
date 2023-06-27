@@ -4,8 +4,13 @@ on:
     # Runs every day at 5am.
     - cron: '0 5 * * *'
   push:
+    paths-ignore:
+      - 'doc/**'
+      - 'md/**'
   pull_request:
-
+    paths-ignore:
+      - 'doc/**'
+      - 'md/**'
 jobs:
   test:
     defaults:

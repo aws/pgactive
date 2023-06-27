@@ -1,15 +1,10 @@
-::: NAVHEADER
-  [BDR 2.0.7 Documentation](index.md)
+  [BDR 2.0.7 Documentation](README.md)                                                                     
   ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------------
-  [Prev](command-bdr-init-copy.md "bdr_init_copy"){accesskey="P"}   [Up](manual.md){accesskey="U"}        [Next](monitoring-why.md "Why monitoring matters"){accesskey="N"}
+  [Prev](command-bdr-init-copy.md "bdr_init_copy")   [Up](manual.md)        [Next](monitoring-why.md "Why monitoring matters")  
 
-------------------------------------------------------------------------
-:::
 
-::: CHAPTER
-# []{#MONITORING}Chapter 7. Monitoring
+# Chapter 7. Monitoring
 
-::: TOC
 **Table of Contents**
 
 7.1. [Why monitoring matters](monitoring-why.md)
@@ -32,19 +27,14 @@ workers](monitoring-peers.md#MONITORING-WORKERS)
 7.5. [Monitoring conflicts](monitoring-conflict-stats.md)
 
 7.6. [PostgreSQL statistics views](monitoring-postgres-stats.md)
-:::
 
 Monitoring replication setups is important to ensure that your system
 performs optimally and doesn\'t run out of disk space or encounter other
 faults that may halt operations.
-:::
 
-::: NAVFOOTER
 
-------------------------------------------------------------------------
 
   --------------------------------------------------- ----------------------------------- --------------------------------------------
-  [Prev](command-bdr-init-copy.md){accesskey="P"}    [Home](index.md){accesskey="H"}    [Next](monitoring-why.md){accesskey="N"}
-  bdr_init_copy                                        [Up](manual.md){accesskey="U"}                         Why monitoring matters
+  [Prev](command-bdr-init-copy.md)    [Home](README.md)    [Next](monitoring-why.md)  
+  bdr_init_copy                                        [Up](manual.md)                         Why monitoring matters
   --------------------------------------------------- ----------------------------------- --------------------------------------------
-:::
