@@ -292,9 +292,9 @@
   </para>
    
   <para>
-    Use cases examples to rejoin: one does want to rejoin the same database
-    without having to re-create the whole instance. A node was down, associated
-    replication slots removed on the non parted node(s).
+    Typically, one wants to rejoin the same node to the same BDR group 1) To
+    avoid re-creating the whole database instance, 2) Associated replication
+    slots are dropped on the upstream node when the node goes down.
   </para>
 
  </sect1>

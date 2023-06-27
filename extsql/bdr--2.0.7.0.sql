@@ -2169,29 +2169,42 @@ LANGUAGE C;
 COMMENT ON FUNCTION wait_slot_confirm_lsn(name,pg_lsn) IS
 'Wait until slotname (or all slots, if null) has passed specified lsn (or current lsn, if null)';
 
-CREATE OR REPLACE FUNCTION bdr_dont_insert_or_delete_killed()
+CREATE OR REPLACE FUNCTION bdr_handle_rejoin()
   RETURNS trigger AS
 $$
 BEGIN
+-- Don't insert any rows on the re-joining node with a 'k' status.
+-- That way, duplicated keys on the primary key or node_name are avoided.
  IF NEW.node_status = 'k' THEN
 	RETURN NULL;
 
+-- Adding a new node (could be the re-joining node)
  ELSIF NEW.node_status = 'i' THEN
+-- We must ensure the delete done below on the other nodes matches the primary
+-- key on the re-joining node (so update the primary key accordingly).
+-- That way the delete can be propagated safely on the re-joining node.
+	UPDATE bdr.bdr_nodes SET node_sysid = NEW.node_sysid
+		WHERE node_status = 'k'
+		AND node_timeline = NEW.node_timeline
+		AND node_dboid = NEW.node_dboid
+		AND node_name = NEW.node_name;
+-- Delete the existing entry related to the re-joining node, so that it can be
+-- re-inserted with the right status.
 	DELETE FROM bdr.bdr_nodes
 	WHERE node_status = 'k'
-		  and node_sysid = NEW.node_sysid
-		  and node_timeline = NEW.node_timeline
-		  and node_dboid = NEW.node_dboid;
+		  AND node_sysid = NEW.node_sysid
+		  AND node_timeline = NEW.node_timeline
+		  AND node_dboid = NEW.node_dboid;
  END IF;
  RETURN NEW;
 END;$$
 LANGUAGE 'plpgsql';
 
-CREATE TRIGGER bdr_dont_insert_or_delete_killed_trigg
+CREATE TRIGGER bdr_handle_rejoin_trigg
 BEFORE INSERT
 ON bdr.bdr_nodes
 FOR EACH ROW
-EXECUTE PROCEDURE bdr_dont_insert_or_delete_killed();
+EXECUTE PROCEDURE bdr_handle_rejoin();
 
 CREATE FUNCTION bdr_generate_node_identifier()
 RETURNS numeric
