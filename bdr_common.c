@@ -16,6 +16,7 @@
 #include "postgres.h"
 
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "access/xlogdefs.h"
@@ -312,4 +313,23 @@ bdr_find_other_exec(const char *argv0, const char *target,
 	*version = pre_dot * 10000;
 
 	return 0;
+}
+
+/*
+ * Create a new unique node identifier.
+ *
+ * See notes in xlog.c about the algorithm.
+ */
+uint64
+GenerateNodeIdentifier(void)
+{
+	uint64		nid;
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	nid = ((uint64) tv.tv_sec) << 32;
+	nid |= ((uint64) tv.tv_usec) << 12;
+	nid |= getpid() & 0xFFF;
+
+	return nid;
 }

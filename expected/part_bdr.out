@@ -164,6 +164,7 @@ WARNING:  forcing deletion of possibly active BDR node
 NOTICE:  node forced to parted state, now removing
 NOTICE:  removing BDR from node
 INFO:  BDR 1.0 global sequences not supported, nothing to convert
+NOTICE:  cannot remove BDR control file as BDR is still active on this node for database "postgres"
 NOTICE:  BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.
  remove_bdr_from_local_node 
 ----------------------------

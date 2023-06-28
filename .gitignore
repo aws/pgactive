@@ -29,7 +29,6 @@ lib*.pc
 # bdr specific
 /bdr_init_copy
 /bdr_dump
-/bdr_resetwal
 /bdr_version.h
 /log/
 /results/
