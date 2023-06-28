@@ -783,13 +783,26 @@ extern void bdr_getmsg_nodeid(StringInfo message, BDRNodeId * const nodeid, bool
 extern void bdr_send_nodeid(StringInfo s, const BDRNodeId * const nodeid, bool include_empty_nodename);
 extern void bdr_sendint64(int64 i, char *buf);
 
+/*
+ * Postgres commit 9e98583898c3/a19e5cee635d introduced this function in
+ * version 15.
+ */
 #if PG_VERSION_NUM < 150000
-/* 9e98583898c3/a19e5cee635d introduced in PG15 */
 /* flag bits for InitMaterializedSRF() */
 #define MAT_SRF_USE_EXPECTED_DESC	0x01	/* use expectedDesc as tupdesc. */
 #define MAT_SRF_BLESS				0x02	/* "Bless" a tuple descriptor with
 											 * BlessTupleDesc(). */
 extern void InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags);
+#endif
+
+/* Postgres commit 6f6f284c7ee4 introduced this macro in version 14. */
+#if PG_VERSION_NUM < 140000
+/*
+ * Handy macro for printing XLogRecPtr in conventional format, e.g.,
+ *
+ * printf("%X/%X", LSN_FORMAT_ARGS(lsn));
+ */
+#define LSN_FORMAT_ARGS(lsn) (AssertVariableIsOfTypeMacro((lsn), XLogRecPtr), (uint32) ((lsn) >> 32)), ((uint32) (lsn))
 #endif
 
 extern bool bdr_control_file_exists(void);

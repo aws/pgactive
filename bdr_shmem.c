@@ -276,11 +276,8 @@ bdr_worker_shmem_free(BdrWorker * worker, BackgroundWorkerHandle *handle)
 
 			status = GetBackgroundWorkerPid(handle, &pid);
 			if (status == BGWH_STARTED)
-			{
-				LWLockRelease(BdrWorkerCtl->lock);
 				elog(ERROR, "BUG: Attempt to release shm segment for bdr worker type=%d pid=%d that's still alive",
 					 worker->worker_type, pid);
-			}
 		}
 
 		/* Mark it as free */

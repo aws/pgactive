@@ -111,7 +111,7 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 										&isnull));
 
 	if (isnull)
-		elog(ERROR, "bdr.bdr_nodes.status NULL; shouldn't happen");
+		elog(ERROR, "node_status in bdr.bdr_nodes table cannot be null");
 
 	return (BdrNodeStatus) status;
 }
@@ -167,7 +167,7 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 		bdr_nodeid_cpy(&nodeinfo->id, node);
 		nodeinfo->status = (BdrNodeStatus) DatumGetChar(fastgetattr(tuple, 4, desc, &isnull));
 		if (isnull)
-			elog(ERROR, "bdr.bdr_nodes.status NULL; shouldn't happen");
+			elog(ERROR, "node_status in bdr.bdr_nodes table cannot be null");
 
 		tmp = fastgetattr(tuple, 5, desc, &isnull);
 		if (isnull)

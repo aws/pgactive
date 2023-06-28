@@ -293,7 +293,7 @@ bdr_get_remote_dboid(const char *conninfo_db)
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
-		elog(FATAL, "could not identify system: got %d rows and %d fields, expected %d rows and %d fields\n",
+		elog(FATAL, "could not identify system: got %d rows and %d columns, expected %d row and %d column",
 			 PQntuples(res), PQnfields(res), 1, 1);
 	}
 
@@ -495,7 +495,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 		 * on
 		 */
 
-		elog(FATAL, "could not send replication command \"%s\": status %s: %s\n",
+		elog(FATAL, "could not send replication command \"%s\": status %s: %s",
 			 query.data,
 			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	}
@@ -1800,8 +1800,8 @@ bdr_is_active_in_db(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(bdr_is_bdr_activated_db(MyDatabaseId));
 }
 
+/* Postgres commit b1e48bbe64a4 introduced this function in version 14. */
 #if PG_VERSION_NUM < 140000
-/* b1e48bbe64a4 introduced in PG14 */
 PG_FUNCTION_INFO_V1(pg_xact_commit_timestamp_origin);
 
 Datum
@@ -1817,8 +1817,11 @@ pg_xact_commit_timestamp_origin(PG_FUNCTION_ARGS)
 }
 #endif
 
+/*
+ * Postgres commit 9e98583898c3/a19e5cee635d introduced this function in
+ * version 15.
+ */
 #if PG_VERSION_NUM < 150000
-/* 9e98583898c3/a19e5cee635d introduced in PG15 */
 void
 InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
 {
@@ -2039,7 +2042,6 @@ bdr_get_node_identifier_internal(void)
 		fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1 ||
 		fscanf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", &nid) != 1)
 	{
-		FreeFile(fp);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read from file \"%s\": %m", path)));
@@ -2049,7 +2051,6 @@ bdr_get_node_identifier_internal(void)
 		pg_version != PG_VERSION_NUM ||
 		bdr_version != BDR_VERSION_NUM)
 	{
-		FreeFile(fp);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("invalid data found in file \"%s\": %m", path)));

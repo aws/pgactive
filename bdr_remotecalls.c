@@ -66,13 +66,10 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 	StringInfoData dsn;
 
 	initStringInfo(&dsn);
-	appendStringInfoString(&dsn, bdr_default_apply_connection_options);
-	appendStringInfoChar(&dsn, ' ');
-	appendStringInfoString(&dsn, bdr_extra_apply_connection_options);
-	appendStringInfoChar(&dsn, ' ');
-	appendStringInfoString(&dsn, connstring);
-	appendStringInfo(&dsn,
-					 " application_name='%s:%s'",
+	appendStringInfo(&dsn, "%s %s %s application_name='%s:%s'",
+					 bdr_default_apply_connection_options,
+					 bdr_extra_apply_connection_options,
+					 connstring,
 					 bdr_get_my_cached_node_name(), appnamesuffix);
 
 	/*

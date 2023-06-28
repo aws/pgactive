@@ -74,7 +74,7 @@ bdr_get_remote_lsn(PGconn *conn)
 	res = PQexec(conn, "SELECT pg_current_wal_insert_lsn()");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		elog(ERROR, "unable to get remote LSN: status %s: %s\n",
+		elog(ERROR, "unable to get remote LSN: status %s: %s",
 			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	}
 	Assert(PQntuples(res) == 1);
@@ -99,7 +99,7 @@ bdr_get_remote_ext_version(PGconn *pgconn, char **default_version,
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		elog(ERROR, "unable to get remote bdr extension version; query %s failed with %s: %s\n",
+		elog(ERROR, "unable to get remote bdr extension version; query %s failed with %s: %s",
 			 q_bdr_installed, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	}
 
@@ -733,7 +733,7 @@ bdr_ddl_lock_remote(PGconn *conn, BDRLockType mode)
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to acquire global DDL lock on remote peer: %s\n",
+		elog(ERROR, "failed to acquire global DDL lock on remote peer: %s",
 			 PQerrorMessage(conn));
 	}
 
@@ -766,7 +766,7 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to start tx on remote peer: %s\n", PQerrorMessage(conn));
+		elog(ERROR, "failed to start tx on remote peer: %s", PQerrorMessage(conn));
 	}
 
 	bdr_ddl_lock_remote(conn, BDR_LOCK_DDL);
@@ -809,7 +809,7 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: %s\n",
+		elog(ERROR, "failed to update my bdr.bdr_nodes entry on remote server: %s",
 			 PQerrorMessage(conn));
 	}
 
@@ -837,7 +837,7 @@ bdr_nodes_set_remote_status_ready(PGconn *conn)
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "failed to start tx on remote peer: %s\n",
+		elog(ERROR, "failed to start tx on remote peer: %s",
 			 PQerrorMessage(conn));
 	}
 }

@@ -2837,10 +2837,7 @@ bdr_apply_main(Datum main_arg)
 	 */
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	if (BdrWorkerCtl->worker_management_paused)
-	{
-		LWLockRelease(BdrWorkerCtl->lock);
 		elog(ERROR, "BDR worker management is currently paused, apply worker exiting, retry later");
-	}
 	bdr_apply_worker->proclatch = &MyProc->procLatch;
 	LWLockRelease(BdrWorkerCtl->lock);
 
@@ -2926,28 +2923,25 @@ bdr_apply_main(Datum main_arg)
 		 replication_identifier, LSN_FORMAT_ARGS(start_from));
 
 	resetStringInfo(&query);
-	appendStringInfo(&query, "START_REPLICATION SLOT \"%s\" LOGICAL %X/%X (",
-					 NameStr(slot_name), LSN_FORMAT_ARGS(start_from));
-	appendStringInfo(&query, "pg_version '%u'", PG_VERSION_NUM);
-	appendStringInfo(&query, ", pg_catversion '%u'", CATALOG_VERSION_NO);
-	appendStringInfo(&query, ", bdr_version '%u'", BDR_VERSION_NUM);
-	appendStringInfo(&query, ", bdr_variant '%s'", BDR_VARIANT);
-	appendStringInfo(&query, ", min_bdr_version '%u'", BDR_MIN_REMOTE_VERSION_NUM);
-	appendStringInfo(&query, ", sizeof_int '%zu'", sizeof(int));
-	appendStringInfo(&query, ", sizeof_long '%zu'", sizeof(long));
-	appendStringInfo(&query, ", sizeof_datum '%zu'", sizeof(Datum));
-	appendStringInfo(&query, ", maxalign '%d'", MAXIMUM_ALIGNOF);
-	appendStringInfo(&query, ", float4_byval '%d'", bdr_get_float4byval());
-	appendStringInfo(&query, ", float8_byval '%d'", bdr_get_float8byval());
-	appendStringInfo(&query, ", integer_datetimes '%d'", bdr_get_integer_timestamps());
-	appendStringInfo(&query, ", bigendian '%d'", bdr_get_bigendian());
-	appendStringInfo(&query, ", db_encoding '%s'", GetDatabaseEncodingName());
+	appendStringInfo(&query, "START_REPLICATION SLOT \"%s\" LOGICAL %X/%X ("
+					 "pg_version '%u', pg_catversion '%u', bdr_version '%u',"
+					 "bdr_variant '%s', min_bdr_version '%u', sizeof_int '%zu',"
+					 "sizeof_long '%zu', sizeof_datum '%zu', maxalign '%d',"
+					 "float4_byval '%d', float8_byval '%d', integer_datetimes '%d',"
+					 "bigendian '%d', db_encoding '%s'",
+					 NameStr(slot_name), LSN_FORMAT_ARGS(start_from),
+					 PG_VERSION_NUM, CATALOG_VERSION_NO, BDR_VERSION_NUM,
+					 BDR_VARIANT, BDR_MIN_REMOTE_VERSION_NUM, sizeof(int),
+					 sizeof(long), sizeof(Datum), MAXIMUM_ALIGNOF,
+					 bdr_get_float4byval(), bdr_get_float8byval(),
+					 bdr_get_integer_timestamps(), bdr_get_bigendian(),
+					 GetDatabaseEncodingName());
+
 	if (bdr_apply_config->replication_sets != NULL &&
 		bdr_apply_config->replication_sets[0] != 0)
 		appendStringInfo(&query, ", replication_sets '%s'",
 						 bdr_apply_config->replication_sets);
 
-	appendStringInfo(&query, ", db_encoding '%s'", GetDatabaseEncodingName());
 	if (bdr_apply_worker->forward_changesets)
 		appendStringInfo(&query, ", forward_changesets 't'");
 

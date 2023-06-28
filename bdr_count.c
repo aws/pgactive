@@ -386,30 +386,18 @@ bdr_count_serialize(void)
 	/* write header */
 	write_size = sizeof(serial);
 	if ((write(fd, &serial, write_size)) != write_size)
-	{
-		int			save_errno = errno;
-
-		CloseTransientFile(fd);
-		errno = save_errno;
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not write bdr stat file data \"%s\": %m",
 						tpath)));
-	}
 
 	/* write data */
 	write_size = sizeof(BdrCountSlot) * bdr_count_nnodes;
 	if ((write(fd, &BdrCountCtl->slots, write_size)) != write_size)
-	{
-		int			save_errno = errno;
-
-		CloseTransientFile(fd);
-		errno = save_errno;
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not write bdr stat file data \"%s\": %m",
 						tpath)));
-	}
 
 	CloseTransientFile(fd);
 
@@ -444,34 +432,20 @@ bdr_count_unserialize(void)
 		goto out;
 
 	if (fd < 0)
-	{
-		LWLockRelease(BdrCountCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open bdr stat file \"%s\": %m", path)));
-	}
 
 	read_size = sizeof(serial);
 	if (read(fd, &serial, read_size) != read_size)
-	{
-		int			saved_errno = errno;
-
-		LWLockRelease(BdrCountCtl->lock);
-		CloseTransientFile(fd);
-		errno = saved_errno;
 		ereport(PANIC,
 				(errcode_for_file_access(),
 				 errmsg("could not read bdr stat file data \"%s\": %m",
 						path)));
-	}
 
 	if (serial.magic != bdr_count_magic)
-	{
-		LWLockRelease(BdrCountCtl->lock);
-		CloseTransientFile(fd);
 		elog(ERROR, "expected magic %u doesn't match read magic %u",
 			 bdr_count_magic, serial.magic);
-	}
 
 	if (serial.version != bdr_count_version)
 	{
@@ -489,16 +463,10 @@ bdr_count_unserialize(void)
 	/* read actual data, directly into shmem */
 	read_size = sizeof(BdrCountSlot) * serial.nr_slots;
 	if (read(fd, &BdrCountCtl->slots, read_size) != read_size)
-	{
-		int			saved_errno = errno;
-
-		CloseTransientFile(fd);
-		errno = saved_errno;
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read bdr stat file data \"%s\": %m",
 						path)));
-	}
 
 out:
 	if (fd >= 0)
