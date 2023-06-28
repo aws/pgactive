@@ -15,6 +15,7 @@
 #include "postgres.h"
 
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "bdr.h"
 #include "bdr_locks.h"
