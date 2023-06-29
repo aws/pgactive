@@ -67,11 +67,12 @@ string of the node to initialize from, i.e. the other node\'s
 *`node_external_dsn`*. Any node may be chosen as the join
 target, but if possible a node with a fast and reliable network link to
 the new node should be preferred. Note that
-`bdr.bdr_group_join()` can [*not*] \"re-join\" a
-node you removed with `bdr.bdr_part_by_node_names()`. See
-[Joining a node](node-management-joining.md) for details on node
-joining and creation, and [Replication Sets](replication-sets.md) for
-more on how replication sets work.
+`bdr.bdr_group_join()` can [*not*] \"re-join\"
+physically a node you removed with
+`bdr.bdr_part_by_node_names()`. See [Joining a
+node](node-management-joining.md) for details on node joining and
+creation, and [Replication Sets](replication-sets.md) for more on how
+replication sets work.
 
 
 `bdr.bdr_part_by_node_names(`*`p_nodes text[]`*`)`
@@ -116,6 +117,40 @@ is configured, whether or not there are active connections or any peer
 nodes added yet. Also true on a parted node until/unless
 [bdr.remove_bdr_from_local_node](functions-node-mgmt.md#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE)
 is called.
+
+`bdr.bdr_generate_node_identifier()`
+
+numeric
+
+Generate a BDR node identifier, write it to BDR control file, and return
+the generated id. This node identifier is used by BDR to uniquely
+identify and track BDR-enabled databases on this node via
+`bdr.bdr_nodes` table. Typically, this is not supposed to be
+used by users direclty, BDR uses it internally while creating a new BDR
+group or joining a node to existing BDR group. Use of this function is
+restricted to superusers by default, but access may be granted to others
+using `GRANT`.
+
+`bdr.bdr_get_node_identifier()`
+
+numeric
+
+Get BDR node identifier from BDR control file. Use of this function is
+restricted to superusers by default, but access may be granted to others
+using `GRANT`.
+
+`bdr.bdr_remove_node_identifier()`
+
+boolean
+
+Remove BDR node identifier from BDR control file. Actually, it removes
+BDR control file itself, because the BDR control file currently holds
+only BDR node identifier. It doesn\'t remove the BDR control file if BDR
+is active on any of the database on this node. Return true if
+successfully removed, otherwise false. Typically, this is not supposed
+to be used by users direclty, BDR uses it internally while removing BDR
+from local node. Use of this function is restricted to superusers by
+default, but access may be granted to others using `GRANT`.
 
 `bdr.bdr_apply_pause()`
 

@@ -1,6 +1,6 @@
   [BDR 2.0.7 Documentation](README.md)                                                               
   ------------------------------------------------------------ ----------------------------------- -- -----------------------------------------------------------
-  [Prev](x4496.md "Upgrading 0.8.x to 1.0")   [Home](README.md)        [Next](release-2.0.5.md "Release 2.0.5")  
+  [Prev](x4541.md "Upgrading 0.8.x to 1.0")   [Home](README.md)        [Next](release-2.0.5.md "Release 2.0.5")  
 
 
 # Appendix A. Release notes
@@ -47,6 +47,6 @@ See also: [Upgrading BDR](upgrade.md).
 
 
   ----------------------------------- ----------------------------------- -------------------------------------------
-  [Prev](x4496.md)    [Home](README.md)    [Next](release-2.0.5.md)  
+  [Prev](x4541.md)    [Home](README.md)    [Next](release-2.0.5.md)  
   Upgrading 0.8.x to 1.0                                                                                Release 2.0.5
   ----------------------------------- ----------------------------------- -------------------------------------------
