@@ -1055,7 +1055,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 
 		Assert(bdr_my_locks_database->lock_state > BDR_LOCKSTATE_NOLOCK);
 
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(bdr_locks_ctl->lock);
 		ereport(ERROR,
 				(errcode(ERRCODE_LOCK_NOT_AVAILABLE),
 				 errmsg("database is locked against ddl by another node"),
@@ -1149,7 +1149,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		if (bdr_my_locks_database->acquire_declined > 0)
 		{
 			elog(ddl_lock_log_level(DDL_LOCK_TRACE_ACQUIRE_RELEASE), LOCKTRACE "acquire declined by another node");
-			LWLockRelease(BdrWorkerCtl->lock);
+			LWLockRelease(bdr_locks_ctl->lock);
 			ereport(ERROR,
 					(errcode(ERRCODE_LOCK_NOT_AVAILABLE),
 					 errmsg("could not acquire global lock - another node has declined our lock request"),
