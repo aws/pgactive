@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                                       
-  [Prev](node-management-removing.md "Parting (removing) a node")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-synchronous.md "n-safe synchronous replication")  
+  [Prev](node-management-removing.md "Parting (removing) a node")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-rejoining.md "Rejoining a BDR node")  
 
 
 # 5.3. Completely removing BDR
@@ -59,7 +59,7 @@ the node first.
 
 
 
-  ------------------------------------------------------ ------------------------------------------- ---------------------------------------------------------
-  [Prev](node-management-removing.md)        [Home](README.md)        [Next](node-management-synchronous.md)  
-  Parting (removing) a node                               [Up](node-management.md)                             n-safe synchronous replication
-  ------------------------------------------------------ ------------------------------------------- ---------------------------------------------------------
+  ------------------------------------------------------ ------------------------------------------- -------------------------------------------------------
+  [Prev](node-management-removing.md)        [Home](README.md)        [Next](node-management-rejoining.md)  
+  Parting (removing) a node                               [Up](node-management.md)                                     Rejoining a BDR node
+  ------------------------------------------------------ ------------------------------------------- -------------------------------------------------------

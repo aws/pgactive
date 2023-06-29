@@ -18,10 +18,10 @@ DDL](ddl-replication-advice.md#DDL-REPLICATION-SAFETY)
 concerns](ddl-replication-statements.md)
 
 8.2.1. [Statements with weaker DDL
-locking](ddl-replication-statements.md#AEN1489)
+locking](ddl-replication-statements.md#AEN1506)
 
 8.2.2. [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 8.2.3. [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)

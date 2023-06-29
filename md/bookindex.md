@@ -5,25 +5,25 @@
 
 # Index
 
-[A](bookindex.md#AEN5129) \| [B](bookindex.md#AEN5173) \|
-[C](bookindex.md#AEN5319) \| [D](bookindex.md#AEN5411) \|
-[F](bookindex.md#AEN5452) \| [G](bookindex.md#AEN5457) \|
-[L](bookindex.md#AEN5463) \| [M](bookindex.md#AEN5474) \|
-[N](bookindex.md#AEN5489) \| [P](bookindex.md#AEN5494) \|
-[R](bookindex.md#AEN5502) \| [S](bookindex.md#AEN5513) \|
-[T](bookindex.md#AEN5527) \| [U](bookindex.md#AEN5532) \|
-[W](bookindex.md#AEN5537)
+[A](bookindex.md#AEN5174) \| [B](bookindex.md#AEN5218) \|
+[C](bookindex.md#AEN5376) \| [D](bookindex.md#AEN5468) \|
+[F](bookindex.md#AEN5509) \| [G](bookindex.md#AEN5514) \|
+[L](bookindex.md#AEN5520) \| [M](bookindex.md#AEN5531) \|
+[N](bookindex.md#AEN5546) \| [P](bookindex.md#AEN5551) \|
+[R](bookindex.md#AEN5559) \| [S](bookindex.md#AEN5570) \|
+[T](bookindex.md#AEN5584) \| [U](bookindex.md#AEN5589) \|
+[W](bookindex.md#AEN5594)
 
-## [A]{#AEN5129}
+## [A]{#AEN5174}
 
 ALTER DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 ALTER FOREIGN DATA WRAPPER, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 ALTER INDEX, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -32,7 +32,7 @@ ALTER OPERATOR FAMILY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 ALTER SEQUENCE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
@@ -44,7 +44,7 @@ ALTER TABLE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
 
 ALTER TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 ALTER TEXT SEARCH CONFIGURATION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -53,12 +53,12 @@ ALTER TEXT SEARCH DICTIONARY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ALTER USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 ALTER USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
-## [B]{#AEN5173}
+## [B]{#AEN5218}
 
 bdr.acquire_global_lock, [Node management
 functions](functions-node-mgmt.md)
@@ -78,11 +78,17 @@ functions](functions-conflict-handlers.md)
 bdr.bdr_drop_conflict_handler, [Conflict handler management
 functions](functions-conflict-handlers.md)
 
+bdr.bdr_generate_node_identifier(), [Node management
+functions](functions-node-mgmt.md)
+
 bdr.bdr_get_local_nodeid, [Information
 functions](functions-information.md)
 
 bdr.bdr_get_local_node_name, [Information
 functions](functions-information.md)
+
+bdr.bdr_get_node_identifier(), [Node management
+functions](functions-node-mgmt.md)
 
 bdr.bdr_get_remote_nodeinfo, [Information
 functions](functions-information.md)
@@ -109,6 +115,9 @@ bdr.bdr_node_set_read_only, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_part_by_node_names, [Node management
+functions](functions-node-mgmt.md)
+
+bdr.bdr_remove_node_identifier(), [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_replicate_ddl_command, [Node management
@@ -159,6 +168,10 @@ bdr.extra_apply_connection_options configuration parameter, [Less common
 or internal configuration
 variables](bdr-configuration-variables.md#AEN783)
 
+bdr.init_node_parallel_jobs configuration parameter, [Less common or
+internal configuration
+variables](bdr-configuration-variables.md#AEN783)
+
 bdr.log_conflicts_to_table configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
@@ -206,7 +219,7 @@ configuration variables](bdr-configuration-variables.md#AEN783)
 bdr.wait_slot_confirm_lsn, [Node management
 functions](functions-node-mgmt.md)
 
-## [C]{#AEN5319}
+## [C]{#AEN5376}
 
 Catalogs
 
@@ -234,19 +247,19 @@ CREATE CONVERSION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE FOREIGN DATA WRAPPER, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE INDEX, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
 
 CREATE INDEX CONCURRENTLY, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE LANGUAGE, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -261,7 +274,7 @@ CREATE OPERATOR FAMILY, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE SEQUENCE, [DDL statements with
 restrictions](ddl-replication-statements.md#DDL-REPLICATION-RESTRICTED-COMMANDS)
@@ -279,7 +292,7 @@ CREATE TABLE AS, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE TEXT SEARCH CONFIGURATION, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -294,12 +307,12 @@ CREATE TEXT SEARCH TEMPLATE, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 CREATE USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 CREATE USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
-## [D]{#AEN5411}
+## [D]{#AEN5468}
 
 DDL Replication, [DDL Replication](ddl-replication.md)
 
@@ -314,38 +327,38 @@ multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX),
 [UPDATE/DELETE conflicts](conflicts-types.md#CONFLICTS-UPDATE-DELETE),
 [INSERT/UPDATE conflicts](conflicts-types.md#CONFLICTS-INSERT-UPDATE),
-[Global data conflicts](conflicts-types.md#AEN2387), [Divergent
+[Global data conflicts](conflicts-types.md#AEN2404), [Divergent
 conflicts](conflicts-types.md#CONFLICTS-DIVERGENT)
 
 DROP DATABASE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP GROUP, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP INDEX CONCURRENTLY, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP OWNED, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 DROP ROLE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP TABLESPACE, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP USER, [Not replicated DDL
-statements](ddl-replication-statements.md#AEN1519)
+statements](ddl-replication-statements.md#AEN1536)
 
 DROP USER MAPPING, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
-## [F]{#AEN5452}
+## [F]{#AEN5509}
 
 Functions, [Functions](functions.md)
 
-## [G]{#AEN5457}
+## [G]{#AEN5514}
 
 Global Sequence
 
@@ -355,7 +368,7 @@ Global Sequence
 
     :   
 
-## [L]{#AEN5463}
+## [L]{#AEN5520}
 
 limitations, [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
@@ -367,9 +380,9 @@ constraints](conflicts-types.md#CONFLICTS-UPDATE-UNIQUE-MULTIPLE-INDEX),
 [INSERT/UPDATE conflicts](conflicts-types.md#CONFLICTS-INSERT-UPDATE),
 [Exclusion constraint
 conflicts](conflicts-types.md#CONFLICTS-EXCLUSION), [Global data
-conflicts](conflicts-types.md#AEN2387)
+conflicts](conflicts-types.md#AEN2404)
 
-## [M]{#AEN5474}
+## [M]{#AEN5531}
 
 max_replication_slots configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
@@ -384,11 +397,11 @@ Monitoring, [Monitoring](monitoring.md)
 
 see also Catalogs
 
-## [N]{#AEN5489}
+## [N]{#AEN5546}
 
 Node Management, [Node Management](node-management.md)
 
-## [P]{#AEN5494}
+## [P]{#AEN5551}
 
 pg_xlog_wait_remote_apply, [Node management
 functions](functions-node-mgmt.md)
@@ -396,7 +409,7 @@ functions](functions-node-mgmt.md)
 pg_xlog_wait_remote_receive, [Node management
 functions](functions-node-mgmt.md)
 
-## [R]{#AEN5502}
+## [R]{#AEN5559}
 
 REFRESH MATERIALIZED VIEW, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -405,7 +418,7 @@ Release notes, [Release notes](releasenotes.md)
 
 Replication Sets, [Replication Sets](replication-sets.md)
 
-## [S]{#AEN5513}
+## [S]{#AEN5570}
 
 SECURITY LABEL, [Prohibited DDL
 statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
@@ -419,16 +432,16 @@ PostgreSQL parameters](settings-prerequisite.md)
 subscribe,
 [bdr.bdr_subscribe](functions-node-mgmt.md#FUNCTIONS-NODE-MGMT-SUBSCRIBE)
 
-## [T]{#AEN5527}
+## [T]{#AEN5584}
 
 track_commit_timestamp configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)
 
-## [U]{#AEN5532}
+## [U]{#AEN5589}
 
 Upgrading BDR, [Upgrading BDR](upgrade.md)
 
-## [W]{#AEN5537}
+## [W]{#AEN5594}
 
 wal_level configuration parameter, [Prerequisite PostgreSQL
 parameters](settings-prerequisite.md)

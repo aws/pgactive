@@ -52,7 +52,7 @@ names.
 **Table 13-1. `bdr.bdr_nodes` Columns**
 
   Name                                 Type                References                                                                  Description
-  `node_sysid`           `text`                                                                                   system_identifier from the control file of the node
+  `node_sysid`           `text`                                                                                   BDR generated node identifier from the BDR control file of the node
   `node_timeline`        `oid`                                                                                    timeline ID of this node
   `node_dboid`           `oid`                                                                                    local database oid on the cluster (node_sysid, node_timeline)
   `node_status`          `char`                                                                                   Readiness of the node: \[b\]eginning setup, \[i\]nitializing, \[c\]atchup, creating \[o\]utbound slots, \[r\]eady, \[k\]illed. Doesn\'t indicate connected/disconnected.

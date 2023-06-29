@@ -15,7 +15,9 @@ node](node-management-joining.md#NODE-MANAGEMENT-JOINING-BDR)
 
 5.3. [Completely removing BDR](node-management-disabling.md)
 
-5.4. [n-safe synchronous replication](node-management-synchronous.md)
+5.4. [Rejoining a BDR node](node-management-rejoining.md)
+
+5.5. [n-safe synchronous replication](node-management-synchronous.md)
 
 
 

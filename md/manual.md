@@ -23,7 +23,9 @@ variables](bdr-configuration-variables.md)
 
 5.3. [Completely removing BDR](node-management-disabling.md)
 
-5.4. [n-safe synchronous replication](node-management-synchronous.md)
+5.4. [Rejoining a BDR node](node-management-rejoining.md)
+
+5.5. [n-safe synchronous replication](node-management-synchronous.md)
 
 6\. [Command-line Utilities](commands.md)
 
@@ -140,14 +142,14 @@ functions](functions-conflict-handlers.md)
 
 14\. [Upgrading [BDR]](upgrade.md)
 
-14.1. [Upgrading 2.0.x to 2.0.y releases](x4376.md)
+14.1. [Upgrading 2.0.x to 2.0.y releases](x4421.md)
 
 14.2. [Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL
-9.6](x4379.md)
+9.6](x4424.md)
 
-14.3. [Upgrading BDR 0.9.x to 1.0](x4492.md)
+14.3. [Upgrading BDR 0.9.x to 1.0](x4537.md)
 
-14.4. [Upgrading 0.8.x to 1.0](x4496.md)
+14.4. [Upgrading 0.8.x to 1.0](x4541.md)
 
 
 
