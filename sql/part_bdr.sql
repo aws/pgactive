@@ -111,7 +111,9 @@ SELECT bdr.bdr_is_active_in_db();
 
 -- Strip BDR from this node entirely and convert global sequences to local.
 BEGIN;
-SET LOCAL client_min_messages = 'notice';
+-- We silence notice messages here as some of them depend on when BDR workers
+-- on the parted node 'node-pg' are gone.
+SET LOCAL client_min_messages = 'ERROR';
 SELECT bdr.remove_bdr_from_local_node(true, true);
 COMMIT;
 
