@@ -302,7 +302,7 @@ git-dist: clean
 	rm -f .distgitrev .distgittag
 
 distclean maintainer-clean: clean
-# 	Place these doc clean and maintainer-clean before removing
+# 	Place the maintainer-clean before removing
 # 	Makefile.global down below because they need Makefile.global.
 	rm -f config.status config.log
 	rm -f bdr_config_generated.h Makefile Makefile.global

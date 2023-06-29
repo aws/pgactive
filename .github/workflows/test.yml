@@ -95,4 +95,3 @@ jobs:
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
 
-      # XXX: Add a step to build docs
