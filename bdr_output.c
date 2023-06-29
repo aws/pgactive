@@ -654,7 +654,10 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
 		if (BdrWorkerCtl->worker_management_paused)
+		{
+			LWLockRelease(BdrWorkerCtl->lock);
 			elog(ERROR, "BDR worker management is currently paused, walsender exiting. Retry later.");
+		}
 
 		bdr_worker_shmem_alloc(BDR_WORKER_WALSENDER, &worker_idx);
 		bdr_worker_shmem_acquire(BDR_WORKER_WALSENDER, worker_idx, true);

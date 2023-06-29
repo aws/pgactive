@@ -293,8 +293,8 @@ bdr_get_remote_dboid(const char *conninfo_db)
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
-		elog(FATAL, "could not identify system: got %d rows and %d columns, expected %d row and %d column",
-			 PQntuples(res), PQnfields(res), 1, 1);
+		elog(FATAL, "could not identify system: got %d rows and %d columns, expected 1 row and 1 column",
+			 PQntuples(res), PQnfields(res));
 	}
 
 	remote_dboid = PQgetvalue(res, 0, 0);
@@ -419,8 +419,8 @@ bdr_connect(const char *conninfo,
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
-		elog(ERROR, "could not fetch BDR node identifier: got %d rows and %d columns, expected %d row and %d column",
-			 PQntuples(res), PQnfields(res), 1, 1);
+		elog(ERROR, "could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column",
+			 PQntuples(res), PQnfields(res));
 	}
 
 	remote_sysid = PQgetvalue(res, 0, 0);
@@ -1930,15 +1930,21 @@ bdr_generate_node_identifier_internal(void)
 
 	/* make sure no old temp file is remaining */
 	if (unlink(tmppath) < 0 && errno != ENOENT)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not remove file \"%s\": %m", tmppath)));
+	}
 
 	fp = AllocateFile(tmppath, PG_BINARY_W);
 	if (!fp)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not create file \"%s\": %m", tmppath)));
+	}
 
 	/*
 	 * Write magic number, PG version and BDR version to the control file to
@@ -1963,6 +1969,7 @@ bdr_generate_node_identifier_internal(void)
 
 		unlink(tmppath);
 		errno = save_errno;
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not write to file \"%s\": %m", tmppath)));
@@ -2033,15 +2040,23 @@ bdr_get_node_identifier_internal(void)
 
 	fp = AllocateFile(path, PG_BINARY_R);
 	if (!fp)
+	{
+		if (acquired_lock)
+			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read from file \"%s\": %m", path)));
+	}
 
 	if (fscanf(fp, "MAGIC NUMBER: %u\n", &magic_number) != 1 ||
 		fscanf(fp, "PG VERSION: %u\n", &pg_version) != 1 ||
 		fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1 ||
 		fscanf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", &nid) != 1)
 	{
+		if (acquired_lock)
+			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read from file \"%s\": %m", path)));
@@ -2051,15 +2066,23 @@ bdr_get_node_identifier_internal(void)
 		pg_version != PG_VERSION_NUM ||
 		bdr_version != BDR_VERSION_NUM)
 	{
+		if (acquired_lock)
+			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("invalid data found in file \"%s\": %m", path)));
 	}
 
 	if (ferror(fp) || FreeFile(fp))
+	{
+		if (acquired_lock)
+			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read from file \"%s\": %m", path)));
+	}
 
 done:
 	/* Release the lock only if we acquired in this function. */
@@ -2137,9 +2160,12 @@ bdr_remove_node_identifier_internal(void)
 	if (remove)
 	{
 		if (unlink(path) < 0 && errno != ENOENT)
+		{
+			LWLockRelease(BdrWorkerCtl->lock);
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not remove file \"%s\": %m", path)));
+		}
 
 		fsync_fname("pg_logical", true);
 	}

@@ -367,17 +367,23 @@ bdr_count_serialize(void)
 	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
 
 	if (unlink(tpath) < 0 && errno != ENOENT)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not unlink \"%s\": %m", tpath)));
+	}
 
 	fd = OpenTransientFilePerm((char *) tpath,
 							   O_WRONLY | O_CREAT | O_EXCL | PG_BINARY,
 							   S_IRUSR | S_IWUSR);
 	if (fd < 0)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open \"%s\": %m", tpath)));
+	}
 
 	serial.magic = bdr_count_magic;
 	serial.version = bdr_count_version;
@@ -386,27 +392,36 @@ bdr_count_serialize(void)
 	/* write header */
 	write_size = sizeof(serial);
 	if ((write(fd, &serial, write_size)) != write_size)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not write bdr stat file data \"%s\": %m",
 						tpath)));
+	}
 
 	/* write data */
 	write_size = sizeof(BdrCountSlot) * bdr_count_nnodes;
 	if ((write(fd, &BdrCountCtl->slots, write_size)) != write_size)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not write bdr stat file data \"%s\": %m",
 						tpath)));
+	}
 
 	CloseTransientFile(fd);
 
 	/* rename into place */
 	if (rename(tpath, path) != 0)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not rename bdr stat file \"%s\" to \"%s\": %m",
 						tpath, path)));
+	}
 	LWLockRelease(BdrCountCtl->lock);
 }
 
@@ -432,9 +447,12 @@ bdr_count_unserialize(void)
 		goto out;
 
 	if (fd < 0)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open bdr stat file \"%s\": %m", path)));
+	}
 
 	read_size = sizeof(serial);
 	if (read(fd, &serial, read_size) != read_size)
@@ -444,8 +462,11 @@ bdr_count_unserialize(void)
 						path)));
 
 	if (serial.magic != bdr_count_magic)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		elog(ERROR, "expected magic %u doesn't match read magic %u",
 			 bdr_count_magic, serial.magic);
+	}
 
 	if (serial.version != bdr_count_version)
 	{
@@ -463,10 +484,13 @@ bdr_count_unserialize(void)
 	/* read actual data, directly into shmem */
 	read_size = sizeof(BdrCountSlot) * serial.nr_slots;
 	if (read(fd, &BdrCountCtl->slots, read_size) != read_size)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read bdr stat file data \"%s\": %m",
 						path)));
+	}
 
 out:
 	if (fd >= 0)

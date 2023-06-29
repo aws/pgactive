@@ -2837,7 +2837,10 @@ bdr_apply_main(Datum main_arg)
 	 */
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	if (BdrWorkerCtl->worker_management_paused)
+	{
+		LWLockRelease(BdrWorkerCtl->lock);
 		elog(ERROR, "BDR worker management is currently paused, apply worker exiting, retry later");
+	}
 	bdr_apply_worker->proclatch = &MyProc->procLatch;
 	LWLockRelease(BdrWorkerCtl->lock);
 
