@@ -1,4 +1,4 @@
-\ccc regression
+\c regression
 
 SELECT bdr.bdr_apply_is_paused();
 
@@ -6,7 +6,7 @@ SELECT bdr.bdr_replicate_ddl_command('CREATE TABLE public.pause_test(x text prim
 INSERT INTO pause_test(x) VALUES ('before pause');
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
-\cc postgres
+\c postgres
 
 SELECT bdr.bdr_apply_is_paused();
 SELECT bdr.bdr_apply_pause();
@@ -15,11 +15,11 @@ SELECT bdr.bdr_apply_is_paused();
 -- until bdr_apply_pause gets taught to set their latches.
 SELECT pg_sleep(6);
 
-\ccc regression
+\c regression
 
 INSERT INTO pause_test(x) VALUES ('after pause before resume');
 
-\cc postgres
+\c postgres
 
 -- Give more time for a row to replicate if it's going to
 -- (it shouldn't)
@@ -33,7 +33,7 @@ SELECT x FROM pause_test;
 
 SELECT bdr.bdr_apply_resume();
 
-\ccc regression
+\c regression
 
 INSERT INTO pause_test(x) VALUES ('after resume');
 
@@ -45,7 +45,7 @@ SET LOCAL statement_timeout = '60s';
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 COMMIT;
 
-\cc postgres
+\c postgres
 
 -- Must see all three rows
 SELECT x FROM pause_test;
