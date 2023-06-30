@@ -90,7 +90,7 @@ jobs:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
             bdr/regression.diffs
-            bdr/tmp_check
+            bdr/tmp_check/log
             # Upload bdr_pgbench.sh results
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
