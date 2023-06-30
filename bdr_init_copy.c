@@ -1109,8 +1109,8 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
 		PQclear(res);
-		die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected %d row and %d column\n"),
-			PQntuples(res), PQnfields(res), 1, 1);
+		die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
+			PQntuples(res), PQnfields(res));
 	}
 
 	remote_nid = PQgetvalue(res, 0, 0);

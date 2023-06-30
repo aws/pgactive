@@ -263,6 +263,8 @@ bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
 void
 bdr_worker_shmem_free(BdrWorker * worker, BackgroundWorkerHandle *handle)
 {
+	Assert(!LWLockHeldByMe(BdrWorkerCtl->lock));
+
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
 	/* Already free? Do nothing */

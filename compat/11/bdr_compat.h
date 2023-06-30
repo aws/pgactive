@@ -63,7 +63,7 @@ GetSysCacheOid2Error(int cacheId, Datum key1, Datum key2)
 /* 763f2edd9209 */
 #define ExecFetchSlotHeapTupleDatum(slot) ExecFetchSlotTupleDatum(slot)
 
-/* 6f6f284c7ee4 introduced in PG14 */
+/* Postgres commit 6f6f284c7ee4 introduced this macro in version 14. */
 /*
  * Handy macro for printing XLogRecPtr in conventional format, e.g.,
  *
