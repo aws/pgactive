@@ -10,7 +10,8 @@ implicitly by [BDR]. As the names suggest, all tables are
 in replication set `all`, and every table is also initially in
 the replication set `default`.
 
-Replication set membership is its self replicated, so tables\'
+User defined replication set membership is its self replicated (unless
+`bdr.skip_ddl_replication` is set to on), so tables\'
 membership in replication sets is the same on all nodes in a group. To
 achieve different data replication to different nodes, some nodes\'
 connections must be configured to receive non-default replication sets.

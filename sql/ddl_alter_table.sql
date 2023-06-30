@@ -179,11 +179,11 @@ SELECT * FROM test_inh_root;
 SELECT * FROM test_inh_chld1;
 SELECT * FROM test_inh_chld2;
 
-SET bdr.permit_unsafe_ddl_commands = true;
+SET bdr.skip_ddl_replication = true;
 ALTER TABLE test_inh_root ADD CONSTRAINT idchk CHECK (id > 0);
 ALTER TABLE ONLY test_inh_chld1 ALTER COLUMN id SET DEFAULT 1;
 ALTER TABLE ONLY test_inh_root DROP CONSTRAINT idchk;
-RESET bdr.permit_unsafe_ddl_commands;
+RESET bdr.skip_ddl_replication;
 
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ test_inh_root
@@ -208,7 +208,7 @@ SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHER
 
 -- Will be permitted
 BEGIN;
-SET LOCAL bdr.permit_unsafe_ddl_commands = true;
+SET LOCAL bdr.skip_ddl_replication = true;
 SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
 COMMIT;
 

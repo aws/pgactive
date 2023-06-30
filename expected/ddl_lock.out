@@ -13,11 +13,14 @@ SELECT bdr.acquire_global_lock(NULL);
 SELECT bdr.acquire_global_lock('bogus');
 ERROR:  unknown lock type bogus
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = false;
+SET LOCAL bdr.skip_ddl_replication = true;
 SELECT bdr.acquire_global_lock('ddl_lock');
-ERROR:  global DDL locking attempt rejected by configuration
-DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
-HINT:  See the 'DDL replication' chapter of the documentation.
+WARNING:  bdr.skip_ddl_replication is set, ignoring explicit bdr.acquire_global_lock(...) call
+ acquire_global_lock 
+---------------------
+ 
+(1 row)
+
 ROLLBACK;
 SELECT * FROM ddl_info;
  owner_replorigin | is_my_node | lock_mode | lock_state | owner_pid_set | owner_pid_is_me | fully_owned_by_me | lockcount | npeers | npeers_confirmed | npeers_declined | npeers_replayed | has_replay_upto 

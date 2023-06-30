@@ -93,6 +93,7 @@ shared_preload_libraries = 'bdr'
 track_commit_timestamp = on
 wal_level = 'logical'
 port=7432
+bdr.skip_ddl_replication = false
 EOF
 
 # Start pg instance

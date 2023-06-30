@@ -1,2 +1,2 @@
-ALTER DATABASE regression RESET bdr.permit_ddl_locking;
-ALTER DATABASE postgres RESET bdr.permit_ddl_locking;
+ALTER DATABASE regression RESET bdr.skip_ddl_replication;
+ALTER DATABASE postgres RESET bdr.skip_ddl_replication;

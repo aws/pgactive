@@ -1,23 +1,21 @@
-SET bdr.permit_ddl_locking = false;
+SET bdr.skip_ddl_replication = true;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.should_fail ( id integer ) $DDL$);
-ERROR:  global DDL locking attempt rejected by configuration
-DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
+ERROR:  bdr_replicate_ddl_command execution attempt rejected by configuration
+DETAIL:  bdr.skip_ddl_replication is true.
 HINT:  See the 'DDL replication' chapter of the documentation.
-CONTEXT:  during DDL replay of ddl statement:  CREATE TABLE public.should_fail ( id integer ) 
-SET bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.create_ok (id integer) $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SET bdr.permit_ddl_locking = false;
+SET bdr.skip_ddl_replication = true;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.create_ok ADD COLUMN alter_should_fail text $DDL$);
-ERROR:  global DDL locking attempt rejected by configuration
-DETAIL:  bdr.permit_ddl_locking is false and the attempted command would require the global lock to be acquired. Command rejected.
+ERROR:  bdr_replicate_ddl_command execution attempt rejected by configuration
+DETAIL:  bdr.skip_ddl_replication is true.
 HINT:  See the 'DDL replication' chapter of the documentation.
-CONTEXT:  during DDL replay of ddl statement:  ALTER TABLE public.create_ok ADD COLUMN alter_should_fail text 
-SET bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.create_ok $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
@@ -26,13 +24,13 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.create_ok $DDL$);
 
 -- Now for the rest of the DDL tests, presume they're allowed,
 -- otherwise they'll get pointlessly verbose.
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER DATABASE regression SET bdr.permit_ddl_locking = true $DDL$);
+SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER DATABASE regression RESET bdr.skip_ddl_replication $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER DATABASE postgres SET bdr.permit_ddl_locking = true $DDL$);
+SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER DATABASE postgres RESET bdr.skip_ddl_replication $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
  

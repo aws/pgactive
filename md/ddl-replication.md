@@ -37,9 +37,6 @@ schemas to other connected nodes. That makes it easier to make certain
 DDL changes without worrying about having to manually distribute the DDL
 change to all nodes and ensure they\'re consistent.
 
-There is not currently an option to turn off DDL replication and apply
-DDL manually instead.
-
 Before doing DDL on [BDR], read [Section
 8.1](ddl-replication-advice.md) and [Statement specific DDL
 replication concerns](ddl-replication-statements.md).

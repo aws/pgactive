@@ -198,7 +198,8 @@ extern Datum bdr_ddl_lock_info(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(bdr_ddl_lock_info);
 
 /* GUCs */
-bool		bdr_permit_ddl_locking = false;
+/* replaced by !bdr_skip_ddl_replication for now
+bool           bdr_permit_ddl_locking = false; */
 
 /* -1 means use max_standby_streaming_delay */
 int			bdr_max_ddl_lock_delay = -1;
@@ -967,7 +968,8 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	Assert(lock_type == BDR_LOCK_DDL || lock_type == BDR_LOCK_WRITE);
 
 	/* shouldn't be called with ddl locking disabled */
-	Assert(!bdr_skip_ddl_locking);
+	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
+	Assert(!bdr_skip_ddl_replication);
 
 	bdr_locks_find_my_database(false);
 
@@ -992,12 +994,13 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	 */
 	if (!this_xact_acquired_lock)
 	{
-		if (!bdr_permit_ddl_locking)
+		/* replace bdr_permit_ddl_locking by !bdr_skip_ddl_replication for now */
+		if (bdr_skip_ddl_replication)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 					 errmsg("global DDL locking attempt rejected by configuration"),
-					 errdetail("bdr.permit_ddl_locking is false and the attempted command "
+					 errdetail("bdr.skip_ddl_replication is true and the attempted command "
 							   "would require the global lock to be acquired. "
 							   "Command rejected."),
 					 errhint("See the 'DDL replication' chapter of the documentation.")));
@@ -1196,9 +1199,10 @@ bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS)
 {
 	char	   *mode = text_to_cstring(PG_GETARG_TEXT_P(0));
 
-	if (bdr_skip_ddl_locking)
+	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		ereport(WARNING,
-				(errmsg("bdr.skip_ddl_locking is set, ignoring explicit bdr.acquire_global_lock(...) call")));
+				(errmsg("bdr.skip_ddl_replication is set, ignoring explicit bdr.acquire_global_lock(...) call")));
 	else
 		bdr_acquire_ddl_lock(bdr_lock_name_to_type(mode));
 
@@ -2285,7 +2289,8 @@ bdr_locks_check_dml(void)
 {
 	bool		lock_held_by_peer;
 
-	if (bdr_skip_ddl_locking)
+	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	bdr_locks_find_my_database(false);
