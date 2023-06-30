@@ -102,6 +102,7 @@ int			bdr_default_apply_delay;
 int			bdr_max_workers;
 int			bdr_max_databases;
 bool		bdr_skip_ddl_replication;
+bool		prev_bdr_skip_ddl_replication;
 bool		bdr_skip_ddl_locking;
 bool		bdr_do_not_replicate;
 bool		bdr_discard_mismatched_row_attributes;
@@ -871,24 +872,43 @@ bdr_guc_source_ok_for_unsafe(GucSource source)
 		case PGC_S_ENV_VAR:		/* postmaster environment variable */
 		case PGC_S_FILE:		/* postgresql.conf */
 		case PGC_S_ARGV:		/* postmaster command line */
-		case PGC_S_GLOBAL:		/* global in-database setting */
-		case PGC_S_DATABASE:	/* per-database setting */
-		case PGC_S_USER:		/* per-user setting */
-		case PGC_S_DATABASE_USER:	/* per-user-and-database setting */
-			return false;
+			return true;
 
+		case PGC_S_DATABASE_USER:	/* per-user-and-database setting */
+		case PGC_S_USER:		/* per-user setting */
+		case PGC_S_DATABASE:	/* per-database setting */
+		case PGC_S_GLOBAL:		/* global in-database setting */
 		case PGC_S_CLIENT:		/* from client connection request */
 		case PGC_S_OVERRIDE:	/* special case to forcibly set default */
 		case PGC_S_INTERACTIVE: /* dividing line for error reporting */
 		case PGC_S_TEST:		/* test per-database or per-user setting */
 		case PGC_S_SESSION:		/* SET command */
-			return true;
+			return false;
 	}
 	elog(ERROR, "unreachable");
 }
 
 static bool
 bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
+{
+	if (!(*newvalue) && !bdr_guc_source_ok_for_unsafe(source))
+	{
+		/*
+		 * guc.c will report an error, we just provide some more explanation
+		 * first
+		 */
+		ereport(WARNING,
+				(errmsg("unsafe BDR configuration options can not be disabled locally"),
+				 errdetail("The bdr options bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be disabled globally."),
+				 errhint("See the manual for information on these options. Using them without care can break replication.")));
+		return false;
+	}
+
+	return true;
+}
+
+static bool
+bdr_permit_false_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 {
 	if (*newvalue && !bdr_guc_source_ok_for_unsafe(source))
 	{
@@ -897,9 +917,9 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 		 * first
 		 */
 		ereport(WARNING,
-				(errmsg("unsafe BDR configuration options can not be set globally"),
-				 errdetail("The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options."),
-				 errhint("See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.")));
+				(errmsg("unsafe BDR configuration options can not be enabled locally"),
+				 errdetail("The bdr options bdr.permit_ddl_locking should only be enabled globally."),
+				 errhint("See the manual for information on these options. Using them without care can break replication.")));
 		return false;
 	}
 
@@ -1009,24 +1029,24 @@ _PG_init(void)
 							 "DDL lock",
 							 NULL,
 							 &bdr_permit_ddl_locking,
-							 true, PGC_USERSET,
+							 false, PGC_USERSET,
 							 0,
-							 NULL, NULL, NULL);
+							 bdr_permit_false_guc_check_hook, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.permit_unsafe_ddl_commands",
 							 "Allow commands that might cause data or " \
 							 "replication problems under BDR to run",
 							 NULL,
 							 &bdr_permit_unsafe_commands,
-							 false, PGC_SUSET,
+							 true, PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.skip_ddl_replication",
 							 "Internal. Set during local restore during init_replica only",
 							 NULL,
 							 &bdr_skip_ddl_replication,
-							 false,
+							 true,
 							 PGC_SUSET,
 							 0,
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
@@ -1035,7 +1055,7 @@ _PG_init(void)
 							 "Don't acquire global DDL locks while performing DDL.",
 							 "Note that it's quite dangerous to do so.",
 							 &bdr_skip_ddl_locking,
-							 false,
+							 true,
 							 PGC_SUSET,
 							 0,
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
@@ -1211,6 +1231,7 @@ bdr_maintain_schema(bool update_extensions)
 
 	PushActiveSnapshot(GetTransactionSnapshot());
 
+	prev_bdr_skip_ddl_replication = bdr_skip_ddl_replication;
 	set_config_option("bdr.skip_ddl_replication", "true",
 					  PGC_SUSET, PGC_S_OVERRIDE, GUC_ACTION_LOCAL,
 					  true, 0, false);

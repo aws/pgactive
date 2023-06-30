@@ -93,6 +93,10 @@ shared_preload_libraries = 'bdr'
 track_commit_timestamp = on
 wal_level = 'logical'
 port=7432
+bdr.permit_unsafe_ddl_commands = false
+bdr.skip_ddl_replication = false
+bdr.skip_ddl_locking = false
+bdr.permit_ddl_locking = true
 EOF
 
 # Start pg instance

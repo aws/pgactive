@@ -1,4 +1,4 @@
--- Disallow unsafe commands via ALTER SYSTEM SET, config file, ALTER DATABASE set, etc
+-- Allow commands via ALTER SYSTEM SET, config file, ALTER DATABASE set, etc
 
 ALTER SYSTEM
   SET bdr.skip_ddl_locking = on;
@@ -12,8 +12,13 @@ ALTER SYSTEM
 -- has to undo it later.
 SELECT current_database();
 
+-- Should be ok
 ALTER DATABASE postgres
   SET bdr.skip_ddl_locking = on;
+
+-- Should fail
+ALTER DATABASE postgres
+  SET bdr.skip_ddl_locking = off;
 
 -- An ERROR setting a GUC doesn't stop the connection to the DB
 -- from succeeding though.
@@ -32,7 +37,7 @@ SELECT current_database();
 -- This is true even when you ALTER the current database, so this
 -- commits fine, but switching back to the DB breaks:
 ALTER DATABASE regression
-  SET bdr.skip_ddl_locking = on;
+  SET bdr.skip_ddl_replication = off;
 
 \c postgres
 SELECT current_database();
@@ -51,10 +56,11 @@ SELECT current_database();
 
 
 
--- Explicit "off" is OK
+-- Explicit "off" is Not OK
 ALTER DATABASE regression
   SET bdr.skip_ddl_locking = off;
 
+-- Unless at the system level
 ALTER SYSTEM
   SET bdr.skip_ddl_locking = off;
 
@@ -66,6 +72,7 @@ ALTER SYSTEM
 ALTER USER super
   SET bdr.skip_ddl_replication = on;
 
+-- Unless not permitted
 ALTER USER super
   SET bdr.skip_ddl_replication = off;
 
@@ -75,4 +82,16 @@ ALTER USER super
 -- Per session is OK
 SET bdr.permit_unsafe_ddl_commands = on;
 SET bdr.permit_unsafe_ddl_commands = off;
+SET bdr.skip_ddl_replication = on;
+SET bdr.skip_ddl_locking = on;
+SET bdr.permit_ddl_locking = off;
+
+-- Unless values are not permitted
+SET bdr.skip_ddl_replication = off;
+SET bdr.skip_ddl_locking = off;
+SET bdr.permit_ddl_locking = on;
+
 RESET bdr.permit_unsafe_ddl_commands;
+RESET bdr.skip_ddl_replication;;
+RESET bdr.skip_ddl_locking;
+RESET bdr.permit_ddl_locking;

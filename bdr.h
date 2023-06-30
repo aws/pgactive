@@ -415,6 +415,7 @@ extern bool bdr_permit_ddl_locking;
 extern bool bdr_permit_unsafe_commands;
 extern bool bdr_skip_ddl_locking;
 extern bool bdr_skip_ddl_replication;
+extern bool prev_bdr_skip_ddl_replication;
 extern bool bdr_do_not_replicate;
 extern bool bdr_discard_mismatched_row_attributes;
 extern int	bdr_max_ddl_lock_delay;

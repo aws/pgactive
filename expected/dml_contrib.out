@@ -3,7 +3,7 @@ SELECT * FROM public.bdr_regress_variables()
 \gset
 \c :writedb1
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.permit_ddl_locking;
 SELECT bdr.bdr_replicate_ddl_command($$
 	-- XXX: BDR prevents replicating commands inside create/alter/drop
 	-- extension, it asserts (Assert(!bdr_in_extension);) that in
@@ -157,7 +157,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 
 \c :writedb1
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.permit_ddl_locking;
 SELECT bdr.bdr_replicate_ddl_command($$DROP TABLE public.contrib_dml;$$);
  bdr_replicate_ddl_command 
 ---------------------------

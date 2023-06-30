@@ -153,16 +153,8 @@ or
      
 ```
 
-or set it globally in `postgresql.conf`. Then when you intend
-to perform disruptive DDL, explicitly permit it:
+or set it globally in `postgresql.conf`.
 
-``` PROGRAMLISTING
-BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
--- Do your schema changes here
-COMMIT;
-     
-```
 
 
 

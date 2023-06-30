@@ -151,8 +151,8 @@ server restart to take effect.
 
     Only affects BDR. Prevents acquisiton of the the global DDL lock
     when executing DDL statement. This is mainly used internally, but
-    can also be useful in other cases. This option can be set at any
-    time, but only by superusers.
+    can also be useful in other cases. This option can be set globally at any
+    time, or enabled locally (at the session level) but only by superusers.
 
     ::: WARNING
       **Warning**
@@ -173,11 +173,10 @@ server restart to take effect.
 
 `bdr.skip_ddl_replication` (`boolean`)
 
-    Only affects BDR. Skips replication of DDL changes made in a session
-    where this option is set to other systems. This is primarily useful
-    for BDR internal use, but also can be used for some intentional
-    schema changes like adding a index only on some nodes. This option
-    can be set at any time, but only by superusers.
+    Only affects BDR. Skips replication and apply of DDL changes.
+    This is set to on by default so that a BDR node bevahes as a non BDR one by
+    default.  This option can be changed globally or enabled locally
+    (at the session level) but only by superusers.
 
     ::: WARNING
       **Warning**
