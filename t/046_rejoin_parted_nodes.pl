@@ -23,7 +23,7 @@ part_nodes([$node_0], $node_1);
 check_part_statuses([$node_0], $node_1);
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node()");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
 #
 # Use case 1: a parted node without relations that already exist on the other 
@@ -62,7 +62,7 @@ part_nodes([$node_0], $node_1);
 check_part_statuses([$node_0], $node_1);
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node()");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
 # re-join the parted node
 my $logstart_0 = get_log_size($node_0);
