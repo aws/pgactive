@@ -32,7 +32,7 @@ my $result = wait_for_worker_to_unregister($node_0,
 ok($result, "unregistering apply worker on node_0 is detected");
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node()");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
 
 # per-db worker must be unregistered on a node with BDR removed
 $result = wait_for_worker_to_unregister($node_0,
