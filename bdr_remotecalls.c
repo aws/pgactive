@@ -65,12 +65,14 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 {
 	PGconn	   *nonrepl_conn;
 	StringInfoData dsn;
+	char *servername;
+	servername = get_connect_string(connstring);
 
 	initStringInfo(&dsn);
 	appendStringInfo(&dsn, "%s %s %s application_name='%s:%s'",
 					 bdr_default_apply_connection_options,
 					 bdr_extra_apply_connection_options,
-					 connstring,
+					 (servername == NULL ? connstring : servername ),
 					 bdr_get_my_cached_node_name(), appnamesuffix);
 
 	/*
@@ -462,6 +464,7 @@ Datum
 bdr_test_replication_connection(PG_FUNCTION_ARGS)
 {
 	const char *conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
+	char *servername;
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -475,7 +478,8 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	snprintf(NameStr(appname), NAMEDATALEN, "BDR test connection");
-	conn = bdr_connect(conninfo, &appname, &remote);
+	servername = get_connect_string(conninfo);
+	conn = bdr_connect((servername == NULL ? conninfo : servername), &appname, &remote);
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, remote.sysid);
 
 	values[0] = CStringGetTextDatum(sysid_str);
@@ -606,6 +610,8 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn;
 	const char *my_dsn;
+	const char *remote_servername;
+	const char *servername;
 	Datum		values[8];
 	bool		isnull[8] = {false, false, false, false, false, false, false, false};
 	TupleDesc	tupleDesc;
@@ -621,7 +627,8 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrconnectback");
+	remote_servername = get_connect_string(remote_node_dsn);
+	conn = bdr_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "bdrconnectback");
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&conn));
@@ -629,7 +636,8 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 		struct remote_node_info ri;
 
 		memset(&ri, 0, sizeof(ri));
-		bdr_test_remote_connectback_internal(conn, &ri, my_dsn);
+		servername = get_connect_string(my_dsn);
+		bdr_test_remote_connectback_internal(conn, &ri, ( servername == NULL ? my_dsn : servername));
 
 		if (ri.sysid_str != NULL)
 			values[0] = CStringGetTextDatum(ri.sysid_str);
