@@ -295,10 +295,9 @@ as documented and settings or functions marked as unsafe are avoided.
 
 The administrator must manually resolve such conflicts. Use of the
 advanced options
-[bdr.do_not_replicate](bdr-configuration-variables.md#GUC-BDR-DO-NOT-REPLICATE),
-[bdr.skip_ddl_replication](bdr-configuration-variables.md#GUC-BDR-SKIP-DDL-REPLICATION)
+[bdr.do_not_replicate](bdr-configuration-variables.md#GUC-BDR-DO-NOT-REPLICATE)
 and
-[bdr.permit_unsafe_ddl_commands](bdr-configuration-variables.md#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS)
+[bdr.skip_ddl_replication](bdr-configuration-variables.md#GUC-BDR-SKIP-DDL-REPLICATION)
 may be required depending on the nature of the conflict. However,
 careless use of these options can make things much worse and it isn\'t
 possible to give general instructions for resolving all possible kinds

@@ -5,7 +5,7 @@ SELECT * FROM public.bdr_regress_variables()
 \c :writedb1
 
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($$
 	CREATE TABLE public.tst_one_array (
 		a INTEGER PRIMARY KEY,
@@ -549,7 +549,7 @@ SELECT a, b, c FROM tst_range_array ORDER BY a;
 
 \c :writedb1
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($$
 	DROP TABLE public.tst_one_array;
 	DROP TABLE public.tst_arrays;

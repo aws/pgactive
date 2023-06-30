@@ -497,7 +497,8 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	if (!bdr_is_bdr_activated_db(MyDatabaseId))
 		goto done;
 
-	read_only_node = bdr_local_node_read_only() && !bdr_permit_unsafe_commands;
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	read_only_node = bdr_local_node_read_only() && !bdr_skip_ddl_replication;
 
 	/* check for concurrent global DDL locks */
 	bdr_locks_check_dml();

@@ -112,6 +112,15 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 	char	   *query = text_to_cstring(command);
 	int			nestlevel = -1;
 
+	if (bdr_skip_ddl_replication)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("bdr_replicate_ddl_command execution attempt rejected by configuration"),
+				 errdetail("bdr.skip_ddl_replication is true."),
+				 errhint("See the 'DDL replication' chapter of the documentation.")));
+	}
+
 	nestlevel = NewGUCNestLevel();
 
 	/* Force everything in the query to be fully qualified. */

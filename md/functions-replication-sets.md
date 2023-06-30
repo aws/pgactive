@@ -30,6 +30,8 @@ it to be emptied on nodes that will newly stop receiving changes. See
 `NULL` (not the empty array) as the replication sets to
 restore a table\'s replication sets to defaults.
 
+If `bdr.skip_ddl_replication` is set to true the replication set is created
+locally (means it would need to be executed on all the BDR nodes).
 
 `bdr.table_get_replication_sets(`*`relation regclass`*`)`
 

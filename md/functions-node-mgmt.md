@@ -198,9 +198,6 @@ permitted on read-only nodes, it\'s only tables that can be replicated
 restricted. Note that read-only mode is persistent across restarts.
 `bdr.bdr_get_local_node_name()` can be used to supply the node
 name of the local node.
-[bdr.permit_unsafe_ddl_commands](bdr-configuration-variables.md#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS)
-can override read-only mode on a per-session basis.
-
 
 `bdr.bdr_replicate_ddl_command(`*`cmd text`*`)`
 
@@ -229,6 +226,8 @@ completely.
 Wrap individual DDL commands in
 `bdr.bdr_replicate_ddl_command`, rather than entire scripts.
 
+`bdr.bdr_replicate_ddl_command` errors out if executed while
+`bdr.skip_ddl_replication` is set to true.
 
 `bdr.acquire_global_lock(`*`mode text`*`)`
 
@@ -320,8 +319,7 @@ commit LSN reported in the error, like
 Because the change is still committed on the node it originated from and
 possibly on other nodes, to restore consistency you\'ll have to perform
 some transactions manually with
-[`bdr.do_not_replicate`](bdr-configuration-variables.md#GUC-BDR-DO-NOT-REPLICATE),
-[`bdr.permit_unsafe_ddl_commands`](bdr-configuration-variables.md#GUC-BDR-PERMIT-UNSAFE-DDL-COMMANDS)
+[`bdr.do_not_replicate`](bdr-configuration-variables.md#GUC-BDR-DO-NOT-REPLICATE)
 and/or
 [`bdr.skip_ddl_replication`](bdr-configuration-variables.md#GUC-BDR-SKIP-DDL-REPLICATION)
 options set to restore consistency by manually undoing the operations on

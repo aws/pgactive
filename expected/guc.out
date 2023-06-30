@@ -1,22 +1,6 @@
--- Disallow unsafe commands via ALTER SYSTEM SET, config file, ALTER DATABASE set, etc
-ALTER SYSTEM
-  SET bdr.skip_ddl_locking = on;
-WARNING:  unsafe BDR configuration options can not be set globally
-DETAIL:  The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options.
-HINT:  See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.
-ERROR:  invalid value for parameter "bdr.skip_ddl_locking": 1
+-- Allow commands via ALTER SYSTEM SET, config file, ALTER DATABASE set, etc
 ALTER SYSTEM
   SET bdr.skip_ddl_replication = on;
-WARNING:  unsafe BDR configuration options can not be set globally
-DETAIL:  The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options.
-HINT:  See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.
-ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 1
-ALTER SYSTEM
-  SET bdr.permit_unsafe_ddl_commands = on;
-WARNING:  unsafe BDR configuration options can not be set globally
-DETAIL:  The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options.
-HINT:  See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.
-ERROR:  invalid value for parameter "bdr.permit_unsafe_ddl_commands": 1
 -- The check for per-database settings only occurs when you're on that
 -- database, so we don't block the setting on another DB and the user
 -- has to undo it later.
@@ -26,15 +10,19 @@ SELECT current_database();
  regression
 (1 row)
 
+-- Should be ok
 ALTER DATABASE postgres
-  SET bdr.skip_ddl_locking = on;
+  SET bdr.skip_ddl_replication = on;
+-- Should fail
+ALTER DATABASE postgres
+  SET bdr.skip_ddl_replication = off;
+WARNING:  unsafe BDR configuration options can not be disabled locally
+DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+HINT:  See the manual for information on these options. Using them without care can break replication.
+ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 -- An ERROR setting a GUC doesn't stop the connection to the DB
 -- from succeeding though.
 \c postgres
-WARNING:  unsafe BDR configuration options can not be set globally
-DETAIL:  The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options.
-HINT:  See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.
-WARNING:  invalid value for parameter "bdr.skip_ddl_locking": 1
 SELECT current_database();
  current_database 
 ------------------
@@ -42,7 +30,7 @@ SELECT current_database();
 (1 row)
 
 ALTER DATABASE postgres
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.skip_ddl_replication;
 \c postgres
 SELECT current_database();
  current_database 
@@ -60,7 +48,11 @@ SELECT current_database();
 -- This is true even when you ALTER the current database, so this
 -- commits fine, but switching back to the DB breaks:
 ALTER DATABASE regression
-  SET bdr.skip_ddl_locking = on;
+  SET bdr.skip_ddl_replication = off;
+WARNING:  unsafe BDR configuration options can not be disabled locally
+DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+HINT:  See the manual for information on these options. Using them without care can break replication.
+ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 \c postgres
 SELECT current_database();
  current_database 
@@ -70,10 +62,6 @@ SELECT current_database();
 
 -- so this will report an error, but we'll still successfully connect to the DB.
 \c regression
-WARNING:  unsafe BDR configuration options can not be set globally
-DETAIL:  The bdr options bdr.permit_unsafe_ddl_commands, bdr.skip_ddl_locking and bdr.skip_ddl_replication should only be enabled with a SET or SET LOCAL command in a SQL session or set in client connection options.
-HINT:  See the manual for information on these options. Using them without care can break replication. Use them only with SET LOCAL inside a transaction.
-WARNING:  invalid value for parameter "bdr.skip_ddl_locking": 1
 SELECT current_database();
  current_database 
 ------------------
@@ -82,7 +70,7 @@ SELECT current_database();
 
 -- and fix the GUC
 ALTER DATABASE regression
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.skip_ddl_replication;
 \c regression
 SELECT current_database();
  current_database 
@@ -91,21 +79,36 @@ SELECT current_database();
 (1 row)
 
 -- Fixed.
--- Explicit "off" is OK
+-- Explicit "off" is Not OK
 ALTER DATABASE regression
-  SET bdr.skip_ddl_locking = off;
+  SET bdr.skip_ddl_replication = off;
+WARNING:  unsafe BDR configuration options can not be disabled locally
+DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+HINT:  See the manual for information on these options. Using them without care can break replication.
+ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
+-- Unless at the system level
 ALTER SYSTEM
-  SET bdr.skip_ddl_locking = off;
+  SET bdr.skip_ddl_replication = off;
 ALTER SYSTEM
-  RESET bdr.skip_ddl_locking;
+  RESET bdr.skip_ddl_replication;
 -- Per-user is OK
 ALTER USER super
   SET bdr.skip_ddl_replication = on;
+-- Unless not permitted
 ALTER USER super
   SET bdr.skip_ddl_replication = off;
+WARNING:  unsafe BDR configuration options can not be disabled locally
+DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+HINT:  See the manual for information on these options. Using them without care can break replication.
+ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 ALTER USER super
   RESET bdr.skip_ddl_replication;
 -- Per session is OK
-SET bdr.permit_unsafe_ddl_commands = on;
-SET bdr.permit_unsafe_ddl_commands = off;
-RESET bdr.permit_unsafe_ddl_commands;
+SET bdr.skip_ddl_replication = on;
+-- Unless values are not permitted
+SET bdr.skip_ddl_replication = off;
+WARNING:  unsafe BDR configuration options can not be disabled locally
+DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+HINT:  See the manual for information on these options. Using them without care can break replication.
+ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
+RESET bdr.skip_ddl_replication;;

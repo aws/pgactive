@@ -26,7 +26,6 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 -- Add a new attribute on this node only
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ADD COLUMN dropme integer;
 COMMIT;
 
@@ -45,7 +44,6 @@ ROLLBACK;
 -- Drop the attribute; we're still natts=3, but one is dropped
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync DROP COLUMN dropme;
 COMMIT;
 
@@ -87,7 +85,6 @@ SELECT * FROM desync ORDER BY id;
 -- Make our side confirm to the remote schema again
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ADD COLUMN dropme integer;
 ALTER TABLE desync DROP COLUMN dropme;
 COMMIT;
@@ -124,7 +121,6 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 -- right-extension of missing remote values.
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ADD COLUMN dropme2 integer;
 ALTER TABLE desync ALTER COLUMN dropme2 SET NOT NULL;
 COMMIT;
@@ -161,7 +157,6 @@ SELECT * FROM desync ORDER BY id;
 -- side.
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ADD COLUMN dropme2 integer;
 COMMIT;
 
@@ -170,7 +165,6 @@ COMMIT;
 -- We don't support autocompletion of DEFAULTs; this won't help
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ALTER COLUMN dropme2 SET DEFAULT 0;
 COMMIT;
 
@@ -184,7 +178,6 @@ ROLLBACK;
 -- apply the pending change.
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.skip_ddl_locking = on;
 ALTER TABLE desync ALTER COLUMN dropme2 DROP NOT NULL;
 COMMIT;
 

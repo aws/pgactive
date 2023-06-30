@@ -8,7 +8,7 @@ SELECT bdr.acquire_global_lock(NULL);
 SELECT bdr.acquire_global_lock('bogus');
 
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = false;
+SET LOCAL bdr.skip_ddl_replication = true;
 SELECT bdr.acquire_global_lock('ddl_lock');
 ROLLBACK;
 
