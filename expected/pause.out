@@ -1,5 +1,4 @@
-\ccc regression
-invalid command \ccc
+\c regression
 SELECT bdr.bdr_apply_is_paused();
  bdr_apply_is_paused 
 ---------------------
@@ -19,8 +18,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  
 (1 row)
 
-\cc postgres
-invalid command \cc
+\c postgres
 SELECT bdr.bdr_apply_is_paused();
  bdr_apply_is_paused 
 ---------------------
@@ -47,11 +45,9 @@ SELECT pg_sleep(6);
  
 (1 row)
 
-\ccc regression
-invalid command \ccc
+\c regression
 INSERT INTO pause_test(x) VALUES ('after pause before resume');
-\cc postgres
-invalid command \cc
+\c postgres
 -- Give more time for a row to replicate if it's going to
 -- (it shouldn't)
 SELECT pg_sleep(1);
@@ -69,11 +65,10 @@ SELECT bdr.bdr_apply_is_paused();
 
 -- Must not see row from after pause
 SELECT x FROM pause_test;
-             x             
----------------------------
+      x       
+--------------
  before pause
- after pause before resume
-(2 rows)
+(1 row)
 
 SELECT bdr.bdr_apply_resume();
  bdr_apply_resume 
@@ -81,8 +76,7 @@ SELECT bdr.bdr_apply_resume();
  
 (1 row)
 
-\ccc regression
-invalid command \ccc
+\c regression
 INSERT INTO pause_test(x) VALUES ('after resume');
 -- The pause latch timeout is 5 minutes. To make sure that setting
 -- the latch is doing its job and unpausing before timeout, expect
@@ -96,8 +90,7 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 (1 row)
 
 COMMIT;
-\cc postgres
-invalid command \cc
+\c postgres
 -- Must see all three rows
 SELECT x FROM pause_test;
              x             
