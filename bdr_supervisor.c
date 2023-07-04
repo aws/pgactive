@@ -77,7 +77,6 @@ bdr_register_perdb_worker(Oid dboid)
 	perdb->c_dboid = dboid;
 	/* Node count is set when apply workers are registered */
 	perdb->nnodes = -1;
-	perdb->seq_slot = bdr_sequencer_get_next_free_slot();
 
 	/*
 	 * The rest of the perdb worker's shmem segment - proclatch and nnodes -

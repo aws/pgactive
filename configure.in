@@ -54,18 +54,6 @@ AC_CHECK_HEADERS(
 [#include "postgres.h"
 ])
 
-HAVE_SEQAM=0
-
-AC_CHECK_HEADERS(
-    [access/seqam.h],
-    [AC_DEFINE([HAVE_SEQAM],[1],[BDR sequence access method available])
-     HAVE_SEQAM=1],
-    [],
-[#include "postgres.h"
-])
-
-AC_SUBST(HAVE_SEQAM)
-
 AC_ARG_VAR([PATH], [PATH for target PostgreSQL install pg_config])
 
 AC_MSG_NOTICE([building with PostgreSQL $version_num])

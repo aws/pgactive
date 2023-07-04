@@ -46,141 +46,6 @@ REVOKE ALL ON FUNCTION pg_stat_get_bdr() FROM PUBLIC;
 
 CREATE VIEW pg_stat_bdr AS SELECT * FROM pg_stat_get_bdr();
 
-CREATE TABLE bdr_sequence_values (
-    owning_sysid text NOT NULL COLLATE "C",
-    owning_tlid oid NOT NULL,
-    owning_dboid oid NOT NULL,
-    owning_riname text NOT NULL COLLATE "C",
-
-    seqschema text NOT NULL COLLATE "C",
-    seqname text NOT NULL COLLATE "C",
-    seqrange int8range NOT NULL,
-
-    -- could not acquire chunk
-    failed bool NOT NULL DEFAULT false,
-
-    -- voting successfull
-    confirmed bool NOT NULL,
-
-    -- empty, not referenced
-    emptied bool NOT NULL CHECK(NOT emptied OR confirmed),
-
-    -- used in sequence
-    in_use bool NOT NULL CHECK(NOT in_use OR confirmed),
-
-    EXCLUDE USING gist(seqschema WITH =, seqname WITH =, seqrange WITH &&) WHERE (confirmed),
-    PRIMARY KEY(owning_sysid, owning_tlid, owning_dboid, owning_riname, seqschema, seqname, seqrange)
-);
-REVOKE ALL ON TABLE bdr_sequence_values FROM PUBLIC;
-SELECT pg_catalog.pg_extension_config_dump('bdr_sequence_values', '');
-
-CREATE INDEX bdr_sequence_values_chunks
-  ON bdr_sequence_values(seqschema, seqname, seqrange);
-
-CREATE INDEX bdr_sequence_values_newchunk
-  ON bdr_sequence_values(seqschema, seqname, upper(seqrange));
-
-CREATE TABLE bdr_sequence_elections (
-    owning_sysid text NOT NULL COLLATE "C",
-    owning_tlid oid NOT NULL,
-    owning_dboid oid NOT NULL,
-    owning_riname text NOT NULL COLLATE "C",
-    owning_election_id bigint NOT NULL,
-
-    seqschema text NOT NULL COLLATE "C",
-    seqname text NOT NULL COLLATE "C",
-    seqrange int8range NOT NULL,
-
-    /* XXX id */
-
-    vote_type text NOT NULL COLLATE "C",
-
-    open bool NOT NULL,
-    success bool NOT NULL DEFAULT false,
-
-    PRIMARY KEY(owning_sysid, owning_tlid, owning_dboid, owning_riname, seqschema, seqname, seqrange)
-);
-REVOKE ALL ON TABLE bdr_sequence_values FROM PUBLIC;
-SELECT pg_catalog.pg_extension_config_dump('bdr_sequence_elections', '');
-
-CREATE INDEX bdr_sequence_elections__open_by_sequence
-  ON bdr.bdr_sequence_elections
-  USING gist(seqschema, seqname, seqrange) WHERE open;
-
-CREATE INDEX bdr_sequence_elections__by_sequence
-  ON bdr.bdr_sequence_elections
-  USING gist(seqschema, seqname, seqrange);
-
-CREATE INDEX bdr_sequence_elections__owning_election_id
-  ON bdr.bdr_sequence_elections (owning_election_id);
-
-CREATE INDEX bdr_sequence_elections__owner_range
-  ON bdr.bdr_sequence_elections USING gist(owning_election_id, seqrange);
-
-CREATE TABLE bdr_votes (
-    vote_sysid text NOT NULL COLLATE "C",
-    vote_tlid oid NOT NULL,
-    vote_dboid oid NOT NULL,
-    vote_riname text NOT NULL COLLATE "C",
-    vote_election_id bigint NOT NULL,
-
-    voter_sysid text NOT NULL COLLATE "C",
-    voter_tlid oid NOT NULL,
-    voter_dboid oid NOT NULL,
-    voter_riname text NOT NULL COLLATE "C",
-
-    vote bool NOT NULL,
-    reason text COLLATE "C" CHECK (reason IS NULL OR vote = false),
-    UNIQUE(vote_sysid, vote_tlid, vote_dboid, vote_riname, vote_election_id, voter_sysid, voter_tlid, voter_dboid, voter_riname)
-);
-REVOKE ALL ON TABLE bdr_votes FROM PUBLIC;
-SELECT pg_catalog.pg_extension_config_dump('bdr_votes', '');
-
-CREATE INDEX bdr_votes__by_voter
-  ON bdr.bdr_votes(voter_sysid, voter_tlid, voter_dboid, voter_riname);
-
--- Register bdr am if seqam is supported
-DO $$
-BEGIN
-  PERFORM 1 FROM pg_catalog.pg_class
-    WHERE relname = 'pg_seqam' AND relnamespace = 11;
-  IF NOT FOUND THEN
-    RETURN;
-  END IF;
-
-  CREATE FUNCTION bdr_sequence_alloc(INTERNAL)
-  RETURNS INTERNAL
-  AS 'MODULE_PATHNAME'
-  LANGUAGE C STABLE STRICT;
-
-  CREATE FUNCTION bdr_sequence_setval(INTERNAL)
-  RETURNS INTERNAL
-  AS 'MODULE_PATHNAME'
-  LANGUAGE C STABLE STRICT;
-
-  CREATE FUNCTION bdr_sequence_options(INTERNAL)
-  RETURNS INTERNAL
-  AS 'MODULE_PATHNAME'
-  LANGUAGE C STABLE STRICT;
-
-  -- Not tracked yet, can we trick pg_depend instead?
-  DELETE FROM pg_seqam WHERE seqamname = 'bdr';
-
-  INSERT INTO pg_seqam(
-      seqamname,
-      seqamalloc,
-      seqamsetval,
-      seqamoptions
-  )
-  VALUES (
-      'bdr',
-      'bdr_sequence_alloc',
-      'bdr_sequence_setval',
-      'bdr_sequence_options'
-  );
-END
-$$;
-
 CREATE TYPE bdr_conflict_type AS ENUM (
     'insert_insert',
     'insert_update',
@@ -242,18 +107,7 @@ CREATE TYPE bdr_conflict_resolution AS ENUM (
 COMMENT ON TYPE bdr_conflict_resolution IS
 'Resolution of a bdr conflict - if a conflict was resolved by a conflict trigger, by last-update-wins tests on commit timestamps, etc.';
 
--- When seqam is present, make sure the sequence is using local AM
-DO $$
-BEGIN
-  PERFORM 1 FROM pg_catalog.pg_class
-    WHERE relname = 'pg_seqam' AND relnamespace = 11;
-  IF FOUND THEN
-    EXECUTE 'CREATE SEQUENCE bdr_conflict_history_id_seq USING local';
-  ELSE
-    CREATE SEQUENCE bdr_conflict_history_id_seq;
-  END IF;
-END
-$$;
+CREATE SEQUENCE bdr_conflict_history_id_seq;
 
 --
 -- bdr_conflict_history records apply conflicts so they can be queried and
@@ -480,189 +334,6 @@ CREATE TABLE bdr_replication_set_config (
 ALTER TABLE bdr_replication_set_config SET (user_catalog_table = true);
 
 REVOKE ALL ON TABLE bdr_replication_set_config FROM PUBLIC;
-
-CREATE FUNCTION bdr_sequencer_vote (
-  p_sysid text,
-  p_tlid oid,
-  p_dboid oid,
-  p_riname text)
-RETURNS int
-VOLATILE
-LANGUAGE plpgsql
-AS $body$
-DECLARE
-    v_curel record;
-    v_curvote bool;
-    v_ourvote_failed bool;
-    v_nvotes int := 0;
-BEGIN
-    FOR v_curel IN SELECT *
-        FROM bdr_sequence_elections election
-        WHERE
-            election.open
-            -- not our election
-            AND NOT (
-                owning_sysid = p_sysid
-                AND owning_tlid = p_tlid
-                AND owning_dboid = p_dboid
-                AND owning_riname = p_riname
-            )
-            -- we haven't voted about this yet
-            AND NOT EXISTS (
-                SELECT *
-                FROM bdr_votes
-                WHERE true
-                    AND owning_sysid = vote_sysid
-                    AND owning_tlid = vote_tlid
-                    AND owning_dboid = vote_dboid
-                    AND owning_riname = vote_riname
-                    AND owning_election_id = vote_election_id
-
-                    AND voter_sysid = p_sysid
-                    AND voter_tlid = p_tlid
-                    AND voter_dboid = p_dboid
-                    AND voter_riname = p_riname
-            )
-        LOOP
-
-        v_ourvote_failed = false;
-
-        -- We haven't allowed anybody else to use it.
-        IF EXISTS(
-            SELECT *
-            FROM bdr_sequence_elections other_election
-                JOIN bdr_votes vote ON (
-                    other_election.owning_sysid = vote.vote_sysid
-                    AND other_election.owning_tlid = vote.vote_tlid
-                    AND other_election.owning_dboid = vote.vote_dboid
-                    AND other_election.owning_riname = vote.vote_riname
-                    AND other_election.owning_election_id = vote.vote_election_id
-                )
-            WHERE true
-                AND vote.voter_sysid = p_sysid
-                AND vote.voter_tlid = p_tlid
-                AND vote.voter_dboid = p_dboid
-                AND vote.voter_riname = p_riname
-                AND other_election.seqname = v_curel.seqname
-                AND other_election.seqschema = v_curel.seqschema
-                AND other_election.seqrange && v_curel.seqrange
-        ) THEN
-            v_curvote = false;
-        -- If we already got the chunk, it's over
-        ELSEIF EXISTS(
-            SELECT *
-            FROM bdr_sequence_values val
-            WHERE true
-                AND val.confirmed
-                AND val.seqschema = v_curel.seqschema
-                AND val.seqname = v_curel.seqname
-                AND val.seqrange && v_curel.seqrange
-                AND val.owning_sysid = p_sysid
-                AND val.owning_tlid = p_tlid
-                AND val.owning_dboid = p_dboid
-                AND val.owning_riname = p_riname
-        ) THEN
-            v_curvote = false;
-        -- If we have allocated the value ourselves, check whether we should be
-        -- allowed, or whether we want to allow the other guy.
-        ELSEIF EXISTS(
-            SELECT *
-            FROM bdr_sequence_values val
-            WHERE true
-                AND NOT val.confirmed
-                AND val.seqschema = v_curel.seqschema
-                AND val.seqname = v_curel.seqname
-                AND val.seqrange && v_curel.seqrange
-                AND val.owning_sysid = p_sysid
-                AND val.owning_tlid = p_tlid
-                AND val.owning_dboid = p_dboid
-                AND val.owning_riname = p_riname
-        ) THEN
-            -- Allow the guy with the smaller (sysid, tlid, dboid, riname) pair
-            IF (p_sysid, p_tlid, p_dboid, p_riname) <
-               (v_curel.owning_sysid,
-                v_curel.owning_tlid,
-                v_curel.owning_dboid,
-                v_curel.owning_riname)
-            THEN
-                /* this side wins */
-                v_curvote = false;
-            ELSE
-                /* other side wins*/
-                v_curvote = true;
-
-                /*
-                 * Delay update to after the insertion into bdr_votes so we
-                 * have consistent lock acquiration order with
-                 * bdr_sequencer_lock().
-                 */
-
-                v_ourvote_failed = true;
-            END IF;
-        ELSE
-            v_curvote = true;
-        END IF;
-
-        /* now actually do the vote */
-        INSERT INTO bdr_votes (
-            vote_sysid,
-            vote_tlid,
-            vote_dboid,
-            vote_riname,
-            vote_election_id,
-
-            voter_sysid,
-            voter_tlid,
-            voter_dboid,
-            voter_riname,
-            vote
-        )
-        VALUES
-        (
-            v_curel.owning_sysid,
-            v_curel.owning_tlid,
-            v_curel.owning_dboid,
-            v_curel.owning_riname,
-            v_curel.owning_election_id,
-            p_sysid,
-            p_tlid,
-            p_dboid,
-            p_riname,
-            v_curvote
-        );
-
-        IF v_ourvote_failed THEN
-            UPDATE bdr.bdr_sequence_elections AS ourel
-            SET open = false, success = false
-            WHERE true
-                AND ourel.seqschema = v_curel.seqschema
-                AND ourel.seqname = v_curel.seqname
-                AND ourel.seqrange && v_curel.seqrange
-                AND ourel.owning_sysid = p_sysid
-                AND ourel.owning_tlid = p_tlid
-                AND ourel.owning_dboid = p_dboid
-                AND ourel.owning_riname = p_riname;
-
-            UPDATE bdr.bdr_sequence_values AS ourchunk
-            SET failed = true
-            WHERE true
-                AND ourchunk.seqschema = v_curel.seqschema
-                AND ourchunk.seqname = v_curel.seqname
-                AND ourchunk.seqrange && v_curel.seqrange
-                AND ourchunk.owning_sysid = p_sysid
-                AND ourchunk.owning_tlid = p_tlid
-                AND ourchunk.owning_dboid = p_dboid
-                AND ourchunk.owning_riname = p_riname;
-        END IF;
-
-        v_nvotes = v_nvotes + 1;
-    END LOOP;
-
-    RETURN v_nvotes;
-END
-$body$;
-
-REVOKE ALL ON FUNCTION bdr_sequencer_vote(p_sysid text, p_tlid oid, p_dboid oid, p_riname text) FROM public;
 
 -- Fix quoting for format() arguments by directly using regclass with %s
 -- instead of %I
@@ -1627,11 +1298,6 @@ RETURNS boolean
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE STRICT;
 
-CREATE FUNCTION bdr_internal_sequence_reset_cache(seq regclass)
-RETURNS void
-AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT;
-
 CREATE FUNCTION bdr_get_workers_info (
     OUT sysid text,
     OUT timeline oid,
@@ -1772,8 +1438,7 @@ COMMENT ON FUNCTION bdr_format_replident_name(text, oid, oid, oid, name) IS
 
 -- Completely de-BDR-ize a node. Updated to fix #281.
 CREATE FUNCTION remove_bdr_from_local_node (
-  force boolean DEFAULT false,
-  convert_global_sequences boolean DEFAULT true)
+  force boolean DEFAULT false)
 RETURNS void
 LANGUAGE plpgsql
 SET bdr.skip_ddl_locking = on
@@ -1813,42 +1478,7 @@ BEGIN
 
   RAISE NOTICE 'removing BDR from node';
 
-  -- Alter all global sequences to become local sequences.  That alone won't
-  -- they're in the right position, since another node might've had numerically
-  -- higher global sequence values. So we need to then move it up to the
-  -- highest allocated chunk for any node and setval to it.
-  IF convert_global_sequences THEN 
-    IF bdr.have_global_sequences() THEN
-      FOR _seqschema, _seqname, _seqmax IN
-        SELECT
-          n.nspname,
-          c.relname,
-          (
-            SELECT max(upper(seqrange))
-            FROM bdr.bdr_sequence_values
-            WHERE seqschema = n.nspname
-              AND seqname = c.relname
-              AND in_use
-          ) AS seqmax
-        FROM pg_class c
-        INNER JOIN pg_namespace n ON (c.relnamespace = n.oid)
-        WHERE c.relkind = 'S'
-          AND c.relam = (SELECT s.oid FROM pg_seqam s WHERE s.seqamname = 'bdr')
-      LOOP
-        EXECUTE format('ALTER SEQUENCE %I.%I USING local;', _seqschema, _seqname);
-        -- This shouldn't be necessary, see bug #215
-        IF _seqmax IS NOT NULL THEN
-          EXECUTE format('SELECT setval(%L, $1)', quote_ident(_seqschema)||'.'||quote_ident(_seqname)) USING (_seqmax);
-        END IF;
-      END LOOP;
-    ELSE
-      RAISE INFO 'BDR 1.0 global sequences not supported, nothing to convert';
-    END IF;
-  ELSE
-    RAISE NOTICE 'BDR 1.0 global sequences not converted to local; they will not work until a new nodegroup is created.';
-  END IF;
-
-  -- Strip the database security label
+   -- Strip the database security label
   EXECUTE format('SECURITY LABEL FOR bdr ON DATABASE %I IS NULL', current_database());
 
   -- Suspend worker management, so when we terminate apply workers and
@@ -1957,9 +1587,6 @@ BEGIN
   DELETE FROM bdr.bdr_conflict_handlers;
   DELETE FROM bdr.bdr_conflict_history;
   DELETE FROM bdr.bdr_replication_set_config;
-  DELETE FROM bdr.bdr_sequence_elections;
-  DELETE FROM bdr.bdr_sequence_values;
-  DELETE FROM bdr.bdr_votes;
 
   -- Remove BDR control file containing node identifier.
   PERFORM bdr.bdr_remove_node_identifier();
@@ -1969,10 +1596,10 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION remove_bdr_from_local_node(boolean, boolean) FROM public;
+REVOKE ALL ON FUNCTION remove_bdr_from_local_node(boolean) FROM public;
 
-COMMENT ON FUNCTION remove_bdr_from_local_node(boolean, boolean) IS
-'Remove all BDR security labels, slots, replication origins, replication sets, etc from the local node, and turn all global sequences into local sequences.';
+COMMENT ON FUNCTION remove_bdr_from_local_node(boolean) IS
+'Remove all BDR security labels, slots, replication origins, replication sets, etc from the local node.';
 
 CREATE FUNCTION bdr_is_active_in_db()
 RETURNS boolean
@@ -1984,14 +1611,6 @@ ON ddl_command_end
 EXECUTE PROCEDURE bdr.bdr_truncate_trigger_add();
 
 ALTER EVENT TRIGGER bdr_truncate_trigger_add ENABLE ALWAYS;
-
--- a.k.a have_seqam , HAVE_SEQAM
-CREATE FUNCTION have_global_sequences()
-RETURNS boolean
-LANGUAGE SQL
-AS $$
-SELECT (current_setting('server_version_num')::int / 100) = 904;
-$$;
 
 -- Marking this immutable is technically a bit cheeky as we could add new
 -- statuses. But for index use we need it, and it's safe since any unrecognised

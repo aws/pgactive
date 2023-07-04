@@ -1265,8 +1265,6 @@ bdr_maintain_schema(bool update_extensions)
 		bdr_lookup_relid("bdr_global_locks_byowner", schema_oid);
 	BdrSupervisorDbOid = bdr_get_supervisordb_oid(false);
 
-	bdr_maintain_seq_schema(schema_oid);
-
 	bdr_conflict_handlers_init();
 
 	PopActiveSnapshot();

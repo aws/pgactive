@@ -494,38 +494,6 @@ filter_AlterTableStmt(Node *parsetree,
 }
 
 static void
-filter_CreateSeqStmt(Node *parsetree)
-{
-	CreateSeqStmt *stmt;
-
-	if (bdr_permit_unsafe_commands)
-		return;
-
-	stmt = (CreateSeqStmt *) parsetree;
-
-	filter_CreateBdrSeqStmt(stmt);
-}
-
-static void
-filter_AlterSeqStmt(Node *parsetree)
-{
-	Oid			seqoid;
-	AlterSeqStmt *stmt;
-
-	if (bdr_permit_unsafe_commands)
-		return;
-
-	stmt = (AlterSeqStmt *) parsetree;
-
-	seqoid = RangeVarGetRelid(stmt->sequence, AccessShareLock, true);
-
-	if (seqoid == InvalidOid)
-		return;
-
-	filter_AlterBdrSeqStmt(stmt, seqoid);
-}
-
-static void
 filter_CreateTableAs(Node *parsetree)
 {
 	CreateTableAsStmt *stmt;
@@ -1202,11 +1170,9 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_CreateSeqStmt:
-			filter_CreateSeqStmt(parsetree);
 			break;
 
 		case T_AlterSeqStmt:
-			filter_AlterSeqStmt(parsetree);
 			break;
 
 		case T_CreateTableAsStmt:

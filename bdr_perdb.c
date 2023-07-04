@@ -724,8 +724,7 @@ bdr_maintain_db_workers(void)
 
 		/*
 		 * We're only interested in counting 'r'eady nodes since nodes that're
-		 * still coming up don't participate in DDL locking, global sequence
-		 * voting, etc.
+		 * still coming up don't participate in DDL locking etc.
 		 *
 		 * It's OK to count it even if the apply worker doesn't exist right
 		 * now or there's no incoming walsender yet.  For the node to have
@@ -833,19 +832,14 @@ out:
 	elog(DEBUG2, "done registering apply workers");
 
 	/*
-	 * Now we need to tell the lock manager and the sequence manager about the
-	 * changed node count.
+	 * Now we need to tell the lock manager about the changed node count.
 	 *
 	 * Now that node join takes the DDL lock and part is careful to wait until
 	 * it completes, the node count should only change when it's safe. In
 	 * particular it should only go up when the DDL lock is held.
-	 *
-	 * There's no such protection for 9.4bdr global sequences, which could
-	 * have voting issues when the nodecount changes.
 	 */
 	bdr_worker_slot->data.perdb.nnodes = nnodes;
 	bdr_locks_set_nnodes(nnodes);
-	bdr_sequencer_set_nnodes(nnodes);
 
 	elog(DEBUG2, "updated worker counts");
 }
@@ -959,12 +953,6 @@ bdr_perdb_worker_main(Datum main_arg)
 	/* Launch the apply workers */
 	bdr_maintain_db_workers();
 
-	elog(DEBUG1, "BDR starting sequencer on database with OID %u",
-		 MyDatabaseId);
-
-	/* initialize sequencer */
-	bdr_sequencer_init(perdb->seq_slot, perdb->nnodes);
-
 	while (!got_SIGTERM)
 	{
 		wait = true;
@@ -978,20 +966,6 @@ bdr_perdb_worker_main(Datum main_arg)
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
-		/* check whether we need to start new elections */
-		if (bdr_sequencer_start_elections())
-			wait = false;
-
-		/* check whether we need to vote */
-		if (bdr_sequencer_vote())
-			wait = false;
-
-		/* check whether any of our elections needs to be tallied */
-		bdr_sequencer_tally();
-
-		/* check all bdr sequences for used up chunks */
-		bdr_sequencer_fill_sequences();
-
 		pgstat_report_activity(STATE_IDLE, NULL);
 
 		/*
@@ -1002,7 +976,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		 *
 		 * We wake up everytime our latch gets set or if 180 seconds have
 		 * passed without events. That's a stopgap for the case a backend
-		 * committed sequencer changes but died before setting the latch.
+		 * committed txn changes but died before setting the latch.
 		 */
 		if (wait)
 		{

@@ -23,8 +23,6 @@
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_type.h"
 
-#include "commands/sequence.h"
-
 #include "tcop/tcopprot.h"
 
 #include "replication/origin.h"

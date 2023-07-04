@@ -18,14 +18,6 @@ $DDL$);
  
 (1 row)
 
--- Also for dependency testing, a global sequence if supported
-DO LANGUAGE plpgsql $$
-BEGIN
-  IF bdr.have_global_sequences() THEN
-    EXECUTE $DDL$CREATE SEQUENCE "some $SCHEMA"."some ""sequence"" name" USING bdr;$DDL$;
-  END IF;
-END;
-$$;
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 DROP VIEW public.ddl_info;
 $DDL$);
@@ -161,8 +153,7 @@ BEGIN;
 -- We silence notice messages here as some of them depend on when BDR workers
 -- on the parted node 'node-pg' are gone.
 SET LOCAL client_min_messages = 'ERROR';
-SELECT bdr.remove_bdr_from_local_node(true, true);
-INFO:  BDR 1.0 global sequences not supported, nothing to convert
+SELECT bdr.remove_bdr_from_local_node(true);
  remove_bdr_from_local_node 
 ----------------------------
  

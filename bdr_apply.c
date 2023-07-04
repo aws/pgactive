@@ -2063,9 +2063,6 @@ check_bdr_wakeups(BDRRelation * rel)
 	/* has the node/connection state been changed on another system? */
 	if (reloid == BdrNodesRelid || reloid == BdrConnectionsRelid)
 		bdr_connections_changed(NULL);
-
-	if (isBdrGlobalSeqRelId(reloid))
-		bdr_schedule_eoxact_sequencer_wakeup();
 }
 
 static void
@@ -2293,14 +2290,6 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 	cbarg->remote_relname = rv->relname;
 
 	relid = RangeVarGetRelidExtended(rv, mode, 0, NULL, NULL);
-
-	/*
-	 * Acquire sequencer lock if any of the sequencer relations are modified.
-	 * We used to rely on relation locks, but that had problems with deadlocks
-	 * and interrupting auto-analyze/vacuum.
-	 */
-	if (isBdrGlobalSeqRelId(relid))
-		bdr_sequencer_lock();
 
 	return bdr_table_open(relid, NoLock);
 }

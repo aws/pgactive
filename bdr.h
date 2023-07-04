@@ -25,7 +25,6 @@
 
 #include "bdr_config.h"
 #include "bdr_internal.h"
-#include "bdr_seq.h"
 #include "bdr_version.h"
 #include "bdr_compat.h"
 #include "nodes/execnodes.h"
@@ -287,8 +286,6 @@ typedef struct BdrPerdbWorker
 	 * still joining, or fewer due to nodes that are beginning to part.
 	 */
 	int			nnodes;
-
-	size_t		seq_slot;
 
 	/*
 	 * The perdb worker's latch from the PROC array, for use from other
