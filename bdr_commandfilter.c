@@ -1420,8 +1420,9 @@ done:
 			/* FALLTHROUGH */
 		case T_CreateExtensionStmt:
 		case T_AlterExtensionStmt:
-		case T_AlterExtensionContentsStmt:
 			Assert(!bdr_in_extension);
+			/* FALLTHROUGH */
+		case T_AlterExtensionContentsStmt:
 			bdr_in_extension = true;
 			entered_extension = true;
 			break;
@@ -1485,7 +1486,8 @@ done:
 	if (entered_extension)
 	{
 		Assert(bdr_in_extension);
-		bdr_in_extension = false;
+		if (nodeTag(parsetree) != T_AlterExtensionContentsStmt)
+			bdr_in_extension = false;
 	}
 
 	if (incremented_nestlevel)
