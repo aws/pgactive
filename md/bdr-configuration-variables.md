@@ -91,13 +91,6 @@ server restart to take effect.
     acquired. To limit overall duration use a
     `statement_timeout`.
 
-`bdr.permit_ddl_locking` (`boolean`)
-
-    Allow sessions to run DDL commands that acquire the global DDL lock.
-    See [DDL replication](ddl-replication.md) for details on the DDL
-    lock. Setting this to off by default means that unintended DDL that
-    can be disruptive to production is prevented.
-
 `bdr.trace_ddl_locks_level` (`boolean`)
 
     Override the default debug log level for BDR DDL locking (used in
@@ -147,37 +140,12 @@ server restart to take effect.
     This parameter requires a server reload or restart of the apply
     workers to take effect.
 
-`bdr.skip_ddl_locking` (`boolean`)
-
-    Only affects BDR. Prevents acquisiton of the the global DDL lock
-    when executing DDL statement. This is mainly used internally, but
-    can also be useful in other cases. This option can be set at any
-    time, but only by superusers.
-
-    ::: WARNING
-      **Warning**
-      Inconsiderate usage of this option easily allows to break replication setups.
-    :::
-
-`bdr.permit_unsafe_ddl_commands` (`boolean`)
-
-    Only affects BDR. Permits execution of schema changes that cannot
-    safely be replicated and overrides the read-only status of a node.
-    This is primarily used internally, but can also be used in other
-    cases. This option can be set at any time, but only by superusers.
-
-    ::: WARNING
-      **Warning**
-      Inconsiderate usage of this option easily allows to break replication setups.
-    :::
-
 `bdr.skip_ddl_replication` (`boolean`)
 
-    Only affects BDR. Skips replication of DDL changes made in a session
-    where this option is set to other systems. This is primarily useful
-    for BDR internal use, but also can be used for some intentional
-    schema changes like adding a index only on some nodes. This option
-    can be set at any time, but only by superusers.
+    Only affects BDR. Skips replication and apply of DDL changes.
+    This is set to on by default so that a BDR node bevahes as a non BDR one by
+    default.  This option can be changed globally or enabled locally
+    (at the session level) but only by superusers.
 
     ::: WARNING
       **Warning**

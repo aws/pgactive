@@ -1,9 +1,9 @@
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION bdr" to load this file. \quit
 
--- We must be able to use exclusion constraints for global sequences among
--- other things.
-SET bdr.permit_unsafe_ddl_commands = true;
+--- We must be able to use exclusion constraints for global sequences among
+--- other things.
+-- SET bdr.permit_unsafe_ddl_commands = true; is removed for now
 
 -- We don't want to replicate commands from in here
 SET bdr.skip_ddl_replication = true;
@@ -341,11 +341,13 @@ CREATE FUNCTION table_set_replication_sets(p_relation regclass, p_sets text[])
   RETURNS void
   VOLATILE
   LANGUAGE 'plpgsql'
-  SET bdr.permit_unsafe_ddl_commands = true
+-- remove bdr_permit_unsafe_commands and do not replace
+-- by bdr_skip_ddl_replication for now
   SET search_path = ''
   AS $$
 DECLARE
     v_label json;
+	setting_value text;
 BEGIN
     -- emulate STRICT for p_relation parameter
     IF p_relation IS NULL THEN
@@ -372,7 +374,17 @@ BEGIN
     ) d;
 
     -- and now set the appropriate label
-    PERFORM bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label)) ;
+	-- bdr_replicate_ddl_command would fail if skip_ddl_replication is true
+
+	SELECT setting INTO setting_value
+		FROM pg_settings
+		WHERE name = 'bdr.skip_ddl_replication';
+
+	IF setting_value = 'on' or setting_value = 'true' THEN
+		PERFORM format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label);
+	ELSE
+		PERFORM bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label));
+	END IF;
 END;
 $$;
 
@@ -616,9 +628,9 @@ $body$;
 CREATE FUNCTION internal_update_seclabel()
 RETURNS void LANGUAGE plpgsql
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 DECLARE
     v_label json;
@@ -662,9 +674,9 @@ CREATE FUNCTION internal_begin_join (
 )
 RETURNS record LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 DECLARE
     localid RECORD;
@@ -867,9 +879,9 @@ CREATE FUNCTION bdr_group_join (
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 DECLARE
     localid record;
@@ -973,9 +985,9 @@ CREATE FUNCTION bdr_group_create (
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 DECLARE
 	t record;
@@ -1075,9 +1087,9 @@ COMMENT ON FUNCTION bdr_group_create(text, text, text, integer, text[]) IS
 CREATE FUNCTION bdr.bdr_part_by_node_names(p_nodes text[])
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 DECLARE
     unknown_node_names text := NULL;
@@ -1214,9 +1226,9 @@ COMMENT ON FUNCTION bdr_subscribe(text, text, text, integer, text[], bdr.bdr_syn
 CREATE FUNCTION bdr_unsubscribe(node_name text, drop_slot boolean DEFAULT true)
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
-SET bdr.skip_ddl_locking = on
+-- SET bdr.skip_ddl_locking = on is removed for now
 AS $body$
 BEGIN
 	RAISE EXCEPTION 'BDR unidirectional subscriptions no longer supported, use pglogical';
@@ -1441,8 +1453,8 @@ CREATE FUNCTION remove_bdr_from_local_node (
   force boolean DEFAULT false)
 RETURNS void
 LANGUAGE plpgsql
-SET bdr.skip_ddl_locking = on
-SET bdr.permit_unsafe_ddl_commands = on
+-- SET bdr.skip_ddl_locking = on is removed for now
+-- SET bdr.permit_unsafe_ddl_commands = on is removed for now
 SET bdr.skip_ddl_replication = on
 SET search_path = 'bdr,pg_catalog'
 AS $$
@@ -1853,6 +1865,6 @@ REVOKE ALL ON FUNCTION bdr_remove_node_identifier() FROM PUBLIC;
 COMMENT ON FUNCTION bdr_remove_node_identifier()
 IS 'Remove BDR node identifier from BDR control file';
 
-RESET bdr.permit_unsafe_ddl_commands;
+-- RESET bdr.permit_unsafe_ddl_commands; is removed for now
 RESET bdr.skip_ddl_replication;
 RESET search_path;

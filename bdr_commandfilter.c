@@ -55,7 +55,8 @@ static ProcessUtility_hook_type next_ProcessUtility_hook = NULL;
 static ClientAuthentication_hook_type next_ClientAuthentication_hook = NULL;
 
 /* GUCs */
-bool		bdr_permit_unsafe_commands = false;
+/* replaced by bdr_skip_ddl_replication for now
+bool           bdr_permit_unsafe_commands = false; */
 
 #if PG_VERSION_NUM >= 120000
 bool        default_with_oids = false;
@@ -105,7 +106,8 @@ error_on_persistent_rv(RangeVar *rv,
 static void
 error_unsupported_command(const char *cmdtag)
 {
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	ereport(ERROR,
@@ -135,7 +137,8 @@ filter_CreateStmt(Node *parsetree,
 
 	stmt = (CreateStmt *) parsetree;
 
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	if (stmt->ofTypename != NULL)
@@ -201,7 +204,8 @@ filter_AlterTableStmt(Node *parsetree,
 	Oid			relid;
 	LOCKMODE	lockmode;
 
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	astmt = (AlterTableStmt *) parsetree;
@@ -500,7 +504,8 @@ filter_CreateTableAs(Node *parsetree)
 
 	stmt = (CreateTableAsStmt *) parsetree;
 
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	if (ispermanent(stmt->into->rel->relpersistence))
@@ -748,7 +753,8 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 static void
 bdr_commandfilter_dbname(const char *dbname)
 {
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	if (strcmp(dbname, BDR_SUPERVISOR_DBNAME) == 0)
@@ -767,7 +773,8 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 	ListCell   *cell;
 	Oid			bdr_oid;
 
-	if (bdr_permit_unsafe_commands)
+	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+	if (bdr_skip_ddl_replication)
 		return;
 
 	/* Only interested in DROP EXTENSION */
@@ -883,7 +890,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		CommandTag tag;
 
 		if (bdr_local_node_read_only()
-			&& !bdr_permit_unsafe_commands
+			/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+			&& !bdr_skip_ddl_replication
 			&& !allowed_on_read_only_node(parsetree, &tag))
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
@@ -1102,7 +1110,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				 * that users aren't confused, only permit it when
 				 * bdr.skip_ddl_replication is set.
 				 */
-				if (stmt->concurrent && !bdr_permit_unsafe_commands)
+				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+				if (stmt->concurrent && !bdr_skip_ddl_replication)
 				{
 					if (in_bdr_replicate_ddl_command)
 						ereport(ERROR,
@@ -1116,7 +1125,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 											   AccessExclusiveLock, false);
 				}
 
-				if (stmt->whereClause && stmt->unique && !bdr_permit_unsafe_commands)
+				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+				if (stmt->whereClause && stmt->unique && !bdr_skip_ddl_replication)
 					error_on_persistent_rv(stmt->relation,
 										   "CREATE UNIQUE INDEX ... WHERE",
 										   AccessExclusiveLock, false);
@@ -1222,7 +1232,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			{
 				DropStmt   *stmt = (DropStmt *) parsetree;
 
-				if (stmt->removeType == OBJECT_INDEX && stmt->concurrent && !bdr_permit_unsafe_commands)
+				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+				if (stmt->removeType == OBJECT_INDEX && stmt->concurrent && !bdr_skip_ddl_replication)
 				{
 					if (in_bdr_replicate_ddl_command)
 						ereport(ERROR,
@@ -1303,14 +1314,16 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			 * appear as ProcessUtility targets. So just ERROR if we missed
 			 * one.
 			 */
-			if (!bdr_permit_unsafe_commands)
+			/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+			if (!bdr_skip_ddl_replication)
 				elog(ERROR, "unrecognized node type: %d", (int) nodeTag(parsetree));
 			break;
 	}
 
 	/* now lock other nodes in the bdr flock against ddl */
 	affects_only_nonpermanent = statement_affects_only_nonpermanent(parsetree);
-	if (!bdr_skip_ddl_locking && !affects_only_nonpermanent
+	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
+	if (!bdr_skip_ddl_replication && !affects_only_nonpermanent
 		&& lock_type != BDR_LOCK_NOLOCK)
 		bdr_acquire_ddl_lock(lock_type);
 

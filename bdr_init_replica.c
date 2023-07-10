@@ -294,9 +294,11 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	 */
 	appendStringInfo(local_dsn, "%s application_name='%s: init restore' "
 					 "options='-c bdr.do_not_replicate=on "
-					 "-c bdr.permit_unsafe_ddl_commands=on "
+					 /* remove for now
+					 "-c bdr.permit_unsafe_ddl_commands=on " */
 					 "-c bdr.skip_ddl_replication=on "
-					 "-c bdr.skip_ddl_locking=on "
+					 /* remove for now
+					 "-c bdr.skip_ddl_locking=on " */
 					 "-c session_replication_role=replica'",
 					 node->local_dsn,  bdr_get_my_cached_node_name());
 
@@ -393,10 +395,12 @@ bdr_sync_nodes(PGconn *remote_conn, BDRNodeInfo * local_node)
 		const char *const setup_query =
 			"BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;\n"
 			"SET LOCAL search_path = bdr, pg_catalog;\n"
-			"SET LOCAL bdr.permit_unsafe_ddl_commands = on;\n"
+			/* remove for now
+			"SET LOCAL bdr.permit_unsafe_ddl_commands = on;\n" */
 			"SET LOCAL bdr.skip_ddl_replication = on;\n"
-			"SET LOCAL bdr.skip_ddl_locking = on;\n"
 			"LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;\n"
+			/* remove for now
+			"SET LOCAL bdr.skip_ddl_locking = on;\n" */
 			"LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;\n";
 
 		/* Setup the environment. */

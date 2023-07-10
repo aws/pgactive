@@ -843,9 +843,9 @@ process_remote_insert(StringInfo s)
 
 	check_bdr_wakeups(rel);
 
-	/* execute DDL if insertion was into the ddl command queue */
-	if (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
-		RelationGetRelid(rel->rel) == QueuedDropsRelid)
+	/* execute DDL if insertion was into the ddl command queue and if ddl replication is wanted */
+	if (!prev_bdr_skip_ddl_replication  && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
+		RelationGetRelid(rel->rel) == QueuedDropsRelid))
 	{
 		HeapTuple	ht;
 		LockRelId	lockid = rel->rel->rd_lockInfo.lockRelId;

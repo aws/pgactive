@@ -132,38 +132,6 @@ cancel or abort it. You must wait for it to apply successfully on all
 other nodes and for them to replay confirmation. This is why it is
 important to keep DDL transactions short and fast.
 
-Because DDL is disruptive in [BDR], it\'s possible to
-configure the system so that transactions can\'t do DDL that requires a
-heavy global lock by default. This is controlled by the
-[bdr.permit_ddl_locking](bdr-configuration-variables.md#GUC-BDR-PERMIT-DDL-LOCKING)
-setting. If set to `false`, any command that would acquire the
-global DDL lock is rejected with an `ERROR` instead. This
-helps prevent unintended global DDL lock acquisitions. You can make this
-the default for a database, user or group with
-
-``` PROGRAMLISTING
- ALTER ROLE username SET bdr.permit_ddl_locking = false;
-     
-```
-
-or
-
-``` PROGRAMLISTING
- ALTER DATABASE dbname SET bdr.permit_ddl_locking = false;
-     
-```
-
-or set it globally in `postgresql.conf`. Then when you intend
-to perform disruptive DDL, explicitly permit it:
-
-``` PROGRAMLISTING
-BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
--- Do your schema changes here
-COMMIT;
-     
-```
-
 
 
   --------------------------------------------- ------------------------------------------- --------------------------------------------------------

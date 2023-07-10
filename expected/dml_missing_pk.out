@@ -3,7 +3,7 @@ SELECT * FROM public.bdr_regress_variables()
 \gset
 \c :writedb1
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 -- Suppress some CONTEXT msgs that vary by version
 SET LOCAL client_min_messages = warning;
 SELECT bdr.bdr_replicate_ddl_command($$
@@ -153,7 +153,7 @@ UPDATE pg_class
 SET relname = 'bdr_missing_pk'
 WHERE relname = 'bdr_missing_pk_renamed';
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SET LOCAL client_min_messages = warning;
 SELECT bdr.bdr_replicate_ddl_command($$DROP TABLE public.bdr_missing_pk CASCADE;$$);
  bdr_replicate_ddl_command 

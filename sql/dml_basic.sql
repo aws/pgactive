@@ -5,7 +5,7 @@ SELECT * FROM public.bdr_regress_variables()
 \c :writedb1
 
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($$
 	CREATE TABLE public.basic_dml (
 		id serial primary key,
@@ -83,6 +83,6 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 
 \c :writedb1
 BEGIN;
-SET LOCAL bdr.permit_ddl_locking = true;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.bdr_replicate_ddl_command($$DROP TABLE public.basic_dml;$$);
 COMMIT;

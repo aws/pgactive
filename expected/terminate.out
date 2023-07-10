@@ -50,7 +50,7 @@ SELECT wait_for_nworkers(2);
  
 (1 row)
 
-BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
  _test_pause_worker_management 
 -------------------------------
  
@@ -90,7 +90,7 @@ SELECT wait_for_nworkers(1);
 -- Wait for reconnect. No need for bdr_connections_changed()
 -- since this'll just stop the apply workers quitting as soon
 -- as they launch.
-BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
  _test_pause_worker_management 
 -------------------------------
  
@@ -102,7 +102,7 @@ SELECT wait_for_nworkers(2);
  
 (1 row)
 
-BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
  _test_pause_worker_management 
 -------------------------------
  
@@ -140,7 +140,7 @@ SELECT wait_for_nwalsenders(1);
 (1 row)
 
 -- OK, let them come back up
-BEGIN; SET LOCAL bdr.permit_unsafe_ddl_commands = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
  _test_pause_worker_management 
 -------------------------------
  

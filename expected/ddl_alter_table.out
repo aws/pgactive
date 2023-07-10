@@ -654,11 +654,11 @@ SELECT * FROM test_inh_chld2;
 ----+------+------+-----------
 (0 rows)
 
-SET bdr.permit_unsafe_ddl_commands = true;
+SET bdr.skip_ddl_replication = true;
 ALTER TABLE test_inh_root ADD CONSTRAINT idchk CHECK (id > 0);
 ALTER TABLE ONLY test_inh_chld1 ALTER COLUMN id SET DEFAULT 1;
 ALTER TABLE ONLY test_inh_root DROP CONSTRAINT idchk;
-RESET bdr.permit_unsafe_ddl_commands;
+RESET bdr.skip_ddl_replication;
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  wait_slot_confirm_lsn 
 -----------------------
@@ -717,12 +717,10 @@ Child tables: test_inh_chld1
                                      Table "public.test_inh_chld1"
   Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
 -----------+-------------------+-----------+----------+---------+----------+--------------+-------------
- id        | integer           |           | not null | 1       | plain    |              | 
+ id        | integer           |           | not null |         | plain    |              | 
  val1      | character varying |           |          |         | extended |              | 
  val2      | integer           |           |          |         | plain    |              | 
  child1col | integer           |           |          |         | plain    |              | 
-Check constraints:
-    "idchk" CHECK (id > 0)
 Inherits: test_inh_root
 Child tables: test_inh_chld2
 
@@ -734,8 +732,6 @@ Child tables: test_inh_chld2
  val1      | character varying |           |          |         | extended |              | 
  val2      | integer           |           |          |         | plain    |              | 
  child1col | integer           |           |          |         | plain    |              | 
-Check constraints:
-    "idchk" CHECK (id > 0)
 Inherits: test_inh_chld1
 
 \c regression
@@ -793,13 +789,11 @@ ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY table
 CONTEXT:  during DDL replay of ddl statement: ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
 -- Will be permitted
 BEGIN;
-SET LOCAL bdr.permit_unsafe_ddl_commands = true;
+SET LOCAL bdr.skip_ddl_replication = true;
 SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
-
+ERROR:  bdr_replicate_ddl_command execution attempt rejected by configuration
+DETAIL:  bdr.skip_ddl_replication is true.
+HINT:  See the 'DDL replication' chapter of the documentation.
 COMMIT;
 SELECT * FROM test_inh_root;
  id | val1 | val2 
@@ -814,7 +808,17 @@ SELECT * FROM test_inh_root;
   8 | 8    |    0
   9 | 9    |    1
  10 | 10   |    2
-(10 rows)
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
 
 SELECT * FROM test_inh_chld1;
  id | val1 | val2 | child1col 
@@ -856,7 +860,17 @@ SELECT * FROM test_inh_root;
   8 | 8    |    0
   9 | 9    |    1
  10 | 10   |    2
-(10 rows)
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
 
 SELECT * FROM test_inh_chld1;
  id | val1 | val2 | child1col 
@@ -879,6 +893,8 @@ SELECT * FROM test_inh_chld2;
 (0 rows)
 
 DELETE FROM test_inh_root WHERE val2 = 0;
+ERROR:  cannot run UPDATE or DELETE on table test_inh_chld1 because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
 INSERT INTO test_inh_root(id, val1, val2) VALUES (200, 'root', 1);
 INSERT INTO test_inh_chld1(id, val1, val2, child1col) VALUES (200, 'child', 0, 0);
 SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
@@ -889,18 +905,31 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 \c regression
 SELECT * FROM test_inh_root;
- id  | val1 | val2 
------+------+------
-   1 | 1    |    1
-   2 | 2    |    2
-   3 | 3    |    3
-   5 | 5    |    1
-   6 | 6    |    2
-   7 | 7    |    3
-   9 | 9    |    1
-  10 | 10   |    2
- 200 | root |    1
-(9 rows)
+ id  | val1  | val2 
+-----+-------+------
+   1 | 1     |    1
+   2 | 2     |    2
+   3 | 3     |    3
+   4 | 4     |    0
+   5 | 5     |    1
+   6 | 6     |    2
+   7 | 7     |    3
+   8 | 8     |    0
+   9 | 9     |    1
+  10 | 10    |    2
+ 200 | root  |    1
+  11 | 11    |    4
+  12 | 12    |    1
+  13 | 13    |    2
+  14 | 14    |    3
+  15 | 15    |    4
+  16 | 16    |    1
+  17 | 17    |    2
+  18 | 18    |    3
+  19 | 19    |    4
+  20 | 20    |    1
+ 200 | child |    0
+(22 rows)
 
 SELECT * FROM test_inh_chld1;
  id  | val1  | val2 | child1col 

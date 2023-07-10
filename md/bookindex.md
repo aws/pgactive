@@ -178,21 +178,11 @@ configuration variables](bdr-configuration-variables.md)
 bdr.max_ddl_lock_delay configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.permit_ddl_locking configuration parameter, [BDR specific
-configuration variables](bdr-configuration-variables.md)
-
-bdr.permit_unsafe_ddl_commands configuration parameter, [Less common or
-internal configuration
-variables](bdr-configuration-variables.md#AEN783)
-
 bdr.remove_bdr_from_local_node, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.skip_changes_upto, [Node management
 functions](functions-node-mgmt.md)
-
-bdr.skip_ddl_locking configuration parameter, [Less common or internal
-configuration variables](bdr-configuration-variables.md#AEN783)
 
 bdr.skip_ddl_replication configuration parameter, [Less common or
 internal configuration

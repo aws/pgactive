@@ -21,6 +21,9 @@ wal_level = logical
 track_commit_timestamp = on
 shared_preload_libraries = 'bdr'
 });
+
+bdr_update_default_postgresql_conf($node_a);
+
 $node_a->start;
 
 $node_a->safe_psql('postgres', qq{CREATE DATABASE $bdr_test_dbname;});
