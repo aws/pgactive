@@ -1316,7 +1316,20 @@ process_remote_delete(StringInfo s)
 		/* Since the local tuple is missing, fill slot from the received data. */
 		remote_tuple = heap_form_tuple(RelationGetDescr(rel->rel),
 									   oldtup.values, oldtup.isnull);
+
+#if PG_VERSION_NUM >= 120000
+		/*
+		 * For heap AM, table_slot_create returns a slot of type
+		 * TTSOpsBufferHeapTuple, see heapam_slot_callbacks(). When tuple to be
+		 * deleted is not found, the target slot (oldslot) type will remain
+		 * TTSOpsBufferHeapTuple. Since the target slot is not guaranteed to be
+		 * TTSOpsHeapTuple type slot here, hence, we use
+		 * ExecForceStoreHeapTuple().
+		 */
+		ExecForceStoreHeapTuple(remote_tuple, oldslot, false);
+#else
 		ExecStoreHeapTuple(remote_tuple, oldslot, true);
+#endif
 
 		/*
 		 * Trigger user specified conflict handler so that application may

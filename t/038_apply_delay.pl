@@ -94,4 +94,24 @@ is($node_1->safe_psql($bdr_test_dbname, $ch_query . " WHERE conflict_id = 5"),
    "expected insert/delete conflicts found on node1")
    or diag $node_1->safe_psql($bdr_test_dbname, $ch_query_diag);
 
+# simple delete/delete conflict
+$node_0->psql($bdr_test_dbname, q[INSERT INTO city(city_sid, name) VALUES (2, 'Tom Price');]);
+wait_for_apply($node_0, $node_1);
+
+# Delete same tuple on two nodes at the same time to generate delete/delete
+# conflict.
+foreach my $node ($node_0, $node_1)
+{
+    $node->psql($bdr_test_dbname, q[DELETE FROM city WHERE city_sid = 2;]);
+}
+
+# now, wait for the delete/delete conflict to be logged
+foreach my $node ($node_0, $node_1)
+{
+    $node->poll_query_until($bdr_test_dbname,
+        qq{SELECT COUNT(*) = 1 FROM bdr.bdr_conflict_history WHERE conflict_type = 'delete_delete'
+            AND conflict_resolution = 'skip_change' AND local_tuple IS NULL
+            AND ((remote_tuple)->>'city_sid')::int = 2 AND remote_tuple->>'name' IS NULL});
+}
+
 done_testing();
