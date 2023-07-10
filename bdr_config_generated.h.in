@@ -8,18 +8,12 @@
 /* Define to 1 if you have the <access/commit_ts.h> header file. */
 #undef HAVE_ACCESS_COMMIT_TS_H
 
-/* Define to 1 if you have the <access/seqam.h> header file. */
-#undef HAVE_ACCESS_SEQAM_H
-
 /* Define to 1 if you have the <replication/origin.h> header file. */
 #undef HAVE_REPLICATION_ORIGIN_H
 
 /* Define to 1 if you have the <replication/replication_identifier.h> header
    file. */
 #undef HAVE_REPLICATION_REPLICATION_IDENTIFIER_H
-
-/* BDR sequence access method available */
-#undef HAVE_SEQAM
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT

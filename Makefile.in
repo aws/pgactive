@@ -4,7 +4,6 @@
 
 # configure output
 BDR_PGVERCOMPAT_INCDIR=@BDR_PGVERCOMPAT_INCDIR@
-HAVE_SEQAM=@HAVE_SEQAM@
 BDR_PG_MAJORVERSION=@BDR_PG_MAJORVERSION@
 # end configure output
 
@@ -50,7 +49,7 @@ OBJS = bdr.o \
 	bdr_protocol.o \
 	bdr_relcache.o \
 	bdr_remotecalls.o \
-	bdr_seq2.o \
+	bdr_seq.o \
 	bdr_shmem.o \
 	bdr_supervisor.o \
 	bdr_upgrade.o
@@ -61,14 +60,6 @@ FAILING_TESTS :=
 else
 # By default we don't run failing tests, this will always be empty.
 FAILING_TESTS :=
-endif
-
-ifeq ($(HAVE_SEQAM),1)
-OBJS += bdr_seq.o
-SEQTESTS := dml_sequence
-else
-OBJS += bdr_seq_stub.o
-SEQTESTS :=
 endif
 
 # DDL tests run via transparent DDL replication.
@@ -112,7 +103,7 @@ REGRESSCHECKS = init \
 	catalog \
 	terminate \
 	skipchanges \
-	seq2 \
+	seq \
 	read_only \
 	$(FAILING_TESTS) \
 	ddl_lock \
@@ -125,7 +116,6 @@ REGRESSCHECKS = init \
 	dml_replicate_ddl_command \
 	dml_missing_pk \
 	dml_toasted \
-	$(SEQTESTS) \
 	part_bdr
 
 ISOLATIONCHECKS = isolation/init \

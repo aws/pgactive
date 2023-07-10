@@ -130,7 +130,6 @@ static void initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name,
 								  Oid dboid, char *remote_connstr, char *local_connstr);
 static void remove_unwanted_files(char *data_dir);
 static void remove_unwanted_data(PGconn *conn);
-static void reset_bdr_sequence_cache(PGconn *conn);
 static void initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid, char *remote_lsn);
 static char *create_restore_point(PGconn *conn, char *restore_point_name);
 static void initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid);
@@ -624,13 +623,6 @@ main(int argc, char **argv)
 			replication_sets = remote_info->replication_sets[i];
 
 		local_conn = connectdb(db_local_connstr);
-
-		/*
-		 * Clean the sequence amdata cache which was copied from the remote
-		 * server verbatim but isn't valid on the new node and would cause
-		 * duplicate values being returned by the sequence on both servers.
-		 */
-		reset_bdr_sequence_cache(local_conn);
 
 		/*
 		 * Create the identifier which is setup with the position to which we
@@ -1392,19 +1384,6 @@ remove_unwanted_data(PGconn *conn)
 		die(_("Could not remove existing replication origins: %s\n"), PQerrorMessage(conn));
 	}
 	PQclear(res);
-}
-
-/*
- * Cleans up sequence cache, has to be run when BDR so it can't be in the
- * remove_unwanted_data function.
- */
-static void
-reset_bdr_sequence_cache(PGconn *conn)
-{
-	/*
-	 * This is a no-op function for now, if needed can be used to clean up
-	 * sequence cache.
-	 */
 }
 
 /*

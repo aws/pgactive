@@ -12,15 +12,6 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE TABLE "some $SCHEMA"."table table table" ("a column" integer);
 $DDL$);
 
--- Also for dependency testing, a global sequence if supported
-DO LANGUAGE plpgsql $$
-BEGIN
-  IF bdr.have_global_sequences() THEN
-    EXECUTE $DDL$CREATE SEQUENCE "some $SCHEMA"."some ""sequence"" name" USING bdr;$DDL$;
-  END IF;
-END;
-$$;
-
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 DROP VIEW public.ddl_info;
 $DDL$);
@@ -114,7 +105,7 @@ BEGIN;
 -- We silence notice messages here as some of them depend on when BDR workers
 -- on the parted node 'node-pg' are gone.
 SET LOCAL client_min_messages = 'ERROR';
-SELECT bdr.remove_bdr_from_local_node(true, true);
+SELECT bdr.remove_bdr_from_local_node(true);
 COMMIT;
 
 SELECT bdr.bdr_is_active_in_db();

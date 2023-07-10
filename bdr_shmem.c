@@ -68,8 +68,6 @@ bdr_shmem_init(void)
 	/* initialize other modules that need shared memory. */
 	bdr_count_shmem_init(bdr_max_workers);
 
-	bdr_sequencer_shmem_init(bdr_max_databases);
-
 	bdr_locks_shmem_init();
 }
 
