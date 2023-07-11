@@ -826,6 +826,36 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	/* take strongest lock by default. */
 	BDRLockType lock_type = BDR_LOCK_WRITE;
 
+	/*
+	 * If DDL replication is disabled, let's call the next process utility hook
+	 * (if any) or the standard one. The reason is that there is no reason to
+	 * filter anything in such a case.
+	 */
+	if (bdr_skip_ddl_replication)
+	{
+		if (next_ProcessUtility_hook)
+			next_ProcessUtility_hook(pstmt, queryString,
+#if PG_VERSION_NUM >= 150000
+									 readOnlyTree,
+									 context, params, queryEnv,
+									 dest, qc);
+		else
+			standard_ProcessUtility(pstmt, queryString,
+									readOnlyTree,
+									context, params, queryEnv,
+									dest, qc);
+#else
+									 context, params, queryEnv,
+									 dest, completionTag);
+		else
+			standard_ProcessUtility(pstmt, queryString,
+									context, params, queryEnv,
+									dest, completionTag);
+#endif
+
+		return;
+	}
+
 	elog(DEBUG2, "processing %s: %s in statement %s",
 		 context == PROCESS_UTILITY_TOPLEVEL ? "toplevel" : "query",
 		 GetCommandTagName(CreateCommandTag(parsetree)), queryString);
