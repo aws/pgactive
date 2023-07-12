@@ -847,8 +847,14 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				 errmsg("no commands may be run on the BDR supervisor database")));
 	}
 
-	/* extension contents aren't individually replicated */
-	if (creating_extension)
+	/*
+	 * Extension contents aren't individually replicated. While postgres sets
+	 * creating_extension for create/alter extension, it doesn't set it for
+	 * drop extension. To ensure we don't replicate anything for drop
+	 * extension, we use bdr_in_extension that was set when BDR first sees drop
+	 * extension.
+	 */
+	if (creating_extension || bdr_in_extension)
 		goto done;
 
 	/* don't perform filtering while replaying */
@@ -1385,9 +1391,28 @@ done:
 		case T_CreateExtensionStmt:
 		case T_AlterExtensionStmt:
 		case T_AlterExtensionContentsStmt:
-			Assert(!bdr_in_extension);
-			bdr_in_extension = true;
-			entered_extension = true;
+			if (!bdr_in_extension)
+			{
+				bdr_in_extension = true;
+				entered_extension = true;
+			}
+
+			/*
+			 * When we are here with bdr_in_extension true, it means that we
+			 * entered create/alter/drop extension previously, but the
+			 * extension script file is having one or more of
+			 * alter extension ... drop function/drop extension statements.
+			 * However, postgres fails with
+			 * "ERROR: nested CREATE EXTENSION is not supported" or
+			 * "ERROR: nested ALTER EXTENSION is not supported" if create
+			 * extension or just the alter extension respectively is specified
+			 * in an extension script file. We don't do anything fancy here for
+			 * BDR, other than ensuring the alter extension ... drop function/
+			 * drop extension statements within extension script file aren't
+			 * replicated, which will be taken care by the flag
+			 * bdr_in_extension that's set to true previously.
+			 */
+
 			break;
 		default:
 			break;
