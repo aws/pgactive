@@ -47,8 +47,8 @@ EOF
 pg_ctlcluster 11 node1 restart
 pg_ctlcluster 11 node2 restart
 
-psql -p 5434 radius -c 'create extension bdr cascade' -c "SELECT bdr.bdr_group_create(local_node_name := 'node1', node_external_dsn := 'dbname=radius port=5434')" -c 'select bdr.bdr_node_join_wait_for_ready()'
-psql -p 5435 radius -c 'create extension bdr cascade' -c "SELECT bdr.bdr_group_join(local_node_name := 'node2', node_external_dsn := 'dbname=radius port=5435', join_using_dsn := 'dbname=radius port=5434')" -c 'select bdr.bdr_node_join_wait_for_ready()'
+psql -p 5434 radius -c 'create extension bdr cascade' -c "SELECT bdr.bdr_create_group(local_node_name := 'node1', node_external_dsn := 'dbname=radius port=5434')" -c 'select bdr.bdr_wait_for_node_ready()'
+psql -p 5435 radius -c 'create extension bdr cascade' -c "SELECT bdr.bdr_join_group(local_node_name := 'node2', node_external_dsn := 'dbname=radius port=5435', join_using_dsn := 'dbname=radius port=5434')" -c 'select bdr.bdr_wait_for_node_ready()'
 
 #restore if any backup
 psql -p 5434 radius -1 -f backup.sql

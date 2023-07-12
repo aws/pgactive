@@ -52,7 +52,7 @@ static List *bdr_truncated_tables = NIL;
  * it tgisinternal so that it's not dumped by pg_dump.
  *
  * We create such triggers automatically on restore or
- * bdr_group_create so dumping the triggers isn't necessary,
+ * bdr_create_group so dumping the triggers isn't necessary,
  * and dumping them makes it harder to restore to a DB
  * without BDR.
  *
@@ -76,7 +76,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	else
 		rel = table_openrv(relrv, AccessExclusiveLock);
 
-	funcname = list_make2(makeString("bdr"), makeString("queue_truncate"));
+	funcname = list_make2(makeString("bdr"), makeString("bdr_queue_truncate"));
 
 
 	/*
@@ -126,14 +126,14 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 
 	/*
 	 * The trigger was created with a 'n'ormal dependency on
-	 * bdr.queue_truncate(), which will cause DROP EXTENSION bdr to fail with
-	 * something like:
+	 * bdr.bdr_queue_truncate(), which will cause DROP EXTENSION bdr to fail
+	 * with something like:
 	 *
 	 * trigger truncate_trigger_26908 on table sometable depends on function
-	 * bdr.queue_truncate()
+	 * bdr.bdr_queue_truncate()
 	 *
 	 * We want the trigger to bdr dropped if EITHER the BDR extension is
-	 * dropped (thus so is bdr.queue_truncate()) OR if the table the trigger
+	 * dropped (thus so is bdr.bdr_queue_truncate()) OR if the table the trigger
 	 * is attached to is dropped, so we want an automatic dependency on the
 	 * target table. CreateTrigger doesn't offer this directly and we'd rather
 	 * not cause an API break by adding a param, so just twiddle the created
@@ -141,7 +141,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	 */
 
 	procaddr.classId = ProcedureRelationId;
-	procaddr.objectId = LookupFuncName(list_make2(makeString("bdr"), makeString("queue_truncate")), 0, &fargtypes[0], false);
+	procaddr.objectId = LookupFuncName(list_make2(makeString("bdr"), makeString("bdr_queue_truncate")), 0, &fargtypes[0], false);
 	procaddr.objectSubId = 0;
 
 	/* We need to be able to see the pg_depend entry to delete it */
@@ -167,7 +167,7 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 
 /*
  * Wrapper to call bdr_create_truncate_trigger from SQL for
- * during bdr_group_create(...).
+ * during bdr_create_group(...).
  */
 Datum
 bdr_internal_create_truncate_trigger(PG_FUNCTION_ARGS)

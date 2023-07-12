@@ -43,7 +43,7 @@ sub insert_into_table_sequence {
 
     if (not defined $no_node_join_check) {
         $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     if ( not defined $no_of_inserts ) {

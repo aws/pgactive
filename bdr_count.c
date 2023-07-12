@@ -102,9 +102,9 @@ static void bdr_count_unserialize(void);
 
 #define BDR_COUNT_STAT_COLS 12
 
-PGDLLEXPORT Datum pg_stat_get_bdr(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_get_stats(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(pg_stat_get_bdr);
+PG_FUNCTION_INFO_V1(bdr_get_stats);
 
 static Size
 bdr_count_shmem_size(void)
@@ -294,7 +294,7 @@ bdr_count_disconnect(void)
 }
 
 Datum
-pg_stat_get_bdr(PG_FUNCTION_ARGS)
+bdr_get_stats(PG_FUNCTION_ARGS)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	size_t		current_offset;
@@ -302,7 +302,7 @@ pg_stat_get_bdr(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("access to pg_stat_get_bdr() denied as non-superuser")));
+				 errmsg("access to bdr_get_stats() denied as non-superuser")));
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);

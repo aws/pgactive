@@ -65,7 +65,7 @@ $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ 
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON public.test_trigger_table FOR EACH ROW EXECUTE PROCEDURE public.test_trigger_fn(); 
 $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 -- We can't use \d+ here because tgisinternal triggers have names with the oid
 -- appended, and that varies run-to-run. Use a custom query.
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
@@ -73,49 +73,49 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TRIGGER test_trigger_fn_trg1 ON public.test_trigger_table RENAME TO test_trigger_fn_trg; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER test_trigger_fn_trg; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER ALL; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER USER; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TRIGGER test_trigger_fn_trg2 ON public.test_trigger_table; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
@@ -125,7 +125,7 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_trigger_table; $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_trigger_table
 \c postgres
 \d+ test_trigger_table

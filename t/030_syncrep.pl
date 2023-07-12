@@ -60,13 +60,13 @@ q[t],
 exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
 
 # Make sure everything caught up by forcing another lock
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 my @nodes = ($node_a, $node_b, $node_c, $node_d);
 for my $node (@nodes) {
   $node->safe_psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES (bdr.bdr_get_local_node_name())]);
 }
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 is($node_a->psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES ('0-0 B2')]), 0, 'A: async B1up');
 
@@ -94,7 +94,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+      qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -150,7 +150,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+      qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -194,7 +194,7 @@ for my $node (@nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@nodes) {
     $node->safe_psql($bdr_test_dbname,
-      qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+      qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Everything should work while the system is all-up
@@ -225,7 +225,7 @@ is($node_a->psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES ('A: 2-1 B2 C2 2')]
 #-------------------------------------
 
 note "taking final DDL lock";
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 note "done, checking final state";
 
 my $expected = q[node_a|0-0 B1
@@ -249,7 +249,7 @@ node_d|node_d];
 my $query = q[
 select coalesce(node_name, bdr.bdr_get_local_node_name()) AS origin_node_name, x
 from t
-cross join lateral bdr.get_transaction_replorigin(xmin) ro(originid)
+cross join lateral bdr.bdr_get_transaction_replorigin(xmin) ro(originid)
 left join pg_replication_origin on (roident = originid)
 cross join lateral bdr.bdr_parse_replident_name(roname)
 left join bdr.bdr_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node_sysid, node_timeline, node_dboid)

@@ -78,7 +78,7 @@ string](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONN
 nodes can use to connect to it.
 
 The SQL function
-[bdr.bdr_group_create](functions-node-mgmt.md#FUNCTION-BDR-GROUP-CREATE)
+[bdr.bdr_create_group](functions-node-mgmt.md#FUNCTION-BDR-CREATE-GROUP)
 is used to create the first node of a BDR cluster from a standalone
 PostgreSQL database. Doing so makes BDR active on that database and
 allows other nodes to join the BDR cluster (which consists out of one
@@ -87,11 +87,11 @@ nodes will use to connect to this node at the time of creation.
 
 Whether you plan on using logical or physical copy to join subsequent
 nodes, the first node must always be created using
-[bdr.bdr_group_create](functions-node-mgmt.md#FUNCTION-BDR-GROUP-CREATE).
+[bdr.bdr_create_group](functions-node-mgmt.md#FUNCTION-BDR-CREATE-GROUP).
 
 Once the initial node is created every further node can join the BDR
 cluster using the
-[bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
+[bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP)
 function or using [bdr_init_copy](command-bdr-init-copy.md).
 
 Either way, when joining you must nominate a single node that is already

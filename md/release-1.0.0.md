@@ -121,7 +121,7 @@ Changes in release:
     connection
 
 -   Add a function to completely remove BDR from a node,
-    bdr.remove_bdr_from_local_node()
+    bdr.bdr_remove()
 
 -   Extensive documentation updates
 

@@ -1,9 +1,9 @@
 \c postgres
 CREATE TABLE test_src_tbl(a serial, b varchar(100), c date, primary key (a,c));
 CREATE VIEW test_view AS SELECT * FROM test_src_tbl WHERE a > 1;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -42,9 +42,9 @@ SELECT * FROM test_view;
 (0 rows)
 
 INSERT INTO test_src_tbl (b,c) VALUES('a', '2014-01-01'), ('b', '2014-02-02'), ('c', '2014-03-03');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -57,9 +57,9 @@ SELECT * FROM test_view;
 (2 rows)
 
 UPDATE test_view SET b = a || b;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -81,9 +81,9 @@ SELECT * FROM test_view;
 
 ALTER VIEW test_view ALTER COLUMN c SET DEFAULT '2000-01-01';
 INSERT INTO test_view(b) VALUES('y2k');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -106,17 +106,17 @@ SELECT * FROM test_view;
 (3 rows)
 
 ALTER VIEW test_view RENAME TO renamed_test_view;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
 \c regression
 INSERT INTO renamed_test_view(b) VALUES('d');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -141,9 +141,9 @@ SELECT * FROM renamed_test_view;
 (4 rows)
 
 DROP VIEW renamed_test_view;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -153,9 +153,9 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 CREATE VIEW test_view AS SELECT * FROM test_src_tbl;
 DROP TABLE test_src_tbl CASCADE;
 NOTICE:  drop cascades to view test_view
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 

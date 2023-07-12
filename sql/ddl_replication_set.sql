@@ -7,58 +7,58 @@ CREATE TABLE normalschema.sometbl_normalschema();
 CREATE TABLE "strange.schema-IS".sometbl_strangeschema();
 
 -- show initial replication sets
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
 
 \c postgres
 -- empty replication set (just 'all')
-SELECT bdr.table_set_replication_sets('switcheroo', '{}');
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{}');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
 -- configure a couple
-SELECT bdr.table_set_replication_sets('switcheroo', '{fascinating, is-it-not}');
-SELECT * FROM bdr.table_set_replication_sets('normalschema.sometbl_normalschema', '{a}');
-SELECT * FROM bdr.table_set_replication_sets('"strange.schema-IS".sometbl_strangeschema', '{a}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{fascinating, is-it-not}');
+SELECT * FROM bdr.bdr_set_table_replication_sets('normalschema.sometbl_normalschema', '{a}');
+SELECT * FROM bdr.bdr_set_table_replication_sets('"strange.schema-IS".sometbl_strangeschema', '{a}');
 
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
 
 \c postgres
 -- make sure we can reset replication sets to the default again
 -- configure a couple
-SELECT bdr.table_set_replication_sets('switcheroo', NULL);
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', NULL);
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
 
 \c postgres
 -- make sure reserved names can't be set
-SELECT bdr.table_set_replication_sets('switcheroo', '{default,blubber}');
-SELECT bdr.table_set_replication_sets('switcheroo', '{blubber,default}');
-SELECT bdr.table_set_replication_sets('switcheroo', '{frakbar,all}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{default,blubber}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{blubber,default}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{frakbar,all}');
 --invalid characters
-SELECT bdr.table_set_replication_sets('switcheroo', '{///}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{///}');
 --too short/long
-SELECT bdr.table_set_replication_sets('switcheroo', '{""}');
-SELECT bdr.table_set_replication_sets('switcheroo', '{12345678901234567890123456789012345678901234567890123456789012345678901234567890}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{""}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{12345678901234567890123456789012345678901234567890123456789012345678901234567890}');
 
 \c postgres
 DROP TABLE switcheroo;
 DROP TABLE normalschema.sometbl_normalschema;
 DROP TABLE "strange.schema-IS".sometbl_strangeschema;
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 /*
  * Now test whether sets properly control the replication of data.
@@ -72,26 +72,26 @@ CREATE TABLE settest_1(data text primary key);
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-default');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{}');
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-no-sets');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set}');
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-unknown-set');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{for-node-2}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{for-node-2}');
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{}');
 INSERT INTO settest_1(data) VALUES ('should-not-replicate-empty-again');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set,for-node-2}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set,for-node-2}');
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2-even-though-unknown');
 
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set,important,for-node-2}');
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set,important,for-node-2}');
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2-and-important');
 
 SELECT * FROM settest_1 ORDER BY data;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * FROM settest_1 ORDER BY data;
 \c postgres
@@ -104,7 +104,7 @@ DROP TABLE settest_1;
 CREATE TABLE settest_2(data text primary key);
 
 -- Test 1: ensure that inserts are replicated while update/delete are filtered
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-insert}');
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-insert}');
 INSERT INTO bdr.bdr_replication_set_config(set_name, replicate_inserts, replicate_updates, replicate_deletes)
 VALUES ('for-node-2-insert', true, false, false),
        ('for-node-2-update', false, true, false),
@@ -125,7 +125,7 @@ WHERE data = 'repl-insert--insert-#3-then-delete';
 INSERT INTO settest_2(data) VALUES ('repl-update--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-update--insert-#2-then-delete');
 
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-update}');
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-update}');
 
 UPDATE settest_2
 SET data = 'repl-update--insert-#1-update'
@@ -151,10 +151,10 @@ WHERE set_name = 'for-node-2-update';
 
 -- Test 3: ensure that deletes are replicated while inserts/updates are filtered
 -- insert before filtering
-SELECT bdr.table_set_replication_sets('settest_2', NULL);
+SELECT bdr.bdr_set_table_replication_sets('settest_2', NULL);
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#2-then-delete');
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-delete}');
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-delete}');
 
 UPDATE settest_2
 SET data = 'repl-delete--insert-#1-update'
@@ -167,7 +167,7 @@ INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#3');
 
 
 -- Test 4: ensure that all partial sets together replicate everything
-SELECT bdr.table_set_replication_sets('settest_2',
+SELECT bdr.bdr_set_table_replication_sets('settest_2',
     '{for-node-2-insert,for-node-2-update,for-node-2-delete}');
 INSERT INTO settest_2(data) VALUES ('repl-combined--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-combined--insert-#2-then-delete');
@@ -180,7 +180,7 @@ DELETE FROM settest_2
 WHERE data = 'repl-combined--insert-#2-then-delete';
 
 SELECT * FROM settest_2 ORDER BY data;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * FROM settest_2 ORDER BY data;
 

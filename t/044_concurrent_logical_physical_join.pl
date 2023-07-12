@@ -33,7 +33,7 @@ stop_nodes([$node_a]);
 
 SKIP: {
 # TODO: node_q hangs in catch up state never reaching ready state thus gets
-# stuck in bdr.bdr_node_join_wait_for_ready(). This is because node_q's per-db
+# stuck in bdr.bdr_wait_for_node_ready(). This is because node_q's per-db
 # worker fails to find replication identifier for node_a on it
 # (bdr_locks_startup() -> bdr_fetch_node_id_via_sysid() ->
 # replorigin_by_name()) and restarts continuously. Note that node_a holds

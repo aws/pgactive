@@ -16,11 +16,11 @@ Not all conflicts are logged to
 is on. Conflicts where BDR cannot proactively detect and handle the
 conflict (like 3-way foreign key conflicts) will result in an
 `ERROR` message in the PostgreSQL logs and an increment of
-[bdr.pg_stat_bdr](catalog-pg-stat-bdr.md)`.nr_rollbacks` on
+[bdr.bdr_stats](catalog-bdr-stats.md)`.nr_rollbacks` on
 that node for the connection the conflicting transaction originated
 from.
 
-If `pg_stat_bdr.nr_rollbacks` keeps increasing and a node
+If `bdr_stats.nr_rollbacks` keeps increasing and a node
 isn\'t making forward progress, then it\'s likely there\'s a divergent
 conflict or other issue that may need administrator action. Check the
 log files for that node for details.

@@ -39,7 +39,7 @@ command_fails(
 create_bdr_group($node_a);
 
 $node_a->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
 # PostgresNode doesn't know we started the node since we didn't
 # use any of its methods, so we'd better tell it to check. Otherwise
@@ -91,9 +91,9 @@ my $bdr_version = $node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_version()
 note "BDR version $bdr_version";
 
 $node_a->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_b->safe_psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
 # PostgresNode doesn't know we started the node since we didn't
 # use any of its methods, so we'd better tell it to check. Otherwise
@@ -105,15 +105,15 @@ is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't'
 is($node_b->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 't',
 	'BDR is active on node_b');
 
-my $status_a = $node_a->safe_psql($bdr_test_dbname, 'SELECT node_name, bdr.node_status_from_char(node_status) FROM bdr.bdr_nodes ORDER BY node_name');
-my $status_b = $node_b->safe_psql($bdr_test_dbname, 'SELECT node_name, bdr.node_status_from_char(node_status) FROM bdr.bdr_nodes ORDER BY node_name');
+my $status_a = $node_a->safe_psql($bdr_test_dbname, 'SELECT node_name, bdr.bdr_node_status_from_char(node_status) FROM bdr.bdr_nodes ORDER BY node_name');
+my $status_b = $node_b->safe_psql($bdr_test_dbname, 'SELECT node_name, bdr.bdr_node_status_from_char(node_status) FROM bdr.bdr_nodes ORDER BY node_name');
 
 is($status_a, "node-a|BDR_NODE_STATUS_READY\nnode-b|BDR_NODE_STATUS_READY", 'node A sees both nodes as ready');
 is($status_b, "node-a|BDR_NODE_STATUS_READY\nnode-b|BDR_NODE_STATUS_READY", 'node B sees both nodes as ready');
 
 note "Taking ddl lock manually";
 
-$node_a->safe_psql($bdr_test_dbname, "SELECT bdr.acquire_global_lock('write_lock')");
+$node_a->safe_psql($bdr_test_dbname, "SELECT bdr.bdr_acquire_global_lock('write_lock')");
 
 note "Creating a table...";
 

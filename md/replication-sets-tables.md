@@ -6,12 +6,12 @@
 
 A newly created table is initially part of replication set
 `default`. It is assigned to more or different sets by
-[bdr.table_set_replication_sets](functions-replication-sets.md#FUNCTION-BDR-TABLE-SET-REPLICATION-SETS).
+[bdr.bdr_set_table_replication_sets](functions-replication-sets.md#FUNCTION-BDR-SET-TABLE-REPLICATION-SETS).
 This operation aquires a DDL lock and can be used in a fully functional
 [BDR] cluster with no down/missing members.
 
 The array of sets a table is part of is retrieved by
-[bdr.table_get_replication_sets](functions-replication-sets.md#FUNCTION-BDR-TABLE-GET-REPLICATION-SETS).
+[bdr.bdr_get_table_replication_sets](functions-replication-sets.md#FUNCTION-BDR-GET-TABLE-REPLICATION-SETS).
 
 Adding a table to a replication set does [*not*] synchronize
 the table\'s contents to nodes that were not previously receiving

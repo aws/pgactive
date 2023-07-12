@@ -29,7 +29,7 @@ $node_b->start;
 
 # Remove the old BDR traces came to node_b during base backup.
 $node_b->safe_psql($bdr_test_dbname,
-    q[SELECT * FROM bdr.remove_bdr_from_local_node(true);]);
+    q[SELECT * FROM bdr.bdr_remove(true);]);
 
 # Create some data on upstream node. We do this after base backup is done; just
 # for testing purposes. For BDR logical join to work, database mustn't contain

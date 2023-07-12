@@ -31,20 +31,20 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE "strange.schema-IS".some
 (1 row)
 
 -- show initial replication sets
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
      sets      
 ---------------
  {default,all}
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
      sets      
 ---------------
  {default,all}
@@ -52,87 +52,87 @@ SELECT * FROM bdr.table_get_replication_sets('switcheroo');
 
 \c postgres
 -- empty replication set (just 'all')
-SELECT bdr.table_set_replication_sets('switcheroo', '{}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
  sets  
 -------
  {all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
      sets      
 ---------------
  {default,all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
      sets      
 ---------------
  {default,all}
 (1 row)
 
 -- configure a couple
-SELECT bdr.table_set_replication_sets('switcheroo', '{fascinating, is-it-not}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{fascinating, is-it-not}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
-SELECT * FROM bdr.table_set_replication_sets('normalschema.sometbl_normalschema', '{a}');
- table_set_replication_sets 
-----------------------------
+SELECT * FROM bdr.bdr_set_table_replication_sets('normalschema.sometbl_normalschema', '{a}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
-SELECT * FROM bdr.table_set_replication_sets('"strange.schema-IS".sometbl_strangeschema', '{a}');
- table_set_replication_sets 
-----------------------------
+SELECT * FROM bdr.bdr_set_table_replication_sets('"strange.schema-IS".sometbl_strangeschema', '{a}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
             sets             
 -----------------------------
  {fascinating,is-it-not,all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
   sets   
 ---------
  {a,all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
   sets   
 ---------
  {a,all}
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
             sets             
 -----------------------------
  {fascinating,is-it-not,all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('normalschema.sometbl_normalschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('normalschema.sometbl_normalschema');
   sets   
 ---------
  {a,all}
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strangeschema');
+SELECT * FROM bdr.bdr_get_table_replication_sets('"strange.schema-IS".sometbl_strangeschema');
   sets   
 ---------
  {a,all}
@@ -141,26 +141,26 @@ SELECT * FROM bdr.table_get_replication_sets('"strange.schema-IS".sometbl_strang
 \c postgres
 -- make sure we can reset replication sets to the default again
 -- configure a couple
-SELECT bdr.table_set_replication_sets('switcheroo', NULL);
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', NULL);
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
      sets      
 ---------------
  {default,all}
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
 \c regression
-SELECT * FROM bdr.table_get_replication_sets('switcheroo');
+SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
      sets      
 ---------------
  {default,all}
@@ -168,42 +168,42 @@ SELECT * FROM bdr.table_get_replication_sets('switcheroo');
 
 \c postgres
 -- make sure reserved names can't be set
-SELECT bdr.table_set_replication_sets('switcheroo', '{default,blubber}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{default,blubber}');
 ERROR:  replication set name "default" is reserved
-HINT:  To reset a relation's replication sets to defaults, use bdr.table_set_replication_sets('relation_name', NULL).
+HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["default","blubber"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
-SELECT bdr.table_set_replication_sets('switcheroo', '{blubber,default}');
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{blubber,default}');
 ERROR:  replication set name "default" is reserved
-HINT:  To reset a relation's replication sets to defaults, use bdr.table_set_replication_sets('relation_name', NULL).
+HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["blubber","default"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
-SELECT bdr.table_set_replication_sets('switcheroo', '{frakbar,all}');
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{frakbar,all}');
 ERROR:  replication set name "all" is reserved
-HINT:  To reset a relation's replication sets to defaults, use bdr.table_set_replication_sets('relation_name', NULL).
+HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["frakbar","all"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 --invalid characters
-SELECT bdr.table_set_replication_sets('switcheroo', '{///}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{///}');
 ERROR:  replication set name "///" contains invalid character
 HINT:  Replication set names may only contain letters, numbers, and the underscore character.
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["///"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 --too short/long
-SELECT bdr.table_set_replication_sets('switcheroo', '{""}');
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{""}');
 ERROR:  replication set name "" is too short
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : [""] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
-SELECT bdr.table_set_replication_sets('switcheroo', '{12345678901234567890123456789012345678901234567890123456789012345678901234567890}');
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
+SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{12345678901234567890123456789012345678901234567890123456789012345678901234567890}');
 ERROR:  replication set name "12345678901234567890123456789012345678901234567890123456789012345678901234567890" is too long
 CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["12345678901234567890123456789012345678901234567890123456789012345678901234567890"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
-PL/pgSQL function bdr.table_set_replication_sets(regclass,text[]) line 40 at PERFORM
+PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 \c postgres
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.switcheroo; $DDL$);
  bdr_replicate_ddl_command 
@@ -223,9 +223,9 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE "strange.schema-IS".sometb
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -243,44 +243,44 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.settest_1(data te
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-default');
-SELECT bdr.table_set_replication_sets('settest_1', '{}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-no-sets');
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-unknown-set');
-SELECT bdr.table_set_replication_sets('settest_1', '{for-node-2}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{for-node-2}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2');
-SELECT bdr.table_set_replication_sets('settest_1', '{}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-not-replicate-empty-again');
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set,for-node-2}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set,for-node-2}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2-even-though-unknown');
-SELECT bdr.table_set_replication_sets('settest_1', '{unknown-set,important,for-node-2}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_1', '{unknown-set,important,for-node-2}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
@@ -297,9 +297,9 @@ SELECT * FROM settest_1 ORDER BY data;
  should-replicate-via-for-node-2-even-though-unknown
 (7 rows)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -330,9 +330,9 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.settest_2(data te
 (1 row)
 
 -- Test 1: ensure that inserts are replicated while update/delete are filtered
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-insert}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-insert}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
@@ -352,9 +352,9 @@ WHERE data = 'repl-insert--insert-#3-then-delete';
 -- insert before filtering
 INSERT INTO settest_2(data) VALUES ('repl-update--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-update--insert-#2-then-delete');
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-update}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-update}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
@@ -375,17 +375,17 @@ SET replicate_inserts = false
 WHERE set_name = 'for-node-2-update';
 -- Test 3: ensure that deletes are replicated while inserts/updates are filtered
 -- insert before filtering
-SELECT bdr.table_set_replication_sets('settest_2', NULL);
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_2', NULL);
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#2-then-delete');
-SELECT bdr.table_set_replication_sets('settest_2', '{for-node-2-delete}');
- table_set_replication_sets 
-----------------------------
+SELECT bdr.bdr_set_table_replication_sets('settest_2', '{for-node-2-delete}');
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
@@ -396,10 +396,10 @@ DELETE FROM settest_2
 WHERE data = 'repl-delete--insert-#2-then-delete';
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#3');
 -- Test 4: ensure that all partial sets together replicate everything
-SELECT bdr.table_set_replication_sets('settest_2',
+SELECT bdr.bdr_set_table_replication_sets('settest_2',
     '{for-node-2-insert,for-node-2-update,for-node-2-delete}');
- table_set_replication_sets 
-----------------------------
+ bdr_set_table_replication_sets 
+--------------------------------
  
 (1 row)
 
@@ -423,9 +423,9 @@ SELECT * FROM settest_2 ORDER BY data;
  repl-update--insert-#4
 (8 rows)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 

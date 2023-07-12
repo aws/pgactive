@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                           
-  [Prev](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")  
+  [Prev](catalog-bdr-stats.md "bdr.bdr_stats")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")
 
 
 # 13.5. bdr.bdr_conflict_history
@@ -56,6 +56,6 @@ It is safe to `TRUNCATE` this table to save disk space.
 
 
   ------------------------------------------------- ------------------------------------------ ----------------------------------------------------------------
-  [Prev](catalog-pg-stat-bdr.md)       [Home](README.md)        [Next](catalog-bdr-replication-set-config.md)  
-  bdr.pg_stat_bdr                                    [Up](catalogs-views.md)                                    bdr.bdr_replication_set_config
+  [Prev](catalog-bdr-stats.md)       [Home](README.md)        [Next](catalog-bdr-replication-set-config.md)
+  bdr.bdr_stats                                    [Up](catalogs-views.md)                                    bdr.bdr_replication_set_config
   ------------------------------------------------- ------------------------------------------ ----------------------------------------------------------------

@@ -7,23 +7,23 @@ ORDER BY 1;
 
 -- create nonexistant extension
 CREATE EXTENSION pg_trgm;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * from list_extension;
 
 -- drop and recreate using CINE
 DROP EXTENSION pg_trgm;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT * from list_extension;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * from list_extension;
 
 -- CINE existing extension
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT * from list_extension;
 

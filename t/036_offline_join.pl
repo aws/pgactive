@@ -51,7 +51,7 @@ $new_node->safe_psql($bdr_test_dbname, $join_query);
 
 # We should never become ready since we'll be stuck at catchup
 $new_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)],
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Logical node join timed out while node down');
 
@@ -63,7 +63,7 @@ is($new_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes
 # If we bring the offline node back online, join should be able to proceed
 $offline_node->start;
 is($new_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
     'join succeeded once offline node came back');
 foreach my $node (@{$nodes}) {
     check_join_status($new_node, $node);
@@ -72,7 +72,7 @@ push @$nodes, $new_node;
 push @online_nodes, $new_node;
 
 # Everything is happy?
-$new_node->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('ddl_lock')]);
+$new_node->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('ddl_lock')]);
 
 # TODO: check offline work is sync'd
 
@@ -92,7 +92,7 @@ ok($handle->finish, 'bdr_init_copy finished without error');
 
 $timedout = 0;
 $new_physical_join_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)],
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)],
 	timed_out => \$timedout, timeout => 10);
 is($timedout, 1, 'Physical node join timed out while node down');
 
@@ -110,7 +110,7 @@ is($new_physical_join_node->safe_psql($bdr_test_dbname, "SELECT node_status FROM
 $offline_node->start;
 
 is($new_physical_join_node->psql($bdr_test_dbname,
-	qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
+	qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]), 0,
     'physical join succeeded once offline node came back');
 
 foreach my $node (@{$nodes}) {

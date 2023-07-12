@@ -22,7 +22,7 @@ the first node, we will use port 5598) from the same SQL session as
 above on port 5598:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_group_create(
+    SELECT bdr.bdr_create_group(
       local_node_name := 'node1',
       node_external_dsn := 'port=5598 dbname=bdrdemo host=localhost'
 );
@@ -33,7 +33,7 @@ To ensure that the node is ready to replicate, run this function from
 the same SQL session as above on port 5598:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_node_join_wait_for_ready();
+    SELECT bdr.bdr_wait_for_node_ready();
     
 ```
 
@@ -54,7 +54,7 @@ Then run a function that joins this node/instance to your
 will use port 5599) from the same SQL session as above on port 5599:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_group_join(
+    SELECT bdr.bdr_join_group(
       local_node_name := 'node2',
       node_external_dsn := 'port=5599 dbname=bdrdemo host=localhost',
       join_using_dsn := 'port=5598 dbname=bdrdemo host=localhost'
@@ -66,7 +66,7 @@ To ensure that the node/instance is ready to replicate, run this
 function from the same SQL session as above on port 5599:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_node_join_wait_for_ready();
+    SELECT bdr.bdr_wait_for_node_ready();
     
 ```
 

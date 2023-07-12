@@ -7,16 +7,14 @@
 The names of the replications sets of which changes should be received
 can be set when adding the node to the [BDR] cluster using
 the (optional) `replication_sets` parameter to
-[bdr.bdr_group_create](functions-node-mgmt.md#FUNCTION-BDR-GROUP-CREATE),
-[bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
-and
-[bdr.bdr_subscribe](functions-node-mgmt.md#FUNCTIONS-NODE-MGMT-SUBSCRIBE).
+[bdr.bdr_create_group](functions-node-mgmt.md#FUNCTION-BDR-CREATE-GROUP),
+[bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP).
 This parameter is an array of replication set names. The replication set
 do not have to exist to be referenced by `replication_sets`.
 
 To change one node\'s replication sets in a running [BDR]
 cluster, the
-[bdr.connection_set_replication_sets](functions-replication-sets.md#FUNCTION-BDR-CONNECTION-SET-REP-SETS-BYNAME)
+[bdr.bdr_set_connection_replication_sets](functions-replication-sets.md#FUNCTION-BDR-SET-CONNECTION-REPLICATION-SETS)
 functions should be used. Changes only need to be made on one node,
 since BDR connection configuration is its self replicated to all other
 nodes. The global DDL lock is not taken by this operation.

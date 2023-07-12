@@ -9,13 +9,13 @@ INSERT INTO add_column (data) SELECT generate_series(1,100,10);
 
 ALTER TABLE add_column ADD COLUMN other varchar(100);
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT id, data, other FROM add_column ORDER BY id;
 
 UPDATE add_column SET other = 'foobar';
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT id, data, other FROM add_column ORDER BY id;
 

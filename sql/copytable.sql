@@ -4,7 +4,7 @@ CREATE TABLE testtab (x integer, blah text);
 
 INSERT INTO testtab(x, blah) SELECT x, repeat('blah'||x, x) FROM generate_series(1,10) x;
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c regression
 
@@ -25,7 +25,7 @@ SELECT * FROM testtab ORDER BY x;
 
 DROP FUNCTION bdr_copytable_test(cstring,cstring,cstring,cstring);
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c postgres
 

@@ -1,7 +1,7 @@
 -- ALTER TABLE DROP COLUMN (pk column)
 CREATE TABLE test (test_id SERIAL);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -37,8 +37,8 @@ Access Method: local
 Owned by: public.test.test_id
 
 ALTER TABLE test DROP COLUMN test_id;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -57,8 +57,8 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
 DROP TABLE test;
 -- ADD CONSTRAINT PRIMARY KEY
 CREATE TABLE test (test_id SERIAL NOT NULL);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -71,8 +71,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  test_id | integer | not null default nextval('test_test_id_seq'::regclass) | plain   |              | 
 
 ALTER TABLE test ADD CONSTRAINT test_pkey PRIMARY KEY (test_id);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -87,16 +87,16 @@ Indexes:
     "test_pkey" PRIMARY KEY, btree (test_id)
 
 DROP TABLE test;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
 
 \c postgres
 CREATE SEQUENCE test_seq USING bdr;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -136,8 +136,8 @@ Access Method: bdr
 
 ALTER SEQUENCE test_seq owned by test_tbl_serial_combined_pk.val;
 ERROR:  relation "test_tbl_serial_combined_pk" does not exist
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -191,8 +191,8 @@ ERROR:  ALTER SEQUENCE ... cycle is not supported for bdr sequences
 DROP SEQUENCE test_seq;
 CREATE SEQUENCE test_seq start 10000 owned by test_tbl_serial_combined_pk.val1 USING bdr;
 ERROR:  relation "test_tbl_serial_combined_pk" does not exist
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -215,8 +215,8 @@ CREATE SEQUENCE test_seq cycle USING bdr;
 ERROR:  CREATE SEQUENCE ... cycle is not supported for bdr sequences
 -- non-bdr sequence
 CREATE SEQUENCE test_seq increment 10;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -261,8 +261,8 @@ ALTER SEQUENCE test_seq restart;
 ALTER SEQUENCE test_seq cache 10;
 ALTER SEQUENCE test_seq cycle;
 ALTER SEQUENCE test_seq RENAME TO renamed_test_seq;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -303,8 +303,8 @@ Access Method: local
 Access Method: local
 
 ALTER SEQUENCE renamed_test_seq USING bdr;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -343,8 +343,8 @@ Access Method: bdr
 Access Method: bdr
 
 DROP SEQUENCE renamed_test_seq;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -354,8 +354,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 \d+ renamed_test_seq
 CREATE SEQUENCE test_seq;
 CREATE TABLE test_tbl (a int DEFAULT nextval('test_seq'));
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -375,8 +375,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
 
 DROP SEQUENCE test_seq CASCADE;
 NOTICE:  drop cascades to default for table test_tbl column a
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)
@@ -395,8 +395,8 @@ SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
  a      | integer |           | plain   |              | 
 
 DROP TABLE test_tbl;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
 (1 row)

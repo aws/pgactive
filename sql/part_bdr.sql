@@ -23,19 +23,16 @@ DROP EXTENSION bdr;
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 
 -- You can't part your own node
-SELECT bdr.bdr_part_by_node_names(ARRAY['node-regression']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-regression']);
 
 -- Or a nonexistent node
-SELECT bdr.bdr_part_by_node_names(ARRAY['node-nosuch']);
-
--- Unsubscribe must also fail, since this is a BDR connection
-SELECT bdr.bdr_unsubscribe('node-pg');
+SELECT bdr.bdr_detach_nodes(ARRAY['node-nosuch']);
 
 -- Nothing has changed
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 
 -- This part should successfully remove the node
-SELECT bdr.bdr_part_by_node_names(ARRAY['node-pg']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
 
 SELECT bdr.bdr_is_active_in_db();
 
@@ -92,7 +89,7 @@ SELECT count(*) FROM pg_stat_activity WHERE application_name = 'node-regression:
 
 -- If we try to part the same node again its state won't be 'r'
 -- so a warning will be generated.
-SELECT bdr.bdr_part_by_node_names(ARRAY['node-pg']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
 
 -- BDR is parted, but not fully removed, so don't allow the extension
 -- to be dropped yet.
@@ -105,7 +102,7 @@ BEGIN;
 -- We silence notice messages here as some of them depend on when BDR workers
 -- on the parted node 'node-pg' are gone.
 SET LOCAL client_min_messages = 'ERROR';
-SELECT bdr.remove_bdr_from_local_node(true);
+SELECT bdr.bdr_remove(true);
 COMMIT;
 
 SELECT bdr.bdr_is_active_in_db();
@@ -113,6 +110,6 @@ SELECT bdr.bdr_is_active_in_db();
 -- Should be able to drop the extension now
 --
 -- This would cascade-drop any triggers that we hadn't already
--- dropped in remove_bdr_from_local_node()
+-- dropped in bdr_remove()
 --
 DROP EXTENSION bdr;

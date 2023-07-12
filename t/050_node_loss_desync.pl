@@ -26,7 +26,7 @@ my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_bdr_group($node_a);
 my $upstream_node = $node_a;
 
-# Join a new node to first node using bdr_group_join and apply delay
+# Join a new node to first node using bdr_join_group and apply delay
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 my $delay = 1000; # ms
 initandstart_node($node_b);

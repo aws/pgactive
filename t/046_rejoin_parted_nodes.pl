@@ -23,7 +23,7 @@ part_nodes([$node_0], $node_1);
 check_part_statuses([$node_0], $node_1);
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
 #
 # Use case 1: a parted node without relations that already exist on the other 
@@ -54,7 +54,7 @@ like($psql_stderr, qr/relation "db_not_empty" does not exist/, "db_not_empty not
 exec_ddl($node_0, q[CREATE TABLE public.test_dup(a int primary key);]);
 
 # Make sure everything caught up by forcing another lock
-$node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 # Part node0 from 3 node cluster
 note "Part node_0 from 3 node cluster\n";
@@ -62,7 +62,7 @@ part_nodes([$node_0], $node_1);
 check_part_statuses([$node_0], $node_1);
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
 # re-join the parted node
 my $logstart_0 = get_log_size($node_0);

@@ -28,7 +28,7 @@
 
 #include "bdr.h"
 
-PG_FUNCTION_INFO_V1(bdr_wait_slot_confirm_lsn);
+PG_FUNCTION_INFO_V1(bdr_wait_for_slots_confirmed_flush_lsn);
 
 /*
  * Wait for the confirmed_flush_lsn of the specified slot, or all logical slots
@@ -38,7 +38,7 @@ PG_FUNCTION_INFO_V1(bdr_wait_slot_confirm_lsn);
  * No timeout is offered, use a statement_timeout.
  */
 Datum
-bdr_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
+bdr_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 {
 	XLogRecPtr	target_lsn;
 	Name		slot_name;

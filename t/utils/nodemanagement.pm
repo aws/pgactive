@@ -99,7 +99,7 @@ sub make_bdr_group {
     return \@nodes;
 }
 
-# Wrapper around bdr.bdr_group_create
+# Wrapper around bdr.bdr_create_group
 #
 sub create_bdr_group {
     my $node      = shift;
@@ -108,20 +108,20 @@ sub create_bdr_group {
     my $node_connstr = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
     $node->safe_psql(
         $bdr_test_dbname, qq{
-            SELECT bdr.bdr_group_create(
+            SELECT bdr.bdr_create_group(
                     local_node_name := '@{[ $node->name ]}',
                     node_external_dsn := '$node_connstr'
                     );
             }
     );
     $node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
-        or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');
+        or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
 }
 
 # Given a newly allocated PostgresNode, bring up a standalone 1-node BDR
-# system using bdr_group_create.
+# system using bdr_create_group.
 sub initandstart_bdr_group {
     my $node      = shift;
 
@@ -200,7 +200,7 @@ sub initandstart_logicaljoin_node {
 }
 
 #
-# Generate a query for bdr.bdr_group_join
+# Generate a query for bdr.bdr_join_group
 #
 # Caller is responsible for quote escaping on extra params.
 #
@@ -216,7 +216,7 @@ sub generate_bdr_logical_join_query {
     my $jn_connstr = "port=$jn_port host=$jn_host dbname=$bdr_test_dbname";
 
     my $join_query = qq{
-            SELECT bdr.bdr_group_join(
+            SELECT bdr.bdr_join_group(
                     local_node_name := '@{[$local_node->name]}',
                     node_external_dsn := '$ln_connstr',
                     join_using_dsn := '$jn_connstr'};
@@ -230,7 +230,7 @@ sub generate_bdr_logical_join_query {
     return $join_query;
 }
 
-# BDR group join with optional extra params passed directly to bdr.bdr_group_join
+# BDR group join with optional extra params passed directly to bdr.bdr_join_group
 #
 # Caller is responsible for quote escaping on extra params.
 #
@@ -244,7 +244,7 @@ sub bdr_logical_join {
 
     if (!$nowait) {
         $local_node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 }
 
@@ -351,12 +351,12 @@ sub initandstart_physicaljoin_node {
 
     # wait for BDR to come up
     $upstream_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $join_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 
     $join_node->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
-        or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_group_create');
+        or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
 
     # PostgresNode doesn't know we started the node since we didn't
     # use any of its methods, so we'd better tell it to check. Otherwise
@@ -434,7 +434,7 @@ sub wait_part_completion {
     }
 }
 
-# Remove one or mote nodes from cluster using 'bdr_part_by_node_names'.
+# Remove one or mote nodes from cluster using 'bdr_detach_nodes'.
 #
 # Does not check part status.
 #
@@ -453,7 +453,7 @@ sub part_nodes {
     my $nodelist = "ARRAY['" . join("','", map { $_->name } @{$part_nodes}) . "']";
 
     $upstream_node->safe_psql( $bdr_test_dbname,
-        "SELECT bdr.bdr_part_by_node_names($nodelist)" );
+        "SELECT bdr.bdr_detach_nodes($nodelist)" );
 
     # We can tell a part has taken effect when the downstream's slot vanishes
     # on the upstream.
@@ -670,7 +670,7 @@ sub start_acquire_ddl_lock {
     my $psql_stdin = qq[
 BEGIN;
 SELECT pg_backend_pid() || '=pid';
-SELECT 'acquired' FROM bdr.acquire_global_lock('$mode');
+SELECT 'acquired' FROM bdr.bdr_acquire_global_lock('$mode');
 ];
 
     my $psql = IPC::Run::start(
@@ -684,14 +684,14 @@ SELECT 'acquired' FROM bdr.acquire_global_lock('$mode');
     print("pid of backend acquiring ddl lock is $backend_pid\n");
 
     # Acquire should be in progress or finished
-    if ($node->safe_psql($bdr_test_dbname, qq[SELECT 1 FROM pg_stat_activity WHERE query LIKE '%bdr.acquire_global_lock%' AND pid = $backend_pid;]) ne '1')
+    if ($node->safe_psql($bdr_test_dbname, qq[SELECT 1 FROM pg_stat_activity WHERE query LIKE '%bdr.bdr_acquire_global_lock%' AND pid = $backend_pid;]) ne '1')
     {
-        croak("cannot find expected query   SELECT 'acquired' FROM bdr.acquire_global_lock...   in pg_stat_activity\n");
+        croak("cannot find expected query   SELECT 'acquired' FROM bdr.bdr_acquire_global_lock...   in pg_stat_activity\n");
     }
 
-	$node->poll_query_until($bdr_test_dbname, q[SELECT lock_state <> 'nolock' FROM bdr.bdr_locks]);
+	$node->poll_query_until($bdr_test_dbname, q[SELECT lock_state <> 'nolock' FROM bdr.bdr_global_locks_info]);
 
-    my $status = $node->safe_psql($bdr_test_dbname, q[SELECT lock_state, lock_mode, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_locks]);
+    my $status = $node->safe_psql($bdr_test_dbname, q[SELECT lock_state, lock_mode, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_global_locks_info]);
 	if (not ($status =~ qr/(?:acquire_acquired|acquire_tally_confirmations)\|$mode\|t\|f/))
 	{
 		croak("expected lock info (acquire_acquired|acquire_tally_confirmations)|$mode|t|f, got $status");
@@ -736,7 +736,7 @@ sub wait_acquire_ddl_lock {
             unless($no_error_die);
     }
 
-	# TODO: double check against bdr.bdr_locks
+	# TODO: double check against bdr.bdr_global_locks_info
     return ${$psql->{'stdout'}} =~ 'acquired';
 }
 

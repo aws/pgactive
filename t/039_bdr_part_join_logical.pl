@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Simple part/join tests for logical (bdr_group_join) mode
+# Simple part/join tests for logical (bdr_join_group) mode
 #
 use strict;
 use warnings;

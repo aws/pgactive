@@ -5,8 +5,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SER
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -47,8 +47,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test  DROP COLUMN 
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -78,8 +78,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SER
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -98,8 +98,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test ADD CONSTRAIN
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -120,8 +120,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -135,8 +135,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq incre
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -215,8 +215,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq RENAME
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -262,8 +262,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.renamed_test_seq
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -285,8 +285,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int D
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -321,8 +321,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl; $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -334,8 +334,8 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigin
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -370,8 +370,8 @@ NOTICE:  drop cascades to default for table public.test_tbl column a
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  

@@ -1,16 +1,16 @@
 \c regression
 
-SELECT bdr.bdr_apply_is_paused();
+SELECT bdr.bdr_is_apply_paused();
 
 SELECT bdr.bdr_replicate_ddl_command('CREATE TABLE public.pause_test(x text primary key);');
 INSERT INTO pause_test(x) VALUES ('before pause');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c postgres
 
-SELECT bdr.bdr_apply_is_paused();
+SELECT bdr.bdr_is_apply_paused();
 SELECT bdr.bdr_apply_pause();
-SELECT bdr.bdr_apply_is_paused();
+SELECT bdr.bdr_is_apply_paused();
 -- It's necessary to wait for a latch timeout on apply workers
 -- until bdr_apply_pause gets taught to set their latches.
 SELECT pg_sleep(6);
@@ -26,7 +26,7 @@ INSERT INTO pause_test(x) VALUES ('after pause before resume');
 SELECT pg_sleep(1);
 
 -- Pause state is preserved across sessions
-SELECT bdr.bdr_apply_is_paused();
+SELECT bdr.bdr_is_apply_paused();
 
 -- Must not see row from after pause
 SELECT x FROM pause_test;
@@ -42,7 +42,7 @@ INSERT INTO pause_test(x) VALUES ('after resume');
 -- resume to take effect well before then.
 BEGIN;
 SET LOCAL statement_timeout = '60s';
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 COMMIT;
 
 \c postgres

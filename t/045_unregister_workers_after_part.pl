@@ -32,7 +32,7 @@ my $result = wait_for_worker_to_unregister($node_0,
 ok($result, "unregistering apply worker on node_0 is detected");
 
 # Remove BDR from the parted node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
 # per-db worker must be unregistered on a node with BDR removed
 $result = wait_for_worker_to_unregister($node_0,
@@ -43,7 +43,7 @@ ok($result, "unregistering per-db worker on node_0 is detected");
 # Remove BDR from node and immediately drop the extension
 $node_1->safe_psql($bdr_test_dbname,
 	q[
-		SELECT bdr.remove_bdr_from_local_node(true);
+		SELECT bdr.bdr_remove(true);
 		DROP EXTENSION bdr;
 	]);
 

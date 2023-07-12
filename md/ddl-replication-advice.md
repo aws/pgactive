@@ -34,7 +34,7 @@ performed while all configured nodes are reachable and keeping up
 reasonably well with the current write rate. If DDL absolutely must be
 performed while a node is down, it has to be removed from the
 configuration (using
-[bdr.bdr_part_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES))
+[bdr.bdr_detach_nodes](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES))
 first. (Once removed, a node cannot be added back; it must be
 decomissioned and a new node joined in its place.)
 
@@ -43,7 +43,7 @@ decomissioned and a new node joined in its place.)
 DDL is a heavier weight operation than on standalone PostgreSQL.
 Performing DDL on any node will acquire a \"global DDL lock\". The
 global DDL lock may also be acquired manually with
-[bdr.acquire_global_lock](functions-node-mgmt.md#FUNCTION-BDR-ACQUIRE-GLOBAL-LOCK).
+[bdr.bdr_acquire_global_lock](functions-node-mgmt.md#FUNCTION-BDR-ACQUIRE-GLOBAL-LOCK).
 
 This causes new transactions that attempt write operations [*on any node
 except the node that acquired the lock*] to pause (block)
@@ -98,13 +98,13 @@ taking/holding the DDL lock. It\'s all crash-safe.
 
 If the node that holds the DDL lock goes down permanently while holding
 the DDL lock, parting the node with
-[`bdr.bdr_part_by_node_names()`](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
+[`bdr.bdr_detach_nodes()`](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES)
 will release the lock on other nodes.
 
 You cannot see the global DDL lock in the `pg_locks` view, as
 it is not implemented using a heavyweight lock. See
 [Monitoring](monitoring.md) for guidance on monitoring BDR, including
-DDL locking. The [bdr.bdr_locks](catalog-bdr-locks.md) view provides
+DDL locking. The [bdr.bdr_global_locks_info](catalog-bdr-global-locks-info.md) view provides
 diagnostic information on lock state.
 
 BDR 2.0 allows some DDL that doesn\'t affect table structure to proceed

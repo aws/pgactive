@@ -30,7 +30,7 @@ to change:
 
 -   `k`- Parting/Parted: The node has been \'killed\' or
     removed by the user with the function
-    `bdr.bdr_part_by_node_names`.
+    `bdr.bdr_detach_nodes`.
 
 Note that the status doesn\'t indicate whether the node is actually up
 right now. A node may be shut down, isolated from the network, or

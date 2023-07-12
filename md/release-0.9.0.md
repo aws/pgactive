@@ -37,9 +37,9 @@ release include:
 
 The biggest change with 0.9.0 is that connections between nodes are now
 configured using the
-[bdr.bdr_group_create](functions-node-mgmt.md#FUNCTION-BDR-GROUP-CREATE)
+[bdr.bdr_create_group](functions-node-mgmt.md#FUNCTION-BDR-CREATE-GROUP)
 and
-[bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
+[bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP)
 SQL function calls. It is no longer necessary to restart any existing
 nodes when joining a node. Even the newly joining node can join without
 a restart if it was initially configured with the settings required for
@@ -55,7 +55,7 @@ For details, see the [Node management](node-management.md) chapter.
 ## A.13.2. Easy node removal
 
 The new
-[bdr.bdr_part_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
+[bdr.bdr_detach_nodes](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES)
 function allows easy online node removal. There is no need to restart
 nodes or to manually delete replication identifiers and slots. Multiple
 nodes may be removed at once.

@@ -7,13 +7,13 @@ $DDL$);
 INSERT INTO test_replication(id) VALUES (1);
 
 -- Error cases
-SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
+SELECT bdr.bdr_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();
 
 SET bdr.skip_ddl_replication = on;
 
-SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
+SELECT bdr.bdr_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();
 
@@ -26,26 +26,26 @@ $$
 DECLARE
   errm text;
 BEGIN
-  PERFORM bdr.skip_changes_upto('0', 0, 1234, '0/1');
+  PERFORM bdr.bdr_skip_changes('0', 0, 1234, '0/1');
 EXCEPTION
   WHEN others THEN
     GET STACKED DIAGNOSTICS
        errm = MESSAGE_TEXT;
     IF errm LIKE 'replication origin "bdr_0_0_%" does not exist' THEN
-      RAISE EXCEPTION 'Got expected error from bdr.skip_changes_upto()';
+      RAISE EXCEPTION 'Got expected error from bdr.bdr_skip_changes()';
     ELSE
       RAISE;
     END IF;
 END;
 $$;
 
-SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
+SELECT bdr.bdr_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) = bdr.bdr_get_local_nodeid();
 
 -- Skipping the past must do nothing. The LSN isn't exposed in
 -- pg_replication_identifier so this'll just produce no visible result, but not
 -- break anything.
-SELECT bdr.skip_changes_upto(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
+SELECT bdr.bdr_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
 FROM bdr.bdr_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != bdr.bdr_get_local_nodeid();

@@ -14,9 +14,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -40,9 +40,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -81,9 +81,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -107,9 +107,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -132,9 +132,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -157,9 +157,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -182,9 +182,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -207,9 +207,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -232,9 +232,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -257,9 +257,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -282,9 +282,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -307,9 +307,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -332,9 +332,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -359,9 +359,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -387,9 +387,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -414,9 +414,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -455,9 +455,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -497,9 +497,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -540,9 +540,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -573,9 +573,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -617,9 +617,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -642,9 +642,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -688,9 +688,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -713,9 +713,9 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -757,9 +757,9 @@ $DDL$);
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  id     | integer |           |          |         | plain   | 0            | 
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -784,9 +784,9 @@ $DDL$);
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  id     | integer |           |          |         | plain   |              | 
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -835,9 +835,9 @@ INSERT INTO public.test_inh_root(id, val1, val2)
 SELECT x, x::text, x%4 FROM generate_series(1,10) x;
 INSERT INTO public.test_inh_chld1(id, val1, val2, child1col)
 SELECT x, x::text, x%4+1, x*2 FROM generate_series(11,20) x;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -971,9 +971,9 @@ ERROR:  bdr_replicate_ddl_command execution attempt rejected by configuration
 DETAIL:  bdr.skip_ddl_replication is true.
 HINT:  See the 'DDL replication' chapter of the documentation.
 RESET bdr.skip_ddl_replication;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -1148,9 +1148,9 @@ SELECT * FROM public.test_inh_chld2;
 ----+------+------+-----------
 (0 rows)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
@@ -1205,9 +1205,9 @@ ERROR:  cannot run UPDATE or DELETE on table test_inh_chld1 because it does not 
 HINT:  Add a PRIMARY KEY to the table.
 INSERT INTO public.test_inh_root(id, val1, val2) VALUES (200, 'root', 1);
 INSERT INTO public.test_inh_chld1(id, val1, val2, child1col) VALUES (200, 'child', 0, 0);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 

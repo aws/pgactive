@@ -9,18 +9,18 @@ $DDL$);
 
 -- create nonexistant extension
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE EXTENSION pg_trgm SCHEMA public; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * from list_extension; 
 
 -- drop and recreate using CINE
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP EXTENSION pg_trgm; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT * from list_extension; 
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public; $DDL$);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 SELECT * from list_extension; 
 
@@ -28,7 +28,7 @@ SELECT * from list_extension;
 \set VERBOSITY terse
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public; $DDL$);
 \set VERBOSITY default
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT * from list_extension; 
 
