@@ -32,7 +32,7 @@ schema. Unless you put this on your `search_path` you\'ll need
 to schema-qualify their names.
 
   **Warning**
-  Do [*not*] directly call functions with the prefix `internal`, they are intended for [BDR]\'s internal use only and may lack sanity checks present in the public-facing functions and [*could break your replication setup*]. Stick to using the functions documented here, others are subject to change without notice.
+  Do [*not*] directly call functions with the prefix `_bdr` and suffix `_private`, they are intended for [BDR]\'s internal use only and may lack sanity checks present in the public-facing functions and [*could break your replication setup*]. Stick to using the functions documented here, others are subject to change without notice.
 
 In the latest version of BDR, some of the user-facing extension SQL functions or views are renamed to be more redable and consistent, following is the list shows the changes:
 
