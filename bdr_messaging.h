@@ -14,7 +14,7 @@ typedef enum BdrMessageType
 	/* Replay confirmations */
 	BDR_MESSAGE_REQUEST_REPLAY_CONFIRM = 5,
 	BDR_MESSAGE_REPLAY_CONFIRM = 6
-	/* Node part/join */
+	/* Node detach/join */
 
 } BdrMessageType;
 

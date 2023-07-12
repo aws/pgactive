@@ -11,7 +11,7 @@
  *		bdr_messaging.c
  *
  * BDR needs to do cluster-wide operations with varying degrees of synchronous
- * behaviour in order to perform DDL, part/join nodes, etc. Operations may need
+ * behaviour in order to perform DDL, detach/join nodes, etc. Operations may need
  * to communicate with a quorum of nodes or all known nodes. The logic to
  * handle WAL message sending/receiving and dispatch, quorum counting, etc is
  * centralized here.

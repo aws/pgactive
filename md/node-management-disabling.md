@@ -54,7 +54,7 @@ it on is already isolated from the group - say, if it\'s been parted
 while disconnected, or has been restored from a PITR backup or disk
 snapshot. Otherwise you will leave dangling replication slots etc on the
 other nodes, causing problems on the remaining nodes. Always
-[bdr.bdr_part_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
+[bdr.bdr_detach_nodes](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES)
 the node first.
 
 

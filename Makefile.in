@@ -116,7 +116,7 @@ REGRESSCHECKS = init \
 	dml_replicate_ddl_command \
 	dml_missing_pk \
 	dml_toasted \
-	part_bdr
+	detach_bdr
 
 include Makefile.global
 

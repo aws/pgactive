@@ -152,8 +152,8 @@ done
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 
-# Part a node away from BDR group, to hit data differ error.
-#$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_part_by_node_names(ARRAY['$WHALE']);" >> $RESULTS/check.log 2>&1
+# Detach a node away from BDR group, to hit data differ error.
+#$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_detach_nodes(ARRAY['$WHALE']);" >> $RESULTS/check.log 2>&1
 #$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE TABLE foo (elefanto int);" >> $RESULTS/check.log 2>&1
 #$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "INSERT INTO foo SELECT * FROM generate_series(1, 100);" >> $RESULTS/check.log 2>&1
 

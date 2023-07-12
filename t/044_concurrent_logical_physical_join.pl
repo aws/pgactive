@@ -2,7 +2,7 @@
 #
 # Test a mixture of logical and physical joins executing concurrently.
 #
-# This is intended to turn up issues in the part/join protocol.
+# This is intended to turn up issues in the detach/join protocol.
 #
 use strict;
 use warnings;
@@ -28,7 +28,7 @@ my $node_m = PostgreSQL::Test::Cluster->new('node_m');
 concurrent_joins_logical_physical([\@{ [$node_l,$upstream_node]},\@{ [$node_m,$upstream_node]}],[\@{[$node_k,$upstream_node]}]);
 
 note "Clean up\n";
-part_and_check_nodes([$node_m,$node_k,$node_l],$node_a);
+detach_and_check_nodes([$node_m,$node_k,$node_l],$node_a);
 stop_nodes([$node_a]);
 
 SKIP: {

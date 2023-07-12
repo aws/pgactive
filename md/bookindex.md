@@ -114,7 +114,7 @@ functions](functions-node-mgmt.md)
 bdr.bdr_node_set_read_only, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_part_by_node_names, [Node management
+bdr.bdr_detach_nodes, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_remove_node_identifier(), [Node management

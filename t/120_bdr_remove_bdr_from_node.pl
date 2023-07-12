@@ -25,11 +25,11 @@ initandstart_logicaljoin_node( $node_b, $node_a );
 # Create a table foo
 $node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
 
-# Part node_b before completely removing BDR
-part_nodes( [$node_b], $node_a );
+# Detach node_b before completely removing BDR
+bdr_detach_nodes( [$node_b], $node_a );
 sleep(10);
 
-# Remove BDR from parted node
+# Remove BDR from detached node
 bdr_remove( $node_b, 1 );
 
 # Remove the table foo
@@ -42,7 +42,7 @@ $node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
 my $node_c = PostgreSQL::Test::Cluster->new('node_c');
 initandstart_logicaljoin_node( $node_c, $node_a );
 
-# Remove(force) BDR from node that is not parted
+# Remove(force) BDR from node that is not detached
 bdr_remove($node_c);
 
 #clean up
@@ -52,12 +52,12 @@ stop_nodes( [ $node_c, $node_b, $node_a ] );
 # while 2.0 Global sequences are in use
 sub bdr_remove {
     my $node      = shift;
-    my $is_parted = shift;
-    if ( defined $is_parted && $is_parted ) {
+    my $is_detached = shift;
+    if ( defined $is_detached && $is_detached ) {
         $node->safe_psql( $bdr_test_dbname, "select bdr.remove_bdr_from_local_node()" );
         is( $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_is_active_in_db()"),
             'f',
-            "BDR is active status after BDR remove of parted node"
+            "BDR is active status after BDR removal of detached node"
         );
     }
     else {
