@@ -57,7 +57,7 @@ SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 -- This detach should successfully remove the node
 SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
  bdr_detach_nodes 
---------------------------
+------------------
  
 (1 row)
 
