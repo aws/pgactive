@@ -50,7 +50,6 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     wait_acquire_ddl_lock
     cancel_ddl_lock
     release_ddl_lock
-	bdr_update_default_postgresql_conf
     );
 
 # For use by other modules, but need not appear in the default namespace of
@@ -143,16 +142,6 @@ sub initandstart_node {
 
 }
 
-sub bdr_update_default_postgresql_conf {
-	my ($node) = shift;
-
-	$node->append_conf(
-		'postgresql.conf', q{
-			bdr.skip_ddl_replication = false
-            }
-    );
-}
-
 # Edit postgresql.conf with required parameters for BDR
 sub bdr_update_postgresql_conf {
     my ($node) = shift;
@@ -172,10 +161,9 @@ sub bdr_update_postgresql_conf {
             log_min_messages = debug2
             #bdr.trace_replay = off
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
+			bdr.skip_ddl_replication = false
             }
     );
-
-	bdr_update_default_postgresql_conf($node);
 }
 
 sub _create_db_and_exts {

@@ -20,9 +20,8 @@ $node_a->append_conf('postgresql.conf', q{
 wal_level = logical
 track_commit_timestamp = on
 shared_preload_libraries = 'bdr'
+bdr.skip_ddl_replication = false
 });
-
-bdr_update_default_postgresql_conf($node_a);
 
 $node_a->start;
 
