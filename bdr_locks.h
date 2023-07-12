@@ -38,6 +38,6 @@ extern bool bdr_locks_process_message(int msg_type, bool transactional,
 extern char *bdr_lock_type_to_name(BDRLockType lock_type);
 extern BDRLockType bdr_lock_name_to_type(const char *lock_type);
 
-extern void bdr_locks_node_parted(BDRNodeId * node);
+extern void bdr_locks_node_detached(BDRNodeId * node);
 
 #endif
