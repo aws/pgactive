@@ -118,17 +118,6 @@ REGRESSCHECKS = init \
 	dml_toasted \
 	part_bdr
 
-ISOLATIONCHECKS = isolation/init \
-	isolation/ddlconflict \
-	isolation/dmlconflict_ii \
-	isolation/dmlconflict_uu \
-	isolation/dmlconflict_ud \
-	isolation/dmlconflict_dd \
-	isolation/alter_table \
-	isolation/basic_triple_node
-#	This test demonstrates a divergent conflict, so disable for now.
-#	isolation/update_pk_change_conflict
-
 include Makefile.global
 
 $(info Building against PostgreSQL $(MAJORVERSION))
@@ -190,7 +179,7 @@ configure: configure.in
 
 all: bdr_init_copy bdr_dump
 
-check: regress_check prove_check isolationcheck
+check: regress_check prove_check
 
 regress_check: all install
 	mkdir -p results/ddl results/ddl_fn results/dml
@@ -255,28 +244,10 @@ prove_check: $(pgxsdir)/src/test/perl/PostgresNode.pm
 endif
 
 # Disabled because these tests require "wal_level=logical" and other custom
-# settings (see bdr_regress.conf and bdr_isolationregress.conf files), which
-# typical installcheck users do not have (e.g. buildfarm clients).
+# settings (see bdr_regress.conf file), which typical installcheck users do not
+# have (e.g. buildfarm clients).
 installcheck:
 	@echo "Cannot run installcheck as tests need custom configuration"
-
-# isolationtester requires multi-server support which is not available in
-# core postgres, but a patch is available here:
-# https://git.postgresql.org/gitweb/?p=2ndquadrant_bdr.git;a=commitdiff;h=a609878880d396d144c4b34d99f8a47078d74a3c
-# XXX: An idea could be to rebase the patch, place the .patch file in
-# compat/$(BDR_PG_MAJORVERSION), apply it during the tests to run isolation
-# tests.
-isolationcheck:
-	@echo "Cannot run isolationcheck as isolationtester requires multi-server support"
-
-# Enable the following when isolationtester gets multi-server support.
-# isolationcheck: all install
-#	mkdir -p results/isolation
-#
-#	./run_tests --config $(bdr_abs_srcdir)/bdr_isolationregress.conf \
-#		--testbinary src/test/isolation/pg_isolation_regress \
-#		--dbname node1,node2,node3 \
-#		$(ISOLATIONCHECKS)
 
 distdir = bdr-$(BDR_VERSION)
 git-dist: clean
@@ -299,4 +270,4 @@ distclean maintainer-clean: clean
 	rm -f run_tests
 	rm -rf autom4te.cache/
 
-.PHONY: all check regress_check prove_check installcheck isolationcheck git-dist distclean maintainer-clean
+.PHONY: all check regress_check prove_check installcheck git-dist distclean maintainer-clean
