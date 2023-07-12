@@ -31,7 +31,7 @@ sub create_table_global_sequence {
 
     exec_ddl( $node, qq{CREATE SEQUENCE public.${table_name}_id_seq;} );
     exec_ddl( $node, qq{ CREATE TABLE public.$table_name (
-                        id bigint NOT NULL DEFAULT bdr.global_seq_nextval('public.${table_name}_id_seq'), node_name text); });
+                        id bigint NOT NULL DEFAULT bdr.bdr_snowflake_id_nextval('public.${table_name}_id_seq'), node_name text); });
     exec_ddl( $node, qq{ALTER SEQUENCE public.${table_name}_id_seq OWNED BY public.$table_name.id;});
 }
 

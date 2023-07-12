@@ -152,7 +152,7 @@ Many applications require unique values be assigned to database entries.Some app
 
 #### Using Global Sequences
 
-To use a global sequence, create a local sequence with `CREATE SEQUENCE ...` like normal. Then instead of using `nextval(seqname)` to get values from it, use `bdr.global_seq_nextval(seqname)`. The destination column
+To use a global sequence, create a local sequence with `CREATE SEQUENCE ...` like normal. Then instead of using `nextval(seqname)` to get values from it, use `bdr.bdr_snowflake_id_nextval(seqname)`. The destination column
 must be `BIGINT` as the result is 64 bits wide.
 
 ```
@@ -163,13 +163,13 @@ must be `BIGINT` as the result is 64 bits wide.
 
   CREATE SEQUENCE gstest_id_seq OWNED BY gstest.id;
 
-  ALTER TABLE gstest ALTER COLUMN id SET DEFAULT bdr.global_seq_nextval('gstest_id_seq');
+  ALTER TABLE gstest ALTER COLUMN id SET DEFAULT bdr.bdr_snowflake_id_nextval('gstest_id_seq');
 ```
 
 If you normally create the sequence as a `BIGSERIAL` column you may continue to do so. To enable global sequence use on the column you must `ALTER` the `DEFAULT` expression after table creation. There is currently no facility to do this automatically and transparently so you need to do it in a follow up command like:
 
 
-`ALTER TABLE my_table ALTER COLUMN my_bigserial SET DEFAULT bdr.global_seq_nextval('my_table_my_bigserial_seq');`
+`ALTER TABLE my_table ALTER COLUMN my_bigserial SET DEFAULT bdr.bdr_snowflake_id_nextval('my_table_my_bigserial_seq');`
 
 
 ### Conflicts

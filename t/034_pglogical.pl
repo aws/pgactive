@@ -320,7 +320,7 @@ CREATE SEQUENCE public.pgl_bdr_test_bdr_seq_test_seq;
 CREATE TABLE public.pgl_bdr_test(
 	id integer primary key,
 	dummy text,
-	bdr_seq_test bigint not null default bdr.global_seq_nextval('public.pgl_bdr_test_bdr_seq_test_seq'::regclass),
+	bdr_seq_test bigint not null default bdr.bdr_snowflake_id_nextval('public.pgl_bdr_test_bdr_seq_test_seq'::regclass),
 	local_seq_test bigserial not null
 );
 

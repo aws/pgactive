@@ -7,17 +7,16 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SER
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \c postgres
 \d+ test
-                                                Table "public.test"
- Column  |  Type   |                       Modifiers                        | Storage | Stats target | Description 
----------+---------+--------------------------------------------------------+---------+--------------+-------------
- test_id | integer | not null default nextval('test_test_id_seq'::regclass) | plain   |              | 
+                                                   Table "public.test"
+ Column  |  Type   | Collation | Nullable |                Default                | Storage | Stats target | Description 
+---------+---------+-----------+----------+---------------------------------------+---------+--------------+-------------
+ test_id | integer |           | not null | nextval('test_test_id_seq'::regclass) | plain   |              | 
 
 SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
      relname      | relkind 
@@ -26,19 +25,10 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
 (1 row)
 
 \d+ test_test_id_seq
-           Sequence "public.test_test_id_seq"
-    Column     |  Type   |        Value        | Storage 
----------------+---------+---------------------+---------
- sequence_name | name    | test_test_id_seq    | plain
- last_value    | bigint  | 1                   | plain
- start_value   | bigint  | 1                   | plain
- increment_by  | bigint  | 1                   | plain
- max_value     | bigint  | 9223372036854775807 | plain
- min_value     | bigint  | 1                   | plain
- cache_value   | bigint  | 1                   | plain
- log_cnt       | bigint  | 0                   | plain
- is_cycled     | boolean | f                   | plain
- is_called     | boolean | f                   | plain
+                  Sequence "public.test_test_id_seq"
+  Type   | Start | Minimum |  Maximum   | Increment | Cycles? | Cache 
+---------+-------+---------+------------+-----------+---------+-------
+ integer |     1 |       1 | 2147483647 |         1 | no      |     1
 Owned by: public.test.test_id
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test  DROP COLUMN test_id; $DDL$);
@@ -49,16 +39,15 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test  DROP COLUMN 
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \c regression
 \d+ test
-                       Table "public.test"
- Column | Type | Modifiers | Storage | Stats target | Description 
---------+------+-----------+---------+--------------+-------------
+                                  Table "public.test"
+ Column | Type | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+------+-----------+----------+---------+---------+--------------+-------------
 
 SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
  relname | relkind 
@@ -80,17 +69,16 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SER
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \c postgres
 \d+ test
-                                                Table "public.test"
- Column  |  Type   |                       Modifiers                        | Storage | Stats target | Description 
----------+---------+--------------------------------------------------------+---------+--------------+-------------
- test_id | integer | not null default nextval('test_test_id_seq'::regclass) | plain   |              | 
+                                                   Table "public.test"
+ Column  |  Type   | Collation | Nullable |                Default                | Storage | Stats target | Description 
+---------+---------+-----------+----------+---------------------------------------+---------+--------------+-------------
+ test_id | integer |           | not null | nextval('test_test_id_seq'::regclass) | plain   |              | 
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test ADD CONSTRAINT test_pkey PRIMARY KEY (test_id); $DDL$);
  bdr_replicate_ddl_command 
@@ -100,17 +88,16 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test ADD CONSTRAIN
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \c regression
 \d+ test
-                                                Table "public.test"
- Column  |  Type   |                       Modifiers                        | Storage | Stats target | Description 
----------+---------+--------------------------------------------------------+---------+--------------+-------------
- test_id | integer | not null default nextval('test_test_id_seq'::regclass) | plain   |              | 
+                                                   Table "public.test"
+ Column  |  Type   | Collation | Nullable |                Default                | Storage | Stats target | Description 
+---------+---------+-----------+----------+---------------------------------------+---------+--------------+-------------
+ test_id | integer |           | not null | nextval('test_test_id_seq'::regclass) | plain   |              | 
 Indexes:
     "test_pkey" PRIMARY KEY, btree (test_id)
 
@@ -122,10 +109,9 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \c postgres
 -- normal sequence
@@ -137,41 +123,22 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq incre
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ test_seq
-               Sequence "public.test_seq"
-    Column     |  Type   |        Value        | Storage 
----------------+---------+---------------------+---------
- sequence_name | name    | test_seq            | plain
- last_value    | bigint  | 1                   | plain
- start_value   | bigint  | 1                   | plain
- increment_by  | bigint  | 10                  | plain
- max_value     | bigint  | 9223372036854775807 | plain
- min_value     | bigint  | 1                   | plain
- cache_value   | bigint  | 1                   | plain
- log_cnt       | bigint  | 0                   | plain
- is_cycled     | boolean | f                   | plain
- is_called     | boolean | f                   | plain
+                          Sequence "public.test_seq"
+  Type  | Start | Minimum |       Maximum       | Increment | Cycles? | Cache 
+--------+-------+---------+---------------------+-----------+---------+-------
+ bigint |     1 |       1 | 9223372036854775807 |        10 | no      |     1
 
 \c postgres
 \d+ test_seq
-               Sequence "public.test_seq"
-    Column     |  Type   |        Value        | Storage 
----------------+---------+---------------------+---------
- sequence_name | name    | test_seq            | plain
- last_value    | bigint  | 1                   | plain
- start_value   | bigint  | 1                   | plain
- increment_by  | bigint  | 10                  | plain
- max_value     | bigint  | 9223372036854775807 | plain
- min_value     | bigint  | 1                   | plain
- cache_value   | bigint  | 1                   | plain
- log_cnt       | bigint  | 0                   | plain
- is_cycled     | boolean | f                   | plain
- is_called     | boolean | f                   | plain
+                          Sequence "public.test_seq"
+  Type  | Start | Minimum |       Maximum       | Increment | Cycles? | Cache 
+--------+-------+---------+---------------------+-----------+---------+-------
+ bigint |     1 |       1 | 9223372036854775807 |        10 | no      |     1
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq increment by 10; $DDL$);
  bdr_replicate_ddl_command 
@@ -217,43 +184,24 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq RENAME
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ test_seq
 \d+ renamed_test_seq
-      Sequence "public.renamed_test_seq"
-    Column     |  Type   |  Value   | Storage 
----------------+---------+----------+---------
- sequence_name | name    | test_seq | plain
- last_value    | bigint  | 1        | plain
- start_value   | bigint  | 1        | plain
- increment_by  | bigint  | 10       | plain
- max_value     | bigint  | 1000000  | plain
- min_value     | bigint  | 0        | plain
- cache_value   | bigint  | 10       | plain
- log_cnt       | bigint  | 0        | plain
- is_cycled     | boolean | t        | plain
- is_called     | boolean | f        | plain
+                Sequence "public.renamed_test_seq"
+  Type  | Start | Minimum | Maximum | Increment | Cycles? | Cache 
+--------+-------+---------+---------+-----------+---------+-------
+ bigint |     1 |       0 | 1000000 |        10 | yes     |    10
 
 \c regression
 \d+ test_seq
 \d+ renamed_test_seq
-      Sequence "public.renamed_test_seq"
-    Column     |  Type   |  Value   | Storage 
----------------+---------+----------+---------
- sequence_name | name    | test_seq | plain
- last_value    | bigint  | 1        | plain
- start_value   | bigint  | 1        | plain
- increment_by  | bigint  | 10       | plain
- max_value     | bigint  | 1000000  | plain
- min_value     | bigint  | 0        | plain
- cache_value   | bigint  | 10       | plain
- log_cnt       | bigint  | 0        | plain
- is_cycled     | boolean | t        | plain
- is_called     | boolean | f        | plain
+                Sequence "public.renamed_test_seq"
+  Type  | Start | Minimum | Maximum | Increment | Cycles? | Cache 
+--------+-------+---------+---------+-----------+---------+-------
+ bigint |     1 |       0 | 1000000 |        10 | yes     |    10
 
 \c postgres
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.renamed_test_seq; $DDL$);
@@ -264,10 +212,9 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.renamed_test_seq
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ renamed_test_seq;
 \c regression
@@ -278,8 +225,15 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL
  
 (1 row)
 
--- DESTINATION COLUMN TYPE REQUIRED BIGINT 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT bdr.global_seq_nextval('public.test_seq'),b text); $DDL$);
+-- DESTINATION COLUMN TYPE REQUIRED BIGINT
+SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
+NOTICE:  table "test_tbl" does not exist, skipping
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
  
@@ -287,25 +241,24 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int D
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ test_tbl
-                                             Table "public.test_tbl"
- Column |  Type   |                      Modifiers                       | Storage  | Stats target | Description 
---------+---------+------------------------------------------------------+----------+--------------+-------------
- a      | integer | default bdr.global_seq_nextval('test_seq'::regclass) | plain    |              | 
- b      | text    |                                                      | extended |              | 
+                                                       Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
+ a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text    |           |          |                                                    | extended |              | 
 
 \c postgres
 \d+ test_tbl
-                                             Table "public.test_tbl"
- Column |  Type   |                      Modifiers                       | Storage  | Stats target | Description 
---------+---------+------------------------------------------------------+----------+--------------+-------------
- a      | integer | default bdr.global_seq_nextval('test_seq'::regclass) | plain    |              | 
- b      | text    |                                                      | extended |              | 
+                                                       Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
+ a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text    |           |          |                                                    | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
 ERROR:  integer out of range
@@ -323,12 +276,11 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl; $DDL$);
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.global_seq_nextval('public.test_seq'),b text); $DDL$);
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------
  
@@ -336,25 +288,24 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigin
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ test_tbl
-                                            Table "public.test_tbl"
- Column |  Type  |                      Modifiers                       | Storage  | Stats target | Description 
---------+--------+------------------------------------------------------+----------+--------------+-------------
- a      | bigint | default bdr.global_seq_nextval('test_seq'::regclass) | plain    |              | 
- b      | text   |                                                      | extended |              | 
+                                                       Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
+--------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
+ a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text   |           |          |                                                    | extended |              | 
 
 \c postgres
 \d+ test_tbl
-                                            Table "public.test_tbl"
- Column |  Type  |                      Modifiers                       | Storage  | Stats target | Description 
---------+--------+------------------------------------------------------+----------+--------------+-------------
- a      | bigint | default bdr.global_seq_nextval('test_seq'::regclass) | plain    |              | 
- b      | text   |                                                      | extended |              | 
+                                                       Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
+--------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
+ a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text   |           |          |                                                    | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
 SELECT count(*) FROM test_tbl;
@@ -364,7 +315,7 @@ SELECT count(*) FROM test_tbl;
 (1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.test_seq CASCADE; $DDL$);
-NOTICE:  drop cascades to default for table public.test_tbl column a
+NOTICE:  drop cascades to default value for column a of table public.test_tbl
  bdr_replicate_ddl_command 
 ---------------------------
  
@@ -372,23 +323,22 @@ NOTICE:  drop cascades to default for table public.test_tbl column a
 
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bdr_wait_for_slots_confirmed_flush_lsn 
------------------------
+----------------------------------------
  
- 
-(2 rows)
+(1 row)
 
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type  | Modifiers | Storage  | Stats target | Description 
---------+--------+-----------+----------+--------------+-------------
- a      | bigint |           | plain    |              | 
- b      | text   |           | extended |              | 
+                                 Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ a      | bigint |           |          |         | plain    |              | 
+ b      | text   |           |          |         | extended |              | 
 
 \c regression
 \d+ test_tbl
-                       Table "public.test_tbl"
- Column |  Type  | Modifiers | Storage  | Stats target | Description 
---------+--------+-----------+----------+--------------+-------------
- a      | bigint |           | plain    |              | 
- b      | text   |           | extended |              | 
+                                 Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ a      | bigint |           |          |         | plain    |              | 
+ b      | text   |           |          |         | extended |              | 
 

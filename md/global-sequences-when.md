@@ -6,7 +6,7 @@
 
 Using global sequences allows you to avoid the problems with insert
 conflicts. If you define a `PRIMARY KEY` or `UNIQUE`
-column with a `DEFAULT bdr.global_seq_nextval(...)`
+column with a `DEFAULT bdr.bdr_snowflake_id_nextval(...)`
 expression, it is not possible for any node to ever get the same value
 as any other node. When BDR synchronizes inserts between the nodes, they
 can never conflict.

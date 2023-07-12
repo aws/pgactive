@@ -1611,22 +1611,22 @@ LANGUAGE C STRICT IMMUTABLE;
 -- But, the simple way we do updates to those catalogs doesn't support partial
 -- or expression indexes. So no constraint enforces node ID uniqueness.
 
-CREATE FUNCTION global_seq_nextval(regclass)
+CREATE FUNCTION bdr_snowflake_id_nextval(regclass)
 RETURNS bigint
-AS 'MODULE_PATHNAME','global_seq_nextval_oid'
+AS 'MODULE_PATHNAME','bdr_snowflake_id_nextval_oid'
 LANGUAGE C STRICT VOLATILE;
 
-COMMENT ON FUNCTION global_seq_nextval(regclass) IS
+COMMENT ON FUNCTION bdr_snowflake_id_nextval(regclass) IS
 'Generate sequence values unique to this node using a local sequence as a seed';
 
 -- For testing purposes we sometimes want to be able to override the timestamp
 -- etc.
-CREATE FUNCTION _global_seq_nextval_private(regclass, bigint)
+CREATE FUNCTION _bdr_snowflake_id_nextval_private(regclass, bigint)
 RETURNS bigint
-AS 'MODULE_PATHNAME','global_seq_nextval_oid'
+AS 'MODULE_PATHNAME','bdr_snowflake_id_nextval_oid'
 LANGUAGE C STRICT VOLATILE;
 
-COMMENT ON FUNCTION _global_seq_nextval_private(regclass, bigint) IS
+COMMENT ON FUNCTION _bdr_snowflake_id_nextval_private(regclass, bigint) IS
 'Function for BDR testing only, do not use in application code';
 
 CREATE FUNCTION bdr_acquire_global_lock(lockmode text)

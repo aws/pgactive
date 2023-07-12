@@ -1,3 +1,5 @@
+SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
+
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE TABLE public.test_tbl(pk int primary key, dropping_col1 text, dropping_col2 text);
 $DDL$);

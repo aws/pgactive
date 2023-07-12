@@ -15,7 +15,7 @@ $DDL$);
 --
 -- We should get no duplicates.
 WITH vals(val) AS (
-   SELECT bdr.global_seq_nextval('dummy_seq'::regclass)
+   SELECT bdr.bdr_snowflake_id_nextval('dummy_seq'::regclass)
    FROM generate_series(1, (2 ^ 14)::bigint * 2)
    OFFSET 0
 )
@@ -41,7 +41,7 @@ WHERE (node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();
 -- Generate enough sequences to almost wrap by forcing
 -- the same timestamp to be re-used.
 INSERT INTO seqvalues(id)
-SELECT bdr._global_seq_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint)
+SELECT bdr._bdr_snowflake_id_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint)
 FROM generate_series(0, (2 ^ 14)::bigint - 2);
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
@@ -52,7 +52,7 @@ $DDL$);
 -- node with the same nodeid, and starting at the same initial sequence value,
 -- it'll do so at the same value too.
 INSERT INTO seqvalues(id)
-SELECT bdr._global_seq_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint);
+SELECT bdr._bdr_snowflake_id_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint);
 
 -- So we'll see the same stop-point
 SELECT last_value FROM dummy_seq2;
@@ -70,7 +70,7 @@ WHERE (node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();
 SELECT last_value FROM dummy_seq2;
 
 INSERT INTO seqvalues(id)
-SELECT bdr._global_seq_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint)
+SELECT bdr._bdr_snowflake_id_nextval_private('dummy_seq2'::regclass, '530605914245317'::bigint)
 FROM generate_series(0, (2 ^ 14)::bigint - 2);
 
 SELECT last_value FROM dummy_seq2;

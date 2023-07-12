@@ -65,7 +65,8 @@ In the latest version of BDR, some of the user-facing extension SQL functions or
 | node_status_to_char             | bdr_node_status_to_char                |
 | get_transaction_replorigin      | bdr_get_transaction_replorigin         |
 | upgrade_to_200                  | bdr_assign_seq_ids_post_upgrade        |
-| global_seq_nextval_test         | _global_seq_nextval_private            |
+| global_seq_nextval              | bdr_snowflake_id_nextval               |
+| global_seq_nextval_test         | _bdr_snowflake_id_nextval_private      |
 
   --------------------------------------------------------- ----------------------------------- -------------------------------------------------
   [Prev](replication-sets-changetype.md)    [Home](README.md)    [Next](functions-node-mgmt.md)  

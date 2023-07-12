@@ -21,7 +21,7 @@ sequences. Make sure their increment is 1.
 
 Application developers should configure these tools to fetch the
 database-generated default instead of using a sequence cache, or to call
-the correct `bdr.global_seq_nextval` function to generate a
+the correct `bdr.bdr_snowflake_id_nextval` function to generate a
 value. The application may not assume a block of IDs has been generated,
 as if an increment was set, and may only use the actual value returned.
 

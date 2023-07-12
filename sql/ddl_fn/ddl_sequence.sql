@@ -60,8 +60,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ renamed_test_seq
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL$);
--- DESTINATION COLUMN TYPE REQUIRED BIGINT 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT bdr.global_seq_nextval('public.test_seq'),b text); $DDL$);
+-- DESTINATION COLUMN TYPE REQUIRED BIGINT
+SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl
 \c postgres
@@ -72,7 +73,7 @@ SELECT count(*) FROM test_tbl;
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl; $DDL$);
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.global_seq_nextval('public.test_seq'),b text); $DDL$);
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl
 \c postgres
