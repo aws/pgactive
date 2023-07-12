@@ -2582,13 +2582,13 @@ bdr_apply_reload_config()
 		/* If the DSN or replication sets changed we must restart */
 		if (strcmp(bdr_apply_config->dsn, new_apply_config->dsn) != 0)
 		{
-			elog(DEBUG1, "apply worker exiting to apply new DSN configuration");
+			elog(LOG, "apply worker exiting to apply new DSN configuration");
 			proc_exit(1);
 		}
 
 		if (strcmp(bdr_apply_config->replication_sets, new_apply_config->replication_sets) != 0)
 		{
-			elog(DEBUG1, "apply worker exiting to apply new replication set configuration");
+			elog(LOG, "apply worker exiting to apply new replication set configuration");
 			proc_exit(1);
 		}
 
