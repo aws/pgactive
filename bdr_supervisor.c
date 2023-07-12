@@ -391,7 +391,7 @@ bdr_get_supervisordb_oid(bool missingok)
 		 * We'll get relaunched soon, so just die rather than having a
 		 * wait-and-test loop here
 		 */
-		elog(DEBUG1, "exiting because BDR supervisor database " BDR_SUPERVISOR_DBNAME " does not yet exist");
+		elog(LOG, "exiting because BDR supervisor database " BDR_SUPERVISOR_DBNAME " does not yet exist");
 		proc_exit(1);
 	}
 
@@ -518,7 +518,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 
 		BdrWorkerCtl->is_supervisor_restart = true;
 
-		elog(DEBUG1, "BDR supervisor restarting to connect to '%s' DB",
+		elog(LOG, "BDR supervisor restarting to connect to '%s' DB for shared catalog access",
 			 BDR_SUPERVISOR_DBNAME);
 		proc_exit(1);
 	}
@@ -532,7 +532,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 	BdrWorkerCtl->supervisor_latch = &MyProc->procLatch;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	elog(DEBUG1, "BDR supervisor connected to DB " BDR_SUPERVISOR_DBNAME);
+	elog(LOG, "BDR supervisor restarted and connected to DB " BDR_SUPERVISOR_DBNAME);
 
 	SetConfigOption("application_name", "bdr supervisor", PGC_USERSET, PGC_S_SESSION);
 
