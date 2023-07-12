@@ -119,7 +119,7 @@ foreach my $node (@{$nodes})
         qq[SELECT conflict_type, conflict_resolution, local_tuple, remote_tuple FROM bdr.bdr_conflict_history
            WHERE conflict_type = 'delete_delete';]),
         q[delete_delete|skip_change||{"city_sid":2,"name":null}],
-        "expected delete/delete conflicts found on " . $node->name);
+        "expected delete/delete conflict found on " . $node->name);
 }
 
 done_testing();
