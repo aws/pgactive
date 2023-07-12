@@ -205,7 +205,7 @@ sub concurrent_detach {
     foreach my $detach_node (@nodes) {
         my $node = @{$detach_node}[0];
         my $upstream_node = @{$detach_node}[1];
-        my $detach_query = "SELECT bdr.bdr_detach_by_node_names(ARRAY['" . $node->name . "']);";
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
 
@@ -220,9 +220,9 @@ sub concurrent_detach {
     }
     
     foreach my $detach_node (@nodes) {
-        push my @detach_nodes,@{$detach_node}[0];
+        push my @bdr_detach_nodes,@{$detach_node}[0];
         my $upstream_node = @{$detach_node}[1];
-        check_detach_status(\@detach_nodes, $upstream_node);
+        check_detach_status(\@bdr_detach_nodes, $upstream_node);
     }
 }
 
@@ -288,12 +288,12 @@ sub concurrent_join_detach {
 
 sub concurrent_join_detach_logical {
     my $upstream_node = shift;
-    my ($join_nodes,$detach_nodes)   = @_;
+    my ($join_nodes,$bdr_detach_nodes)   = @_;
     my @node_queries;
     
     # Collect all queries required to be executed concurrently
-    foreach my $node (@{$detach_nodes}) {
-        my $detach_query = "SELECT bdr.bdr_detach_by_node_names(ARRAY['" . $node->name . "']);";
+    foreach my $node (@{$bdr_detach_nodes}) {
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
     foreach my $node (@{$join_nodes}) {
@@ -311,10 +311,10 @@ sub concurrent_join_detach_logical {
         BAIL_OUT("one or more node join queries failed to execute");
     }
     # Wait for detach completion and verify
-    foreach my $node (@{$detach_nodes}) {
+    foreach my $node (@{$bdr_detach_nodes}) {
         wait_detach_completion($node, $upstream_node);
     }
-    check_detach_status(\@{$detach_nodes}, $upstream_node);
+    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
     
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
@@ -330,13 +330,13 @@ sub concurrent_join_detach_logical {
 
 sub concurrent_join_detach_physical {
     my $upstream_node = shift;
-    my ($join_nodes,$detach_nodes)   = @_;
+    my ($join_nodes,$bdr_detach_nodes)   = @_;
     my @node_queries;
     my @handles;
     
     # Collect all queries/cmds required to be executed concurrently
-    foreach my $node (@{$detach_nodes}) {
-        my $detach_query = "SELECT bdr.bdr_detach_by_node_names(ARRAY['" . $node->name . "']);";
+    foreach my $node (@{$bdr_detach_nodes}) {
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
 
@@ -365,12 +365,12 @@ sub concurrent_join_detach_physical {
 
 
     # Wait for detach completion and verify
-    foreach my $node (@{$detach_nodes}) {
+    foreach my $node (@{$bdr_detach_nodes}) {
         wait_detach_completion($node, $upstream_node);
     }
 
     # and validate
-    check_detach_status(\@{$detach_nodes}, $upstream_node);
+    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
     
     # wait for Pg to come up
     my $timeout = 60;

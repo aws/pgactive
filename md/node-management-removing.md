@@ -31,10 +31,10 @@ or report other out-of-disk related symptoms.
 > disk space.
 
 A node is removed with the
-[bdr.bdr_detach_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-DETACH-BY-NODE-NAMES)
+[bdr.bdr_detach_nodes](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES)
 function. You must specify the node name (as passed during node
 creation) to remove a node. You should call
-`bdr.bdr_detach_by_node_names` from a node that will remain in
+`bdr.bdr_detach_nodes` from a node that will remain in
 the BDR group, not the node to be removed. Multiple nodes may be removed
 at once. No value is returned; the removal status may be seen by
 checking the `status` field in `bdr.bdr_nodes` for
@@ -43,14 +43,14 @@ that node.
 To remove `node1`:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_detach_by_node_names(ARRAY['node-1']);
+    SELECT bdr.bdr_detach_nodes(ARRAY['node-1']);
    
 ```
 
 or to remove multiple nodes at once:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_detach_by_node_names(ARRAY['node-1', 'node-2', 'node-3']);
+    SELECT bdr.bdr_detach_nodes(ARRAY['node-1', 'node-2', 'node-3']);
    
 ```
 

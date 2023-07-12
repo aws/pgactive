@@ -34,7 +34,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     initandstart_physicaljoin_node
     check_join_status
     check_detach_status
-    detach_nodes
+    bdr_detach_nodes
     check_detach_status
     stop_nodes
     detach_and_check_nodes
@@ -434,30 +434,30 @@ sub wait_detach_completion {
     }
 }
 
-# Remove one or mote nodes from cluster using 'bdr_detach_by_node_names'.
+# Remove one or mote nodes from cluster using 'bdr_detach_nodes'.
 #
 # Does not check detach status.
 #
 # Thread safe.
-sub detach_nodes {
-    my $detach_nodes         = shift;
+sub bdr_detach_nodes {
+    my $bdr_detach_nodes         = shift;
     my $upstream_node      = shift;
     my $upstream_node_name = $upstream_node->name();
 
-    for my $detach_node (@{$detach_nodes}) {
+    for my $detach_node (@{$bdr_detach_nodes}) {
         my $detach_node_name = $detach_node->name();
         $upstream_node->safe_psql($bdr_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM bdr.bdr_node_slots WHERE node_name = '$detach_node_name')])
             or BAIL_OUT("could not find existing slot for $detach_node_name on $upstream_node_name before detaching");
     }
 
-    my $nodelist = "ARRAY['" . join("','", map { $_->name } @{$detach_nodes}) . "']";
+    my $nodelist = "ARRAY['" . join("','", map { $_->name } @{$bdr_detach_nodes}) . "']";
 
     $upstream_node->safe_psql( $bdr_test_dbname,
-        "SELECT bdr.bdr_detach_by_node_names($nodelist)" );
+        "SELECT bdr.bdr_detach_nodes($nodelist)" );
 
     # We can tell a detach has taken effect when the downstream's slot vanishes
     # on the upstream.
-    for my $detach_node (@{$detach_nodes}) {
+    for my $detach_node (@{$bdr_detach_nodes}) {
         wait_detach_completion($detach_node, $upstream_node);
     }
 }
@@ -476,11 +476,11 @@ sub stop_nodes {
 # Check node status is 'k' on self and upstream node
 # for each detached node
 sub check_detach_status {
-    my $detach_nodes         = shift;
+    my $bdr_detach_nodes         = shift;
     my $upstream_node      = shift;
     my $upstream_node_name = $upstream_node->name();
 
-    foreach my $detach_node (@$detach_nodes) {
+    foreach my $detach_node (@$bdr_detach_nodes) {
         my $detach_node_name     = $detach_node->name();
 
         is(
@@ -526,12 +526,12 @@ sub check_detach_status {
     }
 }
 
-# Shorthand for detach_nodes(), check_detach_status(), stop_nodes()
+# Shorthand for bdr_detach_nodes(), check_detach_status(), stop_nodes()
 sub detach_and_check_nodes {
-    my ($detach_nodes, $upstream_node) = @_;
-    detach_nodes($detach_nodes, $upstream_node);
-    check_detach_status($detach_nodes, $upstream_node);
-    stop_nodes($detach_nodes);
+    my ($bdr_detach_nodes, $upstream_node) = @_;
+    bdr_detach_nodes($bdr_detach_nodes, $upstream_node);
+    check_detach_status($bdr_detach_nodes, $upstream_node);
+    stop_nodes($bdr_detach_nodes);
 }
 
 # 

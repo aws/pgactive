@@ -34,7 +34,7 @@ performed while all configured nodes are reachable and keeping up
 reasonably well with the current write rate. If DDL absolutely must be
 performed while a node is down, it has to be removed from the
 configuration (using
-[bdr.bdr_detach_by_node_names](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES))
+[bdr.bdr_detach_nodes](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES))
 first. (Once removed, a node cannot be added back; it must be
 decomissioned and a new node joined in its place.)
 
@@ -98,7 +98,7 @@ taking/holding the DDL lock. It\'s all crash-safe.
 
 If the node that holds the DDL lock goes down permanently while holding
 the DDL lock, parting the node with
-[`bdr.bdr_detach_by_node_names()`](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
+[`bdr.bdr_detach_nodes()`](functions-node-mgmt.md#FUNCTION-BDR-PART-BY-NODE-NAMES)
 will release the lock on other nodes.
 
 You cannot see the global DDL lock in the `pg_locks` view, as

@@ -68,13 +68,13 @@ string of the node to initialize from, i.e. the other node\'s
 target, but if possible a node with a fast and reliable network link to
 the new node should be preferred. Note that
 `bdr.bdr_group_join()` can [*not*] \"re-join\" a
-node you removed with `bdr.bdr_detach_by_node_names()`. See
+node you removed with `bdr.bdr_detach_nodes()`. See
 [Joining a node](node-management-joining.md) for details on node
 joining and creation, and [Replication Sets](replication-sets.md) for
 more on how replication sets work.
 
 
-`bdr.bdr_detach_by_node_names(`*`p_nodes text[]`*`)`
+`bdr.bdr_detach_nodes(`*`p_nodes text[]`*`)`
 
 void
 
@@ -366,7 +366,7 @@ To join \'node2\' to [BDR] group created above:
 To remove \'node2\' from the [BDR] group created above:
 
 ``` PROGRAMLISTING
-   SELECT bdr.bdr_detach_by_node_names('{node2}');
+   SELECT bdr.bdr_detach_nodes('{node2}');
    
 ```
 

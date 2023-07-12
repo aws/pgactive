@@ -26,7 +26,7 @@ initandstart_logicaljoin_node( $node_b, $node_a );
 $node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
 
 # Detach node_b before completely removing BDR
-detach_nodes( [$node_b], $node_a );
+bdr_detach_nodes( [$node_b], $node_a );
 sleep(10);
 
 # Remove BDR from detached node

@@ -19,7 +19,7 @@ my ($node_0,$node_1,$node_2) = @$nodes;
 
 # Detach a node from 3 node cluster
 note "Detach node_0 from 3 node cluster\n";
-detach_nodes([$node_0], $node_1);
+bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 # Remove BDR from the detached node
@@ -58,7 +58,7 @@ $node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_loc
 
 # Detach node0 from 3 node cluster
 note "Detach node_0 from 3 node cluster\n";
-detach_nodes([$node_0], $node_1);
+bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 # Remove BDR from the detached node

@@ -52,14 +52,14 @@ is(
 # DDL lock.  (or we should release it?).
 TODO: {
     local $TODO = 'ddl lock check on detach not implemented yet';
-    is($node_0->psql( $bdr_test_dbname, "SELECT bdr.bdr_detach_by_node_names(ARRAY['node_1'])" ),
+    is($node_0->psql( $bdr_test_dbname, "SELECT bdr.bdr_detach_nodes(ARRAY['node_1'])" ),
         3, 'detach_by_node_names call should fail');
     is( $node_0->safe_psql( $bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = 'node_1' "), 'r',
         "Detach should fail");
 };
 
 # If the node that holds the DDL lock goes down permanently while holding the
-# DDL lock, detaching the node with bdr.bdr_detach_by_node_names() will release the
+# DDL lock, detaching the node with bdr.bdr_detach_nodes() will release the
 # lock on other nodes.
 #
 # Bug 2ndQuadrant/bdr-private#72

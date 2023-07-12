@@ -1084,7 +1084,7 @@ $body$;
 COMMENT ON FUNCTION bdr_group_create(text, text, text, integer, text[]) IS
 'Create a BDR group, turning a stand-alone database into the first node in a BDR group';
 
-CREATE FUNCTION bdr.bdr_detach_by_node_names(p_nodes text[])
+CREATE FUNCTION bdr.bdr_detach_nodes(p_nodes text[])
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
 -- SET bdr.permit_unsafe_ddl_commands = on is removed for now
@@ -1113,8 +1113,8 @@ BEGIN
         IF (SELECT count(node_status) FROM bdr.bdr_nodes WHERE node_status IN (bdr.node_status_to_char('BDR_NODE_STATUS_READY'))) > 1 THEN
             RAISE USING
                 MESSAGE = 'cannot detach a node from its self',
-                DETAIL = 'Attempted to bdr_detach_by_node_names(...) on node '||bdr.bdr_get_local_node_name()||' which is one of the nodes being detached.',
-                HINT = 'You must call call bdr_detach_by_node_names on a node that is not being removed.',
+                DETAIL = 'Attempted to bdr_detach_nodes(...) on node '||bdr.bdr_get_local_node_name()||' which is one of the nodes being detached.',
+                HINT = 'You must call call bdr_detach_nodes on a node that is not being removed.',
                 ERRCODE = 'object_in_use';
         ELSE
             RAISE WARNING USING

@@ -46,7 +46,7 @@ is($node_a->safe_psql($bdr_test_dbname, 'SELECT dummy FROM reptest WHERE id = 1'
 
 is($node_a->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = bdr.bdr_get_local_node_name()"), 'r', 'node status is "r"');
 
-ok(!$node_a->psql($bdr_test_dbname, "SELECT bdr.bdr_detach_by_node_names(ARRAY['node_a'])"), 'detached without error');
+ok(!$node_a->psql($bdr_test_dbname, "SELECT bdr.bdr_detach_nodes(ARRAY['node_a'])"), 'detached without error');
 
 is($node_a->safe_psql($bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = bdr.bdr_get_local_node_name()"), 'k', 'node status is "k"');
 

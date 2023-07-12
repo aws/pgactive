@@ -19,7 +19,7 @@ my ($node_0,$node_1,$node_2) = @$nodes;
 
 # Detach a node from 3 node cluster
 note "Detach node_0 from 3 node cluster\n";
-detach_nodes([$node_0], $node_1);
+bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 my $logstart_0 = get_log_size($node_0);

@@ -23,10 +23,10 @@ DROP EXTENSION bdr;
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 
 -- You can't detach your own node
-SELECT bdr.bdr_detach_by_node_names(ARRAY['node-regression']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-regression']);
 
 -- Or a nonexistent node
-SELECT bdr.bdr_detach_by_node_names(ARRAY['node-nosuch']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-nosuch']);
 
 -- Unsubscribe must also fail, since this is a BDR connection
 SELECT bdr.bdr_unsubscribe('node-pg');
@@ -35,7 +35,7 @@ SELECT bdr.bdr_unsubscribe('node-pg');
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 
 -- This detach should successfully remove the node
-SELECT bdr.bdr_detach_by_node_names(ARRAY['node-pg']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
 
 SELECT bdr.bdr_is_active_in_db();
 
@@ -92,7 +92,7 @@ SELECT count(*) FROM pg_stat_activity WHERE application_name = 'node-regression:
 
 -- If we try to detach the same node again its state won't be 'r'
 -- so a warning will be generated.
-SELECT bdr.bdr_detach_by_node_names(ARRAY['node-pg']);
+SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
 
 -- BDR is detached, but not fully removed, so don't allow the extension
 -- to be dropped yet.
