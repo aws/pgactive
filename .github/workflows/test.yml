@@ -76,7 +76,7 @@ jobs:
       - name: Run BDR extended tests
         run: |
           cd bdr
-          make PROVE_FLAGS="--timer -v -p" prove_check
+          make PROVE_FLAGS="--timer -v" prove_check
 
       - name: Run pgbench tests with BDR
         run: |
