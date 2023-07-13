@@ -90,12 +90,19 @@ shared_preload_libraries = 'bdr,pglogical'
     $node->restart;
 }
 
+# Now we have to wait for the nodes to actually join...
+for my $node (@$providers, @$subscribers) {
+    $node->safe_psql($bdr_test_dbname,
+        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+}
 
 # On provider we'll replicate the extension creation
 exec_ddl($provider_0, q[CREATE EXTENSION pglogical;]);
 
+my $provider_0_connstr = $provider_0->connstr;
+
 $provider_0->safe_psql($bdr_test_dbname,
-	q[SELECT * FROM pglogical.create_node(node_name := 'bdr_provider', dsn := '] . $provider_0->connstr($bdr_test_dbname) . q[');]);
+	"SELECT * FROM pglogical.create_node(node_name := 'bdr_provider', dsn := '$provider_0_connstr dbname=$bdr_test_dbname');");
 
 $provider_0->safe_psql($bdr_test_dbname, q[SELECT * FROM pglogical.replication_set_add_table('default', 'preseed_in')]);
 
@@ -126,8 +133,9 @@ note "removed pgl from repsets on subscriber";
 $subscriber_0->safe_psql($bdr_test_dbname, q[SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);]);
 note("bdr caught up subscriber");
 
+my $subscriber_0_connstr = $subscriber_0->connstr;
 $subscriber_0->safe_psql($bdr_test_dbname,
-	q[SELECT * FROM pglogical.create_node(node_name := 'bdr_subscriber_0', dsn := '] . $subscriber_0->connstr($bdr_test_dbname) . q[');]);
+	"SELECT * FROM pglogical.create_node(node_name := 'bdr_subscriber_0', dsn := '$subscriber_0_connstr dbname=$bdr_test_dbname');");
 
 note("created pgl node on subscriber");
 
@@ -194,7 +202,7 @@ for my $node (@$subscribers)
 {
 	IPC::Run::run([
 		'pg_restore',
-		'-d', $node->connstr($bdr_test_dbname) . q[ options='-c bdr.do_not_replicate=on -c bdr.skip_ddl_locking=on -c bdr.skip_ddl_replication=on -c bdr.permit_unsafe_ddl_commands=on'],
+		'-d', $node->connstr($bdr_test_dbname) . q[ options='-c bdr.skip_ddl_replication=on'],
 		$dumpfile
 	])
 	or BAIL_OUT('error running manual schema restore on ' . $node->name);
@@ -222,13 +230,14 @@ $lock_handle->finish;
 #
 # (We should probably offer a pg_dump option to wrap in
 # bdr.replicate_ddl_command, or y'know just add ddl replication).
+
 $subscriber_0->safe_psql($bdr_test_dbname,
-	q[SELECT * FROM pglogical.create_subscription(
-	  subscription_name := 'bdr_subscription',
-	  provider_dsn := '] . $provider_0->connstr($bdr_test_dbname) . q[',
-	  synchronize_structure := false,
-	  synchronize_data := true,
-	  forward_origins := '{all}');]);
+        "SELECT pglogical.create_subscription(
+    subscription_name := 'bdr_subscription',
+    synchronize_structure := false,
+    synchronize_data := true,
+	forward_origins := '{all}',
+    provider_dsn := '$provider_0_connstr dbname=$bdr_test_dbname');");
 
 note("created subscription, waiting for bdr apply");
 
@@ -473,7 +482,6 @@ TODO: {
 $subscriber_0->safe_psql($bdr_test_dbname, q[
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = on;
-SET LOCAL bdr.permit_unsafe_ddl_commands = on;
 CREATE TABLE public.replicate_bdr_ddl(id integer primary key);
 COMMIT;
 ]);
