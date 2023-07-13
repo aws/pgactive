@@ -885,7 +885,7 @@ bdr_wait_for_local_node_ready()
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OPERATOR_INTERVENTION),
-					 errmsg("local node has been parted from the BDR group (status=%c)", status)));
+					 errmsg("local node has been detached from the BDR group (status=%c)", status)));
 		}
 	};
 }
@@ -893,7 +893,7 @@ bdr_wait_for_local_node_ready()
 /*
  * TODO DYNCONF perform_pointless_transaction
  *
- * This is temporary code to be removed when the full part/join protocol is
+ * This is temporary code to be removed when the full detach/join protocol is
  * introduced, at which point WAL messages should handle this. See comments on
  * call site.
  */
@@ -1201,7 +1201,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 			 * then wait until all its current peers (we aren' one yet) reply
 			 * with confirmation. Then we should be replaying until we get
 			 * confirmation of this from the init target node, rather than
-			 * replaying to some specific LSN. The full part/join protocol
+			 * replaying to some specific LSN. The full detach/join protocol
 			 * should take care of this.
 			 */
 			elog(DEBUG3, "forcing a new transaction on the target node");

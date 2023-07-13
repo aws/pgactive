@@ -40,7 +40,7 @@ Significant improvements to [BDR] in this release include:
     [bdr.permit_ddl_locking](bdr-configuration-variables.md#GUC-BDR-PERMIT-DDL-LOCKING)
     to help prevent unintended global DDL locks
 
--   Remove slots when parting a node (BDR, #73)
+-   Remove slots when detaching a node (BDR, #73)
 
 -   `bdr.bdr_set_table_replication_sets` no longer requires
     `permit_unsafe_ddl_commands` (UDR, #67)

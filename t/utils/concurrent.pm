@@ -19,7 +19,7 @@ use utils::nodemanagement qw(
     generate_bdr_logical_join_query
     copy_transform_postgresqlconf
     start_bdr_init_copy
-    wait_part_completion
+    wait_detach_completion
     );
 
 use vars qw(@ISA @EXPORT @EXPORT_OK);
@@ -28,8 +28,8 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     concurrent_joins
     concurrent_joins_logical_physical
     join_under_write_load
-    concurrent_part
-    concurrent_join_part
+    concurrent_detach
+    concurrent_join_detach
     pgbench_init
     pgbench_start
     concurrent_inserts
@@ -198,31 +198,31 @@ sub concurrent_joins_physical {
     }
 }
 
-sub concurrent_part {
+sub concurrent_detach {
     my @nodes   = @_;
     my @node_queries;
 
-    foreach my $part_node (@nodes) {
-        my $node = @{$part_node}[0];
-        my $upstream_node = @{$part_node}[1];
-        my $part_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
-        push @node_queries, [$upstream_node, $part_query];
+    foreach my $detach_node (@nodes) {
+        my $node = @{$detach_node}[0];
+        my $upstream_node = @{$detach_node}[1];
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+        push @node_queries, [$upstream_node, $detach_query];
     }
 
     if (concurrent_safe_psql(\@node_queries) > 0) {
-        BAIL_OUT("one or more node part queries failed to execute");
+        BAIL_OUT("one or more node detach queries failed to execute");
     }
 
-    foreach my $part_node (@nodes) {
-        my $node = @{$part_node}[0];
-        my $upstream_node = @{$part_node}[1];
-        wait_part_completion($node, $upstream_node);
+    foreach my $detach_node (@nodes) {
+        my $node = @{$detach_node}[0];
+        my $upstream_node = @{$detach_node}[1];
+        wait_detach_completion($node, $upstream_node);
     }
     
-    foreach my $part_node (@nodes) {
-        push my @part_nodes,@{$part_node}[0];
-        my $upstream_node = @{$part_node}[1];
-        check_part_statuses(\@part_nodes, $upstream_node);
+    foreach my $detach_node (@nodes) {
+        push my @bdr_detach_nodes,@{$detach_node}[0];
+        my $upstream_node = @{$detach_node}[1];
+        check_detach_status(\@bdr_detach_nodes, $upstream_node);
     }
 }
 
@@ -273,28 +273,28 @@ sub join_under_write_load {
     $pgbench_handle->finish;
 }
 
-# Check if concurrent  join and part works
-sub concurrent_join_part {
+# Check if concurrent  join and detach works
+sub concurrent_join_detach {
     my $type          = shift;
     my $upstream_node = shift;
-    my ($join_nodes_array,$part_nodes_array)   = @_;
+    my ($join_nodes_array,$detach_nodes_array)   = @_;
     if ( $type eq 'logical' ) {
-        concurrent_join_part_logical( $upstream_node, \@{$join_nodes_array},\@{$part_nodes_array} );
+        concurrent_join_detach_logical( $upstream_node, \@{$join_nodes_array},\@{$detach_nodes_array} );
     }
     elsif ( $type eq 'physical' ) {
-        concurrent_join_part_physical( $upstream_node, \@{$join_nodes_array},\@{$part_nodes_array} );
+        concurrent_join_detach_physical( $upstream_node, \@{$join_nodes_array},\@{$detach_nodes_array} );
     }
 }
 
-sub concurrent_join_part_logical {
+sub concurrent_join_detach_logical {
     my $upstream_node = shift;
-    my ($join_nodes,$part_nodes)   = @_;
+    my ($join_nodes,$bdr_detach_nodes)   = @_;
     my @node_queries;
     
     # Collect all queries required to be executed concurrently
-    foreach my $node (@{$part_nodes}) {
-        my $part_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
-        push @node_queries, [$upstream_node, $part_query];
+    foreach my $node (@{$bdr_detach_nodes}) {
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+        push @node_queries, [$upstream_node, $detach_query];
     }
     foreach my $node (@{$join_nodes}) {
         initandstart_node($node);
@@ -310,11 +310,11 @@ sub concurrent_join_part_logical {
     if (concurrent_safe_psql(\@node_queries) > 0) {
         BAIL_OUT("one or more node join queries failed to execute");
     }
-    # Wait for part completion and verify
-    foreach my $node (@{$part_nodes}) {
-        wait_part_completion($node, $upstream_node);
+    # Wait for detach completion and verify
+    foreach my $node (@{$bdr_detach_nodes}) {
+        wait_detach_completion($node, $upstream_node);
     }
-    check_part_statuses(\@{$part_nodes}, $upstream_node);
+    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
     
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
@@ -328,16 +328,16 @@ sub concurrent_join_part_logical {
     }
 }
 
-sub concurrent_join_part_physical {
+sub concurrent_join_detach_physical {
     my $upstream_node = shift;
-    my ($join_nodes,$part_nodes)   = @_;
+    my ($join_nodes,$bdr_detach_nodes)   = @_;
     my @node_queries;
     my @handles;
     
     # Collect all queries/cmds required to be executed concurrently
-    foreach my $node (@{$part_nodes}) {
-        my $part_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
-        push @node_queries, [$upstream_node, $part_query];
+    foreach my $node (@{$bdr_detach_nodes}) {
+        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+        push @node_queries, [$upstream_node, $detach_query];
     }
 
     # Start bdr_init_copy for each node we're asked to joini.
@@ -348,9 +348,9 @@ sub concurrent_join_part_physical {
         push @handles, [$handle,$node];
     }
 
-    #  Now execute the part queries concurrently
+    #  Now execute the detach queries concurrently
     if (concurrent_safe_psql(\@node_queries) > 0) {
-        BAIL_OUT("one or more node join/part operations failed to execute");
+        BAIL_OUT("one or more node join/detach operations failed to execute");
     }
     
     # Wait until all the processes exit. 
@@ -364,13 +364,13 @@ sub concurrent_join_part_physical {
     }
 
 
-    # Wait for part completion and verify
-    foreach my $node (@{$part_nodes}) {
-        wait_part_completion($node, $upstream_node);
+    # Wait for detach completion and verify
+    foreach my $node (@{$bdr_detach_nodes}) {
+        wait_detach_completion($node, $upstream_node);
     }
 
     # and validate
-    check_part_statuses(\@{$part_nodes}, $upstream_node);
+    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
     
     # wait for Pg to come up
     my $timeout = 60;

@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
 #
-# [Join/Part] Use per-node apply_delay to make a test of a 3-node group 
-# where we part a node that has replayed changes to one of its peers but 
+# [Join/Detach] Use per-node apply_delay to make a test of a 3-node group
+# where we detach a node that has replayed changes to one of its peers but 
 # not the other. 
 #
-# Verify that the remaining 2 nodes are consistent after part of the 3rd node.
+# Verify that the remaining 2 nodes are consistent after detach of the 3rd node.
 #
 # This test exercises a BDR behaviour where, if one node goes down while its
 # peers have replayed up to different points on the lost node, we cannot
@@ -77,8 +77,8 @@ is($node_a->safe_psql($bdr_test_dbname,"SELECT id FROM $table_name"),
 is($node_b->safe_psql($bdr_test_dbname,"SELECT id FROM $table_name"),
     '', "Changes not replayed to node_b due to apply delay");
 
-# Part node_c before the change can replay to b
-part_and_check_nodes([$node_c],$node_a);
+# Detach node_c before the change can replay to b
+detach_and_check_nodes([$node_c],$node_a);
 
 # Make sure B is fully caught up with A's changes and vice versa
 wait_for_apply($node_a, $node_b);

@@ -1,70 +1,42 @@
 \set VERBOSITY terse
 \c regression
+
 -- Create a funnily named table and sequence for use during node
--- part testing.
+-- detach testing.
+
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE SCHEMA "some $SCHEMA";
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE TABLE "some $SCHEMA"."table table table" ("a column" integer);
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 DROP VIEW public.ddl_info;
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
- 
-(1 row)
 
 -- Dropping the BDR extension isn't allowed while BDR is active
 DROP EXTENSION bdr;
-ERROR:  dropping the BDR extension is prohibited while BDR is active
+
 -- Initial state
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
-    node_name    | node_status 
------------------+-------------
- node-pg         | r
- node-regression | r
-(2 rows)
 
--- You can't part your own node
+-- You can't detach your own node
 SELECT bdr.bdr_detach_nodes(ARRAY['node-regression']);
-ERROR:  cannot part a node from its self
+
 -- Or a nonexistent node
 SELECT bdr.bdr_detach_nodes(ARRAY['node-nosuch']);
-ERROR:  no node(s) named node-nosuch found
+
 -- Nothing has changed
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
-    node_name    | node_status 
------------------+-------------
- node-pg         | r
- node-regression | r
-(2 rows)
 
--- This part should successfully remove the node
+-- This detach should successfully remove the node
 SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
- bdr_detach_nodes 
-------------------
- 
-(1 row)
 
 SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
----------------------
- t
-(1 row)
 
--- We can tell a part has taken effect when the downstream's (node-pg) slot
+-- We can tell a detach has taken effect when the downstream's (node-pg) slot
 -- vanishes on the upstream (node-regression).
 DO
 $$
@@ -86,82 +58,54 @@ BEGIN
 END;
 $$
 LANGUAGE plpgsql;
-NOTICE:  Downstream replication slot vanished on the upstream
--- Status of the downstream node on upstream node after part is 'k'
+
+-- Status of the downstream node on upstream node after detach is 'k'
 SELECT node_status FROM bdr.bdr_nodes WHERE node_name = 'node-pg'; -- 'k'
- node_status 
--------------
- k
-(1 row)
 
 \c postgres
--- It is unsafe/incorrect to expect the parted node to know it's parted and
+
+-- It is unsafe/incorrect to expect the detached node to know it's detached and
 -- have a 'k' state. Sometimes it will, sometimes it won't, it depends on a
--- race between the parting node terminating its connections and it
--- receiving notification of its own parting. That's a bit of a wart in BDR,
+-- race between the detaching node terminating its connections and it
+-- receiving notification of its own detaching. That's a bit of a wart in BDR,
 -- but won't be fixed in 2.0 and is actually very hard to truly "fix" in a
 -- distributed system. So we allow the local node status to be 'k' or 'r'.
 SELECT COUNT(*) = 1 AS OK FROM bdr.bdr_nodes
     WHERE node_name = 'node-pg' AND node_status IN('k', 'r');  -- 'k' or 'r'
- ok 
-----
- t
-(1 row)
 
 \c regression
+
 -- The downstream's slot on the upstream MUST be gone
 SELECT * FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
- node_name | slot_name | slot_restart_lsn | slot_confirmed_lsn | walsender_active | walsender_pid | sent_lsn | write_lsn | flush_lsn | replay_lsn 
------------+-----------+------------------+--------------------+------------------+---------------+----------+-----------+-----------+------------
-(0 rows)
 
 \c postgres
+
 -- The upstream's slot on the downstream MAY be gone, or may be present, so
 -- there's no point checking. But the upstream's connection to the downstream
 -- MUST be gone, so we can look for the apply worker's connection.
 SELECT count(*) FROM pg_stat_activity WHERE application_name = 'node-regression:send'; -- EMPTY
- count 
--------
-     0
-(1 row)
 
 \c regression
--- If we try to part the same node again its state won't be 'r'
+
+-- If we try to detach the same node again its state won't be 'r'
 -- so a warning will be generated.
 SELECT bdr.bdr_detach_nodes(ARRAY['node-pg']);
-INFO:  node node-pgi is already parted, ignoring
- bdr_detach_nodes 
-------------------
- 
-(1 row)
 
--- BDR is parted, but not fully removed, so don't allow the extension
+-- BDR is detached, but not fully removed, so don't allow the extension
 -- to be dropped yet.
 DROP EXTENSION bdr;
-ERROR:  dropping the BDR extension is prohibited while BDR is active
+
 SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
----------------------
- t
-(1 row)
 
 -- Strip BDR from this node entirely and convert global sequences to local.
 BEGIN;
 -- We silence notice messages here as some of them depend on when BDR workers
--- on the parted node 'node-pg' are gone.
+-- on the detached node 'node-pg' are gone.
 SET LOCAL client_min_messages = 'ERROR';
 SELECT bdr.bdr_remove(true);
- bdr_remove 
-------------
- 
-(1 row)
-
 COMMIT;
+
 SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
----------------------
- f
-(1 row)
 
 -- Should be able to drop the extension now
 --

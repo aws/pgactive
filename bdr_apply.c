@@ -2858,7 +2858,7 @@ bdr_apply_main(Datum main_arg)
 	CommitTransactionCommand();
 	if (status == BDR_NODE_STATUS_KILLED)
 	{
-		elog(LOG, "unregistering apply worker due to remote node " BDR_NODEID_FORMAT " part",
+		elog(LOG, "unregistering apply worker due to remote node " BDR_NODEID_FORMAT " detach",
 			 BDR_NODEID_FORMAT_ARGS(bdr_apply_worker->remote_node));
 		bdr_worker_shmem_free(bdr_worker_slot, NULL);
 		bdr_worker_slot = NULL;

@@ -710,7 +710,7 @@ bdr_locks_set_nnodes(int nnodes)
 		 * actually know from here) it's harmless anyway.
 		 *
 		 * A corresponding nodecount decrease without the DDL lock held is
-		 * normal. Node part doesn't take the DDL lock, but it's careful to
+		 * normal. Node detach doesn't take the DDL lock, but it's careful to
 		 * reject any in-progress DDL lock attempt or release any held lock.
 		 *
 		 * FIXME: there's a race here where we could release the lock before
@@ -1717,7 +1717,7 @@ bdr_process_release_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
 }
 
 /*
- * Peer node has been parted from the system. We need to clear up any
+ * Peer node has been detached from the system. We need to clear up any
  * local DDL lock it may hold so that we can continue to process
  * writes.
  *
@@ -1725,7 +1725,7 @@ bdr_process_release_ddl_lock(const BDRNodeId * const origin, const BDRNodeId * c
  * successfully is terminated.
  */
 void
-bdr_locks_node_parted(BDRNodeId * node)
+bdr_locks_node_detached(BDRNodeId * node)
 {
 	bool		peer_holds_lock = false;
 	BDRNodeId	owner;
@@ -1735,7 +1735,7 @@ bdr_locks_node_parted(BDRNodeId * node)
 	elog(INFO, "XXX testing if node holds ddl lock");
 
 	/*
-	 * Rather than looking up the replication origin of the node being parted,
+	 * Rather than looking up the replication origin of the node being detached,
 	 * which might no longer exist, check if the lock is held and if so, if
 	 * the node id matches.
 	 *
@@ -1749,7 +1749,7 @@ bdr_locks_node_parted(BDRNodeId * node)
 		bdr_fetch_sysid_via_node_id(bdr_my_locks_database->lock_holder, &owner);
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-			 LOCKTRACE "global lock held by " BDR_NODEID_FORMAT_WITHNAME " released after node part",
+			 LOCKTRACE "global lock held by " BDR_NODEID_FORMAT_WITHNAME " released after node detach",
 			 BDR_NODEID_FORMAT_WITHNAME_ARGS(*node));
 
 		peer_holds_lock = bdr_nodeid_eq(node, &owner);
@@ -1771,7 +1771,7 @@ bdr_locks_node_parted(BDRNodeId * node)
  * Release any global DDL lock we may hold for node 'lock'.
  *
  * This is invoked from the apply worker when we get release messages,
- * and by node part handling when parting a node that may still hold
+ * and by node detach handling when detaching a node that may still hold
  * the DDL lock.
  */
 static void

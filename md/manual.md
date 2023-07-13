@@ -19,7 +19,7 @@ variables](bdr-configuration-variables.md)
 
 5.1. [Joining a node](node-management-joining.md)
 
-5.2. [Parting (removing) a node](node-management-removing.md)
+5.2. [Detaching (removing) a node](node-management-removing.md)
 
 5.3. [Completely removing BDR](node-management-disabling.md)
 

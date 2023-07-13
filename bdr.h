@@ -283,7 +283,7 @@ typedef struct BdrPerdbWorker
 	 * yet.
 	 *
 	 * Note that we may have more connections than this due to nodes that are
-	 * still joining, or fewer due to nodes that are beginning to part.
+	 * still joining, or fewer due to nodes that are beginning to detach.
 	 */
 	int			nnodes;
 

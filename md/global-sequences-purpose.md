@@ -40,8 +40,8 @@ sequences](global-sequence-usage.md).
 
 BDR manages the node IDs internally (see [the
 `bdr.bdr_nodes.node_seq_id` column](catalog-bdr-nodes.md)).
-Node IDs for parted nodes are re-used, so node ID exhaustion is not a
-concern for environments that regularly part and join nodes, such as for
+Node IDs for detached nodes are re-used, so node ID exhaustion is not a
+concern for environments that regularly detach and join nodes, such as for
 load balancing.
 
 > **Note:** BDR 1.0 provided a different implementation of global

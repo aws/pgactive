@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                    
-  [Prev](node-management.md "Node Management")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-removing.md "Parting (removing) a node")  
+  [Prev](node-management.md "Node Management")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-removing.md "Detaching (removing) a node")
 
 
 # 5.1. Joining a node
@@ -114,5 +114,5 @@ See also: [Node management functions](functions-node-mgmt.md),
 
   --------------------------------------------- ------------------------------------------- ------------------------------------------------------
   [Prev](node-management.md)        [Home](README.md)        [Next](node-management-removing.md)  
-  Node Management                                [Up](node-management.md)                               Parting (removing) a node
+  Node Management                                [Up](node-management.md)                               Detaching (removing) a node
   --------------------------------------------- ------------------------------------------- ------------------------------------------------------

@@ -83,7 +83,7 @@ Removes all the nodes - identified by the node names in the array. All
 the remaining nodes in the cluster have to be reachable for this to
 succeed. This function must be run on a node that is not being removed.
 There is no way to re-join a node once removed; a new node must be
-created and joined to replace the parted one if required.
+created and joined to replace the detached one if required.
 
 
 `bdr.bdr_remove(`*`force boolean`*`, `*`convert_global_sequences boolean`*`)`
@@ -93,7 +93,7 @@ void
 Remove BDR slots, replication identifiers, security labels including
 replication sets, etc from a BDR-enabled database, so the BDR extension
 can be dropped and the database used for normal PostgreSQL. Will refuse
-to run on a node that hasn\'t already been parted from the cluster
+to run on a node that hasn\'t already been detached from the cluster
 unless `force` is true. Global sequences are converted into
 local sequences unless `convert_global_sequences` is false.
 See [Turning a BDR node back into a normal
@@ -114,7 +114,7 @@ boolean
 
 Report whether the current database has BDR active. Will be true if BDR
 is configured, whether or not there are active connections or any peer
-nodes added yet. Also true on a parted node until/unless
+nodes added yet. Also true on a detached node until/unless
 [bdr.bdr_remove](functions-node-mgmt.md#FUNCTION-BDR-REMOVE)
 is called.
 

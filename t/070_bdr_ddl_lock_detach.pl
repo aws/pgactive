@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# This test is intended to verify that if a node is cleanly parted
+# This test is intended to verify that if a node is cleanly detached
 # from the group while holding the global DDL lock, the lock will
 # become available for another peer to take.
 #
@@ -48,31 +48,31 @@ is(
     'peer_confirmed|ddl_lock|node_1|f|f',
     'node 2 confirmed lock as peer');
 
-# Part node node_1. The part should fail if node_1 currently holds the global
+# Detach node node_1. The detach should fail if node_1 currently holds the global
 # DDL lock.  (or we should release it?).
 TODO: {
-    local $TODO = 'ddl lock check on part not implemented yet';
+    local $TODO = 'ddl lock check on detach not implemented yet';
     is($node_0->psql( $bdr_test_dbname, "SELECT bdr.bdr_detach_nodes(ARRAY['node_1'])" ),
-        3, 'part_by_node_names call should fail');
+        3, 'detach_by_node_names call should fail');
     is( $node_0->safe_psql( $bdr_test_dbname, "SELECT node_status FROM bdr.bdr_nodes WHERE node_name = 'node_1' "), 'r',
-        "Part should fail");
+        "Detach should fail");
 };
 
 # If the node that holds the DDL lock goes down permanently while holding the
-# DDL lock, parting the node with bdr.bdr_detach_nodes() will release the
+# DDL lock, detaching the node with bdr.bdr_detach_nodes() will release the
 # lock on other nodes.
 #
 # Bug 2ndQuadrant/bdr-private#72
 TODO: {
-    local $TODO = 'ddl lock release on part not implemented yet';
-    is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after part");
+    local $TODO = 'ddl lock release on detach not implemented yet';
+    is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after detach");
 };
 
 # Because we have to terminate the apply worker it can take a little while for
 # the lock to be released.
 $node_0->poll_query_until($bdr_test_dbname, "SELECT lock_state = 'nolock' FROM bdr.bdr_global_locks_info");
 
-is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after part");
+is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after detach");
 is( $node_0->safe_psql( $bdr_test_dbname, "SELECT state FROM bdr.bdr_global_locks"), '', "bdr.bdr_global_locks row removed");
 
 # TODO:
@@ -83,7 +83,7 @@ is( $node_0->safe_psql( $bdr_test_dbname, "SELECT state FROM bdr.bdr_global_lock
 # when the backend died and the xact aborted.
 #
 # Then hard-kill the node that's trying to acquire the lock. Verify that the
-# other nodes consider it still held. Part the acquiring node from the others
+# other nodes consider it still held. Detach the acquiring node from the others
 # and verify that the lock was force-released.
 
 done_testing();

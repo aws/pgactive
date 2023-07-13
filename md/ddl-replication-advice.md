@@ -97,7 +97,7 @@ the lock. Just `pg_terminate_backend()` the backend that\'s
 taking/holding the DDL lock. It\'s all crash-safe.
 
 If the node that holds the DDL lock goes down permanently while holding
-the DDL lock, parting the node with
+the DDL lock, detaching the node with
 [`bdr.bdr_detach_nodes()`](functions-node-mgmt.md#FUNCTION-BDR-DETACH-NODES)
 will release the lock on other nodes.
 

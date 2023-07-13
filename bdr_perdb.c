@@ -246,10 +246,10 @@ bdr_maintain_db_workers(void)
 	char		sysid_str[33];
 	char		our_status;
 	BDRNodeId	myid;
-	List	   *parted_nodes = NIL;
+	List	   *detached_nodes = NIL;
 	List	   *nodes_to_forget = NIL;
 	List	   *rep_origin_to_remove = NIL;
-	ListCell   *lcparted;
+	ListCell   *lcdetached;
 	ListCell   *lcforget;
 	ListCell   *lcroname;
 	bool		at_least_one_worker_terminated = false;
@@ -314,7 +314,7 @@ bdr_maintain_db_workers(void)
 		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
 
 	/*
-	 * We may want to use the SPI within the loop that processes parted nodes,
+	 * We may want to use the SPI within the loop that processes detached nodes,
 	 * so copy the matched list of node IDs.
 	 */
 
@@ -352,16 +352,16 @@ bdr_maintain_db_workers(void)
 													 &isnull));
 		Assert(!isnull);
 
-		parted_nodes = lappend(parted_nodes, (void *) node);
+		detached_nodes = lappend(detached_nodes, (void *) node);
 	}
 
 	/*
-	 * Terminate worker processes and, where possible, drop slots for parted
+	 * Terminate worker processes and, where possible, drop slots for detached
 	 * peers.
 	 */
-	foreach(lcparted, parted_nodes)
+	foreach(lcdetached, detached_nodes)
 	{
-		BDRNodeId  *node = lfirst(lcparted);
+		BDRNodeId  *node = lfirst(lcdetached);
 		bool		found_alive = false;
 		int			slotoff;
 
@@ -421,7 +421,7 @@ bdr_maintain_db_workers(void)
 			{
 				found_alive = true;
 
-				elog(DEBUG1, "need to terminate process for parted node: pid %u type: %u",
+				elog(DEBUG1, "need to terminate process for detached node: pid %u type: %u",
 					 w->worker_pid, w->worker_type);
 				kill(w->worker_pid, SIGTERM);
 			}
@@ -447,7 +447,7 @@ bdr_maintain_db_workers(void)
 			MemoryContext oldcontext;
 
 			/*
-			 * If a remote node (got) parted, we can easily drop their slot.
+			 * If a remote node (got) detached, we can easily drop their slot.
 			 * If the local node was dropped, we instead drop all slots for
 			 * peer nodes.
 			 */
@@ -469,7 +469,7 @@ bdr_maintain_db_workers(void)
 				if (we_were_dropped &&
 					s->data.database == myid.dboid)
 				{
-					elog(DEBUG1, "need to drop slot %s as we got parted",
+					elog(DEBUG1, "need to drop slot %s as we got detached",
 						 NameStr(s->data.name));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
@@ -477,7 +477,7 @@ bdr_maintain_db_workers(void)
 				else if (strcmp(NameStr(s->data.name),
 								NameStr(slot_name_dropped)) == 0)
 				{
-					elog(DEBUG1, "need to drop slot %s of parted node %s",
+					elog(DEBUG1, "need to drop slot %s of detached node %s",
 						 NameStr(s->data.name), bdr_nodeid_name(node, true));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
@@ -488,9 +488,9 @@ bdr_maintain_db_workers(void)
 			{
 				char	   *slot_name = (char *) lfirst(dc);
 
-				elog(DEBUG1, "dropping slot %s due to node part", slot_name);
+				elog(DEBUG1, "dropping slot %s due to node detach", slot_name);
 				ReplicationSlotDrop(slot_name, true);
-				elog(LOG, "dropped slot %s due to node part", slot_name);
+				elog(LOG, "dropped slot %s due to node detach", slot_name);
 
 				if(!we_were_dropped)
 				{
@@ -514,7 +514,7 @@ bdr_maintain_db_workers(void)
 
 	/*
 	 * If at least one worker was found alive and killed in the above for loop,
-	 * we check again next time for dropping replication slots of the parted
+	 * we check again next time for dropping replication slots of the detached
 	 * peers. However, we want to do this soon, so setting the latch ensures
 	 * the per-db worker doesn't go into long wait in its main loop. And, we
 	 * set the latch specifically after ReplicationSlotDrop() call in the above
@@ -540,14 +540,14 @@ bdr_maintain_db_workers(void)
 		 * replicate changes from it so doing so is safe, it can never release
 		 * the lock, and we'll otherwise be unable to recover.
 		 */
-		bdr_locks_node_parted(node);
+		bdr_locks_node_detached(node);
 
 		/*
 		 * TODO: if we leave it at 'k' we'll keep on re-checking it over and
 		 * over. But for now that's what we do.
 		 *
 		 * We could set the node as 'dead'. This is a local state, since it
-		 * could still be parting on other nodes. So we shouldn't just update
+		 * could still be detaching on other nodes. So we shouldn't just update
 		 * bdr_nodes, we'd have to do a non-replicated update in a replicated
 		 * table and it'd be ugly. We'll need a side-table for local node
 		 * state.
@@ -558,7 +558,7 @@ bdr_maintain_db_workers(void)
 	}
 
 	/*
-	 * Now we can remove replication origins linked to parted node(s) (if any).
+	 * Now we can remove replication origins linked to detached node(s) (if any).
 	 */
 	StartTransactionCommand();
 	PushActiveSnapshot(GetTransactionSnapshot());
@@ -575,17 +575,17 @@ bdr_maintain_db_workers(void)
 		 * RecoveryInProgress() is not possible here. Indeed, see the
 		 * RecoveryInProgress() test in bdr_supervisor_worker_main().
 		 */
-		elog(DEBUG1, "dropping replication origin %s due to node part", roname);
+		elog(DEBUG1, "dropping replication origin %s due to node detach", roname);
 #if PG_VERSION_NUM < 140000
 		roident = replorigin_by_name(roname, true);
 		if (roident != InvalidRepOriginId)
 		{
 			replorigin_drop(roident, true);
-			elog(LOG, "dropped replication origin %s due to node part", roname);
+			elog(LOG, "dropped replication origin %s due to node detach", roname);
 		}
 #else
 		replorigin_drop_by_name(roname, true, true);
-		elog(LOG, "dropped replication origin %s due to node part", roname);
+		elog(LOG, "dropped replication origin %s due to node detach", roname);
 #endif
 
 	}
@@ -597,7 +597,7 @@ bdr_maintain_db_workers(void)
 	/* If our own node is dead, don't start new connections to other nodes */
 	if (our_status == BDR_NODE_STATUS_KILLED)
 	{
-		elog(LOG, "this node has been parted, not starting connections");
+		elog(LOG, "this node has been detached, not starting connections");
 		goto out;
 	}
 
@@ -834,7 +834,7 @@ out:
 	/*
 	 * Now we need to tell the lock manager about the changed node count.
 	 *
-	 * Now that node join takes the DDL lock and part is careful to wait until
+	 * Now that node join takes the DDL lock and detach is careful to wait until
 	 * it completes, the node count should only change when it's safe. In
 	 * particular it should only go up when the DDL lock is held.
 	 */
