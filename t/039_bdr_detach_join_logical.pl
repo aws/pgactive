@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Simple detach/join tests for logical (bdr_group_join) mode
+# Simple detach/join tests for logical (bdr_join_group) mode
 #
 use strict;
 use warnings;

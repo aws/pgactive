@@ -37,8 +37,8 @@ static Oid	seq_nodeid_dboid = InvalidOid;
 
 static int16 global_seq_get_nodeid(void);
 
-Datum		global_seq_nextval_oid(PG_FUNCTION_ARGS);
-PG_FUNCTION_INFO_V1(global_seq_nextval_oid);
+Datum		bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS);
+PG_FUNCTION_INFO_V1(bdr_snowflake_id_nextval_oid);
 
 /*
  * We generate sequence number from postgres epoch in ms (40 bits),
@@ -56,7 +56,7 @@ PG_FUNCTION_INFO_V1(global_seq_nextval_oid);
  * if users have different needs.
  */
 Datum
-global_seq_nextval_oid(PG_FUNCTION_ARGS)
+bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 {
 	Oid			seqoid = PG_GETARG_OID(0);
 	Datum		sequenced;

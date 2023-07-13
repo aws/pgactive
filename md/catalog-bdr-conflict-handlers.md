@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                                                         
-  [Prev](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-locks.md "bdr.bdr_locks")  
+  [Prev](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks-info.md "bdr.bdr_global_locks_info")
 
 
 # 13.7. bdr.bdr_conflict_handlers
@@ -23,6 +23,6 @@ table directly.
 
 
   ---------------------------------------------------------------- ------------------------------------------ -----------------------------------------------
-  [Prev](catalog-bdr-replication-set-config.md)       [Home](README.md)        [Next](catalog-bdr-locks.md)  
-  bdr.bdr_replication_set_config                                    [Up](catalogs-views.md)                                    bdr.bdr_locks
+  [Prev](catalog-bdr-replication-set-config.md)       [Home](README.md)        [Next](catalog-bdr-global-locks-info.md)
+  bdr.bdr_replication_set_config                                    [Up](catalogs-views.md)                                    bdr.bdr_global_locks_info
   ---------------------------------------------------------------- ------------------------------------------ -----------------------------------------------

@@ -187,7 +187,7 @@ that use of FKs be constrained to sets of closely related entities that
 are generally modified from only one node, are infrequently modified, or
 where the modification\'s concurrency is application-mediated.
 
-It\'s also possible to `bdr.acquire_global_lock('ddl')` to
+It\'s also possible to `bdr.bdr_acquire_global_lock('ddl')` to
 lock out other nodes from making concurrent changes, but this is a
 heavyweight option and must be done in [*all*] transactions
 that may modify the related tables. So it\'s best used for rarely
@@ -232,7 +232,7 @@ creates a table, it will be replicated with its owner set to
 `fred`. When the DDL command is applied to node2 the DDL will
 fail because there is no user named `fred`. This failure will
 emit an `ERROR` in the PostgreSQL logs on node2 and increment
-[bdr.pg_stat_bdr](catalog-pg-stat-bdr.md)`.nr_rollbacks`.
+[bdr.bdr_stats](catalog-bdr-stats.md)`.nr_rollbacks`.
 
 Administrator intervention is required to resolve this conflict by
 creating the user `fred` on node2. (It need not have the same

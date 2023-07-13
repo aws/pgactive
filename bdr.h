@@ -690,7 +690,7 @@ extern char bdr_local_node_status(void);
 extern int32 bdr_local_node_seq_id(void);
 extern const char *bdr_local_node_name(void);
 
-extern void bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force);
+extern void bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force);
 extern void bdr_setup_my_cached_node_names(void);
 extern void bdr_setup_cached_remote_name(const BDRNodeId * const remote_nodeid);
 extern const char *bdr_get_my_cached_node_name(void);

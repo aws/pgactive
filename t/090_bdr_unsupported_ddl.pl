@@ -20,7 +20,7 @@ my $upstream_node = $node_a;
 my $table_name = "ddl_test";
 create_table($node_a,$table_name);
 
-# Join a new node to first node using bdr_group_join
+# Join a new node to first node using bdr_join_group
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b,$node_a);
 # Add new column and constraint to test ALTER CONSTRAINT and ALTER COLUMN ..TYPE

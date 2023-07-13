@@ -17,7 +17,7 @@ Return Type
 Description
 
 
-`bdr.table_set_replication_sets(`*`p_relation regclass`*`, `*`p_sets text[]`*`)`
+`bdr.bdr_set_table_replication_sets(`*`p_relation regclass`*`, `*`p_sets text[]`*`)`
 
 void
 
@@ -33,14 +33,14 @@ restore a table\'s replication sets to defaults.
 If `bdr.skip_ddl_replication` is set to true the replication set is created
 locally (means it would need to be executed on all the BDR nodes).
 
-`bdr.table_get_replication_sets(`*`relation regclass`*`)`
+`bdr.bdr_get_table_replication_sets(`*`relation regclass`*`)`
 
 text\[\]
 
 Returns the replication sets the specified table is part of.
 
 
-`bdr.connection_set_replication_sets(`*`replication_sets text[]`*`, `*`node_name text`*`)`
+`bdr.bdr_set_connection_replication_sets(`*`replication_sets text[]`*`, `*`node_name text`*`)`
 
 void
 
@@ -51,7 +51,7 @@ for individual nodes (where the `origin_sysid` etc in
 warning will be emitted if any are present.
 
 
-`bdr.connection_get_replication_sets(`*`node_name text`*`)`
+`bdr.bdr_get_connection_replication_sets(`*`node_name text`*`)`
 
 text\[\]
 
@@ -61,7 +61,7 @@ the `origin_sysid` etc in `bdr.bdr_connections` are
 nonzero) are ignored and a warning is issued if any are present.
 
 
-`bdr.connection_set_replication_sets(`*`replication_sets text[]`*`, `*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
+`bdr.bdr_set_connection_replication_sets(`*`replication_sets text[]`*`, `*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
 
 void
 
@@ -73,7 +73,7 @@ updated instead. In almost all cases it\'s simpler to just use the
 node-name variant; this is for advanced uses.
 
 
-`bdr.connection_get_replication_sets(`*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
+`bdr.bdr_get_connection_replication_sets(`*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`origin_sysid text default '0'`*`, `*`origin_timeline oid default 0`*`, `*`origin_dboid oid default 0`*`)`
 
 text\[\]
 

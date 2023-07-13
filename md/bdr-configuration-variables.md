@@ -239,7 +239,7 @@ server restart to take effect.
 
     Sets the number of parallel jobs to be used by pg_dump and
     pg_restore performed while logical join of a node using the
-    [bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
+    [bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP)
     function.
 
     Changes take effect on server configuration reload, a restart is not

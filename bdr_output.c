@@ -629,7 +629,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 				get_relname_relid("bdr_global_locks", schema_oid);
 
 			if (data->bdr_locks_reloid == InvalidOid)
-				elog(ERROR, "cache lookup for relation bdr.bdr_locks failed");
+				elog(ERROR, "cache lookup for relation bdr.bdr_global_locks failed");
 		}
 		else
 			elog(WARNING, "cache lookup for schema bdr failed");

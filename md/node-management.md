@@ -11,7 +11,7 @@
 5.1.1. [Joining or creating a BDR
 node](node-management-joining.md#NODE-MANAGEMENT-JOINING-BDR)
 
-5.2. [Parting (removing) a node](node-management-removing.md)
+5.2. [Detaching (removing) a node](node-management-removing.md)
 
 5.3. [Completely removing BDR](node-management-disabling.md)
 

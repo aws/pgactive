@@ -36,7 +36,7 @@ $DDL$);
 SELECT wait_for_nwalsenders(2);
 SELECT wait_for_nworkers(2);
 
-BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(true); COMMIT;
 
 -- We're one instance with two databases so we should have two apply workers
 SELECT COUNT(*) = 2 AS ok FROM bdr.bdr_get_workers_info() WHERE worker_type = 'apply';
@@ -56,11 +56,11 @@ SELECT wait_for_nworkers(1);
 -- Wait for reconnect. No need for bdr_connections_changed()
 -- since this'll just stop the apply workers quitting as soon
 -- as they launch.
-BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(false); COMMIT;
 
 SELECT wait_for_nworkers(2);
 
-BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(true); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(true); COMMIT;
 
 -- We're one instance with two databases so we should have two walsender workers
 SELECT COUNT(*) = 2 AS ok FROM bdr.bdr_get_workers_info() WHERE worker_type = 'walsender';
@@ -78,6 +78,6 @@ SELECT COUNT(*) = 1 AS ok FROM bdr.bdr_get_workers_info()
 SELECT wait_for_nwalsenders(1);
 
 -- OK, let them come back up
-BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._test_pause_worker_management(false); COMMIT;
+BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(false); COMMIT;
 
 SELECT wait_for_nwalsenders(2);

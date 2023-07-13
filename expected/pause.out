@@ -1,6 +1,6 @@
 \c regression
-SELECT bdr.bdr_apply_is_paused();
- bdr_apply_is_paused 
+SELECT bdr.bdr_is_apply_paused();
+ bdr_is_apply_paused 
 ---------------------
  f
 (1 row)
@@ -12,15 +12,15 @@ SELECT bdr.bdr_replicate_ddl_command('CREATE TABLE public.pause_test(x text prim
 (1 row)
 
 INSERT INTO pause_test(x) VALUES ('before pause');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 
 \c postgres
-SELECT bdr.bdr_apply_is_paused();
- bdr_apply_is_paused 
+SELECT bdr.bdr_is_apply_paused();
+ bdr_is_apply_paused 
 ---------------------
  f
 (1 row)
@@ -31,8 +31,8 @@ SELECT bdr.bdr_apply_pause();
  
 (1 row)
 
-SELECT bdr.bdr_apply_is_paused();
- bdr_apply_is_paused 
+SELECT bdr.bdr_is_apply_paused();
+ bdr_is_apply_paused 
 ---------------------
  t
 (1 row)
@@ -57,8 +57,8 @@ SELECT pg_sleep(1);
 (1 row)
 
 -- Pause state is preserved across sessions
-SELECT bdr.bdr_apply_is_paused();
- bdr_apply_is_paused 
+SELECT bdr.bdr_is_apply_paused();
+ bdr_is_apply_paused 
 ---------------------
  t
 (1 row)
@@ -83,9 +83,9 @@ INSERT INTO pause_test(x) VALUES ('after resume');
 -- resume to take effect well before then.
 BEGIN;
 SET LOCAL statement_timeout = '60s';
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
------------------------
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
  
 (1 row)
 

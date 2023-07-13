@@ -193,9 +193,9 @@
 
 #define LOCKTRACE "DDL LOCK TRACE: "
 
-extern Datum bdr_ddl_lock_info(PG_FUNCTION_ARGS);
+extern Datum bdr_get_global_locks_info(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_ddl_lock_info);
+PG_FUNCTION_INFO_V1(bdr_get_global_locks_info);
 
 /* GUCs */
 /* replaced by !bdr_skip_ddl_replication for now
@@ -331,9 +331,9 @@ static bool this_xact_acquired_lock = false;
 
 
 /* SQL function to explcitly acquire global DDL lock */
-PGDLLIMPORT extern Datum bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS);
+PGDLLIMPORT extern Datum bdr_acquire_global_lock(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_acquire_global_lock_sql);
+PG_FUNCTION_INFO_V1(bdr_acquire_global_lock);
 
 
 static size_t
@@ -1195,14 +1195,14 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 }
 
 Datum
-bdr_acquire_global_lock_sql(PG_FUNCTION_ARGS)
+bdr_acquire_global_lock(PG_FUNCTION_ARGS)
 {
 	char	   *mode = text_to_cstring(PG_GETARG_TEXT_P(0));
 
 	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
 	if (bdr_skip_ddl_replication)
 		ereport(WARNING,
-				(errmsg("bdr.skip_ddl_replication is set, ignoring explicit bdr.acquire_global_lock(...) call")));
+				(errmsg("bdr.skip_ddl_replication is set, ignoring explicit bdr.bdr_acquire_global_lock(...) call")));
 	else
 		bdr_acquire_ddl_lock(bdr_lock_name_to_type(mode));
 
@@ -2434,7 +2434,7 @@ bdr_lock_state_to_name(BDRLockState lock_state)
 }
 
 Datum
-bdr_ddl_lock_info(PG_FUNCTION_ARGS)
+bdr_get_global_locks_info(PG_FUNCTION_ARGS)
 {
 #define BDR_DDL_LOCK_INFO_NFIELDS 13
 	BdrLocksDBState state;

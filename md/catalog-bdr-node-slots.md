@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                                   
-  [Prev](catalog-bdr-connections.md "bdr.bdr_connections")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-pg-stat-bdr.md "bdr.pg_stat_bdr")  
+  [Prev](catalog-bdr-connections.md "bdr.bdr_connections")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-stats.md "bdr.bdr_stats")
 
 
 # 13.3. bdr.bdr_node_slots
@@ -59,6 +59,6 @@ For more on the use of this view, see [Monitoring](monitoring.md).
 
 
   ----------------------------------------------------- ------------------------------------------ -------------------------------------------------
-  [Prev](catalog-bdr-connections.md)       [Home](README.md)        [Next](catalog-pg-stat-bdr.md)  
-  bdr.bdr_connections                                    [Up](catalogs-views.md)                                    bdr.pg_stat_bdr
+  [Prev](catalog-bdr-connections.md)       [Home](README.md)        [Next](catalog-bdr-stats.md)
+  bdr.bdr_connections                                    [Up](catalogs-views.md)                                    bdr.bdr_stats
   ----------------------------------------------------- ------------------------------------------ -------------------------------------------------

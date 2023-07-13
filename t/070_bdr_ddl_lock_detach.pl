@@ -32,19 +32,19 @@ note "acquired";
 
 is( $node_0->safe_psql( $bdr_test_dbname, "SELECT state FROM bdr.bdr_global_locks"), 'acquired', "ddl lock acquired");
 
-print("Global DDL lock state on node_0 is: " . $node_0->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_locks') . "\n");
-print("Global DDL lock state on node_1 is: " . $node_1->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_locks') . "\n");
-print("Global DDL lock state on node_2 is: " . $node_2->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_locks') . "\n");
+print("Global DDL lock state on node_0 is: " . $node_0->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_global_locks_info') . "\n");
+print("Global DDL lock state on node_1 is: " . $node_1->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_global_locks_info') . "\n");
+print("Global DDL lock state on node_2 is: " . $node_2->safe_psql($bdr_test_dbname, 'SELECT * FROM bdr.bdr_global_locks_info') . "\n");
 is(
-    $node_0->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_locks'),
+    $node_0->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_global_locks_info'),
     'peer_confirmed|ddl_lock|node_1|f|f',
     'node 0 confirmed lock as peer');
 is(
-    $node_1->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_locks'),
+    $node_1->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_global_locks_info'),
     'acquire_acquired|ddl_lock|node_1|t|f',
     'node 1 confirmed lock as acquirer');
 is(
-    $node_2->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_locks'),
+    $node_2->safe_psql($bdr_test_dbname, 'SELECT lock_state, lock_mode, owner_node_name, owner_is_my_node, owner_is_my_backend FROM bdr.bdr_global_locks_info'),
     'peer_confirmed|ddl_lock|node_1|f|f',
     'node 2 confirmed lock as peer');
 
@@ -65,14 +65,14 @@ TODO: {
 # Bug 2ndQuadrant/bdr-private#72
 TODO: {
     local $TODO = 'ddl lock release on detach not implemented yet';
-    is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_locks"), 'nolock', "ddl lock released after detach");
+    is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after detach");
 };
 
 # Because we have to terminate the apply worker it can take a little while for
 # the lock to be released.
-$node_0->poll_query_until($bdr_test_dbname, "SELECT lock_state = 'nolock' FROM bdr.bdr_locks");
+$node_0->poll_query_until($bdr_test_dbname, "SELECT lock_state = 'nolock' FROM bdr.bdr_global_locks_info");
 
-is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_locks"), 'nolock', "ddl lock released after detach");
+is( $node_0->safe_psql( $bdr_test_dbname, "SELECT lock_state FROM bdr.bdr_global_locks_info"), 'nolock', "ddl lock released after detach");
 is( $node_0->safe_psql( $bdr_test_dbname, "SELECT state FROM bdr.bdr_global_locks"), '', "bdr.bdr_global_locks row removed");
 
 # TODO:

@@ -7,8 +7,8 @@ SELECT bdr.bdr_replicate_ddl_command($$
 $$);
 
 -- set all nodes ro
-SELECT bdr.bdr_node_set_read_only(node_name, true) FROM bdr.bdr_nodes;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_set_node_read_only(node_name, true) FROM bdr.bdr_nodes;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- errors
 CREATE TABLE readonly_test_shoulderror(a int);
@@ -82,8 +82,8 @@ SELECT * FROM cte;
 
 \c postgres
 -- set all nodes rw
-SELECT bdr.bdr_node_set_read_only(node_name, false) FROM bdr.bdr_nodes;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_set_node_read_only(node_name, false) FROM bdr.bdr_nodes;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- cleanup
 SELECT bdr.bdr_replicate_ddl_command($$

@@ -14,7 +14,7 @@ $DDL$);
 
 \d desync
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- basic builtin datatypes
 \c :writedb2
@@ -38,7 +38,7 @@ SELECT * FROM desync ORDER BY id;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- Drop the attribute; we're still natts=3, but one is dropped
@@ -58,7 +58,7 @@ SELECT * FROM desync ORDER BY id;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 \c :writedb2
@@ -72,12 +72,12 @@ SELECT * FROM desync ORDER BY id;
 -- the other side col is dropped (or nullable)
 INSERT INTO desync(id, n1) VALUES (3, 3);
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '10s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;
@@ -92,12 +92,12 @@ COMMIT;
 \c :writedb1
 
 -- So now this side should apply too
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '10s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- Yay!
@@ -110,7 +110,7 @@ SELECT * FROM desync ORDER BY id;
 
 -- Cleanup
 DELETE FROM desync;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c :writedb1
 
@@ -132,7 +132,7 @@ SELECT * FROM desync ORDER BY id;
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 \c :writedb2
@@ -147,7 +147,7 @@ INSERT INTO desync(id, n1) VALUES (5, 5);
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;
@@ -171,7 +171,7 @@ COMMIT;
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- but if we drop the NOT NULL constraint temporarily we can
@@ -186,7 +186,7 @@ COMMIT;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.acquire_global_lock('ddl_lock');
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;

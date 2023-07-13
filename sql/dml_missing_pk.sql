@@ -16,7 +16,7 @@ $$);
 COMMIT;
 
 INSERT INTO bdr_missing_pk SELECT generate_series(1, 10);
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c :readdb2
 SELECT * FROM bdr_missing_pk;
 
@@ -58,7 +58,7 @@ WITH foo AS (
 
 -- success again
 TRUNCATE bdr_missing_pk;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c :readdb1
 SELECT * FROM bdr_missing_pk;
 
@@ -78,7 +78,7 @@ WHERE c.relkind = 'r'
   AND c.relname ~ '^(bdr_missing_pk.*)$'
   AND pg_catalog.pg_table_is_visible(c.oid)
 ORDER BY 1,2;
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c :readdb2
 -- The catalog change should not replicate

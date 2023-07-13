@@ -23,10 +23,10 @@ bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 # Remove BDR from the detached node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
 #
-# Use case 1: a detached node without relations that already exist on the other 
+# Use case 1: a detached node without relations that already exist on the other
 # nodes is able to rejoin.
 # Such relation(s) (if any) are not replicated during the re-join.
 #
@@ -46,7 +46,7 @@ my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
 like($psql_stderr, qr/relation "db_not_empty" does not exist/, "db_not_empty not replicated during re-join");
 
 #
-# Use case 2: a detached node with relations that already exist on the other 
+# Use case 2: a detached node with relations that already exist on the other
 # nodes is failing to rejoin.
 #
 
@@ -54,7 +54,7 @@ like($psql_stderr, qr/relation "db_not_empty" does not exist/, "db_not_empty not
 exec_ddl($node_0, q[CREATE TABLE public.test_dup(a int primary key);]);
 
 # Make sure everything caught up by forcing another lock
-$node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 # Detach node0 from 3 node cluster
 note "Detach node_0 from 3 node cluster\n";
@@ -62,7 +62,7 @@ bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 # Remove BDR from the detached node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)");
+$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
 # re-join the detached node
 my $logstart_0 = get_log_size($node_0);

@@ -24,7 +24,7 @@ RETURNS TEXT
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
-CREATE FUNCTION pg_stat_get_bdr (
+CREATE FUNCTION bdr_get_stats (
     OUT rep_node_id oid,
     OUT rilocalid oid,
     OUT riremoteid text,
@@ -42,9 +42,9 @@ RETURNS SETOF record
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
-REVOKE ALL ON FUNCTION pg_stat_get_bdr() FROM PUBLIC;
+REVOKE ALL ON FUNCTION bdr_get_stats() FROM PUBLIC;
 
-CREATE VIEW pg_stat_bdr AS SELECT * FROM pg_stat_get_bdr();
+CREATE VIEW bdr_stats AS SELECT * FROM bdr_get_stats();
 
 CREATE TYPE bdr_conflict_type AS ENUM (
     'insert_insert',
@@ -276,7 +276,7 @@ RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
-CREATE FUNCTION queue_truncate()
+CREATE FUNCTION bdr_queue_truncate()
 RETURNS TRIGGER
 AS 'MODULE_PATHNAME', 'bdr_queue_truncate'
 LANGUAGE C;
@@ -307,7 +307,7 @@ AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
 --- Functions for manipulating/displaying replications sets
-CREATE FUNCTION table_get_replication_sets(relation regclass, OUT sets text[])
+CREATE FUNCTION bdr_get_table_replication_sets(relation regclass, OUT sets text[])
   VOLATILE
   STRICT
   LANGUAGE 'sql'
@@ -337,7 +337,7 @@ REVOKE ALL ON TABLE bdr_replication_set_config FROM PUBLIC;
 
 -- Fix quoting for format() arguments by directly using regclass with %s
 -- instead of %I
-CREATE FUNCTION table_set_replication_sets(p_relation regclass, p_sets text[])
+CREATE FUNCTION bdr_set_table_replication_sets(p_relation regclass, p_sets text[])
   RETURNS void
   VOLATILE
   LANGUAGE 'plpgsql'
@@ -539,7 +539,7 @@ COMMENT ON FUNCTION bdr_connections_changed() IS
 -- remote end by the init code when joining an existing group, to do the
 -- remote-side setup.
 --
-CREATE FUNCTION internal_node_join (
+CREATE FUNCTION _bdr_join_node_private (
     sysid text, timeline oid, dboid oid,
     node_external_dsn text,
     apply_delay integer,
@@ -625,7 +625,7 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION internal_update_seclabel()
+CREATE FUNCTION _bdr_update_seclabel_private()
 RETURNS void LANGUAGE plpgsql
 SET search_path = bdr, pg_catalog
 -- SET bdr.permit_unsafe_ddl_commands = on is removed for now
@@ -663,7 +663,7 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION internal_begin_join (
+CREATE FUNCTION _bdr_begin_join_private (
     caller text,
     local_node_name text,
     node_local_dsn text,
@@ -789,7 +789,7 @@ BEGIN
                 MESSAGE = 'remote node does not appear to be a fully running BDR node',
                 DETAIL = format($$The dsn '%s' connects successfully but the target node has no entry in bdr.bdr_nodes.$$, remote_dsn),
                 ERRCODE = 'object_not_in_prerequisite_state';
-        ELSIF remote_nodeinfo.node_status IS DISTINCT FROM bdr.node_status_to_char('BDR_NODE_STATUS_READY') THEN
+        ELSIF remote_nodeinfo.node_status IS DISTINCT FROM bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY') THEN
             RAISE USING
                 MESSAGE = 'remote node does not appear to be a fully running BDR node',
                 DETAIL = format($$The dsn '%s' connects successfully but the target node has bdr.bdr_nodes node_status=%s instead of expected 'r'.$$, remote_dsn, remote_nodeinfo.node_status),
@@ -847,21 +847,21 @@ BEGIN
         ) VALUES (
             local_node_name,
             localid.sysid, localid.timeline, localid.dboid,
-            bdr.node_status_to_char('BDR_NODE_STATUS_BEGINNING_INIT'),
+            bdr.bdr_node_status_to_char('BDR_NODE_STATUS_BEGINNING_INIT'),
             node_local_dsn, remote_dsn
         );
-    ELSIF bdr.node_status_from_char(cur_node.node_status) = 'BDR_NODE_STATUS_CATCHUP' THEN
+    ELSIF bdr.bdr_node_status_from_char(cur_node.node_status) = 'BDR_NODE_STATUS_CATCHUP' THEN
         RAISE DEBUG 'starting node join in BDR_NODE_STATUS_CATCHUP';
     ELSE
         RAISE USING
             MESSAGE = 'a bdr_nodes entry for this node already exists',
             DETAIL = format('bdr.bdr_nodes entry for (%s,%s,%s) named ''%s'' with status %s exists.',
                             cur_node.node_sysid, cur_node.node_timeline, cur_node.node_dboid,
-                            cur_node.node_name, bdr.node_status_from_char(cur_node.node_status)),
+                            cur_node.node_name, bdr.bdr_node_status_from_char(cur_node.node_status)),
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
-    PERFORM bdr.internal_update_seclabel();
+    PERFORM bdr._bdr_update_seclabel_private();
 END;
 $body$;
 
@@ -869,7 +869,7 @@ $body$;
 -- The public interface for node join/addition, to be run to join a currently
 -- unconnected node with a blank database to a BDR group.
 --
-CREATE FUNCTION bdr_group_join (
+CREATE FUNCTION bdr_join_group (
     local_node_name text,
     node_external_dsn text,
     join_using_dsn text,
@@ -905,8 +905,8 @@ BEGIN
     -- Generate BDR node identifier
     PERFORM bdr.bdr_generate_node_identifier();
 
-    PERFORM bdr.internal_begin_join(
-        'bdr_group_join',
+    PERFORM bdr._bdr_begin_join_private(
+        'bdr_join_group',
         local_node_name,
         CASE WHEN node_local_dsn IS NULL THEN node_external_dsn ELSE node_local_dsn END,
         join_using_dsn);
@@ -973,10 +973,10 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_group_join(text, text, text, text, integer, text[]) IS
+COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[]) IS
 'Join an existing BDR group by connecting to a member node and copying its contents';
 
-CREATE FUNCTION bdr_group_create (
+CREATE FUNCTION bdr_create_group (
     local_node_name text,
     node_external_dsn text,
     node_local_dsn text DEFAULT NULL,
@@ -999,7 +999,7 @@ BEGIN
         FROM pg_constraint c
           INNER JOIN pg_namespace n ON c.connamespace = n.oid
           INNER JOIN pg_class r ON c.conrelid = r.oid
-          INNER JOIN LATERAL unnest(bdr.table_get_replication_sets(c.conrelid)) rs(rsname) ON (rs.rsname = ANY(replication_sets))
+          INNER JOIN LATERAL unnest(bdr.bdr_get_table_replication_sets(c.conrelid)) rs(rsname) ON (rs.rsname = ANY(replication_sets))
         WHERE c.contype = 'x'
           AND r.relpersistence = 'p'
           AND r.relkind = 'r'
@@ -1018,7 +1018,7 @@ BEGIN
         FROM pg_constraint c
           INNER JOIN pg_namespace n ON c.connamespace = n.oid
           INNER JOIN pg_class r ON c.conrelid = r.oid
-          INNER JOIN LATERAL unnest(bdr.table_get_replication_sets(c.conrelid)) rs(rsname) ON (rs.rsname = ANY(replication_sets))
+          INNER JOIN LATERAL unnest(bdr.bdr_get_table_replication_sets(c.conrelid)) rs(rsname) ON (rs.rsname = ANY(replication_sets))
         WHERE c.contype = 'u'
           AND r.relpersistence = 'p'
           AND r.relkind = 'r'
@@ -1053,13 +1053,13 @@ BEGIN
     -- runs when the bdr extension is created, even if there's no active
     -- bdr connections yet, so tables created after the extension is created
     -- will get the trigger already. So skip tables that have a tg named
-    -- 'truncate_trigger' calling proc 'bdr.queue_truncate'.
+    -- 'truncate_trigger' calling proc 'bdr.bdr_queue_truncate'.
     FOR t IN
         SELECT r.oid AS relid
         FROM pg_class r
           INNER JOIN pg_namespace n ON (r.relnamespace = n.oid)
           LEFT JOIN pg_trigger tg ON (r.oid = tg.tgrelid AND tgname = 'truncate_trigger')
-          LEFT JOIN pg_proc p ON (p.oid = tg.tgfoid AND p.proname = 'queue_truncate')
+          LEFT JOIN pg_proc p ON (p.oid = tg.tgfoid AND p.proname = 'bdr_queue_truncate')
           LEFT JOIN pg_namespace pn ON (pn.oid = p.pronamespace AND pn.nspname = 'bdr')
         WHERE r.relpersistence = 'p'
           AND r.relkind = 'r'
@@ -1071,7 +1071,7 @@ BEGIN
         PERFORM bdr.bdr_internal_create_truncate_trigger(t.relid);
     END LOOP;
 
-    PERFORM bdr.bdr_group_join(
+    PERFORM bdr.bdr_join_group(
         local_node_name := local_node_name,
         node_external_dsn := node_external_dsn,
         join_using_dsn := null,
@@ -1081,10 +1081,10 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_group_create(text, text, text, integer, text[]) IS
+COMMENT ON FUNCTION bdr_create_group(text, text, text, integer, text[]) IS
 'Create a BDR group, turning a stand-alone database into the first node in a BDR group';
 
-CREATE FUNCTION bdr.bdr_detach_nodes(p_nodes text[])
+CREATE FUNCTION bdr_detach_nodes(p_nodes text[])
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
 -- SET bdr.permit_unsafe_ddl_commands = on is removed for now
@@ -1110,7 +1110,7 @@ BEGIN
     --
     IF bdr.bdr_get_local_node_name() = ANY(p_nodes) THEN
         -- One exception is if we're the only live node
-        IF (SELECT count(node_status) FROM bdr.bdr_nodes WHERE node_status IN (bdr.node_status_to_char('BDR_NODE_STATUS_READY'))) > 1 THEN
+        IF (SELECT count(node_status) FROM bdr.bdr_nodes WHERE node_status IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY'))) > 1 THEN
             RAISE USING
                 MESSAGE = 'cannot detach a node from its self',
                 DETAIL = 'Attempted to bdr_detach_nodes(...) on node '||bdr.bdr_get_local_node_name()||' which is one of the nodes being detached.',
@@ -1119,7 +1119,7 @@ BEGIN
         ELSE
             RAISE WARNING USING
                 MESSAGE = 'detaching last node',
-                HINT = 'Marking last node as detached. To remove BDR completely use bdr.remove_bdr_from_local_node(...).';
+                HINT = 'Marking last node as detached. To remove BDR completely use bdr.bdr_remove(...).';
         END IF;
     END IF;
 
@@ -1145,9 +1145,9 @@ BEGIN
             bdr.bdr_nodes
             INNER JOIN unnest(p_nodes) AS to_remove(remove_node_name)
             ON (bdr_nodes.node_name = to_remove.remove_node_name)
-        WHERE bdr_nodes.node_status <> bdr.node_status_to_char('BDR_NODE_STATUS_READY')
+        WHERE bdr_nodes.node_status <> bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY')
     LOOP
-        IF r.node_status = bdr.node_status_to_char('BDR_NODE_STATUS_KILLED') THEN
+        IF r.node_status = bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED') THEN
             RAISE INFO 'node %i is already detached, ignoring', r.node_name;
         ELSE
             RAISE WARNING 'node % is in state % not expected ''r'' (BDR_NODE_STATUS_READY), attempting to remove anyway',
@@ -1161,7 +1161,7 @@ BEGIN
 		bdr.bdr_nodes WHERE node_name = ANY(p_nodes));
 
     UPDATE bdr.bdr_nodes
-    SET node_status = bdr.node_status_to_char('BDR_NODE_STATUS_KILLED')
+    SET node_status = bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED')
     WHERE node_name = ANY(p_nodes);
 
     -- Notify local perdb worker to kill nodes.
@@ -1169,7 +1169,7 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION bdr_node_join_wait_for_ready(timeout integer DEFAULT 0)
+CREATE FUNCTION bdr_wait_for_node_ready(timeout integer DEFAULT 0)
 RETURNS void LANGUAGE plpgsql VOLATILE AS $body$
 DECLARE
     _node_status "char";
@@ -1204,39 +1204,6 @@ END;
 $body$;
 
 CREATE TYPE bdr_sync_type AS ENUM ('none', 'full');
-
-CREATE FUNCTION bdr_subscribe (
-    local_node_name text,
-    subscribe_to_dsn text,
-    node_local_dsn text,
-    apply_delay integer DEFAULT NULL,
-    replication_sets text[] DEFAULT ARRAY['default'],
-    synchronize bdr.bdr_sync_type DEFAULT 'full'
-    )
-RETURNS void LANGUAGE plpgsql VOLATILE
-AS $body$
-BEGIN
-	RAISE EXCEPTION 'Unidirectional subscribe is no longer supported by BDR, use pglogical.';
-END;
-$body$;
-
-COMMENT ON FUNCTION bdr_subscribe(text, text, text, integer, text[], bdr.bdr_sync_type) IS
-'Subscribe to remote logical changes - no longer supported, use pglogical instead';
-
-CREATE FUNCTION bdr_unsubscribe(node_name text, drop_slot boolean DEFAULT true)
-RETURNS void LANGUAGE plpgsql VOLATILE
-SET search_path = bdr, pg_catalog
--- SET bdr.permit_unsafe_ddl_commands = on is removed for now
-SET bdr.skip_ddl_replication = on
--- SET bdr.skip_ddl_locking = on is removed for now
-AS $body$
-BEGIN
-	RAISE EXCEPTION 'BDR unidirectional subscriptions no longer supported, use pglogical';
-END;
-$body$;
-
-COMMENT ON FUNCTION bdr_unsubscribe(text, boolean) IS
-'Unsubscribe to remote logical changes - no longer supported, use pglogical instead.';
 
 CREATE FUNCTION bdr_parse_slot_name (
     slot_name name,
@@ -1295,12 +1262,12 @@ $$;
 COMMENT ON FUNCTION bdr_get_local_node_name() IS
 'Return the name from bdr.bdr_nodes for the local node, or null if no entry exists';
 
-CREATE FUNCTION bdr_apply_is_paused()
+CREATE FUNCTION bdr_is_apply_paused()
 RETURNS boolean
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
-CREATE FUNCTION bdr_node_set_read_only (node_name text, read_only boolean)
+CREATE FUNCTION bdr_set_node_read_only (node_name text, read_only boolean)
 RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE;
@@ -1331,16 +1298,16 @@ SELECT pg_catalog.pg_terminate_backend(pid) FROM bdr.bdr_get_workers_info()
         ELSE (sysid, timeline, dboid, worker_type) = ($1, $2, $3, $4) END;
 $$;
 
-CREATE FUNCTION skip_changes_upto(
+CREATE FUNCTION bdr_skip_changes(
     from_sysid text,
     from_timeline oid,
     from_dboid oid,
     upto_lsn pg_lsn)
 RETURNS void
-AS 'MODULE_PATHNAME','bdr_skip_changes_upto'
+AS 'MODULE_PATHNAME','bdr_skip_changes'
 LANGUAGE C;
 
-CREATE FUNCTION connection_get_replication_sets(target_node_name text)
+CREATE FUNCTION bdr_get_connection_replication_sets(target_node_name text)
 RETURNS text[]
 LANGUAGE plpgsql
 AS $$
@@ -1370,12 +1337,12 @@ BEGIN
     RAISE WARNING 'There are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be returned.',node_name;
   END IF;
 
-  SELECT bdr.connection_get_replication_sets(sysid, timeline, dboid) INTO replication_sets;
+  SELECT bdr.bdr_get_connection_replication_sets(sysid, timeline, dboid) INTO replication_sets;
   RETURN replication_sets;
 END;
 $$;
 
-CREATE FUNCTION connection_set_replication_sets (
+CREATE FUNCTION bdr_set_connection_replication_sets (
   replication_sets text[],
   target_node_name text
 )
@@ -1407,16 +1374,16 @@ BEGIN
     RAISE WARNING 'There are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be changed. Use the 6-argument form of this function to change others.',node_name;
   END IF;
 
-  PERFORM bdr.connection_set_replication_sets(replication_sets, sysid, timeline, dboid);
+  PERFORM bdr.bdr_set_connection_replication_sets(replication_sets, sysid, timeline, dboid);
 END;
 $$;
 
-CREATE FUNCTION _test_pause_worker_management(boolean)
+CREATE FUNCTION _bdr_pause_worker_management_private(boolean)
 RETURNS void
 AS 'MODULE_PATHNAME','bdr_pause_worker_management'
 LANGUAGE C;
 
-COMMENT ON FUNCTION _test_pause_worker_management(boolean) IS
+COMMENT ON FUNCTION _bdr_pause_worker_management_private(boolean) IS
 'BDR-internal function for test use only';
 
 CREATE FUNCTION bdr_parse_replident_name (
@@ -1449,7 +1416,7 @@ COMMENT ON FUNCTION bdr_format_replident_name(text, oid, oid, oid, name) IS
 'Format a BDR replication identifier name from node identity parameters';
 
 -- Completely de-BDR-ize a node. Updated to fix #281.
-CREATE FUNCTION remove_bdr_from_local_node (
+CREATE FUNCTION bdr_remove (
   force boolean DEFAULT false)
 RETURNS void
 LANGUAGE plpgsql
@@ -1478,7 +1445,7 @@ BEGIN
       SET node_status = 'k'
       WHERE (node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();
 
-      PERFORM bdr._test_pause_worker_management(false);
+      PERFORM bdr._bdr_pause_worker_management_private(false);
 
       PERFORM pg_sleep(5);
 
@@ -1495,7 +1462,7 @@ BEGIN
 
   -- Suspend worker management, so when we terminate apply workers and
   -- walsenders they won't get relaunched.
-  PERFORM bdr._test_pause_worker_management(true);
+  PERFORM bdr._bdr_pause_worker_management_private(true);
 
   -- Terminate WAL sender(s) associated with this database.
   PERFORM bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'walsender')
@@ -1516,7 +1483,7 @@ BEGIN
 
   -- Let the perdb worker resume work and figure out everything's
   -- going away.
-  PERFORM bdr._test_pause_worker_management(false);
+  PERFORM bdr._bdr_pause_worker_management_private(false);
   PERFORM bdr.bdr_connections_changed();
 
   -- Give it a few seconds
@@ -1573,7 +1540,7 @@ BEGIN
     INNER JOIN pg_depend d2 ON (d.classid = d2.classid AND d.objid = d2.objid)
     WHERE tgname LIKE 'truncate_trigger_%'
       AND d2.refclassid = 'pg_proc'::regclass
-      AND d2.refobjid = 'bdr.queue_truncate'::regproc
+      AND d2.refobjid = 'bdr.bdr_queue_truncate'::regproc
       AND n.nspname <> 'bdr'
   LOOP
     EXECUTE format('DROP TRIGGER %I ON %I.%I',
@@ -1584,7 +1551,7 @@ BEGIN
     DELETE FROM pg_depend
     WHERE classid = 'pg_trigger'::regclass AND
       (objid = _truncate_tg.tgobjid
-       AND (refclassid = 'pg_proc'::regclass AND refobjid = 'bdr.queue_truncate'::regproc)
+       AND (refclassid = 'pg_proc'::regclass AND refobjid = 'bdr.bdr_queue_truncate'::regproc)
           OR
           (refclassid = 'pg_class'::regclass AND refobjid = _truncate_tg.tgrelid)
 	  );
@@ -1608,9 +1575,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION remove_bdr_from_local_node(boolean) FROM public;
+REVOKE ALL ON FUNCTION bdr_remove(boolean) FROM public;
 
-COMMENT ON FUNCTION remove_bdr_from_local_node(boolean) IS
+COMMENT ON FUNCTION bdr_remove(boolean) IS
 'Remove all BDR security labels, slots, replication origins, replication sets, etc from the local node.';
 
 CREATE FUNCTION bdr_is_active_in_db()
@@ -1627,68 +1594,68 @@ ALTER EVENT TRIGGER bdr_truncate_trigger_add ENABLE ALWAYS;
 -- Marking this immutable is technically a bit cheeky as we could add new
 -- statuses. But for index use we need it, and it's safe since any unrecognised
 -- entries will result in ERRORs and can thus never exist in an index.
-CREATE FUNCTION node_status_from_char("char")
+CREATE FUNCTION bdr_node_status_from_char("char")
 RETURNS text
 AS 'MODULE_PATHNAME','bdr_node_status_from_char'
 LANGUAGE C STRICT IMMUTABLE;
 
-CREATE FUNCTION node_status_to_char(text)
+CREATE FUNCTION bdr_node_status_to_char(text)
 RETURNS "char"
 AS 'MODULE_PATHNAME','bdr_node_status_to_char'
 LANGUAGE C STRICT IMMUTABLE;
 
 -- BDR doesn't like partial unique indexes. We'd really like an index like:
 --
---   CREATE UNIQUE INDEX ON bdr.bdr_nodes(node_seq_id) WHERE (node_status IN (bdr.node_status_to_char('BDR_NODE_STATUS_READY')));
+--   CREATE UNIQUE INDEX ON bdr.bdr_nodes(node_seq_id) WHERE (node_status IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY')));
 --
 -- But, the simple way we do updates to those catalogs doesn't support partial
 -- or expression indexes. So no constraint enforces node ID uniqueness.
 
-CREATE FUNCTION global_seq_nextval(regclass)
+CREATE FUNCTION bdr_snowflake_id_nextval(regclass)
 RETURNS bigint
-AS 'MODULE_PATHNAME','global_seq_nextval_oid'
+AS 'MODULE_PATHNAME','bdr_snowflake_id_nextval_oid'
 LANGUAGE C STRICT VOLATILE;
 
-COMMENT ON FUNCTION global_seq_nextval(regclass) IS
+COMMENT ON FUNCTION bdr_snowflake_id_nextval(regclass) IS
 'Generate sequence values unique to this node using a local sequence as a seed';
 
 -- For testing purposes we sometimes want to be able to override the timestamp
 -- etc.
-CREATE FUNCTION global_seq_nextval_test(regclass, bigint)
+CREATE FUNCTION _bdr_snowflake_id_nextval_private(regclass, bigint)
 RETURNS bigint
-AS 'MODULE_PATHNAME','global_seq_nextval_oid'
+AS 'MODULE_PATHNAME','bdr_snowflake_id_nextval_oid'
 LANGUAGE C STRICT VOLATILE;
 
-COMMENT ON FUNCTION global_seq_nextval_test(regclass, bigint) IS
+COMMENT ON FUNCTION _bdr_snowflake_id_nextval_private(regclass, bigint) IS
 'Function for BDR testing only, do not use in application code';
 
-CREATE FUNCTION acquire_global_lock(lockmode text)
+CREATE FUNCTION bdr_acquire_global_lock(lockmode text)
 RETURNS void
-AS 'MODULE_PATHNAME','bdr_acquire_global_lock_sql'
+AS 'MODULE_PATHNAME','bdr_acquire_global_lock'
 LANGUAGE C VOLATILE STRICT;
 
-REVOKE ALL ON FUNCTION acquire_global_lock(text) FROM public;
+REVOKE ALL ON FUNCTION bdr_acquire_global_lock(text) FROM public;
 
-COMMENT ON FUNCTION acquire_global_lock(text) IS
+COMMENT ON FUNCTION bdr_acquire_global_lock(text) IS
 'Acquire bdr global lock ("ddl lock") in specified mode';
 
 -- b1e48bbe64a4 introduced in PG14
 DO $$BEGIN
   PERFORM 1 FROM pg_proc WHERE proname = 'pg_xact_commit_timestamp_origin';
   IF FOUND THEN
-    CREATE FUNCTION get_transaction_replorigin(xid) RETURNS oid
+    CREATE FUNCTION bdr_get_transaction_replorigin(xid) RETURNS oid
     AS 'SELECT roident FROM pg_catalog.pg_xact_commit_timestamp_origin($1);'
     LANGUAGE SQL;
   ELSE
-    CREATE FUNCTION get_transaction_replorigin(xid) RETURNS oid
+    CREATE FUNCTION bdr_get_transaction_replorigin(xid) RETURNS oid
     AS 'MODULE_PATHNAME','pg_xact_commit_timestamp_origin'
     LANGUAGE C;
   END IF;
 END;$$;
 
-REVOKE ALL ON FUNCTION get_transaction_replorigin(xid) FROM public;
+REVOKE ALL ON FUNCTION bdr_get_transaction_replorigin(xid) FROM public;
 
-COMMENT ON FUNCTION get_transaction_replorigin(xid) IS
+COMMENT ON FUNCTION bdr_get_transaction_replorigin(xid) IS
 'Get the replication origin id for a given transaction if still known';
 
 --
@@ -1698,7 +1665,8 @@ COMMENT ON FUNCTION get_transaction_replorigin(xid) IS
 -- won't get replicated, so we have do it as a user-initiated post-upgrade
 -- step.
 --
-CREATE FUNCTION upgrade_to_200() RETURNS void LANGUAGE plpgsql AS
+CREATE FUNCTION bdr_assign_seq_ids_post_upgrade()
+RETURNS void LANGUAGE plpgsql AS
 $$
 DECLARE
   errd text;
@@ -1710,8 +1678,8 @@ BEGIN
   errd := 'One or more nodes have status other than expected BDR_NODE_STATUS_READY (r) or BDR_NODE_STATUS_KILLED (k): ';
   FOR n IN
  	  SELECT * FROM bdr.bdr_nodes WHERE node_status NOT IN (
-      bdr.node_status_to_char('BDR_NODE_STATUS_READY'),
-      bdr.node_status_to_char('BDR_NODE_STATUS_KILLED')
+      bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY'),
+      bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED')
     )
   LOOP
     errd := errd || 'node % has status % (%);', n.node_name, n.node_status;
@@ -1742,11 +1710,11 @@ BEGIN
         coalesce((
           SELECT max(n3.node_seq_id)
           FROM bdr.bdr_nodes n3
-          WHERE n3.node_status NOT IN (bdr.node_status_to_char('BDR_NODE_STATUS_KILLED'))
+          WHERE n3.node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))
         ), 0)
       ) AS node_seq_id
     FROM bdr.bdr_nodes n2
-    WHERE n2.node_status NOT IN (bdr.node_status_to_char('BDR_NODE_STATUS_KILLED'))
+    WHERE n2.node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))
     AND n2.node_seq_id IS NULL
   ) n(sysid, timeline, dboid, seqid)
   WHERE (node_sysid, node_timeline, node_dboid) =
@@ -1756,7 +1724,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION global_lock_info (
+CREATE FUNCTION bdr_get_global_locks_info (
 	OUT owner_replorigin oid,
 	OUT owner_sysid text,
 	OUT owner_timeline oid,
@@ -1772,13 +1740,13 @@ CREATE FUNCTION global_lock_info (
 	OUT npeers_replayed integer,
 	OUT replay_upto	pg_lsn)
 RETURNS record
-AS 'MODULE_PATHNAME', 'bdr_ddl_lock_info'
+AS 'MODULE_PATHNAME', 'bdr_get_global_locks_info'
 LANGUAGE C VOLATILE;
 
-COMMENT ON FUNCTION global_lock_info() IS
-'Backing function for bdr_locks view';
+COMMENT ON FUNCTION bdr_get_global_locks_info() IS
+'Backing function for bdr_global_locks_info view';
 
-CREATE VIEW bdr_locks AS
+CREATE VIEW bdr_global_locks_info AS
 SELECT
  owner_replorigin = 0 AS owner_is_my_node,
  owner_sysid, owner_timeline, owner_dboid,
@@ -1788,20 +1756,20 @@ SELECT
  owner_replorigin,
  lockcount, npeers, npeers_confirmed, npeers_declined, npeers_replayed,
  replay_upto
-FROM global_lock_info();
+FROM bdr_get_global_locks_info();
 
-COMMENT ON VIEW bdr_locks IS
+COMMENT ON VIEW bdr_global_locks_info IS
 'Diagnostic information on BDR global locking state, see manual';
 
-CREATE FUNCTION wait_slot_confirm_lsn(slotname name, target pg_lsn)
+CREATE FUNCTION bdr_wait_for_slots_confirmed_flush_lsn(slotname name, target pg_lsn)
 RETURNS void
-AS 'MODULE_PATHNAME','bdr_wait_slot_confirm_lsn'
+AS 'MODULE_PATHNAME','bdr_wait_for_slots_confirmed_flush_lsn'
 LANGUAGE C;
 
-COMMENT ON FUNCTION wait_slot_confirm_lsn(name,pg_lsn) IS
+COMMENT ON FUNCTION bdr_wait_for_slots_confirmed_flush_lsn(name,pg_lsn) IS
 'Wait until slotname (or all slots, if null) has passed specified lsn (or current lsn, if null)';
 
-CREATE OR REPLACE FUNCTION bdr_handle_rejoin()
+CREATE FUNCTION bdr_handle_rejoin()
   RETURNS trigger AS
 $$
 BEGIN

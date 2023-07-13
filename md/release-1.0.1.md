@@ -6,7 +6,7 @@
 # A.8. Release 1.0.1
 
 The 1.0.1 maintenance release fixes a significant bug in
-`bdr_group_join` caused by `bdr_dump` running parts
+`bdr_join_group` caused by `bdr_dump` running parts
 of the binary upgrade code that it shouldn\'t have. This could lead to
 incorrect frozenxids among other issues.
 

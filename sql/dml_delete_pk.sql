@@ -15,19 +15,19 @@ SELECT bdr.bdr_replicate_ddl_command($$
 $$);
 COMMIT;
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- INSERT data
 INSERT INTO test (id, ts) VALUES ('row', '1970-07-21 12:00:00');
 INSERT INTO test (id) VALUES ('broken');
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c :readdb2
 SELECT id FROM test ORDER BY ts;
 
 -- DELETE one row by PK
 \c :writedb2
 DELETE FROM test WHERE id = 'row';
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT id FROM test ORDER BY ts;
 
 \c :readdb1
@@ -35,7 +35,7 @@ SELECT id FROM test ORDER BY ts;
 
 \c :writedb1
 DELETE FROM test WHERE id = 'broken';
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT id FROM test ORDER BY ts;
 
 \c :readdb2

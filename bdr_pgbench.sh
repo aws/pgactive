@@ -103,25 +103,25 @@ $PGBIN/pg_ctl -D $PGBIN/data -l $RESULTS/server.log start
 echo "BDR-cizing node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P postgres -c "CREATE DATABASE $WHALE_DB" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION bdr CASCADE" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_group_create(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_node_join_wait_for_ready()" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_create_group(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 echo "BDR-cizing node $PANDA"
 $PGBIN/psql -h $PANDA_H -p $PANDA_P postgres -c "CREATE DATABASE $PANDA_DB" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION bdr CASCADE" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_group_join(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_node_join_wait_for_ready()" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_join_group(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 # Initialize pgbench
 echo "Setting up pgbench on node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE SCHEMA $WHALE_SC; ALTER DATABASE $WHALE_DB SET search_path=$WHALE_SC,pg_catalog;" >> $RESULTS/check.log 2>&1
 $PGBIN/pgbench  -q -i -s $SCALE -h $WHALE_H -p $WHALE_P $WHALE_DB  >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 if [ "$RUNMODE" = "parallel" ]; then
     echo "Setting up pgbench on node $PANDA"
 	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE SCHEMA $PANDA_SC; ALTER DATABASE $PANDA_DB SET search_path=$PANDA_SC,pg_catalog;" >> $RESULTS/check.log 2>&1
 	$PGBIN/pgbench -q -i -s $SCALE -h $PANDA_H -p $PANDA_P $PANDA_DB >> $RESULTS/check.log 2>&1
-	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 fi
 
 # Run pgbench
@@ -149,8 +149,8 @@ for i in `seq 1 $NUM_RUNS`; do
 	done
 done
 
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.wait_slot_confirm_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 
 # Detach a node away from BDR group, to hit data differ error.
 #$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_detach_nodes(ARRAY['$WHALE']);" >> $RESULTS/check.log 2>&1

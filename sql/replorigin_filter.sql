@@ -10,7 +10,7 @@ CREATE TABLE public.origin_filter (
 );
 $DDL$);
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- Simulate a write from some unknown peer node by defining a replication
 -- origin and using it in our session. We must forward this write.
@@ -34,7 +34,7 @@ SELECT pg_replication_origin_xact_setup('1/1', current_timestamp);
 INSERT INTO public.origin_filter(id, n1) values (4, 4);
 COMMIT;
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 SELECT * FROM origin_filter ORDER BY id;
 
@@ -52,6 +52,6 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$
     DROP TABLE public.origin_filter;
 $DDL$);
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 SELECT pg_replication_origin_drop('demo_origin');

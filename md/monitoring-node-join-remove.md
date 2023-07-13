@@ -6,13 +6,13 @@
 
 Node join and removal is asynchronous in BDR. The [Node management
 functions](functions-node-mgmt.md) return immediately, without first
-ensuring the join or part operation is complete. To see when a join or
-part operation finishes it is necessary to check the node state
+ensuring the join or detach operation is complete. To see when a join or
+detach operation finishes it is necessary to check the node state
 indirectly via [bdr.bdr_nodes](catalog-bdr-nodes.md) or using helper
 functions.
 
 The helper function
-[bdr.bdr_node_join_wait_for_ready](functions-node-mgmt.md#FUNCTION-BDR-NODE-JOIN-WAIT-FOR-READY),
+[bdr.bdr_wait_for_node_ready](functions-node-mgmt.md#FUNCTION-BDR-WAIT-FOR-NODE-READY),
 when called, will cause a PostgreSQL session to pause until outstanding
 node join operations complete. More helpers for node status monitoring
 will be added over time.

@@ -19,7 +19,7 @@ sub bdr_detach_join_tests {
     initandstart_bdr_group($node_a);
     my $upstream_node = $node_a;
 
-    # Join a new node to first node using bdr_group_join
+    # Join a new node to first node using bdr_join_group
     my $node_b = PostgreSQL::Test::Cluster->new('node_b');
     initandstart_join_node( $node_b, $node_a, $type );
 

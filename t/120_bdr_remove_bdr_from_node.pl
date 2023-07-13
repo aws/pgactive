@@ -18,7 +18,7 @@ my $upstream_node = $node_a;
 # Create and use 2.0 Global sequence
 create_table_global_sequence( $node_a, 'test_table_sequence' );
 
-# Join a new node to first node using bdr_group_join
+# Join a new node to first node using bdr_join_group
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node( $node_b, $node_a );
 
@@ -38,7 +38,7 @@ $node_b->safe_psql( $bdr_test_dbname, "drop table foo" );
 # Re-create the table foo
 $node_b->safe_psql( $bdr_test_dbname, "create table foo (a int primary key)" );
 
-# Join a new node to first node using bdr_group_join
+# Join a new node to first node using bdr_join_group
 my $node_c = PostgreSQL::Test::Cluster->new('node_c');
 initandstart_logicaljoin_node( $node_c, $node_a );
 
@@ -54,14 +54,14 @@ sub bdr_remove {
     my $node      = shift;
     my $is_detached = shift;
     if ( defined $is_detached && $is_detached ) {
-        $node->safe_psql( $bdr_test_dbname, "select bdr.remove_bdr_from_local_node()" );
+        $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_remove()" );
         is( $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_is_active_in_db()"),
             'f',
             "BDR is active status after BDR removal of detached node"
         );
     }
     else {
-        $node->safe_psql( $bdr_test_dbname, "select bdr.remove_bdr_from_local_node(true)" );
+        $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_remove(true)" );
         is( $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_is_active_in_db()"),
             'f',
             "BDR is active status after BDR force remove"

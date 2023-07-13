@@ -54,7 +54,7 @@ ok($node_a->psql($bdr_test_dbname, "DROP EXTENSION bdr"), 'DROP EXTENSION fails 
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db();'), 't', 'still active after detach');
 
-ok(!$node_a->psql($bdr_test_dbname, 'SELECT bdr.remove_bdr_from_local_node(true);'), 'remove_bdr_from_local_node succeeds');
+ok(!$node_a->psql($bdr_test_dbname, 'SELECT bdr.bdr_remove(true);'), 'bdr_remove succeeds');
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db();'), 'f', 'not active after remove');
 

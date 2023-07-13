@@ -27,13 +27,13 @@ for my $node (@$nodes) {
 # Now we have to wait for the nodes to actually join...
 for my $node (@$nodes) {
     $node->safe_psql($bdr_test_dbname,
-        qq[SELECT bdr.bdr_node_join_wait_for_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 }
 
 # Make sure DDL locking works
 my $timedout = 0;
 my $ret = $node_0->psql($bdr_test_dbname,
-	q[SELECT bdr.acquire_global_lock('ddl_lock');],
+	q[SELECT bdr.bdr_acquire_global_lock('ddl_lock');],
 	timed_out => \$timedout, timeout => 10);
 is($ret, 0, 'DDL lock succeeded with node up');
 is($timedout, 0, 'DDL lock acquisition did not time out with node up');

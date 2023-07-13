@@ -48,9 +48,9 @@ static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
 
 static bool bdr_always_allow_writes = false;
 
-PGDLLEXPORT Datum bdr_node_set_read_only(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_set_node_read_only(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_node_set_read_only);
+PG_FUNCTION_INFO_V1(bdr_set_node_read_only);
 
 EState *
 bdr_create_rel_estate(Relation rel, ResultRelInfo *resultRelInfo)
@@ -347,7 +347,7 @@ retry:
 }
 
 void
-bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
+bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 {
 	HeapTuple	tuple = NULL;
 	Relation	rel;
@@ -430,12 +430,12 @@ bdr_node_set_read_only_internal(char *node_name, bool read_only, bool force)
  * filtering.
  */
 Datum
-bdr_node_set_read_only(PG_FUNCTION_ARGS)
+bdr_set_node_read_only(PG_FUNCTION_ARGS)
 {
 	char	   *node_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	bool		read_only = PG_GETARG_BOOL(1);
 
-	bdr_node_set_read_only_internal(node_name, read_only, false);
+	bdr_set_node_read_only_guts(node_name, read_only, false);
 
 	PG_RETURN_VOID();
 }

@@ -123,7 +123,7 @@ void		_PG_init(void);
 
 PGDLLEXPORT Datum bdr_apply_pause(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_apply_resume(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_apply_is_paused(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_is_apply_paused(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_version(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_version_num(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_min_remote_version_num(PG_FUNCTION_ARGS);
@@ -134,7 +134,7 @@ PGDLLEXPORT Datum bdr_parse_replident_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_format_slot_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_format_replident_name_sql(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_skip_changes_upto(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_skip_changes(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
@@ -143,7 +143,7 @@ PGDLLEXPORT Datum bdr_remove_node_identifier(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
-PG_FUNCTION_INFO_V1(bdr_apply_is_paused);
+PG_FUNCTION_INFO_V1(bdr_is_apply_paused);
 PG_FUNCTION_INFO_V1(bdr_version);
 PG_FUNCTION_INFO_V1(bdr_version_num);
 PG_FUNCTION_INFO_V1(bdr_min_remote_version_num);
@@ -154,7 +154,7 @@ PG_FUNCTION_INFO_V1(bdr_parse_replident_name_sql);
 PG_FUNCTION_INFO_V1(bdr_format_slot_name_sql);
 PG_FUNCTION_INFO_V1(bdr_format_replident_name_sql);
 PG_FUNCTION_INFO_V1(bdr_get_workers_info);
-PG_FUNCTION_INFO_V1(bdr_skip_changes_upto);
+PG_FUNCTION_INFO_V1(bdr_skip_changes);
 PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
 PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
@@ -1315,7 +1315,7 @@ bdr_apply_resume(PG_FUNCTION_ARGS)
 }
 
 Datum
-bdr_apply_is_paused(PG_FUNCTION_ARGS)
+bdr_is_apply_paused(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_BOOL(BdrWorkerCtl->pause_apply);
 }
@@ -1522,7 +1522,7 @@ bdr_parse_version(const char *bdr_version_str,
 }
 
 static void
-bdr_skip_changes_upto_cleanup(int code, Datum arg)
+bdr_skip_changes_cleanup(int code, Datum arg)
 {
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	BdrWorkerCtl->worker_management_paused = false;
@@ -1530,7 +1530,7 @@ bdr_skip_changes_upto_cleanup(int code, Datum arg)
 }
 
 Datum
-bdr_skip_changes_upto(PG_FUNCTION_ARGS)
+bdr_skip_changes(PG_FUNCTION_ARGS)
 {
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	XLogRecPtr	upto_lsn = PG_GETARG_LSN(3);
@@ -1585,7 +1585,7 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 	BdrWorkerCtl->worker_management_paused = true;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_skip_changes_upto_cleanup, (Datum) 0);
+	PG_ENSURE_ERROR_CLEANUP(bdr_skip_changes_cleanup, (Datum) 0);
 	{
 		/*
 		 * We can't advance the replication identifier until we terminate any
@@ -1631,7 +1631,7 @@ bdr_skip_changes_upto(PG_FUNCTION_ARGS)
 
 		UnlockRelationOid(ReplicationOriginRelationId, RowExclusiveLock);
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_skip_changes_upto_cleanup, (Datum) 0);
+	PG_END_ENSURE_ERROR_CLEANUP(bdr_skip_changes_cleanup, (Datum) 0);
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	BdrWorkerCtl->worker_management_paused = false;

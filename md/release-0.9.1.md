@@ -40,15 +40,15 @@ Significant improvements to [BDR] in this release include:
     [bdr.permit_ddl_locking](bdr-configuration-variables.md#GUC-BDR-PERMIT-DDL-LOCKING)
     to help prevent unintended global DDL locks
 
--   Remove slots when parting a node (BDR, #73)
+-   Remove slots when detaching a node (BDR, #73)
 
--   `bdr.table_set_replication_sets` no longer requires
+-   `bdr.bdr_set_table_replication_sets` no longer requires
     `permit_unsafe_ddl_commands` (UDR, #67)
 
 -   Improve sequencer locking and pgstat reporting (BDR/UDR)
 
 -   Add
-    [bdr.bdr_apply_is_paused()](functions-node-mgmt.md#FUNCTION-BDR-APPLY-IS-PAUSED)
+    [bdr.bdr_is_apply_paused()](functions-node-mgmt.md#FUNCTION-BDR-IS-APPLY-PAUSED)
     information function
 
 Where available a github bug number follows the release entry.
@@ -66,7 +66,7 @@ override it. See
 and [DDL replication](ddl-replication.md) for more information.
 
 The new information function
-[bdr.bdr_apply_is_paused()](functions-node-mgmt.md#FUNCTION-BDR-APPLY-IS-PAUSED)
+[bdr.bdr_is_apply_paused()](functions-node-mgmt.md#FUNCTION-BDR-IS-APPLY-PAUSED)
 can be called on a node to determine whether replay from peer nodes is
 paused on that node.
 

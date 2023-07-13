@@ -798,7 +798,7 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 		if (bdr_oid == ext_oid)
 			ereport(ERROR,
 					(errmsg("dropping the BDR extension is prohibited while BDR is active"),
-					 errhint("Detach this node with bdr.detach_by_node_names(...) first, or if appropriate use bdr.remove_bdr_from_local_node(...).")));
+					 errhint("Detach this node with bdr.detach_by_node_names(...) first, or if appropriate use bdr.bdr_remove(...).")));
 	}
 }
 

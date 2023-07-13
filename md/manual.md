@@ -19,7 +19,7 @@ variables](bdr-configuration-variables.md)
 
 5.1. [Joining a node](node-management-joining.md)
 
-5.2. [Parting (removing) a node](node-management-removing.md)
+5.2. [Detaching (removing) a node](node-management-removing.md)
 
 5.3. [Completely removing BDR](node-management-disabling.md)
 
@@ -117,7 +117,7 @@ functions](functions-conflict-handlers.md)
 
 13.3. [bdr.bdr_node_slots](catalog-bdr-node-slots.md)
 
-13.4. [bdr.pg_stat_bdr](catalog-pg-stat-bdr.md)
+13.4. [bdr.bdr_stats](catalog-bdr-stats.md)
 
 13.5. [bdr.bdr_conflict_history](catalog-bdr-conflict-history.md)
 
@@ -126,7 +126,7 @@ functions](functions-conflict-handlers.md)
 
 13.7. [bdr.bdr_conflict_handlers](catalog-bdr-conflict-handlers.md)
 
-13.8. [bdr.bdr_locks](catalog-bdr-locks.md)
+13.8. [bdr.bdr_global_locks_info](catalog-bdr-global-locks-info.md)
 
 13.9. [bdr.bdr_global_locks](catalog-bdr-global-locks.md)
 

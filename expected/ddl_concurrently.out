@@ -9,8 +9,8 @@ $DDL$);
  
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -67,8 +67,8 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
  named_index
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -89,8 +89,8 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
  named_index
 (1 row)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -115,8 +115,8 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
 ---------
 (0 rows)
 
-SELECT bdr.wait_slot_confirm_lsn(NULL,NULL);
- wait_slot_confirm_lsn 
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  

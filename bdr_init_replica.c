@@ -469,10 +469,10 @@ bdr_sync_nodes(PGconn *remote_conn, BDRNodeInfo * local_node)
 static void
 bdr_insert_remote_conninfo(PGconn *conn, BdrConnectionConfig * myconfig)
 {
-#define INTERNAL_NODE_JOIN_NPARAMS 6
+#define _BDR_JOIN_NODE_PRIVATE 6
 	PGresult   *res;
-	Oid			types[INTERNAL_NODE_JOIN_NPARAMS] = {TEXTOID, OIDOID, OIDOID, TEXTOID, INT4OID, TEXTARRAYOID};
-	const char *values[INTERNAL_NODE_JOIN_NPARAMS];
+	Oid			types[_BDR_JOIN_NODE_PRIVATE] = {TEXTOID, OIDOID, OIDOID, TEXTOID, INT4OID, TEXTARRAYOID};
+	const char *values[_BDR_JOIN_NODE_PRIVATE];
 	StringInfoData replicationsets;
 
 	/* Needs to fit max length of UINT64_FORMAT */
@@ -503,12 +503,12 @@ bdr_insert_remote_conninfo(PGconn *conn, BdrConnectionConfig * myconfig)
 	values[5] = replicationsets.data;
 
 	res = PQexecParams(conn,
-					   "SELECT bdr.internal_node_join($1,$2,$3,$4,$5,$6);",
-					   INTERNAL_NODE_JOIN_NPARAMS,
+					   "SELECT bdr._bdr_join_node_private($1,$2,$3,$4,$5,$6);",
+					   _BDR_JOIN_NODE_PRIVATE,
 					   types, &values[0], NULL, NULL, 0);
 
 	/*
-	 * bdr.internal_node_join() must correctly handle unique violations.
+	 * bdr._bdr_join_node_private() must correctly handle unique violations.
 	 * Otherwise init that resumes after slot creation, when we're waiting for
 	 * inbound slots, will fail.
 	 */
@@ -516,7 +516,7 @@ bdr_insert_remote_conninfo(PGconn *conn, BdrConnectionConfig * myconfig)
 		elog(ERROR, "unable to update remote bdr.bdr_connections: %s",
 			 PQerrorMessage(conn));
 
-#undef INTERNAL_NODE_JOIN_NPARAMS
+#undef _BDR_JOIN_NODE_PRIVATE
 }
 
 /*
@@ -729,8 +729,8 @@ bdr_ddl_lock_remote(PGconn *conn, BDRLockType mode)
 	res = PQexec(conn,
 				 "DO LANGUAGE plpgsql $$\n"
 				 "BEGIN\n"
-				 "	IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'acquire_global_lock' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'bdr')) THEN\n"
-				 "		PERFORM bdr.acquire_global_lock('ddl_lock');\n"
+				 "	IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'bdr_acquire_global_lock' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'bdr')) THEN\n"
+				 "		PERFORM bdr.bdr_acquire_global_lock('ddl_lock');\n"
 				 "	END IF;\n"
 				 "END; $$;\n");
 
@@ -1084,7 +1084,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 			 * retries until we finish init.
 			 */
 			StartTransactionCommand();
-			bdr_node_set_read_only_internal(local_node->name, true, true);
+			bdr_set_node_read_only_guts(local_node->name, true, true);
 			CommitTransactionCommand();
 
 			/*
@@ -1298,7 +1298,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 		 */
 		bdr_wait_for_local_node_ready();
 		StartTransactionCommand();
-		bdr_node_set_read_only_internal(local_node->name, false, true);
+		bdr_set_node_read_only_guts(local_node->name, false, true);
 		CommitTransactionCommand();
 
 		elog(INFO, "finished init_replica, ready to enter normal replication");

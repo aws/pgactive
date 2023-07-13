@@ -60,10 +60,10 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 ## [B]{#AEN5218}
 
-bdr.acquire_global_lock, [Node management
+bdr.bdr_acquire_global_lock, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_apply_is_paused, [Node management
+bdr.bdr_is_apply_paused, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_apply_pause, [Node management
@@ -96,10 +96,10 @@ functions](functions-information.md)
 bdr.bdr_get_workers_info(text,oid,oid), [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_group_create, [Node management
+bdr.bdr_create_group, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_group_join, [Node management
+bdr.bdr_join_group, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_is_active_in_db, [Node management
@@ -108,10 +108,10 @@ functions](functions-node-mgmt.md)
 bdr.bdr_min_remote_version_num, [Information
 functions](functions-information.md)
 
-bdr.bdr_node_join_wait_for_ready, [Node management
+bdr.bdr_wait_for_node_ready, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_node_set_read_only, [Node management
+bdr.bdr_set_node_read_only, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.bdr_detach_nodes, [Node management
@@ -138,16 +138,16 @@ bdr.bdr_version_num, [Information functions](functions-information.md)
 bdr.conflict_logging_include_tuples configuration parameter, [BDR
 specific configuration variables](bdr-configuration-variables.md)
 
-bdr.connection_get_replication_sets, [Replication Set
+bdr.bdr_get_connection_replication_sets, [Replication Set
 functions](functions-replication-sets.md)
 
-bdr.connection_get_replication_sets(text), [Replication Set
+bdr.bdr_get_connection_replication_sets(text), [Replication Set
 functions](functions-replication-sets.md)
 
-bdr.connection_set_replication_sets, [Replication Set
+bdr.bdr_set_connection_replication_sets, [Replication Set
 functions](functions-replication-sets.md)
 
-bdr.connection_set_replication_sets(text\[\],text), [Replication Set
+bdr.bdr_set_connection_replication_sets(text\[\],text), [Replication Set
 functions](functions-replication-sets.md)
 
 bdr.ddl_lock_timeout configuration parameter, [BDR specific
@@ -178,10 +178,10 @@ configuration variables](bdr-configuration-variables.md)
 bdr.max_ddl_lock_delay configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.remove_bdr_from_local_node, [Node management
+bdr.bdr_remove, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.skip_changes_upto, [Node management
+bdr.bdr_skip_changes, [Node management
 functions](functions-node-mgmt.md)
 
 bdr.skip_ddl_replication configuration parameter, [Less common or
@@ -191,10 +191,10 @@ variables](bdr-configuration-variables.md#AEN783)
 bdr.synchronous_commit configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.table_get_replication_sets, [Replication Set
+bdr.bdr_get_table_replication_sets, [Replication Set
 functions](functions-replication-sets.md)
 
-bdr.table_set_replication_sets, [Replication Set
+bdr.bdr_set_table_replication_sets, [Replication Set
 functions](functions-replication-sets.md)
 
 bdr.temp_dump_directory configuration parameter, [BDR specific
@@ -206,7 +206,7 @@ configuration variables](bdr-configuration-variables.md)
 bdr.trace_replay configuration parameter, [Less common or internal
 configuration variables](bdr-configuration-variables.md#AEN783)
 
-bdr.wait_slot_confirm_lsn, [Node management
+bdr.bdr_wait_for_slots_confirmed_flush_lsn, [Node management
 functions](functions-node-mgmt.md)
 
 ## [C]{#AEN5376}
@@ -418,9 +418,6 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 shared_preload_libraries configuration parameter, [Prerequisite
 PostgreSQL parameters](settings-prerequisite.md)
-
-subscribe,
-[bdr.bdr_subscribe](functions-node-mgmt.md#FUNCTIONS-NODE-MGMT-SUBSCRIBE)
 
 ## [T]{#AEN5584}
 

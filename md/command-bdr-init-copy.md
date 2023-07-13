@@ -96,7 +96,7 @@ The following command-line options control the behaviour of
 
     This option is the same as the *`apply_delay`* option
     to
-    [`bdr_group_join`](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN).
+    [`bdr_join_group`](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP).
     It is mainly useful for testing - including crude latency
     simulation - and debugging.
 

@@ -38,7 +38,7 @@ my $table_name = "dml_test";
 create_table($node_a,$table_name);
 $node_a->safe_psql($bdr_test_dbname,"INSERT INTO $table_name VALUES(1),(2)");
 
-# Join a new node to first node using bdr_group_join
+# Join a new node to first node using bdr_join_group
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b,$node_a);
 

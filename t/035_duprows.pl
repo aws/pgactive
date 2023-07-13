@@ -23,7 +23,7 @@ use Test::More;
 my $query = q[
 select coalesce(node_name, bdr.bdr_get_local_node_name()) AS origin_node_name, x
 from t
-cross join lateral bdr.get_transaction_replorigin(xmin) ro(originid)
+cross join lateral bdr.bdr_get_transaction_replorigin(xmin) ro(originid)
 left join pg_replication_origin on (roident = originid)
 cross join lateral bdr.bdr_parse_replident_name(roname)
 left join bdr.bdr_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node_sysid, node_timeline, node_dboid)
@@ -42,12 +42,12 @@ my @nodes = ($node_a, $node_b);
 exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
 
 # Make sure everything caught up by forcing another lock
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 for my $node (@nodes) {
   $node->safe_psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES (bdr.bdr_get_local_node_name())]);
 }
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 
 my $expected = q[node_a|node_a
 node_b|node_b];
@@ -81,7 +81,7 @@ $node_a->start;
 sleep(1);
 
 note "taking final DDL lock";
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.acquire_global_lock('write_lock')]);
+$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
 note "done, checking final state";
 
 $expected = q[node_a|node_a

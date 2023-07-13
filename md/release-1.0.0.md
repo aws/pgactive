@@ -67,7 +67,7 @@ Changes in release:
 
 -   Increase default sequence chunk size to 10k (git ff0726)
 
--   Expand node part/join sanity checks and error messages (git 6c58df
+-   Expand node detach/join sanity checks and error messages (git 6c58df
     and others)
 
 -   Permit DML on pg_catalog tables (#102)
@@ -121,7 +121,7 @@ Changes in release:
     connection
 
 -   Add a function to completely remove BDR from a node,
-    bdr.remove_bdr_from_local_node()
+    bdr.bdr_remove()
 
 -   Extensive documentation updates
 

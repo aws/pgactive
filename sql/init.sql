@@ -21,4 +21,4 @@ CREATE EXTENSION btree_gist;
 CREATE EXTENSION bdr;
 
 -- DDL lock state before BDR comes up
-SELECT * FROM bdr.global_lock_info();
+SELECT * FROM bdr.bdr_get_global_locks_info();

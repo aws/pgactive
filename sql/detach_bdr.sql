@@ -28,9 +28,6 @@ SELECT bdr.bdr_detach_nodes(ARRAY['node-regression']);
 -- Or a nonexistent node
 SELECT bdr.bdr_detach_nodes(ARRAY['node-nosuch']);
 
--- Unsubscribe must also fail, since this is a BDR connection
-SELECT bdr.bdr_unsubscribe('node-pg');
-
 -- Nothing has changed
 SELECT node_name, node_status FROM bdr.bdr_nodes ORDER BY node_name;
 
@@ -103,9 +100,9 @@ SELECT bdr.bdr_is_active_in_db();
 -- Strip BDR from this node entirely and convert global sequences to local.
 BEGIN;
 -- We silence notice messages here as some of them depend on when BDR workers
--- on the parted node 'node-pg' are gone.
+-- on the detached node 'node-pg' are gone.
 SET LOCAL client_min_messages = 'ERROR';
-SELECT bdr.remove_bdr_from_local_node(true);
+SELECT bdr.bdr_remove(true);
 COMMIT;
 
 SELECT bdr.bdr_is_active_in_db();
@@ -113,6 +110,6 @@ SELECT bdr.bdr_is_active_in_db();
 -- Should be able to drop the extension now
 --
 -- This would cascade-drop any triggers that we hadn't already
--- dropped in remove_bdr_from_local_node()
+-- dropped in bdr_remove()
 --
 DROP EXTENSION bdr;

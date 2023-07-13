@@ -2,7 +2,7 @@
 
 SELECT bdr.bdr_is_active_in_db();
 
-SELECT bdr.bdr_group_create(
+SELECT bdr.bdr_create_group(
 	local_node_name := 'node-pg',
 	node_external_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
@@ -10,7 +10,7 @@ SELECT bdr.bdr_group_create(
 
 SELECT bdr.bdr_is_active_in_db();
 
-SELECT bdr.bdr_node_join_wait_for_ready();
+SELECT bdr.bdr_wait_for_node_ready();
 
 SELECT bdr.bdr_is_active_in_db();
 
@@ -18,7 +18,7 @@ SELECT bdr.bdr_is_active_in_db();
 
 SELECT bdr.bdr_is_active_in_db();
 
-SELECT bdr.bdr_group_join(
+SELECT bdr.bdr_join_group(
 	local_node_name := 'node-regression',
 	node_external_dsn := 'dbname=regression',
 	join_using_dsn := 'dbname=postgres',
@@ -28,13 +28,13 @@ SELECT bdr.bdr_group_join(
 
 SELECT bdr.bdr_is_active_in_db();
 
-SELECT * FROM  bdr.global_lock_info();
+SELECT * FROM  bdr.bdr_get_global_locks_info();
 
-SELECT bdr.bdr_node_join_wait_for_ready();
+SELECT bdr.bdr_wait_for_node_ready();
 
 SELECT bdr.bdr_is_active_in_db();
 
-SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = bdr.bdr_get_local_nodeid(), lock_mode, lock_state, owner_local_pid = pg_backend_pid() AS owner_pid_is_me, lockcount, npeers, npeers_confirmed, npeers_declined, npeers_replayed, replay_upto IS NOT NULL AS has_replay_upto FROM bdr.global_lock_info();
+SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = bdr.bdr_get_local_nodeid(), lock_mode, lock_state, owner_local_pid = pg_backend_pid() AS owner_pid_is_me, lockcount, npeers, npeers_confirmed, npeers_declined, npeers_replayed, replay_upto IS NOT NULL AS has_replay_upto FROM bdr.bdr_get_global_locks_info();
 
 -- Make sure we see two slots and two active connections
 SELECT plugin, slot_type, database, active FROM pg_replication_slots;
@@ -68,7 +68,7 @@ SELECT
 	npeers_declined,
 	npeers_replayed,
 	replay_upto IS NOT NULL AS has_replay_upto
-FROM bdr.global_lock_info();
+FROM bdr.bdr_get_global_locks_info();
 $DDL$);
 
 BEGIN;
@@ -98,4 +98,4 @@ SELECT * FROM ddl_info;
 
 -- Run the upgrade function, even though we started with 2.0, so we exercise it
 -- and so we know it won't break things when run on a 2.0 cluster.
-SELECT bdr.upgrade_to_200();
+SELECT bdr.bdr_assign_seq_ids_post_upgrade();

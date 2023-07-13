@@ -2,22 +2,22 @@
 -- other peer up. Can't do catchup write-mode tests with only two nodes.
 --
 -- (More complex tests will be done in TAP framework)
-SELECT bdr.acquire_global_lock('');
+SELECT bdr.bdr_acquire_global_lock('');
 ERROR:  unknown lock type 
-SELECT bdr.acquire_global_lock(NULL);
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock(NULL);
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
-SELECT bdr.acquire_global_lock('bogus');
+SELECT bdr.bdr_acquire_global_lock('bogus');
 ERROR:  unknown lock type bogus
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = true;
-SELECT bdr.acquire_global_lock('ddl_lock');
-WARNING:  bdr.skip_ddl_replication is set, ignoring explicit bdr.acquire_global_lock(...) call
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+WARNING:  bdr.skip_ddl_replication is set, ignoring explicit bdr.bdr_acquire_global_lock(...) call
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -36,9 +36,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('write_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('write_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -63,9 +63,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('ddl_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -90,9 +90,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('ddl_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -102,9 +102,9 @@ SELECT * FROM ddl_info;
                 0 | t          | ddl_lock  | acquire_acquired | f             |                 |                   |         1 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('write_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('write_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -129,16 +129,16 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('ddl_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
 SAVEPOINT ddllock;
-SELECT bdr.acquire_global_lock('write_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('write_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 
@@ -159,9 +159,9 @@ SELECT * FROM ddl_info;
                 0 | t          | write_lock | acquire_acquired | f             |                 |                   |         1 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.acquire_global_lock('write_lock');
- acquire_global_lock 
----------------------
+SELECT bdr.bdr_acquire_global_lock('write_lock');
+ bdr_acquire_global_lock 
+-------------------------
  
 (1 row)
 

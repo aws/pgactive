@@ -2,7 +2,7 @@
   [Prev](node-management-joining.md "Joining a node")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-disabling.md "Completely removing BDR")  
 
 
-# 5.2. Parting (removing) a node
+# 5.2. Detaching (removing) a node
 
 Because BDR can recover from extended node outages it is necessary to
 explicitly tell the system if you are removing a node permanently. If

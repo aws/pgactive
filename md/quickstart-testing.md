@@ -52,7 +52,7 @@ Create and use global sequence::
 ```
 
 Once you\'ve created a global sequence you may use it with
-bdr.global_seq_nextval(seqname). Note: The destination column must be
+bdr.bdr_snowflake_id_nextval(seqname). Note: The destination column must be
 BIGINT. See [Global Sequence
 Limitations](global-sequence-limitations.md).
 
@@ -60,7 +60,7 @@ Limitations](global-sequence-limitations.md).
     psql -p 5598 -U postgres bdrdemo
 
       -- Use the global sequence
-      SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (id bigint DEFAULT bdr.global_seq_nextval('public.test_seq'),name text); $DDL$);
+      SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (id bigint DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),name text); $DDL$);
    
     
 ```

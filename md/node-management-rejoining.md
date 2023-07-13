@@ -4,9 +4,9 @@
 
 # 5.4. Rejoining a BDR node
 
-It\'s possible to rejoin a BDR node that has already been parted and
+It\'s possible to rejoin a BDR node that has already been detached and
 locally removed by using the
-[bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
+[bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP)
 function.
 
 If the node to rejoin does contain relations that already exist in the

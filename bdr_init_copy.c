@@ -1046,7 +1046,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 	if (ri->version / 100 != PG_VERSION_NUM / 100)
 	{
-		die(_("Target server is version %s but we are version %s. bdr_init_copy can only be used when the join target is the same major version. See bdr.bdr_group_join()."),
+		die(_("Target server is version %s but we are version %s. bdr_init_copy can only be used when the join target is the same major version. See bdr.bdr_join_group()."),
 			PQparameterStatus(remote_conn, "server_version"), PG_VERSION);
 	}
 
@@ -1481,7 +1481,7 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	printfPQExpBuffer(repsets, "{%s}", replication_sets);
 
 	/* Add the node to the cluster. */
-	printfPQExpBuffer(query, "SELECT bdr.bdr_group_join(%s, %s, %s, replication_sets := %s, apply_delay := %d);",
+	printfPQExpBuffer(query, "SELECT bdr.bdr_join_group(%s, %s, %s, replication_sets := %s, apply_delay := %d);",
 					  PQescapeLiteral(conn, node_name, strlen(node_name)),
 					  PQescapeLiteral(conn, local_connstr, strlen(local_connstr)),
 					  PQescapeLiteral(conn, remote_connstr, strlen(remote_connstr)),

@@ -18,7 +18,7 @@ Fixes and improvements:
 -   Fix crash on startup when restarted during DDL lock catchup state
 
 -   Add new
-    [`bdr.wait_slot_confirm_lsn`](functions-node-mgmt.md#FUNCTION-BDR-WAIT-SLOT-CONFIRM-LSN)
+    [`bdr.bdr_wait_for_slots_confirmed_flush_lsn`](functions-node-mgmt.md#FUNCTION-BDR-WAIT-FOR-SLOTS-CONFIRMED-FLUSH-LSN)
     function for node synchronisation
 
 -   [Fix possible hang in apply

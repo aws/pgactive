@@ -1,10 +1,11 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                               
-  [Prev](catalog-bdr-conflict-handlers.md "bdr.bdr_conflict_handlers")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks.md "bdr.bdr_global_locks")  
+  [BDR 2.0.7 Documentation](README.md)
+
+  [Prev](catalog-bdr-conflict-handlers.md "bdr.bdr_conflict_handlers")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks.md "bdr.bdr_global_locks")
 
 
-# 13.8. bdr.bdr_locks
+# 13.8. bdr.bdr_global_locks_info
 
-`bdr.bdr_locks` is a view exposing the state of BDR\'s [global
+`bdr.bdr_global_locks_info` is a view exposing the state of BDR\'s [global
 DDL locking system](catalog-bdr-node-slots.md). It can be used to
 diagnose DDL locking problems and monitor the system. Query this view
 for lock state instead of using
@@ -17,7 +18,7 @@ global DDL lock will always be different to the state on the other
 nodes.
 
 
-**Table 13-7. `bdr.bdr_locks` Columns**
+**Table 13-7. `bdr.bdr_global_locks_info` Columns**
 
   Name                                  Type               References                                                    Description
   `owner_is_my_node`      `boolean`                                                                 True unless another node is known to hold or be acquiring the global DDL lock
@@ -82,6 +83,6 @@ These correspond to `BDRLockState` values in the source code.
 
 
   ----------------------------------------------------------- ------------------------------------------ ------------------------------------------------------
-  [Prev](catalog-bdr-conflict-handlers.md)       [Home](README.md)        [Next](catalog-bdr-global-locks.md)  
+  [Prev](catalog-bdr-conflict-handlers.md)       [Home](README.md)        [Next](catalog-bdr-global-locks.md)
   bdr.bdr_conflict_handlers                                    [Up](catalogs-views.md)                                    bdr.bdr_global_locks
   ----------------------------------------------------------- ------------------------------------------ ------------------------------------------------------

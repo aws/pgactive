@@ -37,9 +37,9 @@ release include:
 
 The biggest change with 0.9.0 is that connections between nodes are now
 configured using the
-[bdr.bdr_group_create](functions-node-mgmt.md#FUNCTION-BDR-GROUP-CREATE)
+[bdr.bdr_create_group](functions-node-mgmt.md#FUNCTION-BDR-CREATE-GROUP)
 and
-[bdr.bdr_group_join](functions-node-mgmt.md#FUNCTION-BDR-GROUP-JOIN)
+[bdr.bdr_join_group](functions-node-mgmt.md#FUNCTION-BDR-JOIN-GROUP)
 SQL function calls. It is no longer necessary to restart any existing
 nodes when joining a node. Even the newly joining node can join without
 a restart if it was initially configured with the settings required for

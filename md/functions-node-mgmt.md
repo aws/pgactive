@@ -21,7 +21,7 @@ Return Type
 Description
 
 
-`bdr.bdr_group_create(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
+`bdr.bdr_create_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
 
 void
 
@@ -29,7 +29,7 @@ Create the first node in a future cluster of bdr nodes. May be run on an
 empty database or one with existing data. An existing database may be a
 previously standalone normal PostgreSQL databaseor an ex-BDR database
 cleaned with
-[bdr.remove_bdr_from_local_node](functions-node-mgmt.md#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE).
+[bdr.bdr_remove](functions-node-mgmt.md#FUNCTION-BDR-REMOVE).
 The \"dsn\" (data source name) parameters are [libpq connection
 strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING).
 *`node_external_dsn`* is an arbitrary node name, which
@@ -49,7 +49,7 @@ creation, and [Replication Sets](replication-sets.md) for more on how
 replication sets work.
 
 
-`bdr.bdr_group_join(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
+`bdr.bdr_join_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
 
 void
 
@@ -57,21 +57,22 @@ Join this database to a cluster of existing bdr nodes. This will
 initiate connections to and from all nother nodes. The function returns
 immediately, without waiting for the join process to complete, and only
 starts work when the calling transaction commits.
-[bdr.bdr_node_join_wait_for_ready](functions-node-mgmt.md#FUNCTION-BDR-NODE-JOIN-WAIT-FOR-READY)
+[bdr.bdr_wait_for_node_ready](functions-node-mgmt.md#FUNCTION-BDR-WAIT-FOR-NODE-READY)
 may be used to wait until join completes. If there are problems with the
 join, check the PostgreSQL logs on both systems for more information.
-The parameters are the same as `bdr.bdr_group_create()`
+The parameters are the same as `bdr.bdr_create_group()`
 except for the additional required parameter
 *`join_using_dsn`*. This must be the libpq connection
 string of the node to initialize from, i.e. the other node\'s
 *`node_external_dsn`*. Any node may be chosen as the join
 target, but if possible a node with a fast and reliable network link to
 the new node should be preferred. Note that
-`bdr.bdr_group_join()` can [*not*] \"re-join\" a
-node you removed with `bdr.bdr_detach_nodes()`. See
-[Joining a node](node-management-joining.md) for details on node
-joining and creation, and [Replication Sets](replication-sets.md) for
-more on how replication sets work.
+`bdr.bdr_join_group()` can [*not*] \"re-join\"
+physically a node you removed with
+`bdr.bdr_detach_nodes()`. See [Joining a
+node](node-management-joining.md) for details on node joining and
+creation, and [Replication Sets](replication-sets.md) for more on how
+replication sets work.
 
 
 `bdr.bdr_detach_nodes(`*`p_nodes text[]`*`)`
@@ -82,17 +83,17 @@ Removes all the nodes - identified by the node names in the array. All
 the remaining nodes in the cluster have to be reachable for this to
 succeed. This function must be run on a node that is not being removed.
 There is no way to re-join a node once removed; a new node must be
-created and joined to replace the parted one if required.
+created and joined to replace the detached one if required.
 
 
-`bdr.remove_bdr_from_local_node(`*`force boolean`*`, `*`convert_global_sequences boolean`*`)`
+`bdr.bdr_remove(`*`force boolean`*`, `*`convert_global_sequences boolean`*`)`
 
 void
 
 Remove BDR slots, replication identifiers, security labels including
 replication sets, etc from a BDR-enabled database, so the BDR extension
 can be dropped and the database used for normal PostgreSQL. Will refuse
-to run on a node that hasn\'t already been parted from the cluster
+to run on a node that hasn\'t already been detached from the cluster
 unless `force` is true. Global sequences are converted into
 local sequences unless `convert_global_sequences` is false.
 See [Turning a BDR node back into a normal
@@ -100,7 +101,7 @@ database](node-management-disabling.md) for details, including
 important caveats with conversion of sequences.
 
 
-`bdr.bdr_node_join_wait_for_ready()`
+`bdr.bdr_wait_for_node_ready()`
 
 void
 
@@ -113,8 +114,8 @@ boolean
 
 Report whether the current database has BDR active. Will be true if BDR
 is configured, whether or not there are active connections or any peer
-nodes added yet. Also true on a parted node until/unless
-[bdr.remove_bdr_from_local_node](functions-node-mgmt.md#FUNCTION-BDR-REMOVE-BDR-FROM-LOCAL-NODE)
+nodes added yet. Also true on a detached node until/unless
+[bdr.bdr_remove](functions-node-mgmt.md#FUNCTION-BDR-REMOVE)
 is called.
 
 `bdr.bdr_generate_node_identifier()`
@@ -173,7 +174,7 @@ Resume replaying changes from peer nodes after replay has been paused by
 `bdr.bdr_apply_pause()`.
 
 
-`bdr.bdr_apply_is_paused()`
+`bdr.bdr_is_apply_paused()`
 
 boolean
 
@@ -181,7 +182,7 @@ Report whether replay is paused (e.g. with
 `bdr.bdr_apply_pause()`). A false return does not mean replay
 is actually progressing, only that it\'s not intentionally paused.
 
-`bdr.bdr_node_set_read_only(`*`node_name`*` ``text``, `*`read_only`*` ``boolean``)`
+`bdr.bdr_set_node_read_only(`*`node_name`*` ``text``, `*`read_only`*` ``boolean``)`
 
 void
 
@@ -228,7 +229,7 @@ Wrap individual DDL commands in
 `bdr.bdr_replicate_ddl_command` errors out if executed while
 `bdr.skip_ddl_replication` is set to true.
 
-`bdr.acquire_global_lock(`*`mode text`*`)`
+`bdr.bdr_acquire_global_lock(`*`mode text`*`)`
 
 void
 
@@ -242,10 +243,10 @@ released when the acquiring transaction commits or rolls back (and not
 before). BDR automatically acquires this lock when required, so this
 function is mostly useful for test and diagnostic purposes. Possible
 lock modes are `ddl_lock` and `write_lock`. See also
-[bdr.bdr_locks](catalog-bdr-locks.md).
+[bdr.bdr_global_locks_info](catalog-bdr-global-locks-info.md).
 
 
-`bdr.wait_slot_confirm_lsn(`*`slotname name`*`, `*`upto pg_lsn`*`)`
+`bdr.bdr_wait_for_slots_confirmed_flush_lsn(`*`slotname name`*`, `*`upto pg_lsn`*`)`
 
 void
 
@@ -254,7 +255,7 @@ Wait until *`slotname`* (or all slots, if
 the local server\'s current xlog insert lsn, if `NULL`).
 
 This function is mosty typically used as
-`SELECT bdr.wait_slot_confirm_lsn(NULL, NULL)` to wait for all
+`SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL)` to wait for all
 peers to catch up to the last committed state of the local node.
 
 `pg_xlog_wait_remote_apply(`*`lsn pg_lsn`*`, `*`pid integer`*`)`
@@ -262,7 +263,7 @@ peers to catch up to the last committed state of the local node.
 void
 
 Present in Postgres-BDR 9.4 only. Deprecated. Use
-[`bdr.wait_slot_confirm_lsn`](functions-node-mgmt.md#FUNCTION-BDR-WAIT-SLOT-CONFIRM-LSN)
+[`bdr.bdr_wait_for_slots_confirmed_flush_lsn`](functions-node-mgmt.md#FUNCTION-BDR-WAIT-FOR-SLOTS-CONFIRMED-FLUSH-LSN)
 instead.
 
 `pg_xlog_wait_remote_receive(`*`lsn pg_lsn`*`, `*`pid integer`*`)`
@@ -287,15 +288,15 @@ Terminate BDR worker(s) of a node identified by
 (`sysid`,`timeline`,`dboid`) and type
 `worker_type` (apply/per-db/walsender).
 
-`bdr.skip_changes_upto(`*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`skip_to_lsn pg_lsn`*`)`
+`bdr.bdr_skip_changes(`*`sysid text`*`, `*`timeline oid`*`, `*`dboid oid`*`, `*`skip_to_lsn pg_lsn`*`)`
 
 void
 
 Discard (skip over) changes in the replication stream. Used for
 recovering from replication failures. See [details
-below](functions-node-mgmt.md#FUNCTION-BDR-SKIP-CHANGES-UPTO).
+below](functions-node-mgmt.md#FUNCTION-BDR-SKIP-CHANGES).
 
-## 12.1.1. `bdr.skip_changes_upto`
+## 12.1.1. `bdr.bdr_skip_changes`
 
 Discard (skip over) changes not yet replayed from the peer with identity
 (*`sysid`*,*`timeline`*,*`dboid`*),
@@ -333,21 +334,14 @@ some nodes or manually applying them on the other nodes.
 > replicate\... and those numbers change when you drop and re-create a
 > column.
 
-## 12.1.2. `bdr.bdr_subscribe`
-
-The function `bdr.bdr_subscribe` has been removed from BDR.
-For uni-directional replication, look at the [pglogical
-project](https://github.com/2ndQuadrant/pglogical)
-project or tools like Londiste.
-
-## 12.1.3. Node management function examples
+## 12.1.2. Node management function examples
 
 These examples show libpq connection strings without a host or hostadd.
 
 To create a [BDR] group on \'node1\':
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_group_create(
+    SELECT bdr.bdr_create_group(
        local_node_name := 'node1',
        node_external_dsn := 'port=5598 dbname=bdrdemo');
    
@@ -356,7 +350,7 @@ To create a [BDR] group on \'node1\':
 To join \'node2\' to [BDR] group created above:
 
 ``` PROGRAMLISTING
-    SELECT bdr.bdr_group_join(
+    SELECT bdr.bdr_join_group(
        local_node_name := 'node2',
        node_external_dsn := 'port=5559 dbname=bdrdemo',
        join_using_dsn := 'port=5558 dbname=bdrdemo');
@@ -366,7 +360,7 @@ To join \'node2\' to [BDR] group created above:
 To remove \'node2\' from the [BDR] group created above:
 
 ``` PROGRAMLISTING
-   SELECT bdr.bdr_detach_nodes('{node2}');
+   SELECT bdr.bdr_detach_nodes(ARRAY['node2']);
    
 ```
 
@@ -374,7 +368,7 @@ To see if your node is ready for replication (if you see a NULL result
 set, your node is ready):
 
 ``` PROGRAMLISTING
-   SELECT bdr.bdr_node_join_wait_for_ready();
+   SELECT bdr.bdr_wait_for_node_ready();
    
 ```
 

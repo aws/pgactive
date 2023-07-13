@@ -16,7 +16,7 @@ setting using the PostgreSQL log files, which provides the most complete
 and useful way to see DDL locking activity. It is strongly recommended
 that you enable DDL lock tracing.
 
-The [bdr.bdr_locks](catalog-bdr-locks.md) view provides visibility
+The [bdr.bdr_global_locks_info](catalog-bdr-global-locks-info.md) view provides visibility
 into the current DDL locking state of a node.
 
 See [DDL Locking](ddl-replication-advice.md#DDL-REPLICATION-LOCKING)
