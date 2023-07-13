@@ -614,14 +614,6 @@ BEGIN
 
     -- Schedule the apply worker launch for commit time
     PERFORM bdr.bdr_connections_changed();
-
-    -- and ensure the apply worker is launched on other nodes when this
-    -- transaction replicates there, too.
-    INSERT INTO bdr.bdr_queued_commands
-    (lsn, queued_at, perpetrator, command_tag, command)
-    VALUES
-    (pg_current_wal_insert_lsn(), current_timestamp, current_user,
-    'SELECT', 'SELECT bdr.bdr_connections_changed()');
 END;
 $body$;
 
