@@ -170,7 +170,6 @@ sub _create_db_and_exts {
     my $node = shift;
 
     $node->safe_psql( 'postgres', qq{CREATE DATABASE $bdr_test_dbname;} );
-    $node->safe_psql( $bdr_test_dbname,    q{CREATE EXTENSION btree_gist;} );
     $node->safe_psql( $bdr_test_dbname,    q{CREATE EXTENSION bdr;} );
 
 }

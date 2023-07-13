@@ -26,7 +26,6 @@ bdr.skip_ddl_replication = false
 $node_a->start;
 
 $node_a->safe_psql('postgres', qq{CREATE DATABASE $bdr_test_dbname;});
-$node_a->safe_psql($bdr_test_dbname, q{CREATE EXTENSION btree_gist;});
 $node_a->safe_psql($bdr_test_dbname, q{CREATE EXTENSION bdr;});
 
 is($node_a->safe_psql($bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()'), 'f',

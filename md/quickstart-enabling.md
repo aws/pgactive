@@ -11,7 +11,6 @@ postgreSQL superuser, create the extensions necessary for
 ``` PROGRAMLISTING
     psql -p 5598 -U postgres bdrdemo
 
-       CREATE EXTENSION btree_gist;
        CREATE EXTENSION bdr;
     
 ```
@@ -44,7 +43,6 @@ necessary for [BDR]:
 ``` PROGRAMLISTING
     psql -p 5599 -U postgres bdrdemo
 
-       CREATE EXTENSION btree_gist;
        CREATE EXTENSION bdr;
     
 ```
