@@ -61,7 +61,7 @@ jobs:
             cd bdr
             PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
             sh configure
-            make -j4 all install
+            make PROFILE="-Wall -Wmissing-prototypes -Werror" -j4 all install
 
       - name: Run BDR core tests
         run: |
