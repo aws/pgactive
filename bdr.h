@@ -29,6 +29,9 @@
 #include "bdr_compat.h"
 #include "nodes/execnodes.h"
 
+#define NODEID_BITS		10
+#define MAX_NODE_ID		((1 << NODEID_BITS) - 1)
+
 /* Right now replication_name isn't used; make it easily found for later */
 #define EMPTY_REPLICATION_NAME ""
 
@@ -423,6 +426,7 @@ extern bool bdr_trace_replay;
 extern int	bdr_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
 extern int	bdr_init_node_parallel_jobs;
+extern int	bdr_max_nodes;
 
 static const char *const bdr_default_apply_connection_options =
 "connect_timeout=30 "
@@ -750,6 +754,8 @@ typedef struct remote_node_info
 	int			min_remote_version_num;
 	bool		is_superuser;
 	char		node_status;
+	int			max_nodes;
+	int			cur_nodes;
 }			remote_node_info;
 
 extern void bdr_get_remote_nodeinfo_internal(PGconn *conn, remote_node_info * ri);

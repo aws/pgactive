@@ -284,7 +284,9 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 * superuser at this point.
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
-				 "       current_setting('is_superuser') AS issuper");
+					   "current_setting('is_superuser') AS issuper, "
+					   "current_setting('bdr.max_nodes') AS max_nodes, "
+					   "count(*) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -293,14 +295,17 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 	}
 
-	Assert(PQnfields(res) == 2);
+	Assert(PQnfields(res) == 4);
 	Assert(PQntuples(res) == 1);
 
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
 	ri->is_superuser = DatumGetBool(
 									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 1))));
-
+	ri->max_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 2))));
+	ri->cur_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 3))));
 	PQclear(res);
 
 	/*
@@ -462,8 +467,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[9];
-	bool		isnull[9] = {false, false, false, false, false, false, false, false, false};
+	Datum		values[11];
+	bool		isnull[11];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -472,6 +477,9 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrnodeinfo");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&conn));
@@ -505,6 +513,9 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 			isnull[8] = true;
 		else
 			values[8] = CharGetDatum(ri.node_status);
+
+		values[9] = Int32GetDatum(ri.max_nodes);
+		values[10] = Int32GetDatum(ri.cur_nodes);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

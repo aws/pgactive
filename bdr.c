@@ -112,6 +112,7 @@ int			bdr_trace_ddl_locks_level;
 char	   *bdr_extra_apply_connection_options;
 int			bdr_log_min_messages = WARNING;
 int			bdr_init_node_parallel_jobs;
+int			bdr_max_nodes;
 
 PG_MODULE_MAGIC;
 
@@ -168,6 +169,8 @@ static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorker
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
 
 static bool file_exists(const char *name);
+
+static bool check_bdr_max_nodes(int *newval, void **extra, GucSource source);
 
 static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
@@ -948,6 +951,18 @@ bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
 }
 
 /*
+ * GUC check_hook for bdr.max_nodes
+ */
+static bool
+check_bdr_max_nodes(int *newval, void **extra, GucSource source)
+{
+	ereport(NOTICE,
+			(errmsg("ensure to set same value for \"bdr.max_nodes\" parameter on all BDR members"),
+			 errdetail("Joining of nodes will start failing if BDR members have different \"bdr.max_nodes\" parameter values in BDR group.")));
+
+	return true;
+}
+/*
  * Entrypoint of this module - called at shared_preload_libraries time in the
  * context of the postmaster.
  *
@@ -1149,6 +1164,19 @@ _PG_init(void)
 							0,
 							NULL, NULL, NULL);
  
+	/*
+	 * Can't really have more than MAX_NODE_ID+1 (1024) nodes, because the
+	 * current global sequences implementation in BDR doesn't allow that.
+	 */
+	DefineCustomIntVariable("bdr.max_nodes",
+							"Sets maximum allowed nodes in a BDR group",
+							"Set same value for this parameter on all BDR members, otherwise a node can't join the group.",
+							&bdr_max_nodes,
+							4, 2, MAX_NODE_ID + 1,
+							PGC_SIGHUP,
+							0,
+							check_bdr_max_nodes, NULL, NULL);
+
 	EmitWarningsOnPlaceholders("bdr");
 
 	/* Security label provider hook */

@@ -422,7 +422,9 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   version_num OUT integer,
 	min_remote_version_num OUT integer,
   is_superuser OUT boolean,
-  node_status OUT "char")
+  node_status OUT "char",
+  max_nodes OUT integer,
+  cur_nodes OUT integer)
 RETURNS record
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
@@ -676,6 +678,7 @@ DECLARE
     remote_nodeinfo RECORD;
     remote_nodeinfo_r RECORD;
 	  cur_node RECORD;
+    local_max_node_value integer;
 BEGIN
     -- Only one tx can be adding connections
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
@@ -788,6 +791,24 @@ BEGIN
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
+        SELECT setting::integer INTO local_max_node_value FROM pg_settings
+          WHERE name = 'bdr.max_nodes';
+
+        IF local_max_node_value <> remote_nodeinfo.max_nodes THEN
+            RAISE USING
+                MESSAGE = 'joining node and BDR group have different values for bdr.max_nodes parameter',
+                DETAIL = format('bdr.max_nodes value for joining node is ''%s'' and remote node is ''%s''.',
+                                local_max_node_value, remote_nodeinfo.max_nodes),
+                HINT = 'All BDR members must have same value for bdr.max_nodes parameter.',
+                ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        IF local_max_node_value = remote_nodeinfo.cur_nodes THEN
+            RAISE USING
+                MESSAGE = 'cannot allow more than bdr.max_nodes number of nodes in a BDR group',
+                HINT = 'Increase bdr.max_nodes parameter value on joining node as well as on all other BDR members.',
+                ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
     END IF;
 
     -- Verify that we can make a replication connection to the remote node so
