@@ -44,7 +44,7 @@ DDL replication is disabled by default. If needed, the configuration parameter b
 
 The user specified in the connection DSN must be a superuser otherwise they do not have access to `bdr.bdr_nodes` table and other objects upon whom access to public is revoked.
 
-Changes on the replica are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. The background workers must run as superuser.
+Changes on the bdr nodes are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. The background workers must run as superuser.
 
 ### Node Management
 
