@@ -1469,8 +1469,6 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	PGresult   *res;
 
 	/* Install required extensions if needed. */
-	if (!extension_exists(conn, "btree_gist"))
-		install_extension(conn, "btree_gist");
 	if (!extension_exists(conn, "bdr"))
 		install_extension(conn, "bdr");
 

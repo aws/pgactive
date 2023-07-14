@@ -1050,8 +1050,8 @@ bdr_init_replica(BDRNodeInfo * local_node)
 				 *
 				 * To avoid that We need to be able to run pg_restore --clean,
 				 * and that needs a way to exclude the bdr schema, the bdr
-				 * extension, and their dependencies like plpgsql and
-				 * btree_gist. (TODO patch pg_restore for that)
+				 * extension, and their dependencies like plpgsql. (TODO patch
+				 * pg_restore for that)
 				 */
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
