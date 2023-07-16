@@ -799,7 +799,7 @@ BEGIN
                 MESSAGE = 'joining node and BDR group have different values for bdr.max_nodes parameter',
                 DETAIL = format('bdr.max_nodes value for joining node is ''%s'' and remote node is ''%s''.',
                                 local_max_node_value, remote_nodeinfo.max_nodes),
-                HINT = 'All BDR members must have same value for bdr.max_nodes parameter.',
+                HINT = 'The parameter must be set to the same value on all BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 

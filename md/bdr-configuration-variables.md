@@ -247,18 +247,18 @@ server restart to take effect.
 
 `bdr.max_nodes` (`int`)
 
-    Sets maximum allowed nodes in a BDR group. A node fails to join a BDR group
-    if it has a different value for this parameter when compared with its
-    upstream node. Users must ensure all BDR members have the same value for
-    the parameter at any point of time, otherwise, joining of nodes to the BDR
-    group will start failing. Default value for this parameter is 4, meaning,
-    at any point of time, there can be maximum of 4 nodes allowed in the BDR
-    group. Set a reasonable value to this parameter, only if required. Note
-    that more members in a BDR group require a more sophisticated monitoring
-    and maintenance, so choose this parameter value with care.
+    Sets maximum allowed nodes in a BDR group. A new node fails to join a BDR
+    group if it has a different value for this parameter when compared with its
+    upstream node.  An existing node can't start BDR workers if the parameter
+    value doesn't match with its upstream node. Hence, users must ensure all
+    BDR members have the same value for the parameter at any point of time.
+    Default value for this parameter is 4, meaning, there can be maximum of 4
+    nodes allowed in the BDR group at any point of time. Note that more members
+    in a BDR group require a more sophisticated monitoring and maintenance, so
+    choose this parameter value wisely.
 
-    Changes take effect on server configuration reload, a restart is not
-    required.
+    Set this parameter either in configuration file or via ALTER SYSTEM SET
+    command. Changes take effect on server restart.
 
   ---------------------------------------------------- ------------------------------------ ---------------------------------------------
   [Prev](settings-prerequisite.md)     [Home](README.md)     [Next](node-management.md)  

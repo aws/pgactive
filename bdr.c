@@ -957,11 +957,12 @@ static bool
 check_bdr_max_nodes(int *newval, void **extra, GucSource source)
 {
 	ereport(NOTICE,
-			(errmsg("ensure to set same value for \"bdr.max_nodes\" parameter on all BDR members"),
-			 errdetail("Joining of nodes will start failing if BDR members have different \"bdr.max_nodes\" parameter values in BDR group.")));
+			(errmsg("bdr.max_nodes must be set to the same value on all BDR members"),
+			 errdetail("Otherwise a new node can't join BDR group or an existing node can't start BDR workers.")));
 
 	return true;
 }
+
 /*
  * Entrypoint of this module - called at shared_preload_libraries time in the
  * context of the postmaster.
@@ -1164,16 +1165,13 @@ _PG_init(void)
 							0,
 							NULL, NULL, NULL);
  
-	/*
-	 * Can't really have more than MAX_NODE_ID+1 (1024) nodes, because the
-	 * current global sequences implementation in BDR doesn't allow that.
-	 */
 	DefineCustomIntVariable("bdr.max_nodes",
 							"Sets maximum allowed nodes in a BDR group",
-							"Set same value for this parameter on all BDR members, otherwise a node can't join the group.",
+							"This parameter must be set to the same value on all BDR members, otherwise "
+							"a new node can't join BDR group or an existing node can't start BDR workers.",
 							&bdr_max_nodes,
 							4, 2, MAX_NODE_ID + 1,
-							PGC_SIGHUP,
+							PGC_POSTMASTER,
 							0,
 							check_bdr_max_nodes, NULL, NULL);
 
