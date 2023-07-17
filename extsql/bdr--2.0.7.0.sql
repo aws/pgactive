@@ -422,7 +422,10 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   version_num OUT integer,
 	min_remote_version_num OUT integer,
   is_superuser OUT boolean,
-  node_status OUT "char")
+  node_status OUT "char",
+  node_name OUT text,
+  dbname OUT text,
+  dbsize OUT int8)
 RETURNS record
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
@@ -1161,12 +1164,24 @@ BEGIN
 END;
 $body$;
 
-CREATE FUNCTION bdr_wait_for_node_ready(timeout integer DEFAULT 0)
-RETURNS void LANGUAGE plpgsql VOLATILE AS $body$
+CREATE FUNCTION bdr_wait_for_node_ready(
+  timeout integer DEFAULT 0,
+  progress_interval integer DEFAULT 60)
+RETURNS void LANGUAGE plpgsql VOLATILE
+AS $body$
 DECLARE
-    _node_status "char";
-    _node_name text;
-    loops integer := 0;
+  r1 record;
+  r2 record;
+  t_lp_cnt integer := 0;
+  p_lp_cnt integer := 0;
+  first_time boolean := true;
+  l_db_init_sz int8;
+  l_db_sz int8;
+  r_db text;
+  p_pct integer;
+  p_stime timestamp;
+  p_etime timestamp;
+  p_elapsed interval;
 BEGIN
     IF current_setting('transaction_isolation') <> 'read committed' THEN
         RAISE EXCEPTION 'can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
@@ -1174,23 +1189,60 @@ BEGIN
     END IF;
 
     LOOP
-        SELECT node_status, node_name
-        FROM bdr.bdr_nodes
-        WHERE (node_sysid, node_timeline, node_dboid)
-              = bdr.bdr_get_local_nodeid()
-        INTO _node_status, _node_name;
+      SELECT * FROM bdr.bdr_nodes
+      WHERE (node_sysid, node_timeline, node_dboid)
+        = bdr.bdr_get_local_nodeid()
+      INTO r1;
 
-    PERFORM pg_sleep(0.5);
+      PERFORM pg_sleep(1);
 
-        EXIT WHEN _node_status = 'r';
-
-        IF timeout > 0 THEN
-          loops := loops + 1;
-          IF loops > timeout * 2 THEN
-            RAISE EXCEPTION 'node % cannot reach ready state within % seconds, current state is %',
-                            _node_name, timeout, _node_status;
-          END IF;
+      IF r1.node_status = 'r' THEN
+        IF progress_interval > 0 AND r2 IS NOT NULL THEN
+          p_etime := clock_timestamp();
+          p_elapsed := p_etime - p_stime;
+          RAISE NOTICE
+              USING MESSAGE = format('successfully restored database ''%s'' from node %s in %s',
+                                     r2.dbname, r2.node_name, p_elapsed);
         END IF;
+        EXIT;
+      END IF;
+
+      IF timeout > 0 THEN
+        t_lp_cnt := t_lp_cnt + 1;
+        IF t_lp_cnt > timeout THEN
+          RAISE EXCEPTION 'node % cannot reach ready state within % seconds, current state is %',
+                          r1.node_name, timeout, r1.node_status;
+        END IF;
+      END IF;
+
+      IF progress_interval <= 0 OR r1.node_init_from_dsn IS NULL THEN
+        CONTINUE;
+      END IF;
+
+      p_lp_cnt := p_lp_cnt + 1;
+
+      IF first_time THEN
+        SELECT * FROM bdr.bdr_get_remote_nodeinfo(r1.node_init_from_dsn) INTO r2;
+        SELECT pg_size_pretty(r2.dbsize) INTO r_db;
+        SELECT pg_database_size(r1.node_dboid) INTO l_db_init_sz;
+        p_stime := clock_timestamp();
+        first_time := false;
+      END IF;
+
+      IF p_lp_cnt > progress_interval THEN
+        SELECT pg_database_size(r1.node_dboid) INTO l_db_sz;
+        IF l_db_sz = 0 OR l_db_sz = l_db_init_sz THEN
+          RAISE NOTICE
+              USING MESSAGE = format('transferring of database ''%s'' (%s) from node %s in progress',
+                                     r2.dbname, r_db, r2.node_name);
+        ELSE
+          SELECT ROUND((l_db_sz::real/r2.dbsize::real) * 100.0) INTO p_pct;
+          RAISE NOTICE
+            USING MESSAGE = format('restoring database ''%s'', %s%% of %s completed',
+                                   r2.dbname, p_pct, r_db);
+        END IF;
+        p_lp_cnt := 0;
+      END IF;
     END LOOP;
 END;
 $body$;
