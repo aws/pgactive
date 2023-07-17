@@ -254,7 +254,7 @@ server restart to take effect.
     BDR members have the same value for the parameter at any point of time.
     Default value for this parameter is 4, meaning, there can be maximum of 4
     nodes allowed in the BDR group at any point of time. Note that more members
-    in a BDR group require a more sophisticated monitoring and maintenance, so
+    in a BDR group require more sophisticated monitoring and maintenance, so
     choose this parameter value wisely.
 
     Set this parameter either in configuration file or via ALTER SYSTEM SET

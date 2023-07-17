@@ -286,7 +286,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
 					   "current_setting('is_superuser') AS issuper, "
 					   "current_setting('bdr.max_nodes') AS max_nodes, "
-					   "count(node_sysid) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))");
+					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
