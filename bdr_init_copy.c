@@ -906,11 +906,10 @@ remove_unwanted_files(char *data_dir)
 		 * Postgres commit cc8d41511721 changed this function input parameters
 		 * in version 12.
 		 */
-		snprintf(path, MAXPGPATH, "%s/pg_logical/", data_dir);
 #if PG_VERSION_NUM < 120000
-		fsync_fname(path, true, progname);
+		fsync_parent_path(path, progname);
 #else
-		fsync_fname(path, true);
+		fsync_parent_path(path);
 #endif
 
 		print_msg(VERBOSITY_VERBOSE, "Removed BDR control file.\n");
