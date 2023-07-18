@@ -215,20 +215,20 @@ Because the conflict history table contains data on every table in the database 
 The major differences between physical replication and logical replication as implemented by BDR are:
 
 * Multi-master replication is possible. All members are writable nodes that replicate changes.
-* Data from index writes, `VACUUM`{.LITERAL}, hint bits, etc are not sent over the network, so bandwidth requirements may be reduced - especially when compared to physical replication with `full_page_writes`{.LITERAL}.
-* There is no need to use [`hot_standby_feedback`{.LITERAL}](http://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-HOT-STANDBY-FEEDBACK){target="_top"} or to cancel long running queries on hot standbys, so there aren't any ["cancelling statement due to conflict with recovery"]{.QUOTE} errors.
+* Data from index writes, `VACUUM`, hint bits, etc are not sent over the network, so bandwidth requirements may be reduced - especially when compared to physical replication with `full_page_writes`.
+* There is no need to use [`hot_standby_feedback`](http://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-HOT-STANDBY-FEEDBACK) or to cancel long running queries on hot standbys, so there aren't any ["cancelling statement due to conflict with recovery"] errors.
 * Temporary tables may be used on replicas.
 * Tables that aren't being replicated from elsewhere may be written to BDR.
-* Replication across major versions (e.g. 9.4 to 9.5) can be supported (though BDR imposes limitations on that, [pglogical](http://2ndquadrant.com/pglogical){target="_top"} supports it well).
+* Replication across major versions (e.g. 9.4 to 9.5) can be supported (though BDR imposes limitations on that, [pglogical](http://2ndquadrant.com/pglogical) supports it well).
 * Replication across architectures and OSes (e.g. PPC64 Linux to x86_64 OS X) is supported.
-* Replication is per-database (or even table-level), whereas physical replication can and must replicate all databases. ([pglogical](http://2ndquadrant.com/pglogical){target="_top"} even supports row- and column-level filtering of replication).
+* Replication is per-database (or even table-level), whereas physical replication can and must replicate all databases. ([pglogical](http://2ndquadrant.com/pglogical) even supports row- and column-level filtering of replication).
 * BDR's logical replication implementation imposes some restrictions on supported DDL (see: [DDL replication](https://file+.vscode-resource.vscode-cdn.net/Users/davecra/projects/amazon/abba/abba-pg-bdr/md/ddl-replication.md)) that do not apply for physical replication
-* Because it's database-level not cluster-level, commands that affect all databases, like `ALTER SYSTEM`{.LITERAL} or `CREATE ROLE`{.LITERAL} are [*not*]{.emphasis} replicated by BDR and must be managed by the administrator.
+* Because it's database-level not cluster-level, commands that affect all databases, like `ALTER SYSTEM` or `CREATE ROLE` are [*not*] replicated by BDR and must be managed by the administrator.
 * Disk random I/O requirements and flush frequency may be higher than for physical replication.
 * Only completed transactions are replicated. Big transactions may have longer replication delays because replication doesn't start until the transaction completes. Aborted transactions' writes are never replicated at all.
 * Logical replication requires at least PostgreSQL 9.4.
 * Logical replication cannot be used for point-in-time recovery (though it can support a replication delay). It's technically possible to add this capability if someone needs it, though.
-* Logical replication only works via streaming, not WAL file archiving, and requires the use of a [replication slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}.
+* Logical replication only works via streaming, not WAL file archiving, and requires the use of a [replication slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html).
 * Cascading replication is not (yet) supported by logical replication.
 * Large objects (pg_largeobject, lo_create, and so on) are not handled by logical decoding, so it cannot be replicated by BDR
 * Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in an active-active environment anyway, so BDR offers alternatives.

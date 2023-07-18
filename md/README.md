@@ -1,7 +1,7 @@
 
-# [BDR 2.0.7 Documentation]{#BDR} {#bdr-2.0.7-documentation}
+# BDR 2.0.7 Documentation
 
-### 2ndQuadrant Ltd {#ndquadrant-ltd}
+### 2ndQuadrant Ltd
 
 [Copyright](LEGALNOTICE.md) © 1996-2016 The PostgreSQL Global
 Development Group
