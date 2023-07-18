@@ -1183,6 +1183,15 @@ DECLARE
   p_etime timestamp;
   p_elapsed interval;
 BEGIN
+
+    IF timeout < 0 THEN
+      RAISE EXCEPTION '''timeout'' parameter must not be negative';
+    END IF;
+
+    IF progress_interval < 0 THEN
+      RAISE EXCEPTION '''progress_interval'' parameter must not be negative';
+    END IF;
+
     IF current_setting('transaction_isolation') <> 'read committed' THEN
         RAISE EXCEPTION 'can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
                         current_setting('transaction_isolation');
@@ -1215,33 +1224,31 @@ BEGIN
         END IF;
       END IF;
 
-      IF progress_interval <= 0 OR r1.node_init_from_dsn IS NULL THEN
-        CONTINUE;
-      END IF;
+      IF progress_interval > 0 AND r1.node_init_from_dsn IS NOT NULL THEN
+        p_lp_cnt := p_lp_cnt + 1;
 
-      p_lp_cnt := p_lp_cnt + 1;
-
-      IF first_time THEN
-        SELECT * FROM bdr.bdr_get_remote_nodeinfo(r1.node_init_from_dsn) INTO r2;
-        SELECT pg_size_pretty(r2.dbsize) INTO r_db;
-        SELECT pg_database_size(r1.node_dboid) INTO l_db_init_sz;
-        p_stime := clock_timestamp();
-        first_time := false;
-      END IF;
-
-      IF p_lp_cnt > progress_interval THEN
-        SELECT pg_database_size(r1.node_dboid) INTO l_db_sz;
-        IF l_db_sz = 0 OR l_db_sz = l_db_init_sz THEN
-          RAISE NOTICE
-              USING MESSAGE = format('transferring of database ''%s'' (%s) from node %s in progress',
-                                     r2.dbname, r_db, r2.node_name);
-        ELSE
-          SELECT ROUND((l_db_sz::real/r2.dbsize::real) * 100.0) INTO p_pct;
-          RAISE NOTICE
-            USING MESSAGE = format('restoring database ''%s'', %s%% of %s completed',
-                                   r2.dbname, p_pct, r_db);
+        IF first_time THEN
+          SELECT * FROM bdr.bdr_get_remote_nodeinfo(r1.node_init_from_dsn) INTO r2;
+          SELECT pg_size_pretty(r2.dbsize) INTO r_db;
+          SELECT pg_database_size(r1.node_dboid) INTO l_db_init_sz;
+          p_stime := clock_timestamp();
+          first_time := false;
         END IF;
-        p_lp_cnt := 0;
+
+        IF p_lp_cnt > progress_interval THEN
+          SELECT pg_database_size(r1.node_dboid) INTO l_db_sz;
+          IF l_db_sz = 0 OR l_db_sz = l_db_init_sz THEN
+            RAISE NOTICE
+                USING MESSAGE = format('transferring of database ''%s'' (%s) from node %s in progress',
+                                       r2.dbname, r_db, r2.node_name);
+          ELSE
+            SELECT ROUND((l_db_sz::real/r2.dbsize::real) * 100.0) INTO p_pct;
+            RAISE NOTICE
+              USING MESSAGE = format('restoring database ''%s'', %s%% of %s complete',
+                                     r2.dbname, p_pct, r_db);
+          END IF;
+          p_lp_cnt := 0;
+        END IF;
       END IF;
     END LOOP;
 END;

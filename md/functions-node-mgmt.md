@@ -116,9 +116,9 @@ seconds. For instance, usage of the function is as follows:
    NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
    NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
    NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
-   NOTICE:  restoring database 'fruits', 28% of 873 MB completed
-   NOTICE:  restoring database 'fruits', 67% of 873 MB completed
-   NOTICE:  restoring database 'fruits', 88% of 873 MB completed
+   NOTICE:  restoring database 'fruits', 28% of 873 MB complete
+   NOTICE:  restoring database 'fruits', 67% of 873 MB complete
+   NOTICE:  restoring database 'fruits', 88% of 873 MB complete
    NOTICE:  successfully restored database 'fruits' from node stonebraker in 00:00:38.048672
    bdr_wait_for_node_ready
    -------------------------
