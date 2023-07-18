@@ -51,3 +51,17 @@ SELECT id, data, other FROM add_column ORDER BY id;
 (10 rows)
 
 DROP TABLE add_column;
+-- We allow BDR nodes sending out changes for postgres logical replication
+-- subscribers.
+CREATE PUBLICATION mypub FOR ALL TABLES;
+-- We do not allow BDR nodes receiving changes from postgres logical
+-- replication publishers.
+CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
+ERROR:  CREATE SUBSCRIPTION is not supported when bdr is active
+ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
+ERROR:  ALTER SUBSCRIPTION is not supported when bdr is active
+DROP PUBLICATION mypub;
+-- We do not allow external logical replication extensions to be created when
+-- BDR is active.
+CREATE EXTENSION pglogical;
+ERROR:  cannot create an external logical replication extension when BDR is active

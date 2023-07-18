@@ -802,6 +802,27 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 	}
 }
 
+/*
+ * We disallow creating an external logical replication extension when BDR is
+ * active. Technically, BDR has nothing to do with such external logical
+ * replication extensions, however, we disallow them for now to not have any
+ * possible data divergence issues and conflicts on nodes within the BDR group.
+ * For instance, when a BDR node pulls in changes from a non-BDR node using
+ * any of external logical replication extensions, then, the node can easily
+ * diverge from the other nodes in BDR group, and may cause conflicts.
+ *
+ * XXX: We might have to leave all of these to the user and allow such
+ * extensions at some point.
+ */
+static void
+prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
+{
+
+	if (pg_strncasecmp(stmt->extname, "pglogical", 9) == 0)
+		ereport(ERROR,
+				(errmsg("cannot create an external logical replication extension when BDR is active")));
+}
+
 static void
 bdr_commandfilter(PlannedStmt *pstmt,
 				  const char *queryString,
@@ -1177,6 +1198,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				break;
 			}
 		case T_CreateExtensionStmt:
+			prevent_disallowed_extension_creation((CreateExtensionStmt *) parsetree);
 			break;
 
 		case T_AlterExtensionStmt:
@@ -1186,6 +1208,34 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 		case T_AlterExtensionContentsStmt:
 			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
+			break;
+
+		/*
+		 * We disallow a BDR node being a subscriber in postgres logical
+		 * replication when BDR is active. Technically, BDR has nothing to do
+		 * with postgres logical replication, however, we disallow
+		 * subscriptions on a BDR node for now to not have any possible data
+		 * divergence issues and conflicts on nodes within the BDR group. For
+		 * instance, when a BDR node pulls in changes from a non-BDR publisher
+		 * using postgres logical replication, then, the node can easily
+		 * diverge from the other nodes in BDR group, and may cause conflicts.
+		 *
+		 * However, we have no problem if a BDR node is a publisher in postgres
+		 * logical replication. Meaning, a non-BDR node can still pull in
+		 * changes from a BDR node.
+		 *
+		 * XXX: We might have to leave all of these to the user and allow
+		 * subscriptions on BDR nodes.
+		 */
+		case T_CreateSubscriptionStmt:
+		case T_AlterSubscriptionStmt:
+		case T_DropSubscriptionStmt:
+			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
+			break;
+
+		case T_CreatePublicationStmt:
+		case T_AlterPublicationStmt:
+			lock_type = BDR_LOCK_DDL;
 			break;
 
 		case T_CreateFdwStmt:
