@@ -101,12 +101,30 @@ database](node-management-disabling.md) for details, including
 important caveats with conversion of sequences.
 
 
-`bdr.bdr_wait_for_node_ready()`
+`bdr.bdr_wait_for_node_ready(`*`timeout int default 0`*`, `*`progress_interval int default 60`*`)`
 
 void
 
-Wait till all in-progress node joins have completed.
+Wait till in-progress node joins have completed. If input parameter `timeout`
+is specified in seconds (default 0, meaning, exit only after all node joins are
+finished), the function waits only that many seconds and exits. If input
+parameter `progress_interval` is specified in seconds (default 60), the
+function reports progress of the join operation for every `progress_interval`
+seconds. For instance, usage of the function is as follows:
+```
+   fruits=# SELECT bdr.bdr_wait_for_node_ready(progress_interval := 5);
+   NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
+   NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
+   NOTICE:  transferring of database 'fruits' (873 MB) from node stonebraker in progress
+   NOTICE:  restoring database 'fruits', 28% of 873 MB complete
+   NOTICE:  restoring database 'fruits', 67% of 873 MB complete
+   NOTICE:  restoring database 'fruits', 88% of 873 MB complete
+   NOTICE:  successfully restored database 'fruits' from node stonebraker in 00:00:38.048672
+   bdr_wait_for_node_ready
+   -------------------------
 
+   (1 row)
+```
 
 `bdr.bdr_is_active_in_db()`
 
