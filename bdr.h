@@ -754,6 +754,9 @@ typedef struct remote_node_info
 	int			min_remote_version_num;
 	bool		is_superuser;
 	char		node_status;
+	char	   *node_name;
+	char	   *dbname;
+	int64		dbsize;	/* database size in bytes */
 	int			max_nodes;
 	int			cur_nodes;
 }			remote_node_info;

@@ -987,14 +987,6 @@ _PG_init(void)
 					 errmsg("bdr requires \"track_commit_timestamp\" to be enabled")));
 	}
 
-	/*
-	 * Force btree_gist to be loaded - its absolutely not required at this
-	 * point, but since it's required for BDR to be used it's much easier to
-	 * debug if we error out during start than failing during background
-	 * worker initialization.
-	 */
-	load_external_function("btree_gist", "gbtreekey_in", true, NULL);
-
 	/* XXX: make it changeable at SIGHUP? */
 	DefineCustomBoolVariable("bdr.synchronous_commit",
 							 "bdr specific synchronous commit value",
@@ -1232,7 +1224,6 @@ void
 bdr_maintain_schema(bool update_extensions)
 {
 	Relation	extrel;
-	Oid			btree_gist_oid;
 	Oid			bdr_oid;
 	Oid			schema_oid;
 
@@ -1248,23 +1239,13 @@ bdr_maintain_schema(bool update_extensions)
 	/* make sure we're operating without other bdr workers interfering */
 	extrel = table_open(ExtensionRelationId, ShareUpdateExclusiveLock);
 
-	btree_gist_oid = get_extension_oid("btree_gist", true);
 	bdr_oid = get_extension_oid("bdr", true);
-
-	if (btree_gist_oid == InvalidOid)
-		elog(ERROR, "btree_gist is required by BDR but not installed in the current database");
-
 	if (bdr_oid == InvalidOid)
 		elog(ERROR, "bdr extension is not installed in the current database");
 
 	if (update_extensions)
 	{
 		AlterExtensionStmt alter_stmt;
-
-		/* TODO: only do this if necessary */
-		alter_stmt.options = NIL;
-		alter_stmt.extname = (char *) "btree_gist";
-		ExecAlterExtensionStmt(NULL, &alter_stmt);
 
 		/* TODO: only do this if necessary */
 		alter_stmt.options = NIL;

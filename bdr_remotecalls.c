@@ -123,6 +123,10 @@ free_remote_node_info(remote_node_info * ri)
 		pfree(ri->variant);
 	if (ri->version != NULL)
 		pfree(ri->version);
+	if (ri->node_name != NULL)
+		pfree(ri->node_name);
+	if (ri->dbname != NULL)
+		pfree(ri->dbname);
 }
 
 /*
@@ -285,8 +289,11 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
 					   "current_setting('is_superuser') AS issuper, "
-					   "current_setting('bdr.max_nodes') AS max_nodes, "
-					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'))");
+					   "bdr.bdr_get_local_node_name() AS node_name, "
+					   "current_database()::text AS dbname, "
+					   "pg_database_size(current_database()) AS dbsize, "
+ 					   "current_setting('bdr.max_nodes') AS max_nodes, "
+					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -295,18 +302,23 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 	}
 
-	Assert(PQnfields(res) == 4);
+	Assert(PQnfields(res) == 7);
 	Assert(PQntuples(res) == 1);
 
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
 	ri->is_superuser = DatumGetBool(
 									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 1))));
-	ri->max_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 2))));
+	ri->node_name = pstrdup(PQgetvalue(res, 0, 2));
+	ri->dbname = pstrdup(PQgetvalue(res, 0, 3));
+	ri->dbsize = DatumGetInt64(
+							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 4))));
+ 	ri->max_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 5))));
 	ri->cur_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 3))));
-	PQclear(res);
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 6))));
+
+  PQclear(res);
 
 	/*
 	 * Even though we should be able to get it from bdr_version_num, always
@@ -467,8 +479,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[11];
-	bool		isnull[11];
+	Datum		values[14];
+	bool		isnull[14];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -486,6 +498,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 	{
 		struct remote_node_info ri;
 
+		memset(&ri, 0, sizeof(ri));
 		bdr_get_remote_nodeinfo_internal(conn, &ri);
 
 		if (ri.sysid_str != NULL)
@@ -514,8 +527,11 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		else
 			values[8] = CharGetDatum(ri.node_status);
 
-		values[9] = Int32GetDatum(ri.max_nodes);
-		values[10] = Int32GetDatum(ri.cur_nodes);
+		values[9] = CStringGetTextDatum(ri.node_name);
+		values[10] = CStringGetTextDatum(ri.dbname);
+		values[11] = Int64GetDatum(ri.dbsize);
+		values[12] = Int32GetDatum(ri.max_nodes);
+		values[13] = Int32GetDatum(ri.cur_nodes);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
@@ -706,6 +722,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	{
 		struct remote_node_info ri;
 
+		memset(&ri, 0, sizeof(ri));
 		bdr_test_remote_connectback_internal(conn, &ri, my_dsn);
 
 		if (ri.sysid_str != NULL)
@@ -790,6 +807,7 @@ bdr_drop_remote_slot(PG_FUNCTION_ARGS)
 		BDRNodeId	myid;
 
 		bdr_make_my_nodeid(&myid);
+		memset(&ri, 0, sizeof(ri));
 
 		/* Try connecting and build slot name from retrieved info */
 		bdr_get_remote_nodeinfo_internal(conn, &ri);

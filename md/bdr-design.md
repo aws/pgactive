@@ -11,7 +11,7 @@ Each database participating in the BDR group receives all of the updates from al
 
 #### Asynchronous
 
-Changes made on one BDR node are not replicated to other nodes before they are committed locally. As a result the data is not exactly the same on all nodes at any given time; some nodes will have data that has not yet arrived on other nodes. When combined with active-active, asynchronous replication is often called an "eventually consistent" architecture, however on any individiual node the data is consistent. At any given time the data can look different when viewed from different nodes, but over time the nodes sync with each other. If writes stop then after a while all nodes will be the same. In BDR this means that **foreign key constraints may be temporarily violated** as data replicates from multiple nodes.
+Changes made on one BDR node are not replicated to other nodes before they are committed locally. As a result the data is not exactly the same on all nodes at any given time; some nodes will have data that has not yet arrived on other nodes. When combined with active-active, asynchronous replication is often called an "eventually consistent" architecture, however on any individual node the data is consistent. At any given time the data can look different when viewed from different nodes, but over time the nodes sync with each other. If writes stop then after a while all nodes will be the same. In BDR this means that **foreign key constraints may be temporarily violated** as data replicates from multiple nodes.
 
 #### Loosely Coupled
 
@@ -38,7 +38,13 @@ every node must have a [replication origin](https://www.postgresql.org/docs/curr
 
 DDL replication is disabled by default. If needed, the configuration parameter bdr.skip_ddl_replication needs to be set to false on both the node and its upstream node(s).
 
+### Security
 
+#### Users
+
+The user specified in the connection DSN must be a superuser otherwise they do not have access to `bdr.bdr_nodes` table and other objects upon whom access to public is revoked.
+
+Changes on the bdr nodes are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. The background workers must run as superuser.
 
 ### Node Management
 
@@ -225,7 +231,7 @@ The major differences between physical replication and logical replication as im
 * Logical replication only works via streaming, not WAL file archiving, and requires the use of a [replication slot](http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html){target="_top"}.
 * Cascading replication is not (yet) supported by logical replication.
 * Large objects (pg_largeobject, lo_create, and so on) are not handled by logical decoding, so it cannot be replicated by BDR
-* Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in a multimaster environment anyway, so BDR offers alternatives.
+* Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in an active-active environment anyway, so BDR offers alternatives.
 
 
 

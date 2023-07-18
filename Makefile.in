@@ -127,10 +127,10 @@ $(info Building against PostgreSQL $(MAJORVERSION))
 export PG_CONFIG
 export PATH
 
-# Modules such as pg_trgm, cube and hstore are used by BDR in tests, i.e. if
-# they aren't available the tests start to fail. Therefore, it is not required
-# to error out.
-REQUIRED_TEST_EXTENSIONS = pg_trgm cube hstore
+# Modules such as btree_gist, cube, hstore and pg_trgm are used by BDR in
+# tests, i.e. if they aren't available the tests start to fail. Therefore,
+# it is not required to error out.
+REQUIRED_TEST_EXTENSIONS = btree_gist cube hstore pg_trgm
 
 BDR_DUMP_DIR := compat/$(BDR_PG_MAJORVERSION)/pg_dump
 BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \

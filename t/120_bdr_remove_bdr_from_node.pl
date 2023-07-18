@@ -68,7 +68,6 @@ sub bdr_remove {
         );
     }
     $node->safe_psql( $bdr_test_dbname, "drop extension bdr cascade" );
-    $node->safe_psql( $bdr_test_dbname, "drop extension btree_gist" );
 
     # Alter table to use local sequence
     $node->safe_psql( $bdr_test_dbname,

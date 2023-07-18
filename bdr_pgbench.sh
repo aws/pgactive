@@ -71,7 +71,7 @@ echo "Building pg source code at $PGSRC"
 cd $PGSRC
 sh configure --prefix=$PWD/inst/ CFLAGS="-O2" > $RESULTS/install.log && make -j8 install > $RESULTS/install.log 2>&1
 
-# Install contrib modules required for BDR
+# Install contrib modules required for BDR tests
 make -C contrib/btree_gist install
 make -C contrib/cube install
 make -C contrib/hstore install
@@ -102,13 +102,13 @@ $PGBIN/pg_ctl -D $PGBIN/data -l $RESULTS/server.log start
 # BDR-cize nodes
 echo "BDR-cizing node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P postgres -c "CREATE DATABASE $WHALE_DB" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION bdr CASCADE" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION bdr" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_create_group(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 echo "BDR-cizing node $PANDA"
 $PGBIN/psql -h $PANDA_H -p $PANDA_P postgres -c "CREATE DATABASE $PANDA_DB" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION bdr CASCADE" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION bdr" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_join_group(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 

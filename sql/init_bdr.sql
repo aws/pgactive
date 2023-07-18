@@ -30,7 +30,10 @@ SELECT bdr.bdr_is_active_in_db();
 
 SELECT * FROM  bdr.bdr_get_global_locks_info();
 
+-- Silence dynamic messages here
+SET client_min_messages = 'ERROR';
 SELECT bdr.bdr_wait_for_node_ready();
+RESET client_min_messages;
 
 SELECT bdr.bdr_is_active_in_db();
 
