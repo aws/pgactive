@@ -20,7 +20,7 @@ every node must have a replication origin for each other node so it can
 keep track of replay progress. If nodes were allowed to join while
 another was offline or unreachable due to a network partition, it would
 have no way to replay any changes made on that node and the BDR group
-would get out of sync. Since bdr does no change forwarding during normal
+would get out of sync. Since BDR does no change forwarding during normal
 operation, that desynchronisation would not get fixed.
 
 The addition of enhanced change forwarding support could allow for

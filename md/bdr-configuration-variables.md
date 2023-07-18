@@ -50,7 +50,7 @@ server restart to take effect.
 
     ::: NOTE
     > **Note:** Using `bdr.synchronous_commit = on` and
-    > putting bdr nodes in `synchronous_standby_names` will
+    > putting BDR nodes in `synchronous_standby_names` will
     > [*not*] prevent the replication conflicts that arise
     > with Active-Active use of BDR. There is still no locking between
     > nodes and no global snapshot management so concurrent transactions
