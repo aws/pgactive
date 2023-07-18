@@ -806,7 +806,7 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 	PQExpBuffer cmd = createPQExpBuffer();
 	char	   *exec_path = find_other_exec_or_die(argv0, "pg_basebackup");
 
-	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P", exec_path, data_dir, remote_connstr);
+	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P --checkpoint=fast", exec_path, data_dir, remote_connstr);
 	pg_free(exec_path);
 
 	/* Run pg_basebackup in verbose mode if we are running in verbose mode. */
@@ -906,6 +906,7 @@ remove_unwanted_files(char *data_dir)
 		 * Postgres commit cc8d41511721 changed this function input parameters
 		 * in version 12.
 		 */
+		snprintf(path, MAXPGPATH, "%s/pg_logical/", data_dir);
 #if PG_VERSION_NUM < 120000
 		fsync_fname(path, true, progname);
 #else
