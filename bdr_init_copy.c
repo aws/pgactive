@@ -806,7 +806,7 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 	PQExpBuffer cmd = createPQExpBuffer();
 	char	   *exec_path = find_other_exec_or_die(argv0, "pg_basebackup");
 
-	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P", exec_path, data_dir, remote_connstr);
+	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P --checkpoint=fast", exec_path, data_dir, remote_connstr);
 	pg_free(exec_path);
 
 	/* Run pg_basebackup in verbose mode if we are running in verbose mode. */
@@ -907,9 +907,9 @@ remove_unwanted_files(char *data_dir)
 		 * in version 12.
 		 */
 #if PG_VERSION_NUM < 120000
-		fsync_fname(path, true, progname);
+		fsync_parent_path(path, progname);
 #else
-		fsync_fname(path, true);
+		fsync_parent_path(path);
 #endif
 
 		print_msg(VERBOSITY_VERBOSE, "Removed BDR control file.\n");
