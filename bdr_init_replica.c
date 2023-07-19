@@ -161,7 +161,7 @@ bdr_ensure_ext_installed(PGconn *pgconn)
 }
 
 static void
-BDR_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
+bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
 {
 	struct stat st;
 	const char *dir = DatumGetCString(tmpdir);
