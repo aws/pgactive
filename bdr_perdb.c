@@ -947,7 +947,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		bdr_bdr_node_free(local_node);
 	}
 
-	elog(DEBUG1, "starting bdr apply workers on " BDR_NODEID_FORMAT,
+	elog(DEBUG1, "starting BDR apply workers on " BDR_NODEID_FORMAT,
 		 BDR_LOCALID_FORMAT_ARGS);
 
 	/* Launch the apply workers */

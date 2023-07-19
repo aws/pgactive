@@ -245,7 +245,7 @@ bdr_worker_shmem_alloc(BdrWorkerType worker_type, uint32 *ctl_idx)
 	}
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-			 errmsg("no free bdr worker slots - bdr.max_workers is too low")));
+			 errmsg("no free BDR worker slots - bdr.max_workers is too low")));
 	/* unreachable */
 }
 
@@ -278,7 +278,7 @@ bdr_worker_shmem_free(BdrWorker * worker, BackgroundWorkerHandle *handle)
 			if (status == BGWH_STARTED)
 			{
 				LWLockRelease(BdrWorkerCtl->lock);
-				elog(ERROR, "BUG: Attempt to release shm segment for bdr worker type=%d pid=%d that's still alive",
+				elog(ERROR, "BUG: Attempt to release shm segment for BDR worker type=%d pid=%d that's still alive",
 					 worker->worker_type, pid);
 			}
 		}

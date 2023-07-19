@@ -508,7 +508,7 @@ bdr_locks_find_database(Oid dboid, bool create)
 		 */
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("database with oid=%u is not configured for bdr or bdr is still starting up",
+				 errmsg("database with oid=%u is not configured for BDR or BDR is still starting up",
 						dboid)));
 
 	if (free_off != -1)

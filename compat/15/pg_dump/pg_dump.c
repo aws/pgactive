@@ -15728,7 +15728,7 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 				if (!tbinfo->attisdropped[j])
 					continue;
 
-				appendPQExpBufferStr(q, "\n-- For bdr init, recreate dropped column.\n");
+				appendPQExpBufferStr(q, "\n-- For BDR init, recreate dropped column.\n");
 				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
 									 "SET attlen = %d, "
 									 "attalign = '%c', attbyval = false\n"

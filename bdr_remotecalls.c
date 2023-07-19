@@ -351,7 +351,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 2));
 
 		if (ri->version_num != parsed_version_num)
-			elog(WARNING, "parsed bdr version %d from string %s != returned bdr version %d",
+			elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
 				 parsed_version_num, remote_bdr_version_str, ri->version_num);
 
 		PQclear(res);
