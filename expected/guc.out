@@ -50,7 +50,7 @@ SELECT current_database();
 ALTER DATABASE regression
   SET bdr.skip_ddl_replication = off;
 WARNING:  unsafe BDR configuration options can not be disabled locally
-DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+DETAIL:  The BDR option bdr.skip_ddl_replication should only be disabled globally.
 HINT:  See the manual for information on these options. Using them without care can break replication.
 ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 \c postgres
@@ -98,7 +98,7 @@ ALTER USER super
 ALTER USER super
   SET bdr.skip_ddl_replication = off;
 WARNING:  unsafe BDR configuration options can not be disabled locally
-DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+DETAIL:  The BDR option bdr.skip_ddl_replication should only be disabled globally.
 HINT:  See the manual for information on these options. Using them without care can break replication.
 ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 ALTER USER super
@@ -108,7 +108,7 @@ SET bdr.skip_ddl_replication = on;
 -- Unless values are not permitted
 SET bdr.skip_ddl_replication = off;
 WARNING:  unsafe BDR configuration options can not be disabled locally
-DETAIL:  The bdr option bdr.skip_ddl_replication should only be disabled globally.
+DETAIL:  The BDR option bdr.skip_ddl_replication should only be disabled globally.
 HINT:  See the manual for information on these options. Using them without care can break replication.
 ERROR:  invalid value for parameter "bdr.skip_ddl_replication": 0
 RESET bdr.skip_ddl_replication;;

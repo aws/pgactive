@@ -63,7 +63,7 @@ SELECT bdr.bdr_is_active_in_db();
 (1 row)
 
 SELECT * FROM  bdr.bdr_get_global_locks_info();
-ERROR:  database with oid=16385 is not configured for bdr or bdr is still starting up
+ERROR:  database with oid=16385 is not configured for BDR or BDR is still starting up
 -- Silence dynamic messages here
 SET client_min_messages = 'ERROR';
 SELECT bdr.bdr_wait_for_node_ready();
