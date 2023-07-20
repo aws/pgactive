@@ -309,7 +309,7 @@ bdr_ensure_node_ready(BdrOutputData * data)
 					 errmsg("bdr output plugin: slot creation rejected, bdr.bdr_nodes entry for local node " BDR_NODEID_FORMAT " does not exist",
 							BDR_LOCALID_FORMAT_ARGS),
 					 errdetail("BDR is not active on this database."),
-					 errhint("Add bdr to shared_preload_libraries and check logs for bdr startup errors.")));
+					 errhint("Add BDR to shared_preload_libraries and check logs for BDR startup errors.")));
 			break;
 		case BDR_NODE_STATUS_CATCHUP:
 
@@ -546,9 +546,9 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 			elog(ERROR, "mismatching encodings are not yet supported");
 
 		if (data->client_min_bdr_version > BDR_VERSION_NUM)
-			elog(ERROR, "incompatible bdr client and server versions, server too old");
+			elog(ERROR, "incompatible BDR client and server versions, server too old");
 		if (data->client_bdr_version < BDR_MIN_REMOTE_VERSION_NUM)
-			elog(ERROR, "incompatible bdr client and server versions, client too old");
+			elog(ERROR, "incompatible BDR client and server versions, client too old");
 
 		data->allow_binary_protocol = true;
 		data->allow_sendrecv_protocol = true;

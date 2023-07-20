@@ -608,7 +608,7 @@ main(int argc, char **argv)
 			 "start -l '%s'", log_file_name);
 	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
 	if (pg_ctl_ret != 0)
-		die(_("postgres restart with bdr enabled failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
+		die(_("postgres restart with BDR enabled failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
 	wait_postmaster_connection(local_connstr);
 
 	for (i = 0; i < remote_info->numdbs; i++)

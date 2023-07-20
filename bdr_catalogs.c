@@ -87,9 +87,9 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("no bdr schema is present in database %s, cannot create a bdr slot",
+					 errmsg("no BDR schema is present in database %s, cannot create a BDR slot",
 							get_database_name(MyDatabaseId)),
-					 errhint("There is no bdr.connections entry for this database on the target node or bdr is not in shared_preload_libraries.")));
+					 errhint("There is no bdr.connections entry for this database on the target node or BDR is not in shared_preload_libraries.")));
 	}
 
 	values[0] = CStringGetTextDatum(sysid_str);

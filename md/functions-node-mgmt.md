@@ -25,9 +25,9 @@ Description
 
 void
 
-Create the first node in a future cluster of bdr nodes. May be run on an
+Create the first node in a future cluster of BDR nodes. May be run on an
 empty database or one with existing data. An existing database may be a
-previously standalone normal PostgreSQL databaseor an ex-BDR database
+previously standalone normal PostgreSQL database or an ex-BDR database
 cleaned with
 [bdr.bdr_remove](functions-node-mgmt.md#FUNCTION-BDR-REMOVE).
 The \"dsn\" (data source name) parameters are [libpq connection
@@ -53,8 +53,8 @@ replication sets work.
 
 void
 
-Join this database to a cluster of existing bdr nodes. This will
-initiate connections to and from all nother nodes. The function returns
+Join this database to a cluster of existing BDR nodes. This will
+initiate connections to and from all other nodes. The function returns
 immediately, without waiting for the join process to complete, and only
 starts work when the calling transaction commits.
 [bdr.bdr_wait_for_node_ready](functions-node-mgmt.md#FUNCTION-BDR-WAIT-FOR-NODE-READY)
@@ -144,7 +144,7 @@ Generate a BDR node identifier, write it to BDR control file, and return
 the generated id. This node identifier is used by BDR to uniquely
 identify and track BDR-enabled databases on this node via
 `bdr.bdr_nodes` table. Typically, this is not supposed to be
-used by users direclty, BDR uses it internally while creating a new BDR
+used by users directly, BDR uses it internally while creating a new BDR
 group or joining a node to existing BDR group. Use of this function is
 restricted to superusers by default, but access may be granted to others
 using `GRANT`.
@@ -166,7 +166,7 @@ BDR control file itself, because the BDR control file currently holds
 only BDR node identifier. It doesn\'t remove the BDR control file if BDR
 is active on any of the database on this node. Return true if
 successfully removed, otherwise false. Typically, this is not supposed
-to be used by users direclty, BDR uses it internally while removing BDR
+to be used by users directly, BDR uses it internally while removing BDR
 from local node. Use of this function is restricted to superusers by
 default, but access may be granted to others using `GRANT`.
 

@@ -219,7 +219,7 @@ bdr_count_set_current_node(RepOriginId node_id)
 	}
 
 	if (MyCountOffsetIdx == -1)
-		elog(PANIC, "could not find a bdr count slot for %u", node_id);
+		elog(PANIC, "could not find a BDR count slot for %u", node_id);
 out:
 	LWLockRelease(BdrCountCtl->lock);
 }
@@ -396,7 +396,7 @@ bdr_count_serialize(void)
 		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not write bdr stat file data \"%s\": %m",
+				 errmsg("could not write BDR stat file data \"%s\": %m",
 						tpath)));
 	}
 
@@ -407,7 +407,7 @@ bdr_count_serialize(void)
 		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not write bdr stat file data \"%s\": %m",
+				 errmsg("could not write BDR stat file data \"%s\": %m",
 						tpath)));
 	}
 
@@ -419,7 +419,7 @@ bdr_count_serialize(void)
 		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not rename bdr stat file \"%s\" to \"%s\": %m",
+				 errmsg("could not rename BDR stat file \"%s\" to \"%s\": %m",
 						tpath, path)));
 	}
 	LWLockRelease(BdrCountCtl->lock);
@@ -437,7 +437,7 @@ bdr_count_unserialize(void)
 	ssize_t		read_size;
 
 	if (BdrCountCtl == NULL)
-		elog(ERROR, "cannot use bdr statistics function without loading bdr");
+		elog(ERROR, "cannot use BDR statistics function without loading bdr");
 
 	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
 
@@ -451,14 +451,14 @@ bdr_count_unserialize(void)
 		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not open bdr stat file \"%s\": %m", path)));
+				 errmsg("could not open BDR stat file \"%s\": %m", path)));
 	}
 
 	read_size = sizeof(serial);
 	if (read(fd, &serial, read_size) != read_size)
 		ereport(PANIC,
 				(errcode_for_file_access(),
-				 errmsg("could not read bdr stat file data \"%s\": %m",
+				 errmsg("could not read BDR stat file data \"%s\": %m",
 						path)));
 
 	if (serial.magic != bdr_count_magic)
@@ -488,7 +488,7 @@ bdr_count_unserialize(void)
 		LWLockRelease(BdrWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not read bdr stat file data \"%s\": %m",
+				 errmsg("could not read BDR stat file data \"%s\": %m",
 						path)));
 	}
 

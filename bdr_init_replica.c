@@ -151,9 +151,9 @@ bdr_ensure_ext_installed(PGconn *pgconn)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("remote database for BDR connection does not have the bdr extension active"),
+				 errmsg("remote database for BDR connection does not have the BDR extension active"),
 				 errdetail("installed_version for entry 'bdr' in pg_available_extensions is blank."),
-				 errhint("Run 'CREATE EXTENSION bdr;'.")));
+				 errhint("Run 'CREATE EXTENSION BDR;'.")));
 	}
 
 	pfree(default_version);
@@ -168,7 +168,7 @@ bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
 
 	if (stat(dir, &st) == 0)
 		if (!rmtree(dir, true))
-			elog(WARNING, "failed to clean up bdr dump temporary directory %s on exit/error", dir);
+			elog(WARNING, "failed to clean up BDR dump temporary directory %s on exit/error", dir);
 }
 
 /*
@@ -250,13 +250,13 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	if (bdr_find_other_exec(my_exec_path, BDR_DUMP_CMD, &bin_version,
 							&bdr_dump_path[0]) < 0)
 	{
-		elog(ERROR, "bdr node init failed to find " BDR_DUMP_CMD
+		elog(ERROR, "BDR node init failed to find " BDR_DUMP_CMD
 			 " relative to binary %s",
 			 my_exec_path);
 	}
 	if (bin_version / 10000 != PG_VERSION_NUM / 10000)
 	{
-		elog(ERROR, "bdr node init found " BDR_DUMP_CMD
+		elog(ERROR, "BDR node init found " BDR_DUMP_CMD
 			 " with wrong major version %d.%d, expected %d.%d",
 			 bin_version / 100 / 100, bin_version / 100 % 100,
 			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
@@ -265,13 +265,13 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	if (bdr_find_other_exec(my_exec_path, BDR_RESTORE_CMD, &bin_version,
 							&bdr_restore_path[0]) < 0)
 	{
-		elog(ERROR, "bdr node init failed to find " BDR_RESTORE_CMD
+		elog(ERROR, "BDR node init failed to find " BDR_RESTORE_CMD
 			 " relative to binary %s",
 			 my_exec_path);
 	}
 	if (bin_version / 10000 != PG_VERSION_NUM / 10000)
 	{
-		elog(ERROR, "bdr node init found " BDR_RESTORE_CMD
+		elog(ERROR, "BDR node init found " BDR_RESTORE_CMD
 			 " with wrong major version %d.%d, expected %d.%d",
 			 bin_version / 100 / 100, bin_version / 100 % 100,
 			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
@@ -1349,7 +1349,7 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 	BdrWorker  *worker;
 	BdrApplyWorker *catchup_worker;
 
-	elog(DEBUG1, "registering bdr apply catchup worker for " BDR_NODEID_FORMAT_WITHNAME " to lsn %X/%X",
+	elog(DEBUG1, "registering BDR apply catchup worker for " BDR_NODEID_FORMAT_WITHNAME " to lsn %X/%X",
 		 BDR_NODEID_FORMAT_WITHNAME_ARGS(ri->nodeid),
 		 LSN_FORMAT_ARGS(target_lsn));
 

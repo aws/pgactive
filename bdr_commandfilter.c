@@ -112,7 +112,7 @@ error_unsupported_command(const char *cmdtag)
 
 	ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("%s is not supported when bdr is active",
+			 errmsg("%s is not supported when BDR is active",
 					cmdtag)));
 }
 

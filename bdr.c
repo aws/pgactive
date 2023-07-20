@@ -900,7 +900,7 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 		 */
 		ereport(WARNING,
 				(errmsg("unsafe BDR configuration options can not be disabled locally"),
-				 errdetail("The bdr option bdr.skip_ddl_replication should only be disabled globally."),
+				 errdetail("The BDR option bdr.skip_ddl_replication should only be disabled globally."),
 				 errhint("See the manual for information on these options. Using them without care can break replication.")));
 		return false;
 	}
@@ -1123,7 +1123,7 @@ _PG_init(void)
 							   NULL, NULL, NULL);
 
 	DefineCustomEnumVariable("bdr.log_min_messages",
-							 gettext_noop("log_min_messages for the bdr bgworkers."),
+							 gettext_noop("log_min_messages for the BDR bgworkers."),
 							 NULL,
 							 &bdr_log_min_messages,
 							 WARNING,

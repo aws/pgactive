@@ -108,10 +108,10 @@ bdr_register_perdb_worker(Oid dboid)
 	if (!RegisterDynamicBackgroundWorker(&bgw, &bgw_handle))
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("registering bdr per-db dynamic background worker failed"),
+				 errmsg("registering BDR per-db dynamic background worker failed"),
 				 errhint("Consider increasing configuration parameter \"max_worker_processes\".")));
 
-	elog(DEBUG2, "successfully registered bdr per-db worker for database \"%s\"", dbname);
+	elog(DEBUG2, "successfully registered BDR per-db worker for database \"%s\"", dbname);
 
 	/*
 	 * Here, supervisor must ensure the per-db worker registered above is
@@ -199,7 +199,7 @@ bdr_register_perdb_worker(Oid dboid)
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
 	Assert(perdb->c_dboid == perdb->p_dboid);
-	elog(DEBUG2, "successfully started bdr per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
+	elog(DEBUG2, "successfully started BDR per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
 		 dbname, perdb->proclatch, perdb->p_dboid);
 	pfree(dbname);
 }
