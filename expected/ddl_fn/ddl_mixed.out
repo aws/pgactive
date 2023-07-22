@@ -85,14 +85,14 @@ $DDL$);
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
 $DDL$);
-ERROR:  CREATE SUBSCRIPTION is not supported when bdr is active
+ERROR:  CREATE SUBSCRIPTION is not supported when BDR is active
 CONTEXT:  during DDL replay of ddl statement: 
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
 $DDL$);
-ERROR:  ALTER SUBSCRIPTION is not supported when bdr is active
+ERROR:  ALTER SUBSCRIPTION is not supported when BDR is active
 CONTEXT:  during DDL replay of ddl statement: 
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
 

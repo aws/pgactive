@@ -1211,7 +1211,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		/*
-		 * We disallow a BDR node being a subscriber in postgres logical
+		 * We disallow a BDR node from being a subscriber in postgres logical
 		 * replication when BDR is active. Technically, BDR has nothing to do
 		 * with postgres logical replication, however, we disallow
 		 * subscriptions on a BDR node for now to not have any possible data

@@ -57,9 +57,9 @@ CREATE PUBLICATION mypub FOR ALL TABLES;
 -- We do not allow BDR nodes receiving changes from postgres logical
 -- replication publishers.
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
-ERROR:  CREATE SUBSCRIPTION is not supported when bdr is active
+ERROR:  CREATE SUBSCRIPTION is not supported when BDR is active
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
-ERROR:  ALTER SUBSCRIPTION is not supported when bdr is active
+ERROR:  ALTER SUBSCRIPTION is not supported when BDR is active
 DROP PUBLICATION mypub;
 -- We do not allow external logical replication extensions to be created when
 -- BDR is active.
