@@ -116,7 +116,7 @@ int			bdr_init_node_parallel_jobs;
 PG_MODULE_MAGIC;
 
 #if PG_VERSION_NUM >= 150000
-shmem_request_hook_type prev_shmem_request_hook = NULL;
+shmem_request_hook_type bdr_prev_shmem_request_hook = NULL;
 #endif
 
 void		_PG_init(void);
@@ -1156,7 +1156,7 @@ _PG_init(void)
 		 * information and hook into shmem initialization.
 		 */
 #if PG_VERSION_NUM >= 150000
-		prev_shmem_request_hook = shmem_request_hook;
+		bdr_prev_shmem_request_hook = shmem_request_hook;
 		shmem_request_hook = bdr_shmem_init;
 #else
 		bdr_shmem_init();
