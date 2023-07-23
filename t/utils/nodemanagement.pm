@@ -162,6 +162,7 @@ sub bdr_update_postgresql_conf {
             #bdr.trace_replay = off
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
 			bdr.skip_ddl_replication = false
+            bdr.max_nodes = 20
             }
     );
 }

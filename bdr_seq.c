@@ -24,9 +24,7 @@
 #include "bdr.h"
 
 #define TIMESTAMP_BITS	40
-#define NODEID_BITS		10
 #define SEQUENCE_BITS	14
-#define MAX_NODE_ID		((1 << NODEID_BITS) - 1)
 #define MAX_SEQ_ID		((1 << SEQUENCE_BITS) - 1)
 #define MAX_TIMESTAMP	(((int64)1 << TIMESTAMP_BITS) - 1)
 

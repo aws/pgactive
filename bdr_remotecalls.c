@@ -291,7 +291,9 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 					   "current_setting('is_superuser') AS issuper, "
 					   "bdr.bdr_get_local_node_name() AS node_name, "
 					   "current_database()::text AS dbname, "
-					   "pg_database_size(current_database()) AS dbsize;");
+					   "pg_database_size(current_database()) AS dbsize, "
+ 					   "current_setting('bdr.max_nodes') AS max_nodes, "
+					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
@@ -300,7 +302,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 	}
 
-	Assert(PQnfields(res) == 5);
+	Assert(PQnfields(res) == 7);
 	Assert(PQntuples(res) == 1);
 
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
@@ -311,7 +313,12 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	ri->dbname = pstrdup(PQgetvalue(res, 0, 3));
 	ri->dbsize = DatumGetInt64(
 							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 4))));
-	PQclear(res);
+ 	ri->max_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 5))));
+	ri->cur_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 6))));
+
+  PQclear(res);
 
 	/*
 	 * Even though we should be able to get it from bdr_version_num, always
@@ -472,8 +479,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[12];
-	bool		isnull[12] = {false, false, false, false, false, false, false, false, false, false, false, false};
+	Datum		values[14];
+	bool		isnull[14];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -482,6 +489,9 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrnodeinfo");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&conn));
@@ -520,6 +530,8 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[9] = CStringGetTextDatum(ri.node_name);
 		values[10] = CStringGetTextDatum(ri.dbname);
 		values[11] = Int64GetDatum(ri.dbsize);
+		values[12] = Int32GetDatum(ri.max_nodes);
+		values[13] = Int32GetDatum(ri.cur_nodes);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
