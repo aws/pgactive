@@ -20,3 +20,18 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT id, data, other FROM add_column ORDER BY id;
 
 DROP TABLE add_column;
+
+-- We allow BDR nodes sending out changes for postgres logical replication
+-- subscribers.
+CREATE PUBLICATION mypub FOR ALL TABLES;
+
+-- We do not allow BDR nodes receiving changes from postgres logical
+-- replication publishers.
+CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
+ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
+
+DROP PUBLICATION mypub;
+
+-- We do not allow external logical replication extensions to be created when
+-- BDR is active.
+CREATE EXTENSION pglogical;

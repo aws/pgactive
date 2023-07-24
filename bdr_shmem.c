@@ -49,8 +49,8 @@ void
 bdr_shmem_init(void)
 {
 #if PG_VERSION_NUM >= 150000
-	if (prev_shmem_request_hook)
-		prev_shmem_request_hook();
+	if (bdr_prev_shmem_request_hook)
+		bdr_prev_shmem_request_hook();
 #endif
 	/* can never have more worker slots than processes to register them */
 	bdr_max_workers = max_worker_processes + max_wal_senders;

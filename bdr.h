@@ -129,7 +129,7 @@ struct ScanKeyData;				/* from access/skey.h for ScanKey */
 enum LockTupleMode;				/* from access/heapam.h */
 
 #if PG_VERSION_NUM >= 150000
-extern shmem_request_hook_type prev_shmem_request_hook;
+extern shmem_request_hook_type bdr_prev_shmem_request_hook;
 #endif
 
 /*
