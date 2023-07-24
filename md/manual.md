@@ -77,12 +77,8 @@ handlers](conflicts-user-defined-handlers.md)
 
 10.5. [Global sequences and ORMs](global-sequences-orms.md)
 
-10.6. [Global sequence voting](global-sequence-voting.md)
-
-10.7. [Traditional approaches to sequences in distributed
+10.6. [Traditional approaches to sequences in distributed
 DBs](global-sequences-alternatives.md)
-
-10.8. [BDR 1.0 global sequences](global-sequences-bdr10.md)
 
 11\. [Replication Sets](replication-sets.md)
 
@@ -133,12 +129,6 @@ functions](functions-conflict-handlers.md)
 13.10. [bdr.bdr_queued_commands](catalog-bdr-queued-commands.md)
 
 13.11. [bdr.bdr_queued_drops](catalog-bdr-queued-drops.md)
-
-13.12. [bdr.bdr_sequence_values](catalog-bdr-sequence-values.md)
-
-13.13. [bdr.bdr_sequence_elections](catalog-bdr-sequence-elections.md)
-
-13.14. [bdr.bdr_votes](catalog-bdr-votes.md)
 
 14\. [Upgrading [BDR]](upgrade.md)
 
