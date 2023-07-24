@@ -16,30 +16,21 @@
 
 10.5. [Global sequences and ORMs](global-sequences-orms.md)
 
-10.6. [Global sequence voting](global-sequence-voting.md)
-
-10.7. [Traditional approaches to sequences in distributed
+10.6. [Traditional approaches to sequences in distributed
 DBs](global-sequences-alternatives.md)
 
-10.7.1. [Step/offset
+10.6.1. [Step/offset
 sequences](global-sequences-alternatives.md#GLOBAL-SEQUENCES-ALTERNATIVE-STEPOFFSET)
 
-10.7.2. [Composite
+10.6.2. [Composite
 keys](global-sequences-alternatives.md#GLOBAL-SEQUENCES-ALTERNATIVE-COMPOSITE)
 
-10.7.3.
+10.6.3.
 [UUIDs](global-sequences-alternatives.md#GLOBAL-SEQUENCES-ALTERNATIVE-UUID)
-
-10.8. [BDR 1.0 global sequences](global-sequences-bdr10.md)
 
 BDR global sequences provide an easy way for applications to use the
 database to generate unique synthetic keys in an asynchronous
 distributed system.
-
-> **Important:** This chapter refers to the global sequences
-> implementation in BDR 2.0 and newer. See the BDR 1.0 documentation and
-> the upgrade guide for details on the quite different global sequences
-> implementation in BDR 1.0.
 
   **Warning**
   Object-relational mappers and applications that hardcode calls to the `nextval` function may require special configuration to work with BDR 2.0 global sequences.

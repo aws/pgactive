@@ -44,11 +44,6 @@ Node IDs for detached nodes are re-used, so node ID exhaustion is not a
 concern for environments that regularly detach and join nodes, such as for
 load balancing.
 
-> **Note:** BDR 1.0 provided a different implementation of global
-> sequences with different syntax and behaviour. See [BDR 1.0 Global
-> Sequences](global-sequences-bdr10.md).
-
-
 
   ---------------------------------------------- -------------------------------------------- ---------------------------------------------------
   [Prev](global-sequences.md)        [Home](README.md)         [Next](global-sequences-when.md)  

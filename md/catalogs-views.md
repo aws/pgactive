@@ -30,14 +30,6 @@
 
 13.11. [bdr.bdr_queued_drops](catalog-bdr-queued-drops.md)
 
-13.12. [bdr.bdr_sequence_values](catalog-bdr-sequence-values.md)
-
-13.13. [bdr.bdr_sequence_elections](catalog-bdr-sequence-elections.md)
-
-13.14. [bdr.bdr_votes](catalog-bdr-votes.md)
-
-
-
   ----------------------------------------------- ----------------------------------- -----------------------------------------------
   [Prev](functions-upgrade.md)    [Home](README.md)    [Next](catalog-bdr-nodes.md)  
   Upgrade functions                                [Up](manual.md)                                     bdr.bdr_nodes

@@ -1,7 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                                                               
-  [Prev](global-sequence-limitations.md "Global sequence limitations")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequence-voting.md "Global sequence voting")  
-
-
+  [Prev](global-sequence-limitations.md "Global sequence limitations")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs")
 # 10.5. Global sequences and ORMs
 
 Some applications and ORM (Object-Relational Mapper) tools expect to
@@ -28,13 +26,13 @@ as if an increment was set, and may only use the actual value returned.
 Alternately, the DBA may choose to create a new schema (say
 `bdr_seq`), add wrapper functions for
 `nextval(regclass)` and `nextval(text)` there that
-call `bdr.global_seq_nextva(regclass)`, and ensure that the
+call `bdr.bdr_snowflake_id_nextval(regclass)`, and ensure that the
 application\'s `search_path` puts the new schema
 `bdr_seq` [*before*] `pg_catalog`.
 
 
 
   --------------------------------------------------------- -------------------------------------------- ----------------------------------------------------
-  [Prev](global-sequence-limitations.md)        [Home](README.md)         [Next](global-sequence-voting.md)  
-  Global sequence limitations                                [Up](global-sequences.md)                                Global sequence voting
+  [Prev](global-sequence-limitations.md)        [Home](README.md)         [Next](global-sequences-alternatives.md)  
+  Global sequence limitations                                [Up](global-sequences.md)  Traditional approaches to sequences in distributed DBs
   --------------------------------------------------------- -------------------------------------------- ----------------------------------------------------
