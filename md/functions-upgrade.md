@@ -21,7 +21,7 @@ Description
 
 void
 
-Need to call after upgrading an existing cluster to assign node sequence IDs.
+It is necessary to call this function after upgrading an existing cluster to assign node sequence IDs.
 
   --------------------------------------------------- ------------------------------------- --------------------------------------------
   [Prev](functions-information.md)     [Home](README.md)     [Next](catalogs-views.md)  
