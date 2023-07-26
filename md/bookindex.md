@@ -306,9 +306,6 @@ statements](ddl-replication-statements.md#DDL-REPLICATION-PROHIBITED-COMMANDS)
 
 DDL Replication, [DDL Replication](ddl-replication.md)
 
-default_sequenceam configuration parameter, [Prerequisite PostgreSQL
-parameters](settings-prerequisite.md)
-
 divergence, [INSERTs that violate multiple UNIQUE
 constraints](conflicts-types.md#CONFLICTS-INSERT-UNIQUE-MULTIPLE-INDEX),
 [UPDATE conflicts on the PRIMARY

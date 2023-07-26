@@ -15,10 +15,10 @@ sophisticated approaches also exist.
   **Warning**
   Applications can [*not*] safely use counter-table based approaches relying on `SELECT ... FOR UPDATE`, `UPDATE ... RETURNING ...` etc for sequence generation in BDR. Because BDR is asynchronous and doesn\'t take row locks between nodes, the same values will be generated on more than one node. For the same reason the usual strategies for \"gapless\" sequence generation do not work with BDR. In most cases the application should coordinate generation of sequences that must be gapless from some external source using two-phase commit, or it should only generate them on one node in the BDR group.
 
-## 10.6.1. Step/offset sequences
+## 10.6.1. Split-step or partitioned sequences
 
-In offset-step sequences a normal PostgreSQL sequence is used on each
-node. Each sequence increments by the same amount and starts at
+In split-step or partitioned sequences a normal PostgreSQL sequence is used on
+each node. Each sequence increments by the same amount and starts at
 differing offsets. For example with step 1000 node1\'s sequence
 generates 1001, 2001, 3001, and so on, node 2\'s generates 1002, 2002,
 3002, etc. This scheme works well even if the nodes cannot communicate
@@ -37,7 +37,6 @@ the desired sequence on one node like
       CREATE SEQUENCE some_seq INCREMENT 1000 OWNED BY some_table.generated_value;
 
       ALTER TABLE some_table ALTER COLUMN generated_value SET DEFAULT nextval('some_seq');
-    
 ```
 
 \... then on each node calling `setval` to give each node a
@@ -51,16 +50,11 @@ different offset starting value, e.g.
       SELECT setval('some_seq', 2);
 
       -- ... etc
-  
 ```
 
 You should be sure to allow a large enough `INCREMENT` to
 leave room for all the nodes you may ever want to add since changing it
 in future is difficult and disruptive.
-
-On BDR-Postgres 9.4, create the sequence with `USING local` to
-make sure there\'s no conflict with any `default_sequenceam`
-setting.
 
 If you use bigint values there is no practial concern about key
 exhaustion even if you use offsets of 10000 or more. You\'ll need
@@ -68,12 +62,100 @@ hundreds of years with hundreds of machines doing millions of inserts
 per second to have any chance of approaching exhaustion.
 
 BDR does not currently offer any automation for configuration of the
-per-node offsets on such step/offset sequences.
+per-node offsets on such split-step or partitioned sequences. For instance,
+utility functions like the following can help convert all local sequences to
+partitioned sequences and vice versa. It is recommended to change these
+functions to taste - like converting only a few specified sequences, skip some
+tables or schemas and so on.
+
+``` PROGRAMLISTING
+  CREATE FUNCTION convert_local_seqs_to_partitioned_seqs (
+    IN unique_node_id integer,
+    IN increment_by integer)
+  RETURNS VOID
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    schema_name text;
+    table_name text;
+    column_name text;
+    sequence_name text;
+    query text;
+    max_seq_value bigint;
+  BEGIN
+    FOR schema_name, table_name, column_name, sequence_name IN
+      EXECUTE 'SELECT pg_namespace.nspname AS schema_name,
+        pg_class.relname AS table_name,
+        attname AS column_name,
+        pg_get_serial_sequence(attrelid::regclass::text, attname) AS sequence_name
+        FROM pg_attribute
+        JOIN pg_attrdef ON adrelid = attrelid AND adnum = attnum
+        JOIN pg_class ON attrelid = pg_class.oid
+        JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
+        WHERE attnum > 0
+        AND NOT attisdropped
+        AND pg_get_serial_sequence(attrelid::regclass::text, attname) IS NOT NULL
+        AND pg_namespace.nspname <> ''bdr'';'
+    LOOP
+      query := format('ALTER SEQUENCE %s INCREMENT BY %s;', sequence_name, increment_by);
+      EXECUTE query;
+      query := format('SELECT max(%s) FROM %s', column_name, table_name);
+      EXECUTE query INTO max_seq_value;
+      query := format('SELECT setval(''%s'', %s);', sequence_name, max_seq_value);
+      EXECUTE query;
+      RAISE NOTICE 'globalized sequence: % for column: % table: % schema: %',
+                   sequence_name, column_name, table_name, schema_name;
+    END LOOP;
+  END;
+  $$;
+
+  SELECT convert_local_seqs_to_partitioned_seqs();
+
+  CREATE FUNCTION convert_partitioned_seqs_to_local_seqs()
+  RETURNS VOID
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    schema_name text;
+    table_name text;
+    column_name text;
+    sequence_name text;
+    query text;
+    max_seq_value bigint;
+  BEGIN
+    FOR schema_name, table_name, column_name, sequence_name IN
+      EXECUTE 'SELECT pg_namespace.nspname AS schema_name,
+        pg_class.relname AS table_name,
+        attname AS column_name,
+        pg_get_serial_sequence(attrelid::regclass::text, attname) AS sequence_name
+        FROM pg_attribute
+        JOIN pg_attrdef ON adrelid = attrelid AND adnum = attnum
+        JOIN pg_class ON attrelid = pg_class.oid
+        JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
+        WHERE attnum > 0
+        AND NOT attisdropped
+        AND pg_get_serial_sequence(attrelid::regclass::text, attname) IS NOT NULL
+        AND pg_namespace.nspname <> ''bdr'';'
+    LOOP
+      query := format('ALTER SEQUENCE %s INCREMENT BY 1;', sequence_name);
+      EXECUTE query;
+      query := format('SELECT max(%s) FROM %s', column_name, table_name);
+      EXECUTE query INTO max_seq_value;
+      query := format('SELECT setval(''%s'', %s);', sequence_name, max_seq_value);
+      EXECUTE query;
+      RAISE NOTICE 'localized sequence: % for column: % table: % schema: %',
+                   sequence_name, column_name, table_name, schema_name;
+    END LOOP;
+  END;
+  $$;
+
+  SELECT convert_partitioned_seqs_to_local_seqs();
+```
 
 ## 10.6.2. Composite keys
 
-A variant on step/offset sequences is to use a composite key composed of
-`PRIMARY KEY (node_number, generated_value)` where the node
+A variant on split-step or partitioned sequences is to use a composite key
+composed of `PRIMARY KEY (node_number, generated_value)` where the node
 number is usually obtained from a function that returns a different
 number on each node. Such a function may be created by temporarily
 disabling DDL replication and creating a constant SQL function, or by
