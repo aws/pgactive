@@ -1,5 +1,5 @@
   [BDR 2.0.7 Documentation](README.md)                                                                                   
-  [Prev](appendix-signatures.md "Verifying digital signatures")   [Home](README.md)        [Next](technotes-mesh.md "BDR network structure")  
+  [Prev](releasenotes.md "Release notes")   [Home](README.md)        [Next](technotes-mesh.md "BDR network structure")  
 
 
 # Appendix C. Technical notes
@@ -21,6 +21,6 @@ These sections will be best understood in the context of the
 
 
   ------------------------------------------------- ----------------------------------- --------------------------------------------
-  [Prev](appendix-signatures.md)    [Home](README.md)    [Next](technotes-mesh.md)  
-  Verifying digital signatures                                                                                 BDR network structure
+  [Prev](releasenotes.md)    [Home](README.md)    [Next](technotes-mesh.md)  
+  Release notes                                                        BDR network structure
   ------------------------------------------------- ----------------------------------- --------------------------------------------
