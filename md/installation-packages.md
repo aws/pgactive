@@ -55,10 +55,6 @@ This RPM will configure the download location for the BDR packages and
 load the signing key into your RPM database so that the package digital
 signatures may be verified.
 
-> **Note:** The repository RPM is signed with 2ndQuadrant\'s master
-> packaging/releases signing key. See [Verifying digital
-> signatures](appendix-signatures.md).
-
 ### 2.2.1.3. Install the BDR packages
 
 To install the BDR-enabled PostgreSQL server, BDR extension, and the
@@ -100,10 +96,6 @@ To install BDR from DEBs you first need to add the BDR repository to
 your server. See [BDR repository
 installation](https://www.2ndquadrant.com/en/resources/bdr/bdr-installation-instructions/).
 
-> **Note:** The package signing key is signed with 2ndQuadrant\'s master
-> packaging/releases signing key. See [Verifying digital
-> signatures](appendix-signatures.md).
-
 ### 2.2.2.3. Install BDR for PostgreSQL 9.6 from packages for Debian or Ubuntu
 
 BDR for PostgreSQL 9.6 is just an extension. To install it, run:
@@ -141,10 +133,6 @@ To install BDR from RPMs you should first download and install the
 repository RPM for your distro. This RPM will configure the download
 location for the BDR packages and load the signing key into your RPM
 database so that the package digital signatures may be verified.
-
-> **Note:** The repository RPM is signed with 2ndQuadrant\'s master
-> packaging/releases signing key. See [Verifying digital
-> signatures](appendix-signatures.md).
 
 RHEL and CentOS users should download and install the appropriate repo
 rpm: See [BDR repository
@@ -241,10 +229,6 @@ Install and activate the
 PostgreSQL repository. This is required by the Postgres-BDR 9.4
 packages. Do [ *not*] emphasis install PostgreSQL 9.4 from
 apt.postgresql.org.
-
-> **Note:** The package signing key is signed with 2ndQuadrant\'s master
-> packaging/releases signing key. See [Verifying digital
-> signatures](appendix-signatures.md).
 
 ### 2.2.5.2. Installing Postgres-BDR 9.4 and BDR from packages for Debian or Ubuntu
 

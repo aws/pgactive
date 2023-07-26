@@ -87,45 +87,13 @@ II\. [BDR administration manual](manual.md)
 
 A. [Release notes](releasenotes.md)
 
-A.1. [Release 2.0.5](release-2.0.5.md)
+B. [Technical notes](technotes.md)
 
-A.2. [Release 2.0.4](release-2.0.4.md)
+B.1. [BDR network structure](technotes-mesh.md)
 
-A.3. [Release 2.0.3](release-2.0.3.md)
+B.2. [DDL locking details](technotes-ddl-locking.md)
 
-A.4. [Release 2.0.2](release-2.0.2.md)
-
-A.5. [Release 2.0.1](release-2.0.1.md)
-
-A.6. [Release 2.0.0](release-2.0.0.md)
-
-A.7. [Release 1.0.2](release-1.0.2.md)
-
-A.8. [Release 1.0.1](release-1.0.1.md)
-
-A.9. [Release 1.0.0](release-1.0.0.md)
-
-A.10. [Release 0.9.3](release-0.9.3.md)
-
-A.11. [Release 0.9.2](release-0.9.2.md)
-
-A.12. [Release 0.9.1](release-0.9.1.md)
-
-A.13. [Release 0.9.0](release-0.9.0.md)
-
-A.14. [Release 0.8.0](release-0.8.0.md)
-
-A.15. [Release 0.7.0](release-0.7.md)
-
-B. [Verifying digital signatures](appendix-signatures.md)
-
-C. [Technical notes](technotes.md)
-
-C.1. [BDR network structure](technotes-mesh.md)
-
-C.2. [DDL locking details](technotes-ddl-locking.md)
-
-C.3. [Full table rewrites](technotes-rewrites.md)
+B.3. [Full table rewrites](technotes-rewrites.md)
 
 [Index](bookindex.md)
 

@@ -130,18 +130,7 @@ functions](functions-conflict-handlers.md)
 
 13.11. [bdr.bdr_queued_drops](catalog-bdr-queued-drops.md)
 
-14\. [Upgrading [BDR]](upgrade.md)
-
-14.1. [Upgrading 2.0.x to 2.0.y releases](x4421.md)
-
-14.2. [Upgrading BDR 1.0 to BDR 2.0 and Postgres-BDR 9.4 to PostgreSQL
-9.6](x4424.md)
-
-14.3. [Upgrading BDR 0.9.x to 1.0](x4537.md)
-
-14.4. [Upgrading 0.8.x to 1.0](x4541.md)
-
-
+14. [Upgrading [BDR]](upgrade.md)
 
   ------------------------------------------------ ----------------------------------- --------------------------------------
   [Prev](quickstart-testing.md)    [Home](README.md)    [Next](settings.md)  
