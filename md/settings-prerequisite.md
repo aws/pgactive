@@ -61,15 +61,6 @@ appropriate values.
     [PostgreSQL]
     [documentation](http://www.postgresql.org/docs/current/interactive/runtime-config-wal.html#GUC-WAL-LEVEL).
 
-`default_sequenceam` (`string`)
-
-    This option is deprecated. On PostgreSQL 9.6 it is not supported and
-    may not be set. On BDR-Postgres 9.4 it can be used to activate the
-    old global sequences implementation; see [Global
-    sequences](global-sequences.md) and the BDR 1.0 documentation.
-
-
-
   -------------------------------------- ------------------------------------ ---------------------------------------------------------
   [Prev](settings.md)    [Home](README.md)     [Next](bdr-configuration-variables.md)  
   Configuration Settings                  [Up](settings.md)                       BDR specific configuration variables

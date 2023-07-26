@@ -11,8 +11,6 @@ To use a global sequence, create a local sequence with
 must be `BIGINT` as the result is 64 bits wide.
 
 ``` PROGRAMLISTING
-   BEGIN;
-
     CREATE TABLE gstest (
       id bigint primary key,
       parrot text
@@ -21,8 +19,92 @@ must be `BIGINT` as the result is 64 bits wide.
     CREATE SEQUENCE gstest_id_seq OWNED BY gstest.id;
 
     ALTER TABLE gstest ALTER COLUMN id SET DEFAULT bdr.bdr_snowflake_id_nextval('gstest_id_seq');
-   
-   
+```
+
+For instance, utility functions like the following can help convert all local
+sequences to global sequences and vice versa. It is recommended to change these
+functions to taste - like converting only a few specified sequences, skip some
+tables or schemas and so on.
+
+``` PROGRAMLISTING
+  CREATE FUNCTION convert_local_seqs_to_snowflake_id_seqs()
+  RETURNS VOID
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    schema_name text;
+    table_name text;
+    column_name text;
+    sequence_name text;
+    default_expr text;
+    query text;
+  BEGIN
+    FOR schema_name, table_name, column_name, sequence_name, default_expr IN
+        EXECUTE 'SELECT pg_namespace.nspname AS schema_name,
+          pg_class.relname AS table_name,
+          attname AS column_name,
+          pg_get_serial_sequence(attrelid::regclass::text, attname) AS sequence_name,
+          pg_get_expr(adbin, adrelid) AS default_expr
+          FROM pg_attribute
+          JOIN pg_attrdef ON adrelid = attrelid AND adnum = attnum
+          JOIN pg_class ON attrelid = pg_class.oid
+          JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
+          WHERE attnum > 0
+          AND NOT attisdropped
+          AND pg_get_serial_sequence(attrelid::regclass::text, attname) IS NOT NULL
+          AND pg_namespace.nspname <> ''bdr'';'
+    LOOP
+      IF default_expr NOT LIKE 'bdr.bdr_snowflake_id_nextval%' THEN
+        query := format('ALTER TABLE %s.%s ALTER COLUMN %s SET DEFAULT bdr.bdr_snowflake_id_nextval(''%s''::regclass)',
+                        schema_name, table_name, column_name, sequence_name);
+        EXECUTE query;
+        RAISE NOTICE 'globalized sequence: % for column: % table: % schema: %',
+                     sequence_name, column_name, table_name, schema_name;
+      END IF;
+    END LOOP;
+  END;
+  $$;
+
+  SELECT convert_local_seqs_to_snowflake_id_seqs();
+
+  CREATE FUNCTION convert_snowflake_id_seqs_to_local_seqs()
+  RETURNS VOID
+  LANGUAGE plpgsql
+  AS $$
+  DECLARE
+    schema_name text;
+    table_name text;
+    column_name text;
+    sequence_name text;
+    default_expr text;
+    query text;
+  BEGIN
+    FOR schema_name, table_name, column_name, sequence_name, default_expr IN
+      EXECUTE 'SELECT pg_namespace.nspname AS schema_name,
+        pg_class.relname AS table_name,
+        attname AS column_name,
+        pg_get_serial_sequence(attrelid::regclass::text, attname) AS sequence_name,
+        pg_get_expr(adbin, adrelid) AS default_expr
+        FROM pg_attribute
+        JOIN pg_attrdef ON adrelid = attrelid AND adnum = attnum
+        JOIN pg_class ON attrelid = pg_class.oid
+        JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
+        WHERE attnum > 0
+        AND NOT attisdropped
+        AND pg_get_serial_sequence(attrelid::regclass::text, attname) IS NOT NULL
+        AND pg_get_expr(adbin, adrelid) LIKE ''bdr.bdr_snowflake_id_nextval%''
+        AND pg_namespace.nspname <> ''bdr'';'
+    LOOP
+      query := format('ALTER TABLE %s.%s ALTER COLUMN %s SET DEFAULT nextval(''%s''::regclass)',
+                      schema_name, table_name, column_name, sequence_name);
+      EXECUTE query;
+      RAISE NOTICE 'localized sequence: % for column: % table: % schema: %',
+                   sequence_name, column_name, table_name, schema_name;
+    END LOOP;
+  END;
+  $$;
+
+  SELECT convert_snowflake_id_seqs_to_local_seqs();
 ```
 
 If you normally create the sequence as a `BIGSERIAL` column you
