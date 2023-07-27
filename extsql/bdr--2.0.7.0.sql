@@ -820,8 +820,19 @@ BEGIN
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
-        SELECT datlocprovider, datcollate, datctype, daticulocale, encoding, datcollversion
-          FROM pg_database WHERE datname = current_database() INTO local_db_collation_info_r;
+        -- Note that the columns datlocprovider, daticulocale and
+        -- datcollversion are avilable only from Postgres version 15 - commits
+        -- 37851a8b83d3, f2553d43060e introdued them.
+	      IF (current_setting('server_version_num')::int / 100) >= 1500 THEN
+          SELECT datlocprovider, datcollate, datctype, daticulocale, encoding,
+            datcollversion FROM pg_database
+            WHERE datname = current_database() INTO local_db_collation_info_r;
+        ELSE
+          SELECT NULL AS datlocprovider, datcollate, datctype,
+            NULL AS daticulocale, encoding,
+            NULL AS datcollversion FROM pg_database
+            WHERE datname = current_database() INTO local_db_collation_info_r;
+        END IF;
 
         IF local_db_collation_info_r.datlocprovider <> remote_nodeinfo.datlocprovider OR
            local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR

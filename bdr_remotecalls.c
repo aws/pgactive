@@ -325,10 +325,21 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	ri->version_num = parsed_version_num;
 	PQclear(res);
 
-	/* Acquire remote node database collation information. */
+	/*
+	 * Acquire remote node database collation information. Note that the
+	 * columns datlocprovider, daticulocale and datcollversion are avilable
+	 * only from Postgres version 15 - commits 37851a8b83d3, f2553d43060e
+	 * introdued them.
+	 */
+#if PG_VERSION_NUM >= 150000
 	res = PQexec(conn, "SELECT datlocprovider, datcollate, datctype, "
 					   "daticulocale, encoding, datcollversion "
 					   "FROM pg_database WHERE datname = current_database();");
+#else
+	res = PQexec(conn, "SELECT NULL AS datlocprovider, datcollate, datctype, "
+					   "NULL AS daticulocale, encoding, NULL AS datcollversion "
+					   "FROM pg_database WHERE datname = current_database();");
+#endif
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
