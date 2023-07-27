@@ -283,9 +283,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	bdr_ensure_ext_installed(conn);
 
 	/*
-	 * Acquire remote version string. Present since 0.7.x. This lets us decide
-	 * if we're going to ask for more info. Can also safely find out if we're
-	 * superuser at this point.
+	 * Acquire remote node information. With this, we can also safely find out
+	 * if we're superuser at this point.
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), "
 					   "current_setting('is_superuser') AS issuper, "
@@ -296,15 +295,12 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
-	{
 		ereport(ERROR,
-				(errmsg("unable to get BDR version string and is_superuser info from remote node"),
+				(errmsg("unable to get information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
-	}
 
 	Assert(PQnfields(res) == 7);
 	Assert(PQntuples(res) == 1);
-
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
 	ri->is_superuser = DatumGetBool(
@@ -317,19 +313,38 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 5))));
 	ri->cur_nodes = DatumGetInt32(
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 6))));
-
-  PQclear(res);
-
 	/*
 	 * Even though we should be able to get it from bdr_version_num, always
 	 * parse the BDR version so that the parse code gets sanity checked, and
 	 * so that we notice if the remote version is too old to have
 	 * bdr_version_num.
 	 */
-	parsed_version_num = bdr_parse_version(remote_bdr_version_str, NULL, NULL,
+	parsed_version_num = bdr_parse_version(ri->version, NULL, NULL,
 										   NULL, NULL);
 
 	ri->version_num = parsed_version_num;
+	PQclear(res);
+
+	/* Acquire remote node database collation information. */
+	res = PQexec(conn, "SELECT datlocprovider, datcollate, datctype, "
+					   "daticulocale, encoding, datcollversion "
+					   "FROM pg_database WHERE datname = current_database();");
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get database collation information from remote node"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+
+	Assert(PQnfields(res) == 6);
+	Assert(PQntuples(res) == 1);
+	ri->datlocprovider = PQgetisnull(res, 0, 0) ? '\0' : PQgetvalue(res, 0, 0)[0];
+	ri->datcollate = PQgetisnull(res, 0, 1) ? NULL : PQgetvalue(res, 0, 1);
+	ri->datctype = PQgetisnull(res, 0, 2) ? NULL : PQgetvalue(res, 0, 2);
+	ri->daticulocale = PQgetisnull(res, 0, 3) ? NULL : PQgetvalue(res, 0, 3);
+	ri->encoding = DatumGetInt32(
+								 DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 4))));
+	ri->datcollversion = PQgetisnull(res, 0, 5) ? NULL : PQgetvalue(res, 0, 5);
+	PQclear(res);
 
 	if (bdr_remote_has_bdr_func(conn, "bdr_version_num"))
 	{
@@ -479,8 +494,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[14];
-	bool		isnull[14];
+	Datum		values[20];
+	bool		isnull[20];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -510,11 +525,8 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		else
 		{
 			/* Old peer version lacks sysid info */
-			values[0] = (Datum) 0;
 			isnull[0] = true;
-			values[1] = (Datum) 0;
 			isnull[1] = true;
-			values[2] = (Datum) 0;
 			isnull[2] = true;
 		}
 		values[3] = CStringGetTextDatum(ri.variant);
@@ -532,6 +544,33 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[11] = Int64GetDatum(ri.dbsize);
 		values[12] = Int32GetDatum(ri.max_nodes);
 		values[13] = Int32GetDatum(ri.cur_nodes);
+
+		if (ri.datlocprovider == '\0')
+			isnull[14] = true;
+		else
+			values[14] = CharGetDatum(ri.datlocprovider);
+
+		if (ri.datcollate == NULL)
+			isnull[15] = true;
+		else
+			values[15] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[16] = true;
+		else
+			values[16] = CStringGetTextDatum(ri.datctype);
+
+		if (ri.daticulocale == NULL)
+			isnull[17] = true;
+		else
+			values[17] = CStringGetTextDatum(ri.daticulocale);
+
+		values[18] = Int32GetDatum(ri.encoding);
+
+		if (ri.datcollversion == NULL)
+			isnull[19] = true;
+		else
+			values[19] = CStringGetTextDatum(ri.datcollversion);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

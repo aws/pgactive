@@ -427,7 +427,13 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   dbname OUT text,
   dbsize OUT int8,
   max_nodes OUT integer,
-  cur_nodes OUT integer)
+  cur_nodes OUT integer,
+  datlocprovider OUT "char",
+  datcollate OUT text,
+  datctype OUT text,
+  daticulocale OUT text,
+  encoding OUT int,
+  datcollversion OUT text)
 RETURNS record
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
@@ -682,6 +688,7 @@ DECLARE
     remote_nodeinfo_r RECORD;
 	  cur_node RECORD;
     local_max_node_value integer;
+    local_db_collation_info_r RECORD;
 BEGIN
     -- Only one tx can be adding connections
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
@@ -812,6 +819,29 @@ BEGIN
                 HINT = 'Increase bdr.max_nodes parameter value on joining node as well as on all other BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
+
+        SELECT datlocprovider, datcollate, datctype, daticulocale, encoding, datcollversion
+          FROM pg_database WHERE datname = current_database() INTO local_db_collation_info_r;
+
+        IF local_db_collation_info_r.datlocprovider <> remote_nodeinfo.datlocprovider OR
+           local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR
+           local_db_collation_info_r.datctype <> remote_nodeinfo.datctype OR
+           local_db_collation_info_r.daticulocale <> remote_nodeinfo.daticulocale OR
+           local_db_collation_info_r.encoding <> remote_nodeinfo.encoding THEN
+            RAISE USING
+                MESSAGE = 'joining node and remote node have different database collation settings',
+                HINT = 'Use the same database collation settings for both nodes.',
+                ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        IF local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
+          RAISE WARNING USING
+            MESSAGE = format('joining node (version %s) and remote node (version %s) have different database collation versions',
+                             local_db_collation_info_r.datcollversion,
+                             remote_nodeinfo.datcollversion),
+            HINT = 'Use matching collation versions.';
+        END IF;
+
     END IF;
 
     -- Verify that we can make a replication connection to the remote node so
