@@ -129,7 +129,7 @@ functions](functions-node-mgmt.md)
 bdr.bdr_test_remote_connectback, [Information
 functions](functions-information.md)
 
-bdr.bdr_upgrade_to_090, [Upgrade functions](functions-upgrade.md)
+bdr.bdr_assign_seq_ids_post_upgrade, [Upgrade functions](functions-upgrade.md)
 
 bdr.bdr_version, [Information functions](functions-information.md)
 
