@@ -56,6 +56,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
 # tests.
 @EXPORT_OK   = qw(
     generate_bdr_logical_join_query
+	bdr_update_postgresql_conf
     copy_transform_postgresqlconf
     start_bdr_init_copy
     wait_detach_completion
