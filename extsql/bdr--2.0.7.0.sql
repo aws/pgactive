@@ -838,21 +838,13 @@ BEGIN
            local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR
            local_db_collation_info_r.datctype <> remote_nodeinfo.datctype OR
            local_db_collation_info_r.daticulocale <> remote_nodeinfo.daticulocale OR
-           local_db_collation_info_r.encoding <> remote_nodeinfo.encoding THEN
+           local_db_collation_info_r.encoding <> remote_nodeinfo.encoding OR
+	   local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
             RAISE USING
                 MESSAGE = 'joining node and remote node have different database collation settings',
                 HINT = 'Use the same database collation settings for both nodes.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
-
-        IF local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
-          RAISE WARNING USING
-            MESSAGE = format('joining node (version %s) and remote node (version %s) have different database collation versions',
-                             local_db_collation_info_r.datcollversion,
-                             remote_nodeinfo.datcollversion),
-            HINT = 'Use matching collation versions.';
-        END IF;
-
     END IF;
 
     -- Verify that we can make a replication connection to the remote node so
