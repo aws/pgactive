@@ -904,6 +904,36 @@ DECLARE
     connectback_nodeinfo record;
     remoteinfo record;
 BEGIN
+
+    -- Prohibit enabling BDR where pglogical is installed
+	IF (
+		SELECT count(1)
+		FROM pg_extension
+		WHERE extname = 'pglogical'
+		) > 0
+	THEN
+        RAISE USING
+            MESSAGE = 'BDR can''t be enabled because an external logical replication extension is installed',
+            ERRCODE = 'object_not_in_prerequisite_state',
+            DETAIL = 'BDR doesn''t allow a node to pull in changes from more than one logical replication sources';
+	END IF;
+
+    -- Prohibit enabling BDR where a subscription exists
+	IF (
+		SELECT count(1)
+		FROM pg_subscription
+		WHERE subdbid = (SELECT oid
+						 FROM pg_database
+						 WHERE datname = current_database()
+						)
+		) > 0
+	THEN
+        RAISE USING
+            MESSAGE = 'BDR can''t be enabled because a logical replication subscription is created',
+            ERRCODE = 'object_not_in_prerequisite_state',
+            DETAIL = 'BDR doesn''t allow a node to pull in changes from more than one logical replication sources';
+	END IF;
+
     IF node_external_dsn IS NULL THEN
         RAISE USING
             MESSAGE = 'dsn may not be null',
