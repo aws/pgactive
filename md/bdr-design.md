@@ -3,7 +3,7 @@
 
 Bi-Directional Replication (BDR) provides loosely coupled asynchronous or synchronous active-active logical replication between databases with mesh technology. This means that you can write to any of the databases in the BDR group and they will first be committed on the instance they were written to and then sent row by row to all of the other instances in the cluster.
 
-![Design Drawing](BiDiR.png)
+![Design Drawing](/md/BiDiR.png)
 
 #### Active-Active
 
