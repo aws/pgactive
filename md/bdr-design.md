@@ -1,8 +1,9 @@
 # BDR Design Document
 
 
-Bi-Directional Replication (BDR) provides loosely coupled asynchronous primary-primary logical replication between databases with mesh technology. This means that you can write to any of the databases in the BDR group and they will first be committed on the instance they were written to and then sent row by row to all of the other instances in the cluster.
-[Image: BDR.drawio.png]
+Bi-Directional Replication (BDR) provides loosely coupled asynchronous or synchronous active-active logical replication between databases with mesh technology. This means that you can write to any of the databases in the BDR group and they will first be committed on the instance they were written to and then sent row by row to all of the other instances in the cluster.
+
+![](/md/BiDir.png)
 
 #### Active-Active
 
@@ -29,8 +30,7 @@ Replication is the process of copying data from one place to another. In BDR ref
 
 #### Mesh Topology
 
-BDR uses a mesh topology, where every node can communicate directly with every other node. It doesn't support circular replication, forwarding, cascading, etc. Each pair of nodes communicates over a pair of (mostly) uni-directional
-channels, one to stream data from node A=\>B and one to stream data from node B=\>A. This means each node must be able to connect directly to each other node. Firewalls, NAT, etc must be configured accordingly.
+BDR uses a mesh topology, where every node can communicate directly with every other node. It is designed to avoids the pitfalls of circulation replication. It doesn't support forwarding, cascading replication for active nodes. Each pair of nodes communicates over a pair of (mostly) uni-directional channels, one to stream data from node A=\>B and one to stream data from node B=\>A. This means each node must be able to connect directly to each other node. Firewalls, NAT, etc must be configured accordingly.
 Every BDR node must have a [replication slot](https://www.postgresql.org/docs/current/logicaldecoding-explanation.html#LOGICALDECODING-REPLICATION-SLOTS) on every other BDR node so it can replay changes from the node, and
 every node must have a [replication origin](https://www.postgresql.org/docs/current/replication-origins.html) for each other node so it can keep track of replay progress. If nodes were allowed to join while another was offline or unreachable due to a network partition, it would have no way to replay any changes made on that node and the BDR group would get out of sync. Since BDR does not change forwarding during normal operation, that de-synchronization would not get resolved. The addition of enhanced change forwarding support could allow for cascading nodes isolated from the rest of the mesh, allow new nodes to join and lazily switch over to directly receiving data from a node when it becomes reachable, etc. It's not fundamentally necessary for all nodes to be reachable during node join, it's just a requirement for the current implementation. There's already limited change forwarding support in place and used for initial node clone. DDL locking enhancements would also be required.
 
@@ -61,7 +61,7 @@ In general it's more convenient to use logical join when you have an existing Po
 
 #### Removing a node
 
-Because BDR can recover from extended node outages it is necessary to explicitly tell the system if you are removing a node permanently. If you permanently shut down a node and don't tell the other nodes then performance will suffer and eventually the whole system will stop working.
+Because a BDR node can recover from extended outages it is necessary to explicitly tell the BDR group if you are removing a node permanently. If you decommission a node and don't tell the other nodes then remaining nodes may run out of disk space.
 
 Each node saves up change information using one replication slot for each peer node so it can replay changes to a temporarily unreachable node. If a peer node remains offline indefinitely this accumulating change information will cause the node to run out of storage space for PostgreSQL transaction logs (WAL, in pg_xlog), likely causing the database server to shut down with an error like:
 
@@ -179,7 +179,7 @@ If you normally create the sequence as a `BIGSERIAL` column you may continue to 
 
 ### Conflicts
 
-In multi-master use of BDR writes to the same or related table(s) from multiple different nodes can result in data conflicts. Some clustering systems use distributed lock mechanisms to prevent concurrent access to data. These can perform reasonably when servers are very close but cannot support geographically distributed applications as very low latency is critical for acceptable performance. Distributed locking is essentially a pessimistic approach, whereas BDR advocates an optimistic approach: avoid conflicts where possible but allow some types of conflict to occur and and resolve them when they arise.
+Due to the active-active nature of BDR writes to the same or related table(s) from multiple different nodes can result in data conflicts. Some clustering systems use distributed lock mechanisms to prevent concurrent access to data. These can perform reasonably when servers are very close but cannot support geographically distributed applications as very low latency is critical for acceptable performance. Distributed locking is essentially a pessimistic approach, whereas BDR advocates an optimistic approach: avoid conflicts where possible but allow some types of conflict to occur and and resolve them when they arise.
 
 #### How Conflicts Happen
 
@@ -201,7 +201,7 @@ The best course of action is frequently to allow conflicts to occur and design t
 
 #### Conflict logging
 
-To make diagnosis and handling of multi-master conflicts easier, BDR supports logging of each conflict incident in a [`bdr.bdr_conflict_history`](/md/catalog-bdr-conflict-history.md) table.
+To make diagnosis and handling of active-active conflicts easier, BDR supports logging of each conflict incident in a [`bdr.bdr_conflict_history`](/md/catalog-bdr-conflict-history.md) table.
 Conflict logging to this table is only enabled when [bdr.log_conflicts_to_table](https://github.com/aws/abba-pg-bdr/blob/main/md/bdr-configuration-variables.md#GUC-BDR-LOG-CONFLICTS-TO-TABLE) is `true` BDR also logs conflicts to the PostgreSQL log file if `log_min_messages` is `LOG `or lower, irrespective of the value of `bdr.log_conflicts_to_table`
 You can use the conflict history table to determine how rapidly your application creates conflicts and where those conflicts occur, allowing you to improve the application to reduce conflict rates. It also helps detect cases where conflict resolutions may not have produced the desired results, allowing you to identify places where a user defined conflict trigger or an application design change may be desirable.
 Row values may optionally be logged for row conflicts. This is controlled by the global database-wide option [`bdr.log_conflicts_to_table`](bdr-configuration-variables.md#GUC-BDR-LOG-CONFLICTS-TO-TABLE). There is no per-table control over row value logging at this time. Nor is there any limit applied on the number of fields a row may have, number of elements dumped in arrays, length of fields, etc, so it may not be wise to enable this if you regularly work with multi-megabyte rows that may trigger conflicts.
@@ -214,7 +214,7 @@ Because the conflict history table contains data on every table in the database 
 
 The major differences between physical replication and logical replication as implemented by BDR are:
 
-* Multi-master replication is possible. All members are writable nodes that replicate changes.
+* Active-active replication is possible. All members are writable nodes that replicate changes.
 * Data from index writes, `VACUUM`, hint bits, etc are not sent over the network, so bandwidth requirements may be reduced - especially when compared to physical replication with `full_page_writes`.
 * There is no need to use [`hot_standby_feedback`](http://www.postgresql.org/docs/current/static/runtime-config-replication.html#GUC-HOT-STANDBY-FEEDBACK) or to cancel long running queries on hot standbys, so there aren't any ["cancelling statement due to conflict with recovery"] errors.
 * Temporary tables may be used on replicas.
