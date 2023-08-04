@@ -36,7 +36,7 @@ every node must have a [replication origin](https://www.postgresql.org/docs/curr
 
 #### DDL 
 
-DDL replication is disabled by default. If needed, the configuration parameter `bdr.skip_ddl_replication` needs to be set to false on both the node and its upstream node(s). Even if a remote node sends DDL if DDL replication is turned off on the receiver the DDL will be skipped.
+DDL replication is disabled by default. If needed, the configuration parameter `bdr.skip_ddl_replication` needs to be set to false on all the node in the group. Even when a node has `bdr.skip_ddl_replication=false`, DDL will not be applied by the receiver(s) having  `bdr.skip_ddl_replication=true`.
 
 ### Security
 
