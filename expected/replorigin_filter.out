@@ -19,7 +19,8 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 (1 row)
 
 -- Simulate a write from some unknown peer node by defining a replication
--- origin and using it in our session. We must forward this write.
+-- origin and using it in our session. We must not forward the writes generated
+-- after replication origin is setup.
 INSERT INTO origin_filter(id, n1) VALUES (1, 1);
 SELECT pg_replication_origin_create('demo_origin');
  pg_replication_origin_create 
@@ -83,9 +84,7 @@ SELECT * FROM origin_filter ORDER BY id;
 ----+----
   1 |  1
   2 |  2
-  3 |  3
-  4 |  4
-(4 rows)
+(2 rows)
 
 \c :writedb1
 SELECT pg_replication_origin_session_is_setup();

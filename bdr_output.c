@@ -66,8 +66,6 @@
 #include "utils/typcache.h"
 #include "utils/varlena.h"
 
-#include "bdr_output_origin_filter.h"
-
 extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
 
 typedef struct
@@ -670,15 +668,11 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 
 		LWLockRelease(BdrWorkerCtl->lock);
 	}
-
-	bdrorigincache_init(ctx->context);
 }
 
 static void
 pg_decode_shutdown(LogicalDecodingContext *ctx)
 {
-	bdrorigincache_destroy();
-
 	/* release and free slot */
 	bdr_worker_shmem_release();
 }
@@ -699,13 +693,31 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 		return false;
 
 	/*
-	 * We used to forward unconditionally here. Now we try to forward only if
-	 * the changes came from BDR not something else.
+	 * We do not let the BDR output plugin replicate changes that came from BDR
+	 * peers to avoid replication loops. We used to check the replication
+	 * origin name to determine whether the changes came from peer BDR nodes or
+	 * non-BDR nodes. The commit 76a88a0ba23b874 introduced a shared hash table
+	 * to track all BDR replication origin names. We used this hash table to
+	 * filter out changes from peer BDR nodes and to forward changes from
+	 * non-BDR nodes. However, we determined a severe performance bottleneck
+	 * with the hash table lookup. A simple use-case that revealed this
+	 * bottleneck is - on a 2 node BDR group, bulk loaded data on node 1, upon
+	 * applying the changes received from node 1, the logical walsender on
+	 * node 2 corresponding to node 1 was performing a hash table lookup for
+	 * every decoded change. Due to this, frequent look up the walsender was
+	 * consuming ~100% CPU and any simple DML on node 2 was taking days to
+	 * reach node 1.
 	 *
-	 * XXX use bdr_origin_in_same_nodegroup on 94, and in 96 filter in
-	 * bdr_filter_by_origin_cb and assert then bail out here instead.
+	 * To avoid the performance bottleneck, we do two things - 1) We disallow a
+	 * BDR node pulling in changes from any non-BDR/external logical
+	 * replication solutions. 2) We removed the shared hash table completely.
+	 * With these things, a BDR node doesn't have to look for any replication
+	 * origin names to determine non-BDR changes. Because, every change that
+	 * comes with a valid origin_id is essentially from BDR peers, and can
+	 * safely be filtered out i.e. not forward further to avoid replication
+	 * loops.
 	 */
-	return !bdr_origin_in_same_nodegroup(origin_id);
+	return false;
 }
 
 static inline bool
