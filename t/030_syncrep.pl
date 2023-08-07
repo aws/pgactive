@@ -126,9 +126,9 @@ $node_b->start;
 # Because Pg commits a txn in sync rep before checking sync, once B comes back up
 # and catches up, we should see the txn from when it was down.
 #
-# FIXME: use slot catchup
+# Make sure node_b is fully caught up with node_a changes after restart
+wait_for_apply($node_a, $node_b);
 
-sleep(10);
 is($node_b->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'A: 1-1 B1']), '1', 'B received xact from A');
 is($node_a->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'A: 1-1 B1']), '1', 'committed xact visible on A after B confirms');
 

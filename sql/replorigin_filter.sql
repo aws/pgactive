@@ -13,7 +13,8 @@ $DDL$);
 SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- Simulate a write from some unknown peer node by defining a replication
--- origin and using it in our session. We must forward this write.
+-- origin and using it in our session. We must not forward the writes generated
+-- after replication origin is setup.
 
 INSERT INTO origin_filter(id, n1) VALUES (1, 1);
 

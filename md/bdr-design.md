@@ -233,6 +233,10 @@ The major differences between physical replication and logical replication as im
 * Large objects (pg_largeobject, lo_create, and so on) are not handled by logical decoding, so it cannot be replicated by BDR
 * Sequence updates are not replicated by logical replication, as the underlying logical decoding facility does not support them. Traditional sequences don't work in an active-active environment anyway, so BDR offers alternatives.
 
+#### BDR and other logical replication sources
 
-
-
+BDR doesn't allow a node from pulling in changes from non-BDR logical
+replication sources. This means, a BDR node cannot be used as a subscriber
+either in PostgreSQL logical replication or pglogical extension. However, a
+non-BDR node can still pull in changes from a BDR node. For instance, a BDR
+node can be publisher in PostgreSQL logical replication.

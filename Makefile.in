@@ -45,7 +45,6 @@ OBJS = bdr.o \
 	bdr_messaging.o \
 	bdr_monitoring.o \
 	bdr_output.o \
-	bdr_output_origin_filter.o \
 	bdr_protocol.o \
 	bdr_relcache.o \
 	bdr_remotecalls.o \
