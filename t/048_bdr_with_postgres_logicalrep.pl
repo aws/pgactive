@@ -10,7 +10,11 @@ use PostgreSQL::Test::Cluster;
 use PostgreSQL::Test::Utils;
 use IPC::Run;
 use Test::More;
-use utils::nodemanagement;
+use utils::nodemanagement qw(
+        :DEFAULT
+        generate_bdr_logical_join_query
+		bdr_update_postgresql_conf
+        );
 
 # Create an upstream node and bring up bdr
 my $nodes = make_bdr_group(2,'node_');
@@ -72,5 +76,68 @@ wait_for_apply($node_1, $node_0);
 $result =
   $node_subscriber->safe_psql('postgres', q[SELECT count(*) FROM sports;]);
 is($result, qq(3), 'final table data on subscriber exists');
+
+$node_0->stop;
+$node_1->stop;
+$node_subscriber->stop;
+
+# Testing when PUBLICATION/SUBSCRIPTION is created before BDR is active
+my $node_a = PostgreSQL::Test::Cluster->new('node_a');
+my $node_b = PostgreSQL::Test::Cluster->new('node_b');
+
+for my $node ($node_a, $node_b) {
+	$node->init();
+	bdr_update_postgresql_conf($node);
+	$node->start;
+
+	$node->safe_psql('postgres', qq{CREATE DATABASE $bdr_test_dbname;});
+	$node->safe_psql($bdr_test_dbname, q{CREATE EXTENSION bdr;});
+}
+
+# Create publication
+$node_a->safe_psql($bdr_test_dbname, qq{CREATE PUBLICATION mypub FOR ALL TABLES;;});
+
+# Create subscription
+$pgport = $node_a->port;
+$pghost = $node_a->host;
+$publisher_connstr = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+$appname = 'bdr_with_logicalrep_test';
+
+$node_b->safe_psql($bdr_test_dbname,
+    qq{CREATE SUBSCRIPTION mysub CONNECTION '$publisher_connstr application_name=$appname' PUBLICATION mypub;});
+
+# Wait for initial sync to finish
+$node_b->wait_for_subscription_sync($node_a, $appname);
+
+# No problem to create a bdr group on the publisher
+create_bdr_group($node_a);
+
+# join the subscriber
+my $join_query = generate_bdr_logical_join_query($node_b, $node_a);
+
+# Must not use safe_psql since we expect an error here
+my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
+($psql_ret, $psql_stdout, $psql_stderr) = $node_b->psql(
+    $bdr_test_dbname,
+    $join_query);
+like($psql_stderr, qr/be enabled because a logical replication subscription is created/,
+     "joining of a node that has subscription fails");
+
+# create should fail too
+
+$pgport = $node_b->port;
+$pghost = $node_b->host;
+my $node_connstr = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+
+($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
+($psql_ret, $psql_stdout, $psql_stderr) = $node_b->psql(
+    $bdr_test_dbname,
+    qq{ SELECT bdr.bdr_create_group(local_node_name := '@{[ $node_b->name ]}',
+									node_external_dsn := '$node_connstr');
+	  }
+);
+
+like($psql_stderr, qr/be enabled because a logical replication subscription is created/,
+     "group creation of a node that has subscription fails");
 
 done_testing();
