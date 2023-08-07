@@ -1,3 +1,4 @@
+
 /* -------------------------------------------------------------------------
  *
  * bdr_remotecalls.c
@@ -251,9 +252,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	bdr_ensure_ext_installed(conn);
 
 	/*
-	 * Acquire remote version string. Present since 0.7.x. This lets us decide
-	 * if we're going to ask for more info. Can also safely find out if we're
-	 * superuser at this point.
+	 * Acquire remote node information. With this, we can also safely find out
+	 * if we're superuser at this point.
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), bdr.bdr_version_num(), "
 					   "bdr.bdr_variant(), bdr.bdr_min_remote_version_num(), "
@@ -271,7 +271,6 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	Assert(PQnfields(res) == 10);
 	Assert(PQntuples(res) == 1);
-
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
 	ri->version_num = atoi(PQgetvalue(res, 0, 1));
@@ -295,12 +294,30 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 * so that we notice if the remote version is too old to have
 	 * bdr_version_num.
 	 */
-	parsed_version_num = bdr_parse_version(remote_bdr_version_str, NULL, NULL,
+	parsed_version_num = bdr_parse_version(ri->version, NULL, NULL,
 										   NULL, NULL);
 
 	if (ri->version_num != parsed_version_num)
 		elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
 			 parsed_version_num, remote_bdr_version_str, ri->version_num);
+
+	PQclear(res);
+
+	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
+					   "WHERE datname = current_database();");
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get database collation information from remote node"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+
+	Assert(PQnfields(res) == 2);
+	Assert(PQntuples(res) == 1);
+	ri->datcollate =
+		PQgetisnull(res, 0, 0) ? NULL : pstrdup(PQgetvalue(res, 0, 0));
+	ri->datctype =
+		PQgetisnull(res, 0, 1) ? NULL : pstrdup(PQgetvalue(res, 0, 1));
+	PQclear(res);
 
 	/* Get the remote node identity */
 	res = PQexec(conn, "SELECT sysid, timeline, dboid "
@@ -363,8 +380,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[14];
-	bool		isnull[14];
+	Datum		values[16];
+	bool		isnull[16];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -394,11 +411,8 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		else
 		{
 			/* Old peer version lacks sysid info */
-			values[0] = (Datum) 0;
 			isnull[0] = true;
-			values[1] = (Datum) 0;
 			isnull[1] = true;
-			values[2] = (Datum) 0;
 			isnull[2] = true;
 		}
 		values[3] = CStringGetTextDatum(ri.variant);
@@ -416,6 +430,16 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[11] = Int64GetDatum(ri.dbsize);
 		values[12] = Int32GetDatum(ri.max_nodes);
 		values[13] = Int32GetDatum(ri.cur_nodes);
+
+		if (ri.datcollate == NULL)
+			isnull[14] = true;
+		else
+			values[14] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[15] = true;
+		else
+			values[15] = CStringGetTextDatum(ri.datctype);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

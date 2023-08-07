@@ -759,6 +759,10 @@ typedef struct remote_node_info
 	int64		dbsize;	/* database size in bytes */
 	int			max_nodes;
 	int			cur_nodes;
+
+	/* collation related info */
+	char	   *datcollate;
+	char	   *datctype;
 }			remote_node_info;
 
 extern void bdr_get_remote_nodeinfo_internal(PGconn *conn, remote_node_info * ri);
