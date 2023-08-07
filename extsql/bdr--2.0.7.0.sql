@@ -821,7 +821,7 @@ BEGIN
         END IF;
 
         -- Note that the columns datlocprovider, daticulocale and
-        -- datcollversion are avilable only from Postgres version 15 - commits
+        -- datcollversion are available only from Postgres version 15 - commits
         -- 37851a8b83d3, f2553d43060e introdued them.
 	      IF (current_setting('server_version_num')::int / 100) >= 1500 THEN
           SELECT datlocprovider, datcollate, datctype, daticulocale, encoding,
