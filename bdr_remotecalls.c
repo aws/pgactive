@@ -325,32 +325,20 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	ri->version_num = parsed_version_num;
 	PQclear(res);
 
-	/*
-	 * Acquire remote node database collation information. Note that the
-	 * datcollversion column is available only from Postgres version 15
-	 * introduced by commit 37851a8b83d3.
-	 */
-#if PG_VERSION_NUM >= 150000
-	res = PQexec(conn, "SELECT datcollate, datctype, datcollversion "
-					   "FROM pg_database WHERE datname = current_database();");
-#else
-	res = PQexec(conn, "SELECT datcollate, datctype, NULL AS datcollversion "
-					   "FROM pg_database WHERE datname = current_database();");
-#endif
+	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
+					   "WHERE datname = current_database();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
 				(errmsg("unable to get database collation information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-	Assert(PQnfields(res) == 3);
+	Assert(PQnfields(res) == 2);
 	Assert(PQntuples(res) == 1);
 	ri->datcollate =
 		PQgetisnull(res, 0, 0) ? NULL : pstrdup(PQgetvalue(res, 0, 0));
 	ri->datctype =
 		PQgetisnull(res, 0, 1) ? NULL : pstrdup(PQgetvalue(res, 0, 1));
-	ri->datcollversion =
-		PQgetisnull(res, 0, 2) ? NULL : pstrdup(PQgetvalue(res, 0, 2));
 	PQclear(res);
 
 	if (bdr_remote_has_bdr_func(conn, "bdr_version_num"))
@@ -501,8 +489,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[17];
-	bool		isnull[17];
+	Datum		values[16];
+	bool		isnull[16];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -561,11 +549,6 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 			isnull[15] = true;
 		else
 			values[15] = CStringGetTextDatum(ri.datctype);
-
-		if (ri.datcollversion == NULL)
-			isnull[16] = true;
-		else
-			values[16] = CStringGetTextDatum(ri.datcollversion);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

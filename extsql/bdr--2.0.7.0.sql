@@ -429,8 +429,7 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   max_nodes OUT integer,
   cur_nodes OUT integer,
   datcollate OUT text,
-  datctype OUT text,
-  datcollversion OUT text)
+  datctype OUT text)
 RETURNS record
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
@@ -820,19 +819,11 @@ BEGIN
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
-        -- Note that the datcollversion column is available only from Postgres
-        -- version 15 introduced by commit 37851a8b83d3.
-	      IF (current_setting('server_version_num')::int / 100) >= 1500 THEN
-          SELECT datcollate, datctype, datcollversion FROM pg_database
-            WHERE datname = current_database() INTO local_db_collation_info_r;
-        ELSE
-          SELECT datcollate, datctype, NULL AS datcollversion FROM pg_database
-            WHERE datname = current_database() INTO local_db_collation_info_r;
-        END IF;
+        SELECT datcollate, datctype FROM pg_database
+          WHERE datname = current_database() INTO local_db_collation_info_r;
 
         IF local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR
-          local_db_collation_info_r.datctype <> remote_nodeinfo.datctype OR
-          local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
+           local_db_collation_info_r.datctype <> remote_nodeinfo.datctype THEN
 
           collation_errmsg := 'joining node and remote node have different database collation settings';
           collation_hintmsg := 'Use the same database collation settings for both nodes.';

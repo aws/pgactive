@@ -763,7 +763,6 @@ typedef struct remote_node_info
 	/* collation related info */
 	char	   *datcollate;
 	char	   *datctype;
-	char	   *datcollversion;
 }			remote_node_info;
 
 extern void bdr_get_remote_nodeinfo_internal(PGconn *conn, remote_node_info * ri);
