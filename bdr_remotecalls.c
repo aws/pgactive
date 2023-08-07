@@ -301,8 +301,6 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
 			 parsed_version_num, remote_bdr_version_str, ri->version_num);
 
-	PQclear(res);
-
 	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
 					   "WHERE datname = current_database();");
 
