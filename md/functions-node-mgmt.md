@@ -49,7 +49,7 @@ creation, and [Replication Sets](replication-sets.md) for more on how
 replication sets work.
 
 
-`bdr.bdr_join_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
+`bdr.bdr_join_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`, `*`bypass_collation_checks boolean DEFAULT false`*`)`
 
 void
 
@@ -72,7 +72,15 @@ physically a node you removed with
 `bdr.bdr_detach_nodes()`. See [Joining a
 node](node-management-joining.md) for details on node joining and
 creation, and [Replication Sets](replication-sets.md) for more on how
-replication sets work.
+replication sets work. Typically, BDR expects same collation settings across
+all BDR nodes to avoid any issues that arise with differences in collations.
+BDR compares joining node collation settings with remote node, and errors out
+on any of the collation settings mismatches. However, sometimes it is expected
+for the remote node to have different collation settings than the joining node
+(for instance, when upgrading a BDR node), then pass
+*`bypass_collation_checks`* as true to continue with the node joining.
+
+*`join_using_dsn`*
 
 
 `bdr.bdr_detach_nodes(`*`p_nodes text[]`*`)`

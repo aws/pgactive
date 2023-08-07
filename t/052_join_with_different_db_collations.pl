@@ -42,7 +42,7 @@ my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
 ($psql_ret, $psql_stdout, $psql_stderr) = $node_b->psql(
     $bdr_test_dbname,
     $join_query);
-like($psql_stderr, qr/joining node and remote node have different database collation settings/,
+like($psql_stderr, qr/.*ERROR.*joining node and remote node have different database collation settings/,
      "joining of a node failed due to different different database collation settings");
 
 done_testing();

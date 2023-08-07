@@ -761,11 +761,8 @@ typedef struct remote_node_info
 	int			cur_nodes;
 
 	/* collation related info */
-	char		datlocprovider;
 	char	   *datcollate;
 	char	   *datctype;
-	char	   *daticulocale;
-	int			encoding;
 	char	   *datcollversion;
 }			remote_node_info;
 

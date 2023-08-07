@@ -428,11 +428,8 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   dbsize OUT int8,
   max_nodes OUT integer,
   cur_nodes OUT integer,
-  datlocprovider OUT "char",
   datcollate OUT text,
   datctype OUT text,
-  daticulocale OUT text,
-  encoding OUT int,
   datcollversion OUT text)
 RETURNS record
 AS 'MODULE_PATHNAME'
@@ -673,7 +670,8 @@ CREATE FUNCTION _bdr_begin_join_private (
     remote_dsn text,
     remote_sysid OUT text,
     remote_timeline OUT oid,
-    remote_dboid OUT oid
+    remote_dboid OUT oid,
+    bypass_collation_checks boolean
 )
 RETURNS record LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -689,6 +687,8 @@ DECLARE
 	  cur_node RECORD;
     local_max_node_value integer;
     local_db_collation_info_r RECORD;
+    collation_errmsg text;
+    collation_hintmsg text;
 BEGIN
     -- Only one tx can be adding connections
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
@@ -820,30 +820,34 @@ BEGIN
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
-        -- Note that the columns datlocprovider, daticulocale and
-        -- datcollversion are available only from Postgres version 15 - commits
-        -- 37851a8b83d3, f2553d43060e introdued them.
+        -- Note that the datcollversion column is available only from Postgres
+        -- version 15 introduced by commit 37851a8b83d3.
 	      IF (current_setting('server_version_num')::int / 100) >= 1500 THEN
-          SELECT datlocprovider, datcollate, datctype, daticulocale, encoding,
-            datcollversion FROM pg_database
+          SELECT datcollate, datctype, datcollversion FROM pg_database
             WHERE datname = current_database() INTO local_db_collation_info_r;
         ELSE
-          SELECT NULL AS datlocprovider, datcollate, datctype,
-            NULL AS daticulocale, encoding,
-            NULL AS datcollversion FROM pg_database
+          SELECT datcollate, datctype, NULL AS datcollversion FROM pg_database
             WHERE datname = current_database() INTO local_db_collation_info_r;
         END IF;
 
-        IF local_db_collation_info_r.datlocprovider <> remote_nodeinfo.datlocprovider OR
-           local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR
-           local_db_collation_info_r.datctype <> remote_nodeinfo.datctype OR
-           local_db_collation_info_r.daticulocale <> remote_nodeinfo.daticulocale OR
-           local_db_collation_info_r.encoding <> remote_nodeinfo.encoding OR
-	   local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
-            RAISE USING
-                MESSAGE = 'joining node and remote node have different database collation settings',
-                HINT = 'Use the same database collation settings for both nodes.',
-                ERRCODE = 'object_not_in_prerequisite_state';
+        IF local_db_collation_info_r.datcollate <> remote_nodeinfo.datcollate OR
+          local_db_collation_info_r.datctype <> remote_nodeinfo.datctype OR
+          local_db_collation_info_r.datcollversion <> remote_nodeinfo.datcollversion THEN
+
+          collation_errmsg := 'joining node and remote node have different database collation settings';
+          collation_hintmsg := 'Use the same database collation settings for both nodes.';
+
+          IF bypass_collation_checks THEN
+            RAISE WARNING USING
+              MESSAGE = collation_errmsg,
+              HINT = collation_hintmsg,
+              ERRCODE = 'object_not_in_prerequisite_state';
+          ELSE
+            RAISE EXCEPTION USING
+              MESSAGE = collation_errmsg,
+              HINT = collation_hintmsg,
+              ERRCODE = 'object_not_in_prerequisite_state';
+          END IF;
         END IF;
     END IF;
 
@@ -924,7 +928,8 @@ CREATE FUNCTION bdr_join_group (
     join_using_dsn text,
     node_local_dsn text DEFAULT NULL,
     apply_delay integer DEFAULT NULL,
-    replication_sets text[] DEFAULT ARRAY['default']
+    replication_sets text[] DEFAULT ARRAY['default'],
+    bypass_collation_checks boolean DEFAULT false
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -985,10 +990,12 @@ BEGIN
     PERFORM bdr.bdr_generate_node_identifier();
 
     PERFORM bdr._bdr_begin_join_private(
-        'bdr_join_group',
-        local_node_name,
-        CASE WHEN node_local_dsn IS NULL THEN node_external_dsn ELSE node_local_dsn END,
-        join_using_dsn);
+        caller := '',
+        local_node_name := local_node_name,
+        node_local_dsn := CASE WHEN node_local_dsn IS NULL
+          THEN node_external_dsn ELSE node_local_dsn END,
+        remote_dsn := join_using_dsn,
+        bypass_collation_checks := bypass_collation_checks);
 
     SELECT sysid, timeline, dboid INTO localid
     FROM bdr.bdr_get_local_nodeid();
@@ -1052,7 +1059,7 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[]) IS
+COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean) IS
 'Join an existing BDR group by connecting to a member node and copying its contents';
 
 CREATE FUNCTION bdr_create_group (

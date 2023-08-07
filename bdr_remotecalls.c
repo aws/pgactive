@@ -327,17 +327,14 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	/*
 	 * Acquire remote node database collation information. Note that the
-	 * columns datlocprovider, daticulocale and datcollversion are available
-	 * only from Postgres version 15 - commits 37851a8b83d3, f2553d43060e
-	 * introduced them.
+	 * datcollversion column is available only from Postgres version 15
+	 * introduced by commit 37851a8b83d3.
 	 */
 #if PG_VERSION_NUM >= 150000
-	res = PQexec(conn, "SELECT datlocprovider, datcollate, datctype, "
-					   "daticulocale, encoding, datcollversion "
+	res = PQexec(conn, "SELECT datcollate, datctype, datcollversion "
 					   "FROM pg_database WHERE datname = current_database();");
 #else
-	res = PQexec(conn, "SELECT NULL AS datlocprovider, datcollate, datctype, "
-					   "NULL AS daticulocale, encoding, NULL AS datcollversion "
+	res = PQexec(conn, "SELECT datcollate, datctype, NULL AS datcollversion "
 					   "FROM pg_database WHERE datname = current_database();");
 #endif
 
@@ -346,15 +343,14 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				(errmsg("unable to get database collation information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-	Assert(PQnfields(res) == 6);
+	Assert(PQnfields(res) == 3);
 	Assert(PQntuples(res) == 1);
-	ri->datlocprovider = PQgetisnull(res, 0, 0) ? '\0' : PQgetvalue(res, 0, 0)[0];
-	ri->datcollate = PQgetisnull(res, 0, 1) ? NULL : PQgetvalue(res, 0, 1);
-	ri->datctype = PQgetisnull(res, 0, 2) ? NULL : PQgetvalue(res, 0, 2);
-	ri->daticulocale = PQgetisnull(res, 0, 3) ? NULL : PQgetvalue(res, 0, 3);
-	ri->encoding = DatumGetInt32(
-								 DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 4))));
-	ri->datcollversion = PQgetisnull(res, 0, 5) ? NULL : PQgetvalue(res, 0, 5);
+	ri->datcollate =
+		PQgetisnull(res, 0, 0) ? NULL : pstrdup(PQgetvalue(res, 0, 0));
+	ri->datctype =
+		PQgetisnull(res, 0, 1) ? NULL : pstrdup(PQgetvalue(res, 0, 1));
+	ri->datcollversion =
+		PQgetisnull(res, 0, 2) ? NULL : pstrdup(PQgetvalue(res, 0, 2));
 	PQclear(res);
 
 	if (bdr_remote_has_bdr_func(conn, "bdr_version_num"))
@@ -505,8 +501,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[20];
-	bool		isnull[20];
+	Datum		values[17];
+	bool		isnull[17];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -556,32 +552,20 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[12] = Int32GetDatum(ri.max_nodes);
 		values[13] = Int32GetDatum(ri.cur_nodes);
 
-		if (ri.datlocprovider == '\0')
+		if (ri.datcollate == NULL)
 			isnull[14] = true;
 		else
-			values[14] = CharGetDatum(ri.datlocprovider);
-
-		if (ri.datcollate == NULL)
-			isnull[15] = true;
-		else
-			values[15] = CStringGetTextDatum(ri.datcollate);
+			values[14] = CStringGetTextDatum(ri.datcollate);
 
 		if (ri.datctype == NULL)
-			isnull[16] = true;
+			isnull[15] = true;
 		else
-			values[16] = CStringGetTextDatum(ri.datctype);
-
-		if (ri.daticulocale == NULL)
-			isnull[17] = true;
-		else
-			values[17] = CStringGetTextDatum(ri.daticulocale);
-
-		values[18] = Int32GetDatum(ri.encoding);
+			values[15] = CStringGetTextDatum(ri.datctype);
 
 		if (ri.datcollversion == NULL)
-			isnull[19] = true;
+			isnull[16] = true;
 		else
-			values[19] = CStringGetTextDatum(ri.datcollversion);
+			values[16] = CStringGetTextDatum(ri.datcollversion);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
