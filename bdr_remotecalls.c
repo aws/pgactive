@@ -1,3 +1,4 @@
+
 /* -------------------------------------------------------------------------
  *
  * bdr_remotecalls.c
@@ -235,38 +236,6 @@ bdr_copytable_test(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
-static bool
-bdr_remote_has_bdr_func(PGconn *conn, const char *funcname)
-{
-	PGresult   *res;
-	const char *params[1];
-	bool		found;
-
-	params[0] = funcname;
-
-	/* Check if a function is defined in the bdr namespace in pg_proc */
-	res = PQexecParams(conn, "SELECT 1 FROM pg_proc p "
-					   "INNER JOIN pg_namespace n ON (p.pronamespace = n.oid) "
-					   "WHERE n.nspname = 'bdr' AND p.proname = $1;",
-					   1, NULL, params, NULL, NULL, 0);
-
-	if (PQresultStatus(res) != PGRES_TUPLES_OK)
-	{
-		ereport(ERROR,
-				(errmsg("getting remote available functions failed"),
-				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
-	}
-
-	Assert(PQnfields(res) == 1);
-	Assert(PQntuples(res) == 0 || PQntuples(res) == 1);
-
-	found = (PQntuples(res) == 1);
-
-	PQclear(res);
-
-	return found;
-}
-
 /*
  * The implementation guts of bdr_get_remote_nodeinfo, callable with
  * a pre-existing connection.
@@ -286,7 +255,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 * Acquire remote node information. With this, we can also safely find out
 	 * if we're superuser at this point.
 	 */
-	res = PQexec(conn, "SELECT bdr.bdr_version(), "
+	res = PQexec(conn, "SELECT bdr.bdr_version(), bdr.bdr_version_num(), "
+					   "bdr.bdr_variant(), bdr.bdr_min_remote_version_num(), "
 					   "current_setting('is_superuser') AS issuper, "
 					   "bdr.bdr_get_local_node_name() AS node_name, "
 					   "current_database()::text AS dbname, "
@@ -296,23 +266,28 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
-				(errmsg("unable to get information from remote node"),
+				(errmsg("unable to get BDR information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-	Assert(PQnfields(res) == 7);
+	Assert(PQnfields(res) == 10);
 	Assert(PQntuples(res) == 1);
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
+	ri->version_num = atoi(PQgetvalue(res, 0, 1));
+	ri->variant = pstrdup(PQgetvalue(res, 0, 2));
+	ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 3));
 	ri->is_superuser = DatumGetBool(
-									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 1))));
-	ri->node_name = pstrdup(PQgetvalue(res, 0, 2));
-	ri->dbname = pstrdup(PQgetvalue(res, 0, 3));
+									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 4))));
+	ri->node_name = pstrdup(PQgetvalue(res, 0, 5));
+	ri->dbname = pstrdup(PQgetvalue(res, 0, 6));
 	ri->dbsize = DatumGetInt64(
-							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 4))));
+							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 7))));
  	ri->max_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 5))));
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 8))));
 	ri->cur_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 6))));
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 9))));
+	PQclear(res);
+
 	/*
 	 * Even though we should be able to get it from bdr_version_num, always
 	 * parse the BDR version so that the parse code gets sanity checked, and
@@ -322,8 +297,9 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	parsed_version_num = bdr_parse_version(ri->version, NULL, NULL,
 										   NULL, NULL);
 
-	ri->version_num = parsed_version_num;
-	PQclear(res);
+	if (ri->version_num != parsed_version_num)
+		elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
+			 parsed_version_num, remote_bdr_version_str, ri->version_num);
 
 	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
 					   "WHERE datname = current_database();");
@@ -341,148 +317,61 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		PQgetisnull(res, 0, 1) ? NULL : pstrdup(PQgetvalue(res, 0, 1));
 	PQclear(res);
 
-	if (bdr_remote_has_bdr_func(conn, "bdr_version_num"))
+	/* Get the remote node identity */
+	res = PQexec(conn, "SELECT sysid, timeline, dboid "
+					   "FROM bdr.bdr_get_local_nodeid();");
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get remote node identity"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+
+	Assert(PQnfields(res) == 3);
+	Assert(PQntuples(res) == 1);
+
+	for (i = 0; i < 3; i++)
 	{
-		/*
-		 * Can safely query for numeric version and min remote version. They
-		 * were added at the same time. The variant is also available; while
-		 * it was added earlier, in reality nobody's going to be using it or
-		 * caring.
-		 */
-		res = PQexec(conn, "SELECT bdr.bdr_version_num(), "
-					 "       bdr.bdr_variant() AS variant, "
-					 "       bdr.bdr_min_remote_version_num();");
+		if (PQgetisnull(res, 0, i))
+			elog(ERROR, "unexpectedly null field %s", PQfname(res, i));
+	}
 
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			ereport(ERROR,
-					(errmsg("getting remote numeric BDR version failed"),
-					 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
-		}
+	ri->sysid_str = pstrdup(PQgetvalue(res, 0, 0));
+	if (sscanf(ri->sysid_str, UINT64_FORMAT, &ri->nodeid.sysid) != 1)
+		elog(ERROR, "could not parse remote sysid %s", ri->sysid_str);
 
-		Assert(PQnfields(res) == 3);
-		Assert(PQntuples(res) == 1);
+	ri->nodeid.timeline = DatumGetObjectId(
+										   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
+	ri->nodeid.dboid = DatumGetObjectId(
+										DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
+	PQclear(res);
 
-		ri->version_num = atoi(PQgetvalue(res, 0, 0));
-		ri->variant = pstrdup(PQgetvalue(res, 0, 1));
-		ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 2));
+	/* Get the remote node status */
+	res = PQexec(conn, "SELECT node_status FROM bdr.bdr_nodes WHERE "
+					   "(node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();");
 
-		if (ri->version_num != parsed_version_num)
-			elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
-				 parsed_version_num, remote_bdr_version_str, ri->version_num);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get remote node status"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-		PQclear(res);
+	Assert(PQnfields(res) == 1);
+
+	if (PQntuples(res) == 0)
+	{
+		/* This happens when creating first node in BDR group */
+		ri->node_status = '\0';
+	}
+	else if (PQntuples(res) == 1)
+	{
+		if (PQgetisnull(res, 0, 0))
+			elog(ERROR, "unexpectedly null field node_status in bdr.bdr_nodes");
+
+		ri->node_status = PQgetvalue(res, 0, 0)[0];
 	}
 	else
-	{
-		/*
-		 * Must be an old version, can't get numeric version.
-		 *
-		 * All supported versions prior to introduction of bdr_version_num()
-		 * have a min_remote_version_num of 000700, we can safely report that.
-		 * For the version we have to parse it from the text version.
-		 */
+		elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
 
-		/* Shouldn't happen, but as a sanity check: */
-		if (parsed_version_num > 900)
-			elog(ERROR, "remote BDR version reported as %s (n=%d) but bdr.bdr_version_num() missing",
-				 remote_bdr_version_str, parsed_version_num);
-
-		ri->version_num = parsed_version_num;
-		ri->variant = pstrdup("BDR");
-		ri->min_remote_version_num = 700;
-	}
-
-	/*
-	 * If the node is new enough, get the remote peer's identity. Otherwise
-	 * zero them out.
-	 */
-	if (bdr_remote_has_bdr_func(conn, "bdr_get_local_nodeid"))
-	{
-		/* Acquire sysid, timeline, dboid */
-		res = PQexec(conn, "SELECT sysid, timeline, dboid "
-					 "FROM bdr.bdr_get_local_nodeid()");
-
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			ereport(ERROR,
-					(errmsg("getting remote node id failed"),
-					 errdetail("SELECT sysid, timeline, dboid FROM bdr.bdr_get_local_nodeid() failed with: %s",
-							   PQerrorMessage(conn))));
-		}
-
-		Assert(PQnfields(res) == 3);
-
-		if (PQntuples(res) != 1)
-			elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
-
-		for (i = 0; i < 3; i++)
-		{
-			if (PQgetisnull(res, 0, i))
-				elog(ERROR, "unexpectedly null field %s", PQfname(res, i));
-		}
-
-		ri->sysid_str = pstrdup(PQgetvalue(res, 0, 0));
-
-		if (sscanf(ri->sysid_str, UINT64_FORMAT, &ri->nodeid.sysid) != 1)
-			elog(ERROR, "could not parse remote sysid %s", ri->sysid_str);
-
-		ri->nodeid.timeline = DatumGetObjectId(
-											   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
-		ri->nodeid.dboid = DatumGetObjectId(
-											DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
-
-		PQclear(res);
-	}
-	else
-	{
-		/*
-		 * No way to know the node id on old versions.
-		 *
-		 * Indicate this with a null sysid and invalid timeline and dboid. We
-		 * can actually get the dboid from the peer but there's no point.
-		 */
-		ri->sysid_str = NULL;
-		ri->nodeid.sysid = 0;
-		ri->nodeid.timeline = InvalidOid;
-		ri->nodeid.dboid = InvalidOid;
-	}
-
-	/*
-	 * If we can identify which row is the remote node over SQL, get the
-	 * bdr.bdr_nodes status entry for the remote peer.
-	 */
-	if (ri->sysid_str != NULL)
-	{
-		res = PQexec(conn, "SELECT node_status FROM bdr.bdr_nodes WHERE (node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid()");
-
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			ereport(ERROR,
-					(errmsg("getting remote node status failed"),
-					 errdetail("With: %s",
-							   PQerrorMessage(conn))));
-		}
-
-		Assert(PQnfields(res) == 1);
-
-		if (PQntuples(res) == 0)
-		{
-			ri->node_status = '\0';
-		}
-		else if (PQntuples(res) == 1)
-		{
-			if (PQgetisnull(res, 0, 0))
-				elog(ERROR, "unexpectedly null field node_status in bdr.bdr_nodes");
-
-			ri->node_status = PQgetvalue(res, 0, 0)[0];
-		}
-		else
-			elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
-
-		PQclear(res);
-	}
-
+	PQclear(res);
 }
 
 Datum
