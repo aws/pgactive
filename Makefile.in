@@ -201,16 +201,13 @@ $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_check: $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm
-	$(MAKE) -C bdr_toy -f ${bdr_abs_srcdir}/bdr_toy/Makefile VPATH=${bdr_abs_srcdir}/bdr_toy install
 	rm -rf $(CURDIR)/tmp_check/
 	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),t/*.pl)
-	$(MAKE) -C bdr_toy -f ${bdr_abs_srcdir}/bdr_toy/Makefile VPATH=${bdr_abs_srcdir}/bdr_toy clean
 else
 $(pgxsdir)/src/test/perl/PostgresNode.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgresNode.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_check: $(pgxsdir)/src/test/perl/PostgresNode.pm
-	$(MAKE) -C bdr_toy -f ${bdr_abs_srcdir}/bdr_toy/Makefile VPATH=${bdr_abs_srcdir}/bdr_toy install
 	rm -rf $(CURDIR)/tmp_check/
 	rm -rf $(CURDIR)/tmp_tap_tests/
 	mkdir $(CURDIR)/tmp_tap_tests/
@@ -240,7 +237,6 @@ prove_check: $(pgxsdir)/src/test/perl/PostgresNode.pm
 	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),tmp_tap_tests/t/*.pl)
 
 	rm -rf $(CURDIR)/tmp_tap_tests/
-	$(MAKE) -C bdr_toy -f ${bdr_abs_srcdir}/bdr_toy/Makefile VPATH=${bdr_abs_srcdir}/bdr_toy clean
 endif
 
 # Disabled because these tests require "wal_level=logical" and other custom
