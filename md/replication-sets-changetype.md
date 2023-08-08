@@ -36,7 +36,9 @@ by a replication set take effect only for new data changes; no
 already-replicated rows will be retroactively changed.
 
   **Warning**
-  Currently the `TRUNCATE` operation is [*always*] replicated, even if a table is not a member of any active replication set. Use `DELETE FROM tablename;` if this is not desired.
+  `TRUNCATE` is a DDL operation, when `bdr.skip_ddl_replication=true` all the DDL
+   are skipped including Truncate.
+  Currently the `TRUNCATE` operation is [*always*] replicated if `bdr.skip_ddl_replication=false`, even if a table is not a member of any active replication set. Use `DELETE FROM tablename;` if this is not desired.
 
 
 
