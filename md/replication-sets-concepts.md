@@ -56,7 +56,10 @@ control functions.
 > change in a future release).
 
   **Warning**
-  Currently `TRUNCATE` is [*always*] replicated, even if a table is not a member of any active replication set. Use `DELETE FROM tablename;` if this is not desired.
+  **Warning**
+  `TRUNCATE` is a DDL operation, when `bdr.skip_ddl_replication=true` all the DDL
+   are skipped including Truncate.
+  Currently the `TRUNCATE` operation is [*always*] replicated if `bdr.skip_ddl_replication=false`, even if a table is not a member of any active replication set. Use `DELETE FROM tablename;` if this is not desired.
 
 
 
