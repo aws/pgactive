@@ -46,6 +46,11 @@ The user specified in the connection DSN must be a superuser otherwise they do n
 
 Changes on the BDR nodes are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. The background workers must run as superuser.
 
+#### User mapping for BDR
+
+BDR allows user mappings to be specified in place of DSNs for `bdr.bdr_create_group` and `bdr.bdr_join_group` to encapsulate connection information that BDR nodes use to connect with each other in a BDR group. One
+can define foreign servers for each connection information of BDR nodes in a BDR group with CREATE FOREIGN SERVER command, associate user mappings defined with CREATE USER MAPPING foreign servers, and use them in place of DSNs.
+
 ### Node Management
 
 #### Joining a node
