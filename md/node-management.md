@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                  
+  [BDR 2.1.0 Documentation](README.md)                                                                                                  
   [Prev](bdr-configuration-variables.md "BDR specific configuration variables")   [Up](manual.md)        [Next](node-management-joining.md "Joining a node")  
 
 

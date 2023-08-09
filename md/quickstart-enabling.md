@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                 
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                 
   [Prev](quickstart-creating.md "Creating the demo databases")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-testing.md "Testing your BDR-enabled system")  
 
 

@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                       
+  [BDR 2.1.0 Documentation](README.md)                                                                                                       
   [Prev](functions-node-mgmt.md "Node management functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-conflict-handlers.md "Conflict handler management functions")  
 
 

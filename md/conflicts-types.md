@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                         
   [Prev](conflicts-how.md "How conflicts happen")   [Up](conflicts.md)    Chapter 9. Active-Active conflicts    [Next](conflicts-avoidance.md "Avoiding or tolerating conflicts")  
 
 

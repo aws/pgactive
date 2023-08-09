@@ -1,6 +1,6 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                
+  [BDR 2.1.0 Documentation](README.md)                                                                
   ------------------------------------------------------------- ----------------------------------- -- -----------------------------------------------------
-  [Prev](README.md "BDR 2.0.7 Documentation")   [Home](README.md)        [Next](overview.md "BDR overview")  
+  [Prev](README.md "BDR 2.1.0 Documentation")   [Home](README.md)        [Next](overview.md "BDR overview")  
 
 
 
@@ -51,5 +51,5 @@ nodes/instances](quickstart-enabling.md)
 
   ----------------------------------- ----------------------------------- --------------------------------------
   [Prev](README.md)    [Home](README.md)    [Next](overview.md)  
-  BDR 2.0.7 Documentation                                                                           BDR overview
+  BDR 2.1.0 Documentation                                                                           BDR overview
   ----------------------------------- ----------------------------------- --------------------------------------

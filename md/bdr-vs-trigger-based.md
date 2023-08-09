@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                                                             
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                                                             
   [Prev](logical-vs-physical.md "Differences between logical (row level) and physical (block level) replication")   [Up](overview.md)    Chapter 1. BDR overview    [Next](weak-coupled-activeactive.md "BDR: Weakly coupled Active-Active replication")  
 
 

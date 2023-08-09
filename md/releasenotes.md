@@ -1,14 +1,14 @@
-  [BDR 2.0.7 Documentation](README.md)                                                               
+  [BDR 2.1.0 Documentation](README.md)                                                               
   ------------------------------------------------------------ ----------------------------------- -- -----------------------------------------------------------
   [Prev](upgrade.md "Upgrading BDR")   [Home](README.md)        [Next](technotes.md "Technical notes")  
 
 
 # Release notes
 
-## Release notes for 2.0.7 version
+## Release notes for 2.1.0 version
 
-TODO: Add what's new 2.0.7 version
-Following are the notable changes that went into 2.0.7 version:
+TODO: Add what's new 2.1.0 version
+Following are the notable changes that went into 2.1.0 version:
 
 * Added support for PostgreSQL version 15
 * Added a GUC to configure maximum allowed nodes in BDR

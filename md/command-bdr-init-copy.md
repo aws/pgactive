@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [BDR 2.1.0 Documentation](README.md)                                                                                                    
   --------------------------------------------------------------- ------------------------------------ ----------------------------------- -----------------------------------------------------
   [Prev](commands.md "Command-line Utilities")   [Up](commands.md)    Chapter 6. Command-line Utilities    [Next](monitoring.md "Monitoring")  
 

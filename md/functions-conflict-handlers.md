@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                              
+  [BDR 2.1.0 Documentation](README.md)                                                                                                              
   [Prev](functions-replication-sets.md "Replication Set functions")   [Up](functions.md)    Chapter 12. Functions    [Next](functions-information.md "Information functions")  
 
 

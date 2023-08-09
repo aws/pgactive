@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                       
+  [BDR 2.1.0 Documentation](README.md)                                                                                       
   [Prev](monitoring-postgres-stats.md "PostgreSQL statistics views")   [Up](manual.md)        [Next](ddl-replication-advice.md "Executing DDL on BDR systems")  
 
 

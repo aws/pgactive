@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [BDR 2.1.0 Documentation](README.md)                                                                                                    
   [Prev](settings.md "Configuration Settings")   [Up](settings.md)    Chapter 4. Configuration Settings    [Next](bdr-configuration-variables.md "BDR specific configuration variables")  
 
 

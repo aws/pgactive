@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                    
+  [BDR 2.1.0 Documentation](README.md)                                                                    
   [Prev](conflicts-logging.md "Conflict logging")   [Up](manual.md)        [Next](global-sequences-purpose.md "Purpose of global sequences")  
 
 

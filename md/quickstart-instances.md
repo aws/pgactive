@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                              
+  [BDR 2.1.0 Documentation](README.md)                                                                                              
   [Prev](quickstart.md "Quick-start guide")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-editing.md "Editing the configuration files to enable BDR")  
 
 

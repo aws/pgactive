@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                   
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                   
   [Prev](monitoring-node-join-remove.md "Monitoring node join/removal")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-ddl-lock.md "Monitoring global DDL locks")  
 
 

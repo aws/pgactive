@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                
+  [BDR 2.1.0 Documentation](README.md)                                                                                
   [Prev](bdr-concepts.md "Concepts")   [Up](overview.md)    Chapter 1. BDR overview    [Next](bdr-vs-trigger-based.md "Differences between BDR and trigger-based replication")  
 
 

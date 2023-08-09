@@ -1,5 +1,5 @@
 
-# BDR 2.0.7 Documentation
+# BDR 2.1.0 Documentation
 
 ### 2ndQuadrant Ltd
 
@@ -8,7 +8,7 @@ Development Group
 
 
 
-This book is the official documentation of BDR 2.0.7 for use with
+This book is the official documentation of BDR 2.1.0 for use with
 PostgreSQL 9.6 or with a modified version of PostgreSQL 9.4. It has been
 written by the [PostgreSQL] and BDR developers and other
 volunteers in parallel to the development of the BDR software. It

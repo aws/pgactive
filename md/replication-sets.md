@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                 
+  [BDR 2.1.0 Documentation](README.md)                                                                                 
   [Prev](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs")   [Up](manual.md)        [Next](replication-sets-concepts.md "Replication Set Concepts")
 
 # Chapter 11. Replication Sets

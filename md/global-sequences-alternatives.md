@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                     
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                     
  [Prev](global-sequences-orms.md "Global sequences and ORMs")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](replication-sets.md "Replication Sets")
 
 # 10.6. Traditional approaches to sequences in distributed DBs

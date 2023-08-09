@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                             
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                             
   [Prev](settings-prerequisite.md "Prerequisite PostgreSQL parameters")   [Up](settings.md)    Chapter 4. Configuration Settings    [Next](node-management.md "Node Management")  
 
 

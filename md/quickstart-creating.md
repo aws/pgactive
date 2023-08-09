@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                                         
   [Prev](quickstart-starting.md "Starting the BDR-enabled PostgreSQL nodes/instances")   [Up](quickstart.md)    Chapter 3. Quick-start guide    [Next](quickstart-enabling.md "Enabling BDR in SQL sessions for both of your nodes/instances")  
 
 

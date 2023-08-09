@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                           
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                           
   [Prev](catalog-bdr-queued-commands.md "bdr.bdr_queued_commands")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](upgrade.md "Upgrading BDR")
 
 # 13.11. bdr.bdr_queued_drops

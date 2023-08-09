@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                         
   [Prev](installation-source.md "Installing BDR from source")   [Up](getting-started.md)        [Next](quickstart-instances.md "Creating BDR-enabled PostgreSQL nodes/instances")  
 
 

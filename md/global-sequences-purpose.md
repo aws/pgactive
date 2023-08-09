@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                         
   [Prev](global-sequences.md "Global Sequences")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-when.md "When to use global sequences")  
 
 

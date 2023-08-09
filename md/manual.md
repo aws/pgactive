@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                     
+  [BDR 2.1.0 Documentation](README.md)                                                                                     
   [Prev](quickstart-testing.md "Testing your BDR-enabled system")   [Home](README.md)        [Next](settings.md "Configuration Settings")  
 
 

@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                        
+  [BDR 2.1.0 Documentation](README.md)                                                                                                        
   [Prev](monitoring-peers.md "Monitoring replication peers")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-conflict-stats.md "Monitoring conflicts")  
 
 

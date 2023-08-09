@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                          
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                          
   [Prev](replication-sets-concepts.md "Replication Set Concepts")   [Up](replication-sets.md)    Chapter 11. Replication Sets    [Next](replication-sets-nodes.md "Node Replication Control")  
 
 
