@@ -113,9 +113,12 @@ is($node_a->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'A: 1-1 B1']
 is($node_c->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'A: 1-1 B1']), '1', 'committed xact visible on C');
 
 # but commiting on C should become immediately visible on both A and D when B is down
-# TODO: wait for sync-up better
 is($node_c->psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES ('C: 1-1 B1')]), 0, 'C: 1-safe 1-sync B1down');
-sleep(2);
+
+# Make sure node_a and node_d are fully caught up with node_c changes
+wait_for_apply($node_c, $node_a);
+wait_for_apply($node_c, $node_d);
+
 is($node_c->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'C: 1-1 B1']), '1', 'C xact visible on C');
 is($node_a->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'C: 1-1 B1']), '1', 'C xact visible on A');
 is($node_d->safe_psql($bdr_test_dbname, q[SELECT 1 FROM t WHERE x = 'C: 1-1 B1']), '1', 'C xact visible on D');
