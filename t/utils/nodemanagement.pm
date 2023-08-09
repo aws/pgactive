@@ -147,10 +147,13 @@ sub initandstart_node {
 sub bdr_update_postgresql_conf {
     my ($node) = shift;
 
+    my $ddl_lock_acquire_timeout =
+        $PostgreSQL::Test::Utils::timeout_default .'s';
+
     # Setting bdr.trace_replay=on here can be a big help, so added for
     # discoverability.
     $node->append_conf(
-        'postgresql.conf', q{
+        'postgresql.conf', qq(
             wal_level = logical
             track_commit_timestamp = on
             shared_preload_libraries = 'bdr'
@@ -164,8 +167,8 @@ sub bdr_update_postgresql_conf {
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
 			bdr.skip_ddl_replication = false
             bdr.max_nodes = 20
-            }
-    );
+            bdr.bdr_ddl_lock_acquire_timeout = $ddl_lock_acquire_timeout
+    ));
 }
 
 sub _create_db_and_exts {
@@ -581,6 +584,7 @@ sub node_isready {
 # Threadsafe.
 sub wait_for_pg_isready {
     my ($node, $maxwait) = @_;
+    $maxwait = $PostgreSQL::Test::Utils::timeout_default if !defined($maxwait);
 
     my $waited = 0;
     my $wait_secs = 0.5;

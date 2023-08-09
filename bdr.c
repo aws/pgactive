@@ -1080,6 +1080,23 @@ _PG_init(void)
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
+#ifdef USE_ASSERT_CHECKING
+	/*
+	 * Note that this an assert-only GUC for now to get away with tests
+	 * sporadically blocking forever while acquring global lock.
+	 *
+	 * XXX: Might need this in production too?
+	 */
+	DefineCustomIntVariable("bdr.bdr_ddl_lock_acquire_timeout",
+							"Sets the maximum allowed duration of wait for global lock acquisition",
+							"If set to -1, the acquirer waits for global lock indefinitely",
+							&bdr_ddl_lock_acquire_timeout,
+							-1, -1, INT_MAX,
+							PGC_SUSET,
+							GUC_UNIT_MS,
+							NULL, NULL, NULL);
+#endif
+
 	/*
 	 * We can't use the temp_tablespace safely for our dumps, because Pg's
 	 * crash recovery is very careful to delete only particularly formatted

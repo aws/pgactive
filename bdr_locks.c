@@ -207,6 +207,9 @@ int			bdr_max_ddl_lock_delay = -1;
 /* -1 means use lock_timeout/statement_timeout */
 int			bdr_ddl_lock_timeout = -1;
 
+#ifdef USE_ASSERT_CHECKING
+int			bdr_ddl_lock_acquire_timeout = -1;
+#endif
 typedef enum BDRLockState
 {
 	BDR_LOCKSTATE_NOLOCK,
@@ -959,6 +962,7 @@ void
 bdr_acquire_ddl_lock(BDRLockType lock_type)
 {
 	StringInfoData s;
+	TimestampTz endtime PG_USED_FOR_ASSERTS_ONLY;
 
 	Assert(IsTransactionState());
 	/* Not called from within a BDR worker */
@@ -1135,11 +1139,32 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		 LOCKTRACE "sent DDL lock mode %s request for " BDR_NODEID_FORMAT_WITHNAME "), waiting for confirmation",
 		 bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
 
+#ifdef USE_ASSERT_CHECKING
+	if (bdr_ddl_lock_acquire_timeout > 0)
+		endtime = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
+											  bdr_ddl_lock_acquire_timeout);
+#endif
+
 	while (true)
 	{
 		int			rc;
 
-		ResetLatch(&MyProc->procLatch);
+#ifdef USE_ASSERT_CHECKING
+		if (bdr_ddl_lock_acquire_timeout > 0)
+		{
+			TimestampTz now = GetCurrentTimestamp();
+			long		cur_timeout;
+
+			/* If timeout has expired, give up, else get sleep time. */
+			cur_timeout = TimestampDifferenceMilliseconds(now, endtime);
+			if (cur_timeout <= 0)
+			{
+				ereport(ERROR,
+						(errmsg("timed out waiting to acquire global lock in mode %s",
+								bdr_lock_type_to_name(lock_type))));
+			}
+		}
+#endif
 
 		LWLockAcquire(bdr_locks_ctl->lock, LW_EXCLUSIVE);
 
@@ -1175,6 +1200,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
 
+		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 	}
 
