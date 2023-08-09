@@ -23,7 +23,7 @@ use Test::More;
 my $query = q[
 select coalesce(node_name, bdr.bdr_get_local_node_name()) AS origin_node_name, x
 from t
-cross join lateral bdr.bdr_get_transaction_replorigin(xmin) ro(originid)
+cross join lateral bdr.bdr_xact_replication_origin(xmin) ro(originid)
 left join pg_replication_origin on (roident = originid)
 cross join lateral bdr.bdr_parse_replident_name(roname)
 left join bdr.bdr_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node_sysid, node_timeline, node_dboid)

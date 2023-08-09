@@ -141,6 +141,7 @@ PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_get_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_remove_node_identifier(PG_FUNCTION_ARGS);
+PGDLLIMPORT extern Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
@@ -161,6 +162,7 @@ PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
 PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
 PG_FUNCTION_INFO_V1(bdr_get_node_identifier);
 PG_FUNCTION_INFO_V1(bdr_remove_node_identifier);
+PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
@@ -1812,22 +1814,17 @@ bdr_is_active_in_db(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(bdr_is_bdr_activated_db(MyDatabaseId));
 }
 
-/* Postgres commit b1e48bbe64a4 introduced this function in version 14. */
-#if PG_VERSION_NUM < 140000
-PG_FUNCTION_INFO_V1(pg_xact_commit_timestamp_origin);
-
 Datum
-pg_xact_commit_timestamp_origin(PG_FUNCTION_ARGS)
+bdr_xact_replication_origin(PG_FUNCTION_ARGS)
 {
 	TransactionId xid = PG_GETARG_UINT32(0);
-	RepOriginId data = 0;
+	RepOriginId data;
 	TimestampTz ts;
 
 	TransactionIdGetCommitTsData(xid, &ts, &data);
 
 	PG_RETURN_INT32((int32) data);
 }
-#endif
 
 /*
  * Postgres commit 9e98583898c3/a19e5cee635d introduced this function in

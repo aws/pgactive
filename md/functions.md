@@ -63,7 +63,7 @@ In the latest version of BDR, some of the user-facing extension SQL functions or
 | queue_truncate                  | bdr_queue_truncate                     |
 | node_status_from_char           | bdr_node_status_from_char              |
 | node_status_to_char             | bdr_node_status_to_char                |
-| get_transaction_replorigin      | bdr_get_transaction_replorigin         |
+| get_transaction_replorigin      | bdr_xact_replication_origin            |
 | upgrade_to_200                  | bdr_assign_seq_ids_post_upgrade        |
 | global_seq_nextval              | bdr_snowflake_id_nextval               |
 | global_seq_nextval_test         | _bdr_snowflake_id_nextval_private      |

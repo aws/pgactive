@@ -18,6 +18,7 @@
 
 #include "bdr.h"
 
+#include "access/heapam.h"
 #include "access/xact.h"
 
 #include "catalog/indexing.h"
