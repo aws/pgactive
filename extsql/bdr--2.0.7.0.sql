@@ -1772,24 +1772,15 @@ REVOKE ALL ON FUNCTION bdr_acquire_global_lock(text) FROM public;
 COMMENT ON FUNCTION bdr_acquire_global_lock(text) IS
 'Acquire bdr global lock ("ddl lock") in specified mode';
 
--- b1e48bbe64a4 introduced in PG14
-DO $$BEGIN
-  PERFORM 1 FROM pg_proc WHERE proname = 'pg_xact_commit_timestamp_origin';
-  IF FOUND THEN
-    CREATE FUNCTION bdr_get_transaction_replorigin(xid) RETURNS oid
-    AS 'SELECT roident FROM pg_catalog.pg_xact_commit_timestamp_origin($1);'
-    LANGUAGE SQL;
-  ELSE
-    CREATE FUNCTION bdr_get_transaction_replorigin(xid) RETURNS oid
-    AS 'MODULE_PATHNAME','pg_xact_commit_timestamp_origin'
-    LANGUAGE C;
-  END IF;
-END;$$;
+CREATE FUNCTION bdr_xact_replication_origin(xid)
+RETURNS oid
+AS 'MODULE_PATHNAME','bdr_xact_replication_origin'
+LANGUAGE C;
 
-REVOKE ALL ON FUNCTION bdr_get_transaction_replorigin(xid) FROM public;
+REVOKE ALL ON FUNCTION bdr_xact_replication_origin(xid) FROM public;
 
-COMMENT ON FUNCTION bdr_get_transaction_replorigin(xid) IS
-'Get the replication origin id for a given transaction if still known';
+COMMENT ON FUNCTION bdr_xact_replication_origin(xid) IS
+'Get replication origin id for a given transaction';
 
 --
 -- When upgrading an existing cluster we must assign node sequence IDs.
