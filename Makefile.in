@@ -50,7 +50,8 @@ OBJS = bdr.o \
 	bdr_remotecalls.o \
 	bdr_seq.o \
 	bdr_shmem.o \
-	bdr_supervisor.o
+	bdr_supervisor.o \
+	bdr_user_mapping.o
 
 ifdef RUN_FAILING_TESTS
 # Empty if there aren't any expected-to-fail tests at the moment.

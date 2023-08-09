@@ -246,6 +246,8 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	StringInfo local_dsn = makeStringInfo();
 	StringInfo	cmd = makeStringInfo();
 	uint32		bin_version;
+	char *o_servername;
+	char *l_servername;
 
 	if (bdr_find_other_exec(my_exec_path, BDR_DUMP_CMD, &bin_version,
 							&bdr_dump_path[0]) < 0)
@@ -277,10 +279,11 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 			 PG_VERSION_NUM / 100 / 100, PG_VERSION_NUM / 100 % 100);
 	}
 
+	o_servername = get_connect_string(node->init_from_dsn);
 	appendStringInfo(origin_dsn, "%s %s %s application_name='%s: init dump'",
 					 bdr_default_apply_connection_options,
 					 bdr_extra_apply_connection_options,
-					 node->init_from_dsn,
+					 (o_servername == NULL ? node->init_from_dsn : o_servername),
 					 bdr_get_my_cached_node_name());
 
 	/*
@@ -292,6 +295,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	 * (also to be used for init_copy). Simply appending the options instead
 	 * is a bit dodgy.
 	 */
+	l_servername = get_connect_string(node->local_dsn);
 	appendStringInfo(local_dsn, "%s application_name='%s: init restore' "
 					 "options='-c bdr.do_not_replicate=on "
 					 /* remove for now
@@ -300,7 +304,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 					 /* remove for now
 					 "-c bdr.skip_ddl_locking=on " */
 					 "-c session_replication_role=replica'",
-					 node->local_dsn,  bdr_get_my_cached_node_name());
+					 (l_servername == NULL ? node->local_dsn : l_servername),  bdr_get_my_cached_node_name());
 
 	snprintf(tmpdir, sizeof(tmpdir), "%s/postgres-bdr-%s.%d",
 			 bdr_temp_dump_directory, snapshot, getpid());

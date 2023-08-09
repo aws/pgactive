@@ -347,16 +347,18 @@ bdr_connect(const char *conninfo,
 	StringInfoData conninfo_repl;
 	char	   *remote_sysid;
 	char	   *remote_tlid;
+	char	   *servername;
 	StringInfo	cmd;
 
 	initStringInfo(&conninfo_nrepl);
 	initStringInfo(&conninfo_repl);
 
+	servername = get_connect_string(conninfo);
 	appendStringInfo(&conninfo_nrepl, "application_name='%s' %s %s %s",
 					 (appname == NULL ? "bdr" : NameStr(*appname)),
 					 bdr_default_apply_connection_options,
 					 bdr_extra_apply_connection_options,
-					 conninfo);
+					 (servername == NULL ? conninfo : servername ));
 
 	appendStringInfo(&conninfo_repl, "%s replication=database",
 					 conninfo_nrepl.data);
@@ -393,7 +395,8 @@ bdr_connect(const char *conninfo,
 	}
 	else
 	{
-		remote_node->dboid = bdr_get_remote_dboid(conninfo);
+		remote_node->dboid =
+		  bdr_get_remote_dboid((servername == NULL ? conninfo : servername ));
 	}
 
 	remote_tlid = PQgetvalue(res, 0, 1);

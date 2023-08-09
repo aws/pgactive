@@ -71,15 +71,15 @@ my $tempdir = PostgreSQL::Test::Utils::tempdir;
 # Make a group of BDR nodes with numbered node names
 # and returns a list of the nodes.
 sub make_bdr_group {
-    my ($n_nodes, $name_prefix, $mode) = @_;
+    my ($n_nodes, $name_prefix, $mode, $no_dsn) = @_;
     $mode = 'logical' if !defined($mode);
-	$name_prefix = 'node_' if !defined($name_prefix);
+    $name_prefix = 'node_' if !defined($name_prefix);
+    $no_dsn = 0 if !defined($no_dsn);
 
     die "unrecognised join mode $mode"
         if ($mode ne 'logical' && $mode ne 'physical');
 
     my $node_0 = PostgreSQL::Test::Cluster->new("${name_prefix}0");
-    initandstart_bdr_group($node_0);
     my @nodes;
     push @nodes, $node_0;
 
@@ -87,9 +87,16 @@ sub make_bdr_group {
     {
         my $node_n = PostgreSQL::Test::Cluster->new("${name_prefix}${nodeid}");
         push @nodes, $node_n;
+    }
+
+    initandstart_bdr_group($node_0, $no_dsn, \@nodes);
+
+    for (my $nodeid = 1; $nodeid < $n_nodes; $nodeid++)
+    {
+        my $node_n = $nodes[ $nodeid ];
         if ($mode eq 'logical')
         {
-            initandstart_logicaljoin_node($node_n, $node_0);
+            initandstart_logicaljoin_node($node_n, $node_0, $no_dsn, \@nodes);
         }
         else
         {
@@ -103,10 +110,25 @@ sub make_bdr_group {
 # Wrapper around bdr.bdr_create_group
 #
 sub create_bdr_group {
-    my $node      = shift;
-	my $pgport = $node->port;
-	my $pghost = $node->host;
+    my ($node, $no_dsn, $nodes) = @_;
+    $no_dsn = 0 if !defined($no_dsn);
+    my $pgport = $node->port;
+    my $pghost = $node->host;
     my $node_connstr = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+
+    if ( $no_dsn eq 1 ) {
+        my $n_nodes = scalar(@$nodes);
+        my $node_user = $ENV{USERNAME} || $ENV{USERNAME} || $ENV{USER} ;
+        for (my $nodeid = 0; $nodeid < $n_nodes; $nodeid++)
+        {
+            my $t_node = $nodes->[$nodeid];
+            my $node_connstr = "server_@{[ $t_node->name ]}";
+            my $node_port = $t_node->port;
+            my $node_host = $t_node->host;
+            $node->safe_psql( $bdr_test_dbname, qq{CREATE SERVER $node_connstr FOREIGN DATA WRAPPER bdr_fdw OPTIONS (port '$pgport', dbname '$bdr_test_dbname', host '$pghost');} );
+            $node->safe_psql( $bdr_test_dbname, qq{CREATE USER MAPPING FOR $node_user  SERVER $node_connstr OPTIONS ( user '$node_user');} );
+        }
+    }
     $node->safe_psql(
         $bdr_test_dbname, qq{
             SELECT bdr.bdr_create_group(
@@ -125,9 +147,11 @@ sub create_bdr_group {
 # system using bdr_create_group.
 sub initandstart_bdr_group {
     my $node      = shift;
+    my $no_dsn    = shift;
+    my $nodes     = shift;
 
     initandstart_node($node);
-    create_bdr_group($node);
+    create_bdr_group($node, $no_dsn, $nodes);
 }
 
 # Init and start node with BDR, create the test DB and install the BDR

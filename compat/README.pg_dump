@@ -92,3 +92,34 @@ index 17f84d2..717edbc 100644
  		/*
  		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
  		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
+
+Folllowing change is required for supporting CREATE SERVER and CREATE USER
+MAPPING for BDR. Without this patch pg_restore will fail as these objects will
+be present on the joining node. We cannot clean before restore because if
+restore fails for some reason, these will be missing and dump on next run won't
+work.
+
+diff --git a/compat/11/pg_dump/pg_dump.c b/compat/11/pg_dump/pg_dump.c
+index 54d7000..c9b9e02 100644
+--- a/compat/11/pg_dump/pg_dump.c
++++ b/compat/11/pg_dump/pg_dump.c
+@@ -14671,7 +14671,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
+        res = ExecuteSqlQueryForSingleRow(fout, query->data);
+        fdwname = PQgetvalue(res, 0, 0);
+ 
+-       appendPQExpBuffer(q, "CREATE SERVER %s", qsrvname);
++       appendPQExpBuffer(q, "CREATE SERVER IF NOT EXISTS %s", qsrvname);
+        if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
+        {
+                appendPQExpBufferStr(q, " TYPE ");
+@@ -14801,7 +14801,7 @@ dumpUserMappings(Archive *fout,
+                umoptions = PQgetvalue(res, i, i_umoptions);
+ 
+                resetPQExpBuffer(q);
+-               appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(usename));
++               appendPQExpBuffer(q, "CREATE USER MAPPING IF NOT EXISTS FOR %s", fmtId(usename));
+                appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
+ 
+                if (umoptions && strlen(umoptions) > 0)
+
+

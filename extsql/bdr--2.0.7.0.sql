@@ -1952,6 +1952,16 @@ CREATE FUNCTION bdr_remove_node_identifier()
 RETURNS boolean
 LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_remove_node_identifier';
 
+CREATE FUNCTION bdr_fdw_validator(
+    options text[],
+    catalog oid
+)
+RETURNS void
+AS 'MODULE_PATHNAME', 'bdr_fdw_validator'
+LANGUAGE C STRICT;
+
+CREATE FOREIGN DATA WRAPPER bdr_fdw VALIDATOR bdr_fdw_validator;
+
 REVOKE ALL ON FUNCTION bdr_remove_node_identifier() FROM PUBLIC;
 
 COMMENT ON FUNCTION bdr_remove_node_identifier()

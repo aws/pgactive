@@ -14671,7 +14671,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
 	res = ExecuteSqlQueryForSingleRow(fout, query->data);
 	fdwname = PQgetvalue(res, 0, 0);
 
-	appendPQExpBuffer(q, "CREATE SERVER %s", qsrvname);
+	appendPQExpBuffer(q, "CREATE SERVER IF NOT EXISTS %s", qsrvname);
 	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
 	{
 		appendPQExpBufferStr(q, " TYPE ");
@@ -14801,7 +14801,7 @@ dumpUserMappings(Archive *fout,
 		umoptions = PQgetvalue(res, i, i_umoptions);
 
 		resetPQExpBuffer(q);
-		appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(usename));
+		appendPQExpBuffer(q, "CREATE USER MAPPING IF NOT EXISTS FOR %s", fmtId(usename));
 		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
 
 		if (umoptions && strlen(umoptions) > 0)
