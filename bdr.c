@@ -45,7 +45,6 @@
 #include "libpq/pqformat.h"
 
 #include "nodes/execnodes.h"
-#include "parser/scansup.h"
 
 #include "postmaster/bgworker.h"
 
