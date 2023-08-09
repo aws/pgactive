@@ -93,10 +93,11 @@ index 17f84d2..717edbc 100644
  		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
  		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
 
-Folllowing change is required for supporting REATE SERVER and CREATE USER MAPPING 
-Without this patch pg_restore would fail as objects will be present on the joining node
-We cannot clean before restore because if restore fails for some reason,
-these will be missing and dump on next run won't work
+Folllowing change is required for supporting CREATE SERVER and CREATE USER
+MAPPING for BDR. Without this patch pg_restore will fail as these objects will
+be present on the joining node. We cannot clean before restore because if
+restore fails for some reason, these will be missing and dump on next run won't
+work.
 
 diff --git a/compat/11/pg_dump/pg_dump.c b/compat/11/pg_dump/pg_dump.c
 index 54d7000..c9b9e02 100644
