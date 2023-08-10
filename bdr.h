@@ -422,6 +422,9 @@ extern bool bdr_do_not_replicate;
 extern bool bdr_discard_mismatched_row_attributes;
 extern int	bdr_max_ddl_lock_delay;
 extern int	bdr_ddl_lock_timeout;
+#ifdef USE_ASSERT_CHECKING
+extern int	bdr_ddl_lock_acquire_timeout;
+#endif
 extern bool bdr_trace_replay;
 extern int	bdr_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
