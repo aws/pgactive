@@ -3365,9 +3365,9 @@ ac_config_files="$ac_config_files Makefile"
 
 ac_config_files="$ac_config_files Makefile.global"
 
-ac_config_files="$ac_config_files run_tests"
+ac_config_files="$ac_config_files test/run_tests"
 
-ac_config_headers="$ac_config_headers bdr_config_generated.h"
+ac_config_headers="$ac_config_headers include/bdr_config_generated.h"
 
 
 cat >confcache <<\_ACEOF
@@ -4057,8 +4057,8 @@ do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "Makefile.global") CONFIG_FILES="$CONFIG_FILES Makefile.global" ;;
-    "run_tests") CONFIG_FILES="$CONFIG_FILES run_tests" ;;
-    "bdr_config_generated.h") CONFIG_HEADERS="$CONFIG_HEADERS bdr_config_generated.h" ;;
+    "test/run_tests") CONFIG_FILES="$CONFIG_FILES test/run_tests" ;;
+    "include/bdr_config_generated.h") CONFIG_HEADERS="$CONFIG_HEADERS include/bdr_config_generated.h" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -4606,7 +4606,7 @@ printf "%s\n" "$as_me: $ac_file is unchanged" >&6;}
 
 
   case $ac_file$ac_mode in
-    "run_tests":F) chmod +x run_tests ;;
+    "test/run_tests":F) chmod +x test/run_tests ;;
 
   esac
 done # for ac_tag
