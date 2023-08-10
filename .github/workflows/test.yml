@@ -6,11 +6,9 @@ on:
   push:
     paths-ignore:
       - 'doc/**'
-      - 'md/**'
   pull_request:
     paths-ignore:
       - 'doc/**'
-      - 'md/**'
 jobs:
   test:
     defaults:
@@ -41,7 +39,7 @@ jobs:
         name: Apply per-test-script runtime display patch (REL_11_STABLE only)
         run: |
           cd postgres
-          git apply $GITHUB_WORKSPACE/bdr/compat/11/v1-0001-Add-per-test-script-runtime-display-to-pg_regress.patch
+          git apply $GITHUB_WORKSPACE/bdr/src/compat/11/v1-0001-Add-per-test-script-runtime-display-to-pg_regress.patch
           git status
 
       - name: Build Postgres
@@ -71,7 +69,7 @@ jobs:
       - name: Show BDR core tests diff
         if: ${{ failure() }}
         run: |
-          cat bdr/regression.diffs
+          cat bdr/test/regression.diffs
 
       - name: Run BDR extended tests
         run: |
@@ -81,7 +79,7 @@ jobs:
       - name: Run pgbench tests with BDR
         run: |
             cd bdr
-            time sh bdr_pgbench.sh PGSRC=$GITHUB_WORKSPACE/postgres BDRSRC=$GITHUB_WORKSPACE/bdr RESULTS=$GITHUB_WORKSPACE/pgbench_results
+            time sh test/bdr_pgbench.sh PGSRC=$GITHUB_WORKSPACE/postgres BDRSRC=$GITHUB_WORKSPACE/bdr RESULTS=$GITHUB_WORKSPACE/pgbench_results
 
       - name: Upload test artifacts
         if: ${{ failure() }}
@@ -89,8 +87,8 @@ jobs:
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
-            bdr/regression.diffs
-            bdr/tmp_check/log
+            bdr/test/regression.diffs
+            bdr/test/tmp_check/log
             # Upload bdr_pgbench.sh results
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1

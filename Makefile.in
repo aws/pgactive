@@ -12,46 +12,46 @@ bdr_top_builddir = .
 
 MODULE_big = bdr
 EXTENSION = bdr
-DATA = extsql/bdr--2.1.0.sql
-DOCS = README.bdr
+DATA = bdr--2.1.0.sql
 SCRIPTS_built = bdr_init_copy bdr_dump
-EXTRA_CLEAN = bdr_init_copy$(X) bdr_init_copy.o bdr_version.h .distgitrev \
-	tmp_check results log tmp_tap_tests regression.diffs regression.out \
+EXTRA_CLEAN = src/bdr_init_copy$(X) src/bdr_init_copy.o include/bdr_version.h .distgitrev \
+	test/tmp_check test/results test/log test/tmp_t \
+	test/regression.diffs test/regression.out \
 	bdr_init_copy_postgres.log home tmp_test_* \
 	bdr_dump$(X) $(BDR_DUMP_OBJS) \
 	${distdir}.tar.bz2
 
 # When in development add -Werror.
-PG_CPPFLAGS = -I$(srcdir)/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
+PG_CPPFLAGS = -I$(srcdir)/include -I$(srcdir)/src/$(BDR_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
 SHLIB_LINK = $(libpq)
 
-OBJS = bdr.o \
-	bdr_apply.o \
-	bdr_dbcache.o \
-	bdr_ddlrep.o \
-	bdr_ddlrep_truncate.o \
-	bdr_perdb.o \
-	bdr_catalogs.o \
-	bdr_conflict_handlers.o \
-	bdr_conflict_logging.o \
-	bdr_commandfilter.o \
-	bdr_common.o \
-	bdr_compat.o \
-	bdr_count.o \
-	bdr_executor.o \
-	bdr_init_replica.o \
-	bdr_locks.o \
-	bdr_nodecache.o \
-	bdr_messaging.o \
-	bdr_monitoring.o \
-	bdr_output.o \
-	bdr_protocol.o \
-	bdr_relcache.o \
-	bdr_remotecalls.o \
-	bdr_seq.o \
-	bdr_shmem.o \
-	bdr_supervisor.o \
-	bdr_user_mapping.o
+OBJS = src/bdr.o \
+	src/bdr_apply.o \
+	src/bdr_dbcache.o \
+	src/bdr_ddlrep.o \
+	src/bdr_ddlrep_truncate.o \
+	src/bdr_perdb.o \
+	src/bdr_catalogs.o \
+	src/bdr_conflict_handlers.o \
+	src/bdr_conflict_logging.o \
+	src/bdr_commandfilter.o \
+	src/bdr_common.o \
+	src/bdr_compat.o \
+	src/bdr_count.o \
+	src/bdr_executor.o \
+	src/bdr_init_replica.o \
+	src/bdr_locks.o \
+	src/bdr_nodecache.o \
+	src/bdr_messaging.o \
+	src/bdr_monitoring.o \
+	src/bdr_output.o \
+	src/bdr_protocol.o \
+	src/bdr_relcache.o \
+	src/bdr_remotecalls.o \
+	src/bdr_seq.o \
+	src/bdr_shmem.o \
+	src/bdr_supervisor.o \
+	src/bdr_user_mapping.o
 
 ifdef RUN_FAILING_TESTS
 # Empty if there aren't any expected-to-fail tests at the moment.
@@ -131,7 +131,7 @@ export PATH
 # it is not required to error out.
 REQUIRED_TEST_EXTENSIONS = btree_gist cube hstore pg_trgm
 
-BDR_DUMP_DIR := compat/$(BDR_PG_MAJORVERSION)/pg_dump
+BDR_DUMP_DIR := src/compat/$(BDR_PG_MAJORVERSION)/pg_dump
 BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/common.o \
 	$(BDR_DUMP_DIR)/pg_dump_sort.o \
@@ -147,23 +147,24 @@ BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/dumputils.o
 
 # string_utils.c file is needed by pg_dump so we copied it from postgres source
-# code src/fe_utils/ and placed it under compat/$(BDR_PG_MAJORVERSION)/pg_dump
-# to make pg_dump a self-reliant component while compiling BDR source code.
+# code src/fe_utils/ and placed it under
+# src/compat/$(BDR_PG_MAJORVERSION)/pg_dump to make pg_dump a self-reliant
+# component while compiling BDR source code.
 BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/string_utils.o
 
 bdr_dump: $(BDR_DUMP_OBJS)
 	$(CC) $(CFLAGS) $(BDR_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -lz -lpgfeutils -o $@$(X)
 
-bdr_init_copy: bdr_init_copy.o bdr_common.o
+bdr_init_copy: src/bdr_init_copy.o src/bdr_common.o
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) -o $@$(X)
 
 DATE=$(shell date "+%Y-%m-%d")
 GITHASH=$(shell if [ -e .distgitrev ]; then cat .distgitrev; else GIT_DIR=${bdr_abs_srcdir}/.git git rev-parse --short HEAD; fi)
 
-bdr_version.h: bdr_version.h.in
-	sed '0,/BDR_VERSION_DATE/s,\(BDR_VERSION_DATE\).*,\1 "$(DATE)",;0,/BDR_VERSION_GITHASH/s,\(BDR_VERSION_GITHASH\).*,\1 "$(GITHASH)",' $< >$@
+bdr_version.h: include/bdr_version.h.in
+	sed -r '0,/BDR_VERSION_DATE/s,(BDR_VERSION_DATE).,\1 "$(DATE)",;0,/BDR_VERSION_GITHASH/s,(BDR_VERSION_GITHASH).,\1 "$(GITHASH)",' include/bdr_version.h.in > include/bdr_version.h
 
-bdr.o: bdr_version.h
+src/bdr.o: bdr_version.h
 
 # Ensure Makefiles are up2date (should we move this to Makefile.global?)
 Makefile: Makefile.in config.status configure
@@ -183,9 +184,9 @@ all: bdr_init_copy bdr_dump
 check: regress_check prove_check
 
 regress_check: all install
-	mkdir -p results/ddl results/ddl_fn results/dml
+	mkdir -p test/results/ddl test/results/ddl_fn test/results/dml
 
-	./run_tests --config $(bdr_abs_srcdir)/bdr_regress.conf \
+	./test/run_tests --config $(bdr_abs_srcdir)/test/bdr_regress.conf \
 		--testbinary src/test/regress/pg_regress \
 		$(REGRESSCHECKS)
 
@@ -202,47 +203,47 @@ $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_check: $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm
-	rm -rf $(CURDIR)/tmp_check/
-	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),t/*.pl)
+	rm -rf $(CURDIR)/test/tmp_check/
+	cd $(srcdir) && TESTDIR='$(CURDIR)/test' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),test/t/*.pl)
 else
 $(pgxsdir)/src/test/perl/PostgresNode.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgresNode.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
 prove_check: $(pgxsdir)/src/test/perl/PostgresNode.pm
-	rm -rf $(CURDIR)/tmp_check/
-	rm -rf $(CURDIR)/tmp_tap_tests/
-	mkdir $(CURDIR)/tmp_tap_tests/
-	cp -r t/ $(CURDIR)/tmp_tap_tests/
+	rm -rf $(CURDIR)/test/tmp_check/
+	rm -rf $(CURDIR)/test/tmp_t/
+	mkdir $(CURDIR)/test/tmp_t/
+	cp -r test/t/ $(CURDIR)/test/tmp_t/
 
 #   Instead of maintaining multiple versions of TAP test files, we generate
 #   test files for PG versions less than 15 with simple sed commands.
 
-	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/*.pl
-	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
-	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
-	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/*.pl
-	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
-	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/test/tmp_t/t/*.pl
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/test/tmp_t/t/common/*.pl
+	sed -i 's/PostgreSQL::Test::Cluster/PostgresNode/g' $(CURDIR)/test/tmp_t/t/utils/*.pm
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/test/tmp_t/t/*.pl
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/test/tmp_t/t/common/*.pl
+	sed -i 's/PostgreSQL::Test::Utils/TestLib/g' $(CURDIR)/test/tmp_t/t/utils/*.pm
 
  #	The above set of sed commands will bring all the TAP tests prior to
  #  https://git.postgresql.org/gitweb/?p=postgresql.git;a=commitdiff;h=b3b4d8e68ae83f432f43f035c7eb481ef93e1583
 
-	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/*.pl
-	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/common/*.pl
-	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/tmp_tap_tests/t/utils/*.pm
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/test/tmp_t/t/*.pl
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/test/tmp_t/t/common/*.pl
+	sed -i 's/PostgresNode->new/get_new_node/g' $(CURDIR)/test/tmp_t/t/utils/*.pm
 
  #	The above set of sed commands will bring all the TAP tests prior to
  #  https://git.postgresql.org/gitweb/?p=postgresql.git;a=commitdiff;h=201a76183e2056c2217129e12d68c25ec9c559c8
 
  #	Now, we are ready with TAP tests for PG versions less than 15.
-	cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),tmp_tap_tests/t/*.pl)
+	cd $(srcdir) && TESTDIR='$(CURDIR)/test' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),test/tmp_t/t/*.pl)
 
-	rm -rf $(CURDIR)/tmp_tap_tests/
+	rm -rf $(CURDIR)/test/tmp_t/
 endif
 
 # Disabled because these tests require "wal_level=logical" and other custom
-# settings (see bdr_regress.conf file), which typical installcheck users do not
-# have (e.g. buildfarm clients).
+# settings (see test/bdr_regress.conf file), which typical installcheck users
+# do not have (e.g. buildfarm clients).
 installcheck:
 	@echo "Cannot run installcheck as tests need custom configuration"
 
@@ -263,8 +264,8 @@ distclean maintainer-clean: clean
 # 	Place the maintainer-clean before removing
 # 	Makefile.global down below because they need Makefile.global.
 	rm -f config.status config.log
-	rm -f bdr_config_generated.h Makefile Makefile.global
-	rm -f run_tests
+	rm -f include/bdr_config_generated.h Makefile Makefile.global
+	rm -f test/run_tests
 	rm -rf autom4te.cache/
 
 .PHONY: all check regress_check prove_check installcheck git-dist distclean maintainer-clean

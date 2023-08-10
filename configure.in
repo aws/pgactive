@@ -72,7 +72,7 @@ AC_SUBST(vpath_build)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Makefile.global])
-AC_CONFIG_FILES([run_tests], [chmod +x run_tests])
-AC_CONFIG_HEADERS([bdr_config_generated.h])
+AC_CONFIG_FILES([test/run_tests], [chmod +x test/run_tests])
+AC_CONFIG_HEADERS([include/bdr_config_generated.h])
 AH_TOP([/* Do not include directly, use bdr_config.h instead. */])
 AC_OUTPUT

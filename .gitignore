@@ -29,11 +29,11 @@ lib*.pc
 # bdr specific
 /bdr_init_copy
 /bdr_dump
-/bdr_version.h
-/log/
-/results/
-/tmp_check/
-/tmp_tap_tests/
+/include/bdr_version.h
+/test/log/
+/test/results/
+/test/tmp_check/
+/test/tmp_t/
 /tmp_test_*
 /home
 *~
@@ -43,10 +43,10 @@ lib*.pc
 /bdr_init_copy_postgres.log
 # autoconf output
 /autom4te.cache/
-/bdr_config_generated.h
+/include/bdr_config_generated.h
 # configure output
 /Makefile
-/run_tests
+/test/run_tests
 /config.log
 /config.status
 /Makefile.global
