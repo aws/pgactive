@@ -36,7 +36,7 @@ every node must have a [replication origin](https://www.postgresql.org/docs/curr
 
 #### DDL 
 
-DDL replication is disabled by default. If needed, the configuration parameter `bdr.skip_ddl_replication` needs to be set to false on both the node and its upstream node(s).
+DDL replication is disabled by default. If needed, the configuration parameter `bdr.skip_ddl_replication` needs to be set to false on all the node in the group. Even when a node has `bdr.skip_ddl_replication=false`, DDL will not be applied by the receiver(s) having  `bdr.skip_ddl_replication=true`.
 
 ### Security
 
@@ -44,7 +44,19 @@ DDL replication is disabled by default. If needed, the configuration parameter `
 
 The user specified in the connection DSN must be a superuser otherwise they do not have access to `bdr.bdr_nodes` table and other objects upon whom access to public is revoked.
 
-Changes on the BDR nodes are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. The background workers must run as superuser.
+Only a superuser can install the extension. Only a superuser can use the functions provided in the extension.
+
+Changes on the BDR nodes are applied by a background worker. There are a number of background workers; supervisor, database worker, and the apply worker. All of the background workers must run as superuser.
+
+All standard PostgreSQL authentication mechanisms can be utilized. This would include utilizing `pg_user_mapping` to map system users to PostgreSQL users and `.pgpass` to provide the password in a password file as opposed to the connection string.
+
+##### Connections
+
+Connections can use SSL to secure the data in flight.
+
+##### Catalog tables
+
+Changes to pg_catalog are not replicated.
 
 #### User mapping for BDR
 
