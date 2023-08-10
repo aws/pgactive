@@ -962,7 +962,7 @@ void
 bdr_acquire_ddl_lock(BDRLockType lock_type)
 {
 	StringInfoData s;
-	TimestampTz endtime PG_USED_FOR_ASSERTS_ONLY;
+	TimestampTz endtime PG_USED_FOR_ASSERTS_ONLY = 0;
 
 	Assert(IsTransactionState());
 	/* Not called from within a BDR worker */
