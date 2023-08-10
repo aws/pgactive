@@ -1082,8 +1082,8 @@ _PG_init(void)
 
 #ifdef USE_ASSERT_CHECKING
 	/*
-	 * Note that this an assert-only GUC for now to get away with tests
-	 * sporadically blocking forever while acquring global lock.
+	 * Note that this an assert-only GUC for now to avoid having tests possibly
+	 * waiting forever while acquiring global lock.
 	 *
 	 * XXX: Might need this in production too?
 	 */
