@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                     
+  [BDR 2.1.0 Documentation](README.md)                                                                     
   ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------------
   [Prev](command-bdr-init-copy.md "bdr_init_copy")   [Up](manual.md)        [Next](monitoring-why.md "Why monitoring matters")  
 

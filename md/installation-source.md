@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                 
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                 
   [Prev](installation-packages.md "Installing BDR from packages")   [Up](installation.md)    Chapter 2. Installation    [Next](quickstart.md "Quick-start guide")  
 
 

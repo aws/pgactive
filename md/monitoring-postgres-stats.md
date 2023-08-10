@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                         
   [Prev](monitoring-conflict-stats.md "Monitoring conflicts")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](ddl-replication.md "DDL Replication")  
 
 

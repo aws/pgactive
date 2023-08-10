@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                               
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                               
   [Prev](global-sequence-limitations.md "Global sequence limitations")   [Up](global-sequences.md)    Chapter 10. Global Sequences    [Next](global-sequences-alternatives.md "Traditional approaches to sequences in distributed DBs")
 # 10.5. Global sequences and ORMs
 

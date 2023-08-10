@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [BDR 2.1.0 Documentation](README.md)                                                                                                    
   [Prev](install-requirements.md "BDR requirements")   [Up](installation.md)    Chapter 2. Installation    [Next](installation-source.md "Installing BDR from source")  
 
 

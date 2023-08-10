@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                         
   [Prev](technotes-ddl-locking.md "DDL locking details")   [Up](technotes.md)    Appendix C. Technical notes    [Next](bookindex.md "Index")  
 
 

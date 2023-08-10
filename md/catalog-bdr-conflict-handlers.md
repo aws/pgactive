@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                                         
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                                         
   [Prev](catalog-bdr-replication-set-config.md "bdr.bdr_replication_set_config")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-global-locks-info.md "bdr.bdr_global_locks_info")
 
 

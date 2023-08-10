@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                     
+  [BDR 2.1.0 Documentation](README.md)                                                                     
   ------------------------------------------------------------------- ---------------------------------- -- ---------------------------------------------------------------
   [Prev](functions-upgrade.md "Upgrade functions")   [Up](manual.md)        [Next](catalog-bdr-nodes.md "bdr.bdr_nodes")  
 

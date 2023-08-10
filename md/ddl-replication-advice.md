@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                    
+  [BDR 2.1.0 Documentation](README.md)                                                                                                    
   [Prev](ddl-replication.md "DDL Replication")   [Up](ddl-replication.md)    Chapter 8. DDL Replication    [Next](ddl-replication-statements.md "Statement specific DDL replication concerns")  
 
 

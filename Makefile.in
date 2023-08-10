@@ -12,7 +12,7 @@ bdr_top_builddir = .
 
 MODULE_big = bdr
 EXTENSION = bdr
-DATA = extsql/bdr--2.0.7.0.sql
+DATA = extsql/bdr--2.1.0.sql
 DOCS = README.bdr
 SCRIPTS_built = bdr_init_copy bdr_dump
 EXTRA_CLEAN = bdr_init_copy$(X) bdr_init_copy.o bdr_version.h .distgitrev \

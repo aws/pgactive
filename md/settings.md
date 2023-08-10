@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                  
+  [BDR 2.1.0 Documentation](README.md)                                                                  
   [Prev](manual.md "BDR administration manual")   [Up](manual.md)        [Next](settings-prerequisite.md "Prerequisite PostgreSQL parameters")  
 
 

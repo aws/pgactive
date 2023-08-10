@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                      
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                      
   [Prev](node-management-disabling.md "Completely removing BDR")   [Up](node-management.md)    Chapter 5. Node Management    [Next](node-management-synchronous.md "n-safe synchronous replication")  
 
 

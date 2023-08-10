@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                   
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                   
   [Prev](catalog-bdr-connections.md "bdr.bdr_connections")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-stats.md "bdr.bdr_stats")
 
 

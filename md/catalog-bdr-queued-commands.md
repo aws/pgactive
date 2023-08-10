@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                                     
+  [BDR 2.1.0 Documentation](README.md)                                                                                                                     
   [Prev](catalog-bdr-global-locks.md "bdr.bdr_global_locks")   [Up](catalogs-views.md)    Chapter 13. Catalogs and Views    [Next](catalog-bdr-queued-drops.md "bdr.bdr_queued_drops")  
 
 

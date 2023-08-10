@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                          
+  [BDR 2.1.0 Documentation](README.md)                                                                          
   --------------------------------------------------------------- ------------------------------------------- -- -----------------------------------------------------
   [Prev](getting-started.md "Getting started")   [Up](getting-started.md)        [Next](bdr-concepts.md "Concepts")  
 

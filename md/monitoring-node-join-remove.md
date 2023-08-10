@@ -1,4 +1,4 @@
-  [BDR 2.0.7 Documentation](README.md)                                                                                                
+  [BDR 2.1.0 Documentation](README.md)                                                                                                
   [Prev](monitoring-why.md "Why monitoring matters")   [Up](monitoring.md)    Chapter 7. Monitoring    [Next](monitoring-peers.md "Monitoring replication peers")  
 
 
