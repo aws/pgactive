@@ -116,5 +116,5 @@ extern int	bdr_find_other_exec(const char *argv0, const char *target,
 
 extern uint64 GenerateNodeIdentifier(void);
 
-char *get_connect_string(const char *servername);
+char	   *get_connect_string(const char *servername);
 #endif							/* BDR_INTERNAL_H */

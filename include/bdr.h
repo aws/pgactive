@@ -279,7 +279,7 @@ typedef struct BdrApplyWorker
 typedef struct BdrPerdbWorker
 {
 	/* Oid of the local database to connect to */
-	Oid		c_dboid;
+	Oid			c_dboid;
 
 	/*
 	 * Number of 'r'eady peer nodes not including self. -1 if not initialized
@@ -411,6 +411,7 @@ extern int	bdr_max_databases;
 extern char *bdr_temp_dump_directory;
 extern bool bdr_log_conflicts_to_table;
 extern bool bdr_conflict_logging_include_tuples;
+
 /* replaced by bdr_skip_ddl_replication for now
 extern bool bdr_permit_ddl_locking;
 extern bool bdr_permit_unsafe_commands;
@@ -506,7 +507,7 @@ typedef struct BDRNodeInfo
 extern Oid	bdr_lookup_relid(const char *relname, Oid schema_oid);
 
 extern bool bdr_in_extension;
-extern int  bdr_log_min_messages;
+extern int	bdr_log_min_messages;
 
 /* apply support */
 extern void bdr_fetch_sysid_via_node_id(RepOriginId node_id, BDRNodeId * out_nodeid);
@@ -761,7 +762,7 @@ typedef struct remote_node_info
 	char		node_status;
 	char	   *node_name;
 	char	   *dbname;
-	int64		dbsize;	/* database size in bytes */
+	int64		dbsize;			/* database size in bytes */
 	int			max_nodes;
 	int			cur_nodes;
 

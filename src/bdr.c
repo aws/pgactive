@@ -103,6 +103,7 @@ int			bdr_max_workers;
 int			bdr_max_databases;
 bool		bdr_skip_ddl_replication;
 bool		prev_bdr_skip_ddl_replication;
+
 /* replaced by bdr_skip_ddl_replication for now
 bool		bdr_skip_ddl_locking; */
 bool		bdr_do_not_replicate;
@@ -358,7 +359,7 @@ bdr_connect(const char *conninfo,
 					 (appname == NULL ? "bdr" : NameStr(*appname)),
 					 bdr_default_apply_connection_options,
 					 bdr_extra_apply_connection_options,
-					 (servername == NULL ? conninfo : servername ));
+					 (servername == NULL ? conninfo : servername));
 
 	appendStringInfo(&conninfo_repl, "%s replication=database",
 					 conninfo_nrepl.data);
@@ -396,7 +397,7 @@ bdr_connect(const char *conninfo,
 	else
 	{
 		remote_node->dboid =
-		  bdr_get_remote_dboid((servername == NULL ? conninfo : servername ));
+			bdr_get_remote_dboid((servername == NULL ? conninfo : servername));
 	}
 
 	remote_tlid = PQgetvalue(res, 0, 1);
@@ -418,7 +419,7 @@ bdr_connect(const char *conninfo,
 
 	cmd = makeStringInfo();
 	appendStringInfoString(cmd,
-		"SELECT bdr.bdr_get_node_identifier() AS node_id;");
+						   "SELECT bdr.bdr_get_node_identifier() AS node_id;");
 
 	elog(DEBUG3, "sending command: \"%s\"", cmd->data);
 
@@ -538,7 +539,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 {
 	uint16		worker_generation;
 	uint16		worker_idx;
-	Oid	   		dboid;
+	Oid			dboid;
 	BDRNodeId	myid;
 	char		mystatus;
 
@@ -614,9 +615,9 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	CommitTransactionCommand();
 
 	/*
-	 * We unregister per-db/apply worker when local node_status is killed or no
-	 * row exists for the node in bdr_nodes. This can happen after a node is
-	 * detached or BDR is removed from local node. Unregistering the worker
+	 * We unregister per-db/apply worker when local node_status is killed or
+	 * no row exists for the node in bdr_nodes. This can happen after a node
+	 * is detached or BDR is removed from local node. Unregistering the worker
 	 * prevents subsequent worker fail-and-restart cycles.
 	 */
 	if (mystatus == BDR_NODE_STATUS_KILLED)
@@ -635,14 +636,14 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	}
 
 	/*
-	 * Ensure BDR extension is up to date and get the name of the database this
-	 * background is connected to.
+	 * Ensure BDR extension is up to date and get the name of the database
+	 * this background is connected to.
 	 */
 	bdr_executor_always_allow_writes(true);
 	StartTransactionCommand();
 	bdr_maintain_schema(true);
 	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext,
-									get_database_name(MyDatabaseId));
+													get_database_name(MyDatabaseId));
 	CommitTransactionCommand();
 	bdr_executor_always_allow_writes(false);
 
@@ -702,7 +703,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 unregister:
 	bdr_worker_shmem_free(bdr_worker_slot, NULL);
 	bdr_worker_slot = NULL;
-	proc_exit(0);			/* unregister */
+	proc_exit(0);				/* unregister */
 }
 
 /*
@@ -819,12 +820,12 @@ bdr_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
 		return false;
 
 	/*
-	 * Allow bdr.do_not_replicate to be set only during local node is restoring
-	 * from the dump of remote node.
+	 * Allow bdr.do_not_replicate to be set only during local node is
+	 * restoring from the dump of remote node.
 	 */
 	if (BdrWorkerCtl != NULL)
 	{
-		bool in_init_exec_dump_restore;
+		bool		in_init_exec_dump_restore;
 
 		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 		in_init_exec_dump_restore = BdrWorkerCtl->in_init_exec_dump_restore;
@@ -1084,9 +1085,10 @@ _PG_init(void)
 							NULL, NULL, NULL);
 
 #ifdef USE_ASSERT_CHECKING
+
 	/*
-	 * Note that this an assert-only GUC for now to avoid having tests possibly
-	 * waiting forever while acquiring global lock.
+	 * Note that this an assert-only GUC for now to avoid having tests
+	 * possibly waiting forever while acquiring global lock.
 	 *
 	 * XXX: Might need this in production too?
 	 */
@@ -1169,7 +1171,7 @@ _PG_init(void)
 							 PGC_SIGHUP,
 							 GUC_SUPERUSER_ONLY,
 							 NULL, NULL, NULL);
-  
+
 	DefineCustomIntVariable("bdr.init_node_parallel_jobs",
 							"Sets the parallel jobs to be used by dump and restore while logical join of a node",
 							"Set this to a reasonable value based on database size and number of objects it has.",
@@ -1178,7 +1180,7 @@ _PG_init(void)
 							PGC_SIGHUP,
 							0,
 							NULL, NULL, NULL);
- 
+
 	DefineCustomIntVariable("bdr.max_nodes",
 							"Sets maximum allowed nodes in a BDR group",
 							"This parameter must be set to the same value on all BDR members, otherwise "
@@ -1699,7 +1701,7 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 {
 #define BDR_GET_WORKERS_PID_COLS	5
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
-	int	i;
+	int			i;
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
@@ -1710,11 +1712,11 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 		BdrWorker  *w = &BdrWorkerCtl->slots[i];
 		Datum		values[BDR_GET_WORKERS_PID_COLS] = {0};
 		bool		nulls[BDR_GET_WORKERS_PID_COLS] = {0};
-		uint64		sysid = 0; /* keep compiler quiet */
-		TimeLineID	timeline = 0; /* keep compiler quiet */
+		uint64		sysid = 0;	/* keep compiler quiet */
+		TimeLineID	timeline = 0;	/* keep compiler quiet */
 		Oid			dboid = InvalidOid; /* keep compiler quiet */
-		char	sysid_str[33];
-		text	*worker_type = NULL; /* keep compiler quiet */
+		char		sysid_str[33];
+		text	   *worker_type = NULL; /* keep compiler quiet */
 
 		/* unused slot */
 		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
@@ -1937,7 +1939,7 @@ bdr_generate_node_identifier_internal(void)
 	uint64		nid = 0;
 	char		path[MAXPGPATH];
 	char		tmppath[MAXPGPATH];
-	FILE	  	*fp;
+	FILE	   *fp;
 
 	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
 
@@ -1990,7 +1992,7 @@ bdr_generate_node_identifier_internal(void)
 	nid = GenerateNodeIdentifier();
 
 	/* And, write the node identifier to BDR control file. */
-	fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
+	fprintf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", nid);
 
 	if (ferror(fp) || FreeFile(fp))
 	{
@@ -2020,11 +2022,11 @@ done:
 Datum
 bdr_generate_node_identifier(PG_FUNCTION_ARGS)
 {
-	uint64	nid;
-	char	buf[256];
-	Datum	result;
+	uint64		nid;
+	char		buf[256];
+	Datum		result;
 
-	nid	= bdr_generate_node_identifier_internal();
+	nid = bdr_generate_node_identifier_internal();
 
 	if (nid == 0)
 		PG_RETURN_NULL();
@@ -2042,13 +2044,13 @@ bdr_generate_node_identifier(PG_FUNCTION_ARGS)
 uint64
 bdr_get_node_identifier_internal(void)
 {
-	uint64	nid = 0;
-	char	path[MAXPGPATH];
-	FILE 	*fp;
-	bool	acquired_lock = false;
-	uint32	magic_number;
-	uint32 	pg_version;
-	uint32	bdr_version;
+	uint64		nid = 0;
+	char		path[MAXPGPATH];
+	FILE	   *fp;
+	bool		acquired_lock = false;
+	uint32		magic_number;
+	uint32		pg_version;
+	uint32		bdr_version;
 
 	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
 
@@ -2081,7 +2083,7 @@ bdr_get_node_identifier_internal(void)
 	if (fscanf(fp, "MAGIC NUMBER: %u\n", &magic_number) != 1 ||
 		fscanf(fp, "PG VERSION: %u\n", &pg_version) != 1 ||
 		fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1 ||
-		fscanf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", &nid) != 1)
+		fscanf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", &nid) != 1)
 	{
 		if (acquired_lock)
 			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
@@ -2128,8 +2130,8 @@ done:
 Datum
 bdr_get_node_identifier(PG_FUNCTION_ARGS)
 {
-	uint64 nid;
-	char	buf[256];
+	uint64		nid;
+	char		buf[256];
 	Datum		result;
 
 	nid = bdr_get_node_identifier_internal();
@@ -2150,9 +2152,9 @@ bdr_get_node_identifier(PG_FUNCTION_ARGS)
 bool
 bdr_remove_node_identifier_internal(void)
 {
-	char	path[MAXPGPATH];
-	int		i;
-	bool	remove = true;
+	char		path[MAXPGPATH];
+	int			i;
+	bool		remove = true;
 
 	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
 
@@ -2211,7 +2213,7 @@ done:
 Datum
 bdr_remove_node_identifier(PG_FUNCTION_ARGS)
 {
-	bool	removed;
+	bool		removed;
 
 	removed = bdr_remove_node_identifier_internal();
 

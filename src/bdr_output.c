@@ -693,23 +693,23 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 		return false;
 
 	/*
-	 * We do not let the BDR output plugin replicate changes that came from BDR
-	 * peers to avoid replication loops. We used to check the replication
-	 * origin name to determine whether the changes came from peer BDR nodes or
-	 * non-BDR nodes. The commit 76a88a0ba23b874 introduced a shared hash table
-	 * to track all BDR replication origin names. We used this hash table to
-	 * filter out changes from peer BDR nodes and to forward changes from
-	 * non-BDR nodes. However, we determined a severe performance bottleneck
-	 * with the hash table lookup. A simple use-case that revealed this
-	 * bottleneck is - on a 2 node BDR group, bulk loaded data on node 1, upon
-	 * applying the changes received from node 1, the logical walsender on
-	 * node 2 corresponding to node 1 was performing a hash table lookup for
-	 * every decoded change. Due to this, frequent look up the walsender was
-	 * consuming ~100% CPU and any simple DML on node 2 was taking days to
+	 * We do not let the BDR output plugin replicate changes that came from
+	 * BDR peers to avoid replication loops. We used to check the replication
+	 * origin name to determine whether the changes came from peer BDR nodes
+	 * or non-BDR nodes. The commit 76a88a0ba23b874 introduced a shared hash
+	 * table to track all BDR replication origin names. We used this hash
+	 * table to filter out changes from peer BDR nodes and to forward changes
+	 * from non-BDR nodes. However, we determined a severe performance
+	 * bottleneck with the hash table lookup. A simple use-case that revealed
+	 * this bottleneck is - on a 2 node BDR group, bulk loaded data on node 1,
+	 * upon applying the changes received from node 1, the logical walsender
+	 * on node 2 corresponding to node 1 was performing a hash table lookup
+	 * for every decoded change. Due to this, frequent look up the walsender
+	 * was consuming ~100% CPU and any simple DML on node 2 was taking days to
 	 * reach node 1.
 	 *
-	 * To avoid the performance bottleneck, we do two things - 1) We disallow a
-	 * BDR node pulling in changes from any non-BDR/external logical
+	 * To avoid the performance bottleneck, we do two things - 1) We disallow
+	 * a BDR node pulling in changes from any non-BDR/external logical
 	 * replication solutions. 2) We removed the shared hash table completely.
 	 * With these things, a BDR node doesn't have to look for any replication
 	 * origin names to determine non-BDR changes. Because, every change that
@@ -884,12 +884,13 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	BDRRelation *bdr_relation;
 
 #ifdef USE_ASSERT_CHECKING
+
 	/*
 	 * NB: We take a lock to avoid assertion failure in relation_open(). We
 	 * don't take any lock in non-assert builds. Well, this might sound like a
-	 * hack. But, acquiring lock for every decoded change might prove costly on
-	 * production builds. In the worst case, it may happen that somebody can
-	 * add the relation to a replication set while we are reading it here
+	 * hack. But, acquiring lock for every decoded change might prove costly
+	 * on production builds. In the worst case, it may happen that somebody
+	 * can add the relation to a replication set while we are reading it here
 	 * without any lock, and our should_forward_change() check can miss it.
 	 * That is less of a concern than acquiring lock for every decoded change.
 	 */

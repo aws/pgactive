@@ -45,9 +45,9 @@ get_connect_string(const char *servername)
 	ListCell   *cell;
 	StringInfoData buf;
 	ForeignDataWrapper *fdw;
-	AclResult aclresult;
-	char *srvname;
-	bool CloseTransaction = false;
+	AclResult	aclresult;
+	char	   *srvname;
+	bool		CloseTransaction = false;
 	const PQconninfoOption *options = NULL;
 
 	initStringInfo(&buf);
@@ -81,9 +81,9 @@ get_connect_string(const char *servername)
 	foreign_server = GetForeignServerByName(srvname, true);
 	if (foreign_server)
 	{
-		Oid serverid = foreign_server->serverid;
-		Oid fdwid = foreign_server->fdwid;
-		Oid userid = GetUserId();
+		Oid			serverid = foreign_server->serverid;
+		Oid			fdwid = foreign_server->fdwid;
+		Oid			userid = GetUserId();
 
 		user_mapping = GetUserMapping(userid, serverid);
 		fdw = GetForeignDataWrapper(fdwid);
@@ -121,14 +121,14 @@ get_connect_string(const char *servername)
 								 escape_param_str(strVal(def->arg)));
 		}
 
-		if( CloseTransaction )
+		if (CloseTransaction)
 			CommitTransactionCommand();
 
 		return buf.data;
 	}
 	else
 	{
-		if( CloseTransaction )
+		if (CloseTransaction)
 			CommitTransactionCommand();
 		return NULL;
 	}
@@ -180,7 +180,7 @@ escape_param_str(const char *str)
  */
 bool
 is_valid_dsn_option(const PQconninfoOption *options, const char *option,
-					   Oid context)
+					Oid context)
 {
 	const PQconninfoOption *opt;
 

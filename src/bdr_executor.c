@@ -43,7 +43,7 @@
 #include "utils/lsyscache.h"
 
 static void BdrExecutorStart(QueryDesc *queryDesc, int eflags);
-CommandTag CreateWritableStmtTag(PlannedStmt *plannedstmt);
+CommandTag	CreateWritableStmtTag(PlannedStmt *plannedstmt);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
 
@@ -79,7 +79,7 @@ UserTableUpdateIndexes(EState *estate, TupleTableSlot *slot, ResultRelInfo *reli
 		return;
 
 	ExecOpenIndices(relinfo, false);
-	UserTableUpdateOpenIndexes(estate, slot, relinfo ,false);
+	UserTableUpdateOpenIndexes(estate, slot, relinfo, false);
 	ExecCloseIndices(relinfo);
 }
 
@@ -97,17 +97,17 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
 	{
 		recheckIndexes = ExecInsertIndexTuples(
 #if PG_VERSION_NUM >= 140000
-												relinfo,
+											   relinfo,
 #endif
-												slot,
+											   slot,
 #if PG_VERSION_NUM < 120000
-												&slot->tts_tuple->t_self,
+											   &slot->tts_tuple->t_self,
 #endif
-												estate
+											   estate
 #if PG_VERSION_NUM >= 140000
-												, update
+											   ,update
 #endif
-												, false, NULL, NIL);
+											   ,false, NULL, NIL);
 		if (recheckIndexes != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -286,7 +286,7 @@ retry:
 	{
 #if PG_VERSION_NUM >= 120000
 		TM_FailureData tmfd;
-		TM_Result res;
+		TM_Result	res;
 #else
 		Buffer		buf;
 		HeapUpdateFailureData hufd;

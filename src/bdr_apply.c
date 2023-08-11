@@ -436,7 +436,7 @@ process_remote_commit(StringInfo s)
 {
 	XLogRecPtr	commit_lsn PG_USED_FOR_ASSERTS_ONLY;
 	TimestampTz committime PG_USED_FOR_ASSERTS_ONLY;
-	XLogRecPtr commit_afterend_lsn;
+	XLogRecPtr	commit_afterend_lsn;
 	int			flags;
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
@@ -786,8 +786,9 @@ process_remote_insert(StringInfo s)
 		if (apply_update)
 		{
 #if PG_VERSION_NUM >= 120000
-			bool update_indexes;
+			bool		update_indexes;
 #endif
+
 			/*
 			 * User specified conflict handler provided a new tuple; form it
 			 * to a bdr tuple.
@@ -843,9 +844,12 @@ process_remote_insert(StringInfo s)
 
 	check_bdr_wakeups(rel);
 
-	/* execute DDL if insertion was into the ddl command queue and if ddl replication is wanted */
-	if (!prev_bdr_skip_ddl_replication  && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
-		RelationGetRelid(rel->rel) == QueuedDropsRelid))
+	/*
+	 * execute DDL if insertion was into the ddl command queue and if ddl
+	 * replication is wanted
+	 */
+	if (!prev_bdr_skip_ddl_replication && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
+										   RelationGetRelid(rel->rel) == QueuedDropsRelid))
 	{
 		HeapTuple	ht;
 		LockRelId	lockid = rel->rel->rd_lockInfo.lockRelId;
@@ -1073,8 +1077,9 @@ process_remote_update(StringInfo s)
 		if (apply_update)
 		{
 #if PG_VERSION_NUM >= 120000
-			bool update_indexes;
+			bool		update_indexes;
 #endif
+
 			/*
 			 * User specified conflict handler provided a new tuple; form it
 			 * to a bdr tuple.
@@ -1318,12 +1323,13 @@ process_remote_delete(StringInfo s)
 									   oldtup.values, oldtup.isnull);
 
 #if PG_VERSION_NUM >= 120000
+
 		/*
 		 * For heap AM, table_slot_create returns a slot of type
-		 * TTSOpsBufferHeapTuple, see heapam_slot_callbacks(). When tuple to be
-		 * deleted is not found, the target slot (oldslot) type will remain
-		 * TTSOpsBufferHeapTuple. Since the target slot is not guaranteed to be
-		 * TTSOpsHeapTuple type slot here, hence, we use
+		 * TTSOpsBufferHeapTuple, see heapam_slot_callbacks(). When tuple to
+		 * be deleted is not found, the target slot (oldslot) type will remain
+		 * TTSOpsBufferHeapTuple. Since the target slot is not guaranteed to
+		 * be TTSOpsHeapTuple type slot here, hence, we use
 		 * ExecForceStoreHeapTuple().
 		 */
 		ExecForceStoreHeapTuple(remote_tuple, oldslot, false);
@@ -1622,7 +1628,7 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 		List	   *plantree_list;
 		List	   *querytree_list;
 		RawStmt    *command = (RawStmt *) lfirst(command_i);
-		CommandTag commandTag;
+		CommandTag	commandTag;
 		Portal		portal;
 		DestReceiver *receiver;
 
@@ -2084,7 +2090,7 @@ read_tuple_parts_error_badatts(BDRRelation * rel, TupleDesc desc, int rnatts)
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 			 errmsg("remote tuple has different column count to local table and mismatched columns were not null/dropped"),
-			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME".",
+			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME ".",
 					   get_namespace_name(RelationGetNamespace(rel->rel)), RelationGetRelationName(rel->rel),
 					   RelationGetRelid(rel->rel),
 					   desc->natts,
@@ -2515,6 +2521,7 @@ abs_timestamp_difference(TimestampTz start_time, TimestampTz stop_time,
 	else
 	{
 		TimestampTz diff = labs(stop_time - start_time);
+
 		*secs = (long) (diff / USECS_PER_SEC);
 		*microsecs = (int) (diff % USECS_PER_SEC);
 	}
@@ -2692,7 +2699,7 @@ bdr_apply_work(PGconn *streamConn)
 			else if (r < 0)
 				elog(ERROR, "invalid COPY status %d", r);
 			else if (r == 0)
-				break;	/* need to wait for new data */
+				break;			/* need to wait for new data */
 			else
 			{
 				int			c;

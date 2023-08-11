@@ -37,7 +37,7 @@
 #define BdrGetSysCacheOid2 GetSysCacheOid2
 
 /* GetSysCacheOid2 equivalent that errors out if nothing is found */
-static inline  Oid
+static inline Oid
 GetSysCacheOid2Error(int cacheId, AttrNumber oidcol,
 					 Datum key1, Datum key2)
 {

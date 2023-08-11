@@ -177,8 +177,8 @@ bdr_nodecache_lookup(const BDRNodeId * const nodeid,
 		   sizeof(BDRNodeInfo) - offsetof(BDRNodeInfo, valid));
 
 	/*
-	 * If asked to look up only in the cache, do not go further to get the info
-	 * from the table upon cache miss.
+	 * If asked to look up only in the cache, do not go further to get the
+	 * info from the table upon cache miss.
 	 */
 	if (only_cache_lookup)
 		return NULL;
@@ -305,7 +305,7 @@ bdr_nodeid_name(const BDRNodeId * const node,
 				bool only_cache_lookup)
 {
 	BDRNodeInfo *nodeinfo;
-	char	*node_name;
+	char	   *node_name;
 
 	nodeinfo = bdr_nodecache_lookup(node, missing_ok, only_cache_lookup);
 	node_name = (nodeinfo == NULL || nodeinfo->name == NULL ?
@@ -340,7 +340,7 @@ bdr_setup_my_cached_node_names()
 	bdr_make_my_nodeid(&myid);
 
 	my_node_name = MemoryContextStrdup(CacheMemoryContext,
-		bdr_nodeid_name(&myid, false, false));
+									   bdr_nodeid_name(&myid, false, false));
 }
 
 void
@@ -349,7 +349,7 @@ bdr_setup_cached_remote_name(const BDRNodeId * const remote_nodeid)
 	Assert(IsTransactionState());
 
 	remote_node_name = MemoryContextStrdup(CacheMemoryContext,
-		bdr_nodeid_name(remote_nodeid, false, false));
+										   bdr_nodeid_name(remote_nodeid, false, false));
 
 	bdr_nodeid_cpy(&remote_node_id, remote_nodeid);
 }
@@ -393,7 +393,7 @@ bdr_get_my_cached_node_name()
 		return my_node_name;
 	else if (IsTransactionState())
 	{
-		bool	only_cache_lookup;
+		bool		only_cache_lookup;
 
 		only_cache_lookup = IsBDRLocksShmemLockHeldByMe();
 
@@ -413,7 +413,7 @@ bdr_get_my_cached_remote_name(const BDRNodeId * const remote_nodeid)
 		return remote_node_name;
 	else if (IsTransactionState())
 	{
-		bool	only_cache_lookup;
+		bool		only_cache_lookup;
 
 		only_cache_lookup = IsBDRLocksShmemLockHeldByMe();
 

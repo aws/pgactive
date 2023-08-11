@@ -133,11 +133,11 @@ bdr_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 	 * bdr.bdr_queue_truncate()
 	 *
 	 * We want the trigger to bdr dropped if EITHER the BDR extension is
-	 * dropped (thus so is bdr.bdr_queue_truncate()) OR if the table the trigger
-	 * is attached to is dropped, so we want an automatic dependency on the
-	 * target table. CreateTrigger doesn't offer this directly and we'd rather
-	 * not cause an API break by adding a param, so just twiddle the created
-	 * dependency.
+	 * dropped (thus so is bdr.bdr_queue_truncate()) OR if the table the
+	 * trigger is attached to is dropped, so we want an automatic dependency
+	 * on the target table. CreateTrigger doesn't offer this directly and we'd
+	 * rather not cause an API break by adding a param, so just twiddle the
+	 * created dependency.
 	 */
 
 	procaddr.classId = ProcedureRelationId;

@@ -835,9 +835,9 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 static void
 set_node_identifier(const char *data_dir, uint64 nid)
 {
-	char	path[MAXPGPATH];
-	char	tmppath[MAXPGPATH];
-	FILE	*fp;
+	char		path[MAXPGPATH];
+	char		tmppath[MAXPGPATH];
+	FILE	   *fp;
 
 	snprintf(tmppath, MAXPGPATH, "%s/pg_logical/%s.tmp", data_dir,
 			 BDR_CONTROL_FILE);
@@ -857,7 +857,7 @@ set_node_identifier(const char *data_dir, uint64 nid)
 	fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
 	fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
 	fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
-	fprintf(fp, "NODE IDENTIFIER: "UINT64_FORMAT"\n", nid);
+	fprintf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", nid);
 
 	if (ferror(fp) || fclose(fp))
 	{
@@ -889,7 +889,7 @@ set_node_identifier(const char *data_dir, uint64 nid)
 static void
 remove_unwanted_files(char *data_dir)
 {
-	char	path[MAXPGPATH];
+	char		path[MAXPGPATH];
 
 	/*
 	 * We will generate a new BDR node identifier, so BDR control file (if
@@ -1024,7 +1024,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
-	PQExpBuffer	cmd;
+	PQExpBuffer cmd;
 
 	/*
 	 * Fetch the system identification info (sysid, tlid) via replication
@@ -1088,7 +1088,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 	cmd = createPQExpBuffer();
 	appendPQExpBufferStr(cmd,
-		"SELECT bdr.bdr_get_node_identifier() AS node_id;");
+						 "SELECT bdr.bdr_get_node_identifier() AS node_id;");
 
 	res = PQexec(remote_conn, cmd->data);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
