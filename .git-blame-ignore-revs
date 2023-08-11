@@ -14,5 +14,8 @@
 #
 # $ git log --pretty=format:"%H # %cd%n# %s" $PGINDENTGITHASH -1 --date=iso
 
-155e9235c85cb9a82d08158733630b095db61cba # 2023-04-13 10:04:28 +0000
-# Run pgindent over all source files
+7b96cefe140b532e0122d678175b543f96838117 # 2023-04-15 13:23:04 +0530
+# Run pgindent over all source files (#10)
+
+30f4c5c3dd943291873922dde4a9f2e2e4a564c2 # 2023-08-11 19:43:14 +0530
+# Run pgindent over all source files (#159)
