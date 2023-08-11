@@ -673,7 +673,9 @@ extern void bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldsta
 extern List *bdr_read_connection_configs(void);
 
 /* return a node name or (none) if unknown for given nodeid */
-extern const char *bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok);
+extern const char *bdr_nodeid_name(const BDRNodeId * const node,
+								   bool missing_ok,
+								   bool only_cache_lookup);
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -695,7 +697,7 @@ extern void bdr_nodecache_invalidate(void);
 extern bool bdr_local_node_read_only(void);
 extern char bdr_local_node_status(void);
 extern int32 bdr_local_node_seq_id(void);
-extern const char *bdr_local_node_name(void);
+extern const char *bdr_local_node_name(bool only_cache_lookup);
 
 extern void bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force);
 extern void bdr_setup_my_cached_node_names(void);

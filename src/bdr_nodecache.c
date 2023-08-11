@@ -14,6 +14,7 @@
 #include "postgres.h"
 
 #include "bdr.h"
+#include "bdr_locks.h"
 
 #include "access/heapam.h"
 #include "access/xact.h"
@@ -123,7 +124,9 @@ bdr_nodecache_initialize()
 }
 
 static BDRNodeInfo *
-bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
+bdr_nodecache_lookup(const BDRNodeId * const nodeid,
+					 bool missing_ok,
+					 bool only_cache_lookup)
 {
 	BDRNodeInfo *entry,
 			   *nodeinfo;
@@ -173,6 +176,13 @@ bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
 		   0,
 		   sizeof(BDRNodeInfo) - offsetof(BDRNodeInfo, valid));
 
+	/*
+	 * If asked to look up only in the cache, do not go further to get the info
+	 * from the table upon cache miss.
+	 */
+	if (only_cache_lookup)
+		return NULL;
+
 	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
 	nodeinfo = bdr_nodes_get_local_info(nodeid);
 	MemoryContextSwitchTo(saved_ctx);
@@ -219,16 +229,16 @@ bdr_nodecache_lookup(const BDRNodeId * const nodeid, bool missing_ok)
  * open txn, use bdr_local_node_name_cached().
  */
 const char *
-bdr_local_node_name(void)
+bdr_local_node_name(bool only_cache_lookup)
 {
 	BDRNodeId	nodeid;
 	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
-	node = bdr_nodecache_lookup(&nodeid, true);
+	node = bdr_nodecache_lookup(&nodeid, true, only_cache_lookup);
 
 	if (node == NULL)
-		return false;
+		return "(unknown)";
 
 	return node->name;
 }
@@ -240,7 +250,7 @@ bdr_local_node_read_only(void)
 	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
-	node = bdr_nodecache_lookup(&nodeid, true);
+	node = bdr_nodecache_lookup(&nodeid, true, false);
 
 	if (node == NULL)
 		return false;
@@ -255,7 +265,7 @@ bdr_local_node_status(void)
 	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
-	node = bdr_nodecache_lookup(&nodeid, true);
+	node = bdr_nodecache_lookup(&nodeid, true, false);
 
 	if (node == NULL)
 		return '\0';
@@ -274,7 +284,7 @@ bdr_local_node_seq_id(void)
 	BDRNodeInfo *node;
 
 	bdr_make_my_nodeid(&nodeid);
-	node = bdr_nodecache_lookup(&nodeid, true);
+	node = bdr_nodecache_lookup(&nodeid, true, false);
 
 	if (node == NULL)
 		return -1;
@@ -290,11 +300,18 @@ bdr_local_node_seq_id(void)
  * Return value is owned by the cache and must not be free'd.
  */
 const char *
-bdr_nodeid_name(const BDRNodeId * const node, bool missing_ok)
+bdr_nodeid_name(const BDRNodeId * const node,
+				bool missing_ok,
+				bool only_cache_lookup)
 {
-	BDRNodeInfo *const nodeinfo = bdr_nodecache_lookup(node, missing_ok);
+	BDRNodeInfo *nodeinfo;
+	char	*node_name;
 
-	return nodeinfo == NULL || nodeinfo->name == NULL ? "(none)" : nodeinfo->name;
+	nodeinfo = bdr_nodecache_lookup(node, missing_ok, only_cache_lookup);
+	node_name = (nodeinfo == NULL || nodeinfo->name == NULL ?
+				 "(unknown)" : nodeinfo->name);
+
+	return node_name;
 }
 
 /*
@@ -322,7 +339,8 @@ bdr_setup_my_cached_node_names()
 	Assert(IsTransactionState());
 	bdr_make_my_nodeid(&myid);
 
-	my_node_name = MemoryContextStrdup(CacheMemoryContext, bdr_nodeid_name(&myid, false));
+	my_node_name = MemoryContextStrdup(CacheMemoryContext,
+		bdr_nodeid_name(&myid, false, false));
 }
 
 void
@@ -330,10 +348,44 @@ bdr_setup_cached_remote_name(const BDRNodeId * const remote_nodeid)
 {
 	Assert(IsTransactionState());
 
-	remote_node_name = MemoryContextStrdup(CacheMemoryContext, bdr_nodeid_name(remote_nodeid, false));
+	remote_node_name = MemoryContextStrdup(CacheMemoryContext,
+		bdr_nodeid_name(remote_nodeid, false, false));
+
 	bdr_nodeid_cpy(&remote_node_id, remote_nodeid);
 }
 
+/*
+ * A deadlock can occur when look up for a node name leads to reading from
+ * bdr.bdr_nodes table (node cache miss) while holding bdr_locks shared memory
+ * lock. The deadlock was observed in one of the TAP test
+ * 042_concurrency_physical.pl, and it looked like the following:
+ *
+ * 1. A per-db worker while holding bdr_locks shared memory lock from
+ * bdr_locks_node_detached() tried to read a node name (via
+ * BDR_NODEID_FORMAT_WITHNAME_ARGS) to print in log message. This node name
+ * read from node cache lead to reading from bdr.bdr_nodes table in
+ * bdr_nodes_get_local_info() which requires an exclusive lock on the table.
+ *
+ * 2. A backend process related to the connection opened by
+ * bdr_nodes_set_remote_status_ready() was trying to commit a transaction while
+ * holding the exclusive lock on bdr.bdr_nodes table. This led to
+ * bdr_lock_holder_xact_callback() requiring bdr_locks shared memory lock.
+ *
+ * In short, the per-db worker held bdr_locks shared memory lock, and waiting
+ * to acquire exclusive lock on bdr.bdr_nodes table. The backend process held
+ * exclusive lock on bdr.bdr_nodes table, and waiting to acquire bdr_locks
+ * shared memory lock. This led to deadlock.
+ *
+ * A simple fix here is to disallow reading node name from bdr.bdr_nodes table
+ * when node cache miss happens while holding bdr_locks shared memory lock. In
+ * this case, "(unknown)" is returned as node name. This fix is simple because
+ * the node name read functions bdr_get_my_cached_node_name() and
+ * bdr_get_my_cached_remote_name() are mostly called to print node names in log
+ * messages. What may happen is that the log messages will have a valid node id
+ * with node name as "(unknown)", the valid node id will help distiguish the
+ * log messages for every node. See the code around only_cache_lookup variable
+ * in below functions.
+ */
 const char *
 bdr_get_my_cached_node_name()
 {
@@ -341,8 +393,12 @@ bdr_get_my_cached_node_name()
 		return my_node_name;
 	else if (IsTransactionState())
 	{
+		bool	only_cache_lookup;
+
+		only_cache_lookup = IsBDRLocksShmemLockHeldByMe();
+
 		/* We might get called from a user backend too, within a function */
-		return bdr_local_node_name();
+		return bdr_local_node_name(only_cache_lookup);
 	}
 	else
 		return "(unknown)";
@@ -352,12 +408,17 @@ bdr_get_my_cached_node_name()
 const char *
 bdr_get_my_cached_remote_name(const BDRNodeId * const remote_nodeid)
 {
-	if (remote_node_name != NULL && bdr_nodeid_eq(&remote_node_id, remote_nodeid))
+	if (remote_node_name != NULL &&
+		bdr_nodeid_eq(&remote_node_id, remote_nodeid))
 		return remote_node_name;
 	else if (IsTransactionState())
 	{
+		bool	only_cache_lookup;
+
+		only_cache_lookup = IsBDRLocksShmemLockHeldByMe();
+
 		/* We might get called from a user backend */
-		return bdr_nodeid_name(remote_nodeid, true);
+		return bdr_nodeid_name(remote_nodeid, true, only_cache_lookup);
 	}
 	else
 		return "(unknown)";

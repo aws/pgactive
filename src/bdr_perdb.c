@@ -478,7 +478,8 @@ bdr_maintain_db_workers(void)
 								NameStr(slot_name_dropped)) == 0)
 				{
 					elog(DEBUG1, "need to drop slot %s of detached node %s",
-						 NameStr(s->data.name), bdr_nodeid_name(node, true));
+						 NameStr(s->data.name),
+						 bdr_nodeid_name(node, true, false));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
 			}
@@ -765,8 +766,8 @@ bdr_maintain_db_workers(void)
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
 				 "bdr apply worker for %s to %s",
-				 bdr_nodeid_name(&target, true),
-				 bdr_nodeid_name(&myid, true));
+				 bdr_nodeid_name(&target, true, false),
+				 bdr_nodeid_name(&myid, true, false));
 
 		/* Allocate a new shmem slot for this apply worker */
 		worker = bdr_worker_shmem_alloc(BDR_WORKER_APPLY, &slot);
