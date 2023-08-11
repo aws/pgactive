@@ -180,7 +180,7 @@ bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
 static void
 bdr_execute_command(const char *cmd)
 {
-	int		rc;
+	int			rc;
 
 	elog(LOG, "BDR executing command \"%s\"", cmd);
 
@@ -192,11 +192,12 @@ bdr_execute_command(const char *cmd)
 	{
 		/*
 		 * If either the shell itself, or a called command, died on a signal,
-		 * abort the per-db worker.  We do this because system() ignores SIGINT
-		 * and SIGQUIT while waiting; so a signal is very likely something that
-		 * should have interrupted us too.  Also die if the shell got a hard
-		 * "command not found" type of error.  If we overreact it's no big
-		 * deal, the postmaster will just start the per-db worker again.
+		 * abort the per-db worker.  We do this because system() ignores
+		 * SIGINT and SIGQUIT while waiting; so a signal is very likely
+		 * something that should have interrupted us too.  Also die if the
+		 * shell got a hard "command not found" type of error.  If we
+		 * overreact it's no big deal, the postmaster will just start the
+		 * per-db worker again.
 		 */
 		if (WIFEXITED(rc))
 		{
@@ -239,15 +240,15 @@ bdr_execute_command(const char *cmd)
 static void
 bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 {
-	char	    tmpdir[MAXPGPATH];
+	char		tmpdir[MAXPGPATH];
 	char		bdr_dump_path[MAXPGPATH];
 	char		bdr_restore_path[MAXPGPATH];
-	StringInfo origin_dsn = makeStringInfo();
-	StringInfo local_dsn = makeStringInfo();
+	StringInfo	origin_dsn = makeStringInfo();
+	StringInfo	local_dsn = makeStringInfo();
 	StringInfo	cmd = makeStringInfo();
 	uint32		bin_version;
-	char *o_servername;
-	char *l_servername;
+	char	   *o_servername;
+	char	   *l_servername;
 
 	if (bdr_find_other_exec(my_exec_path, BDR_DUMP_CMD, &bin_version,
 							&bdr_dump_path[0]) < 0)
@@ -298,13 +299,17 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	l_servername = get_connect_string(node->local_dsn);
 	appendStringInfo(local_dsn, "%s application_name='%s: init restore' "
 					 "options='-c bdr.do_not_replicate=on "
-					 /* remove for now
-					 "-c bdr.permit_unsafe_ddl_commands=on " */
+
+	/*
+	 * remove for now "-c bdr.permit_unsafe_ddl_commands=on "
+	 */
 					 "-c bdr.skip_ddl_replication=on "
-					 /* remove for now
-					 "-c bdr.skip_ddl_locking=on " */
+
+	/*
+	 * remove for now "-c bdr.skip_ddl_locking=on "
+	 */
 					 "-c session_replication_role=replica'",
-					 (l_servername == NULL ? node->local_dsn : l_servername),  bdr_get_my_cached_node_name());
+					 (l_servername == NULL ? node->local_dsn : l_servername), bdr_get_my_cached_node_name());
 
 	snprintf(tmpdir, sizeof(tmpdir), "%s/postgres-bdr-%s.%d",
 			 bdr_temp_dump_directory, snapshot, getpid());
@@ -399,12 +404,16 @@ bdr_sync_nodes(PGconn *remote_conn, BDRNodeInfo * local_node)
 		const char *const setup_query =
 			"BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;\n"
 			"SET LOCAL search_path = bdr, pg_catalog;\n"
-			/* remove for now
-			"SET LOCAL bdr.permit_unsafe_ddl_commands = on;\n" */
+
+		/*
+		 * remove for now "SET LOCAL bdr.permit_unsafe_ddl_commands = on;\n"
+		 */
 			"SET LOCAL bdr.skip_ddl_replication = on;\n"
 			"LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;\n"
-			/* remove for now
-			"SET LOCAL bdr.skip_ddl_locking = on;\n" */
+
+		/*
+		 * remove for now "SET LOCAL bdr.skip_ddl_locking = on;\n"
+		 */
 			"LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;\n";
 
 		/* Setup the environment. */
@@ -637,6 +646,7 @@ bdr_init_wait_for_slot_creation()
 #if PG_VERSION_NUM < 130000
 		next = lnext(lc);
 #endif
+
 		/*
 		 * We won't see an inbound slot from our own node.
 		 */

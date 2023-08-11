@@ -54,13 +54,13 @@ bdr_register_perdb_worker(Oid dboid)
 {
 	BackgroundWorkerHandle *bgw_handle;
 	BackgroundWorker bgw = {0};
-	BgwHandleStatus	status;
-	pid_t	pid;
+	BgwHandleStatus status;
+	pid_t		pid;
 	BdrWorker  *worker;
 	BdrPerdbWorker *perdb;
 	unsigned int worker_slot_number;
 	uint32		worker_arg;
-	char	*dbname;
+	char	   *dbname;
 
 	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
 	dbname = get_database_name(dboid);
@@ -123,29 +123,29 @@ bdr_register_perdb_worker(Oid dboid)
 	 * 1. Supervisor registers per-db worker while holding BdrWorkerCtl->lock
 	 * in bdr_supervisor_rescan_dbs().
 	 *
-	 * 2. Started per-db worker needs BdrWorkerCtl->lock to update database oid
-	 * in its shared memory slot and thus adds itself to lock's wait queue.
-	 * Unless per-db worker updates database oid, supervisor cannot consider it
-	 * started in find_perdb_worker_slot().
+	 * 2. Started per-db worker needs BdrWorkerCtl->lock to update database
+	 * oid in its shared memory slot and thus adds itself to lock's wait
+	 * queue. Unless per-db worker updates database oid, supervisor cannot
+	 * consider it started in find_perdb_worker_slot().
 	 *
 	 * 3. Supervisor releases the lock, but a waiter other than per-db worker
 	 * acquires the lock. Meanwhile, the supervisor adds itself to the lock's
 	 * wait queue, thanks to SetLatch() in bdr_perdb_xact_callback().
 	 *
-	 * 4. Supervisor acquires the lock again before the first per-db worker and
-	 * fails to find the first per-db worker in find_perdb_worker_slot() as it
-	 * hasn't yet got a chance to update database oid in the shared memory
-	 * slot. This makes supervisor register another per-db worker for the same
-	 * BDR-enabled database causing multiple per-db workers (and so multiple
-	 * apply workers - each per-db worker starts an apply worker) to coexist.
-	 * These multiple per-db workers don't let nodes joining the BDR group to
-	 * come out from catchup state to ready state.
+	 * 4. Supervisor acquires the lock again before the first per-db worker
+	 * and fails to find the first per-db worker in find_perdb_worker_slot()
+	 * as it hasn't yet got a chance to update database oid in the shared
+	 * memory slot. This makes supervisor register another per-db worker for
+	 * the same BDR-enabled database causing multiple per-db workers (and so
+	 * multiple apply workers - each per-db worker starts an apply worker) to
+	 * coexist. These multiple per-db workers don't let nodes joining the BDR
+	 * group to come out from catchup state to ready state.
 	 *
 	 * We fix this race condition by making supervisor register per-db worker,
-	 * wait until postmaster starts it, give it a chance to update database oid
-	 * in its shared memory slot and continue to scan for other BDR-enabled
-	 * databases. An assert-enabled function check_for_multiple_perdb_workers()
-	 * helps to validate the fix.
+	 * wait until postmaster starts it, give it a chance to update database
+	 * oid in its shared memory slot and continue to scan for other
+	 * BDR-enabled databases. An assert-enabled function
+	 * check_for_multiple_perdb_workers() helps to validate the fix.
 	 */
 	status = WaitForBackgroundWorkerStartup(bgw_handle, &pid);
 	if (status != BGWH_STARTED)
@@ -278,9 +278,9 @@ bdr_supervisor_rescan_dbs()
 
 		/*
 		 * While we are here, there's no problem even if the database is
-		 * renamed. This is because we use OID based bg worker API (i.e., every
-		 * bg worker is mapped with database OID, not with database name), and
-		 * database renaming doesn't change the OID.
+		 * renamed. This is because we use OID based bg worker API (i.e.,
+		 * every bg worker is mapped with database OID, not with database
+		 * name), and database renaming doesn't change the OID.
 		 */
 		elog(DEBUG1, "found BDR-enabled database with OID %u", sec->objoid);
 
@@ -407,9 +407,9 @@ bdr_get_supervisordb_oid(bool missingok)
 static void
 check_for_multiple_perdb_workers(void)
 {
-	int		i;
-	bool	exists = false;
-	List   *perdb_w = NIL;
+	int			i;
+	bool		exists = false;
+	List	   *perdb_w = NIL;
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
@@ -428,7 +428,7 @@ check_for_multiple_perdb_workers(void)
 		if (w->worker_type == BDR_WORKER_PERDB)
 		{
 			BdrPerdbWorker *pw = &w->data.perdb;
-			Oid dboid = pw->p_dboid;
+			Oid			dboid = pw->p_dboid;
 
 			if (!OidIsValid(dboid))
 				continue;
@@ -547,6 +547,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 		long		timeout = 180000L;
 
 #ifdef USE_ASSERT_CHECKING
+
 		/*
 		 * In assert-enabled build, supervisor needs to frequently call
 		 * check_for_multiple_perdb_workers(), so keep a lower value for

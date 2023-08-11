@@ -1761,9 +1761,9 @@ bdr_locks_node_detached(BDRNodeId * node)
 	elog(INFO, "XXX testing if node holds ddl lock");
 
 	/*
-	 * Rather than looking up the replication origin of the node being detached,
-	 * which might no longer exist, check if the lock is held and if so, if
-	 * the node id matches.
+	 * Rather than looking up the replication origin of the node being
+	 * detached, which might no longer exist, check if the lock is held and if
+	 * so, if the node id matches.
 	 *
 	 * We could just call bdr_locks_release_local_ddl_lock but that'll do
 	 * table scans etc we can avoid by taking a quick look at shmem first.
@@ -1892,8 +1892,8 @@ bdr_locks_release_local_ddl_lock(const BDRNodeId * const lock)
 	latch = bdr_my_locks_database->requestor;
 
 	/*
-	 * We allow memory allocations in the following critical section for
-	 * the sake of CommitTransactionCommand(), so, keep track of the memory
+	 * We allow memory allocations in the following critical section for the
+	 * sake of CommitTransactionCommand(), so, keep track of the memory
 	 * context in which we did so. This is needed to correctly reset
 	 * allowInCritSection flag as CommitTransactionCommand() changes the
 	 * memory context.

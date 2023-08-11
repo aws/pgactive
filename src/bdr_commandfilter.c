@@ -59,7 +59,7 @@ static ClientAuthentication_hook_type next_ClientAuthentication_hook = NULL;
 bool           bdr_permit_unsafe_commands = false; */
 
 #if PG_VERSION_NUM >= 120000
-bool        default_with_oids = false;
+bool		default_with_oids = false;
 #endif
 
 static void error_unsupported_command(const char *cmdtag);
@@ -194,9 +194,9 @@ filter_AlterTableStmt(Node *parsetree,
 	ListCell   *cell1;
 	bool		hasInvalid;
 #if PG_VERSION_NUM >= 150000
-	AlterTableStmt	   *stmts =  makeNode(AlterTableStmt);
-	List       *beforeStmts;
-	List       *afterStmts;
+	AlterTableStmt *stmts = makeNode(AlterTableStmt);
+	List	   *beforeStmts;
+	List	   *afterStmts;
 #else
 	ListCell   *cell;
 	List	   *stmts;
@@ -226,7 +226,7 @@ filter_AlterTableStmt(Node *parsetree,
 	foreach(cell1, stmts->cmds)
 	{
 		AlterTableCmd *stmt;
-		Node       *node = (Node *) lfirst(cell1);
+		Node	   *node = (Node *) lfirst(cell1);
 
 		/*
 		 * We ignore all nodes which are not AlterTableCmd statements since
@@ -789,7 +789,7 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 #if PG_VERSION_NUM < 150000
 		Value	   *objname = lfirst(cell);
 #else
-		String     *objname = lfirst_node(String, cell);
+		String	   *objname = lfirst_node(String, cell);
 #endif
 		Oid			ext_oid;
 
@@ -824,19 +824,19 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 }
 
 static void
-bdr_commandfilter(PlannedStmt *pstmt,
-				  const char *queryString,
+			bdr_commandfilter(PlannedStmt *pstmt,
+							  const char *queryString,
 #if PG_VERSION_NUM >= 150000
-				  bool readOnlyTree,
+							  bool readOnlyTree,
 #endif
-				  ProcessUtilityContext context,
-				  ParamListInfo params,
-				  QueryEnvironment *queryEnv,
-				  DestReceiver *dest,
+							  ProcessUtilityContext context,
+							  ParamListInfo params,
+							  QueryEnvironment *queryEnv,
+							  DestReceiver *dest,
 #if PG_VERSION_NUM >= 150000
-				  QueryCompletion *qc)
+							  QueryCompletion *qc)
 #else
-				  char *completionTag)
+							  char *completionTag)
 #endif
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -848,9 +848,9 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	BDRLockType lock_type = BDR_LOCK_WRITE;
 
 	/*
-	 * If DDL replication is disabled, let's call the next process utility hook
-	 * (if any) or the standard one. The reason is that there is no reason to
-	 * filter anything in such a case.
+	 * If DDL replication is disabled, let's call the next process utility
+	 * hook (if any) or the standard one. The reason is that there is no
+	 * reason to filter anything in such a case.
 	 */
 	if (bdr_skip_ddl_replication)
 	{
@@ -902,8 +902,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	 * Extension contents aren't individually replicated. While postgres sets
 	 * creating_extension for create/alter extension, it doesn't set it for
 	 * drop extension. To ensure we don't replicate anything for drop
-	 * extension, we use bdr_in_extension that was set when BDR first sees drop
-	 * extension.
+	 * extension, we use bdr_in_extension that was set when BDR first sees
+	 * drop extension.
 	 */
 	if (creating_extension || bdr_in_extension)
 		goto done;
@@ -944,10 +944,14 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 	/* check for read-only mode */
 	{
-		CommandTag tag;
+		CommandTag	tag;
 
 		if (bdr_local_node_read_only()
-			/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+
+		/*
+		 * replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for
+		 * now
+		 */
 			&& !bdr_skip_ddl_replication
 			&& !allowed_on_read_only_node(parsetree, &tag))
 			ereport(ERROR,
@@ -1167,7 +1171,11 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				 * that users aren't confused, only permit it when
 				 * bdr.skip_ddl_replication is set.
 				 */
-				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+
+				/*
+				 * replace bdr_permit_unsafe_commands by
+				 * bdr_skip_ddl_replication for now
+				 */
 				if (stmt->concurrent && !bdr_skip_ddl_replication)
 				{
 					if (in_bdr_replicate_ddl_command)
@@ -1182,7 +1190,10 @@ bdr_commandfilter(PlannedStmt *pstmt,
 											   AccessExclusiveLock, false);
 				}
 
-				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+				/*
+				 * replace bdr_permit_unsafe_commands by
+				 * bdr_skip_ddl_replication for now
+				 */
 				if (stmt->whereClause && stmt->unique && !bdr_skip_ddl_replication)
 					error_on_persistent_rv(stmt->relation,
 										   "CREATE UNIQUE INDEX ... WHERE",
@@ -1210,23 +1221,24 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
 			break;
 
-		/*
-		 * We disallow a BDR node from being a subscriber in postgres logical
-		 * replication when BDR is active. Technically, BDR has nothing to do
-		 * with postgres logical replication, however, we disallow
-		 * subscriptions on a BDR node for now to not have any possible data
-		 * divergence issues and conflicts on nodes within the BDR group. For
-		 * instance, when a BDR node pulls in changes from a non-BDR publisher
-		 * using postgres logical replication, then, the node can easily
-		 * diverge from the other nodes in BDR group, and may cause conflicts.
-		 *
-		 * However, we have no problem if a BDR node is a publisher in postgres
-		 * logical replication. Meaning, a non-BDR node can still pull in
-		 * changes from a BDR node.
-		 *
-		 * XXX: We might have to leave all of these to the user and allow
-		 * subscriptions on BDR nodes.
-		 */
+			/*
+			 * We disallow a BDR node from being a subscriber in postgres
+			 * logical replication when BDR is active. Technically, BDR has
+			 * nothing to do with postgres logical replication, however, we
+			 * disallow subscriptions on a BDR node for now to not have any
+			 * possible data divergence issues and conflicts on nodes within
+			 * the BDR group. For instance, when a BDR node pulls in changes
+			 * from a non-BDR publisher using postgres logical replication,
+			 * then, the node can easily diverge from the other nodes in BDR
+			 * group, and may cause conflicts.
+			 *
+			 * However, we have no problem if a BDR node is a publisher in
+			 * postgres logical replication. Meaning, a non-BDR node can still
+			 * pull in changes from a BDR node.
+			 *
+			 * XXX: We might have to leave all of these to the user and allow
+			 * subscriptions on BDR nodes.
+			 */
 		case T_CreateSubscriptionStmt:
 		case T_AlterSubscriptionStmt:
 		case T_DropSubscriptionStmt:
@@ -1318,7 +1330,10 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			{
 				DropStmt   *stmt = (DropStmt *) parsetree;
 
-				/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+				/*
+				 * replace bdr_permit_unsafe_commands by
+				 * bdr_skip_ddl_replication for now
+				 */
 				if (stmt->removeType == OBJECT_INDEX && stmt->concurrent && !bdr_skip_ddl_replication)
 				{
 					if (in_bdr_replicate_ddl_command)
@@ -1400,7 +1415,11 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			 * appear as ProcessUtility targets. So just ERROR if we missed
 			 * one.
 			 */
-			/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
+
+			/*
+			 * replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication
+			 * for now
+			 */
 			if (!bdr_skip_ddl_replication)
 				elog(ERROR, "unrecognized node type: %d", (int) nodeTag(parsetree));
 			break;
@@ -1480,16 +1499,15 @@ done:
 			/*
 			 * When we are here with bdr_in_extension true, it means that we
 			 * entered create/alter/drop extension previously, but the
-			 * extension script file is having one or more of
-			 * alter extension ... drop function/drop extension statements.
-			 * However, postgres fails with
-			 * "ERROR: nested CREATE EXTENSION is not supported" or
+			 * extension script file is having one or more of alter extension
+			 * ... drop function/drop extension statements. However, postgres
+			 * fails with "ERROR: nested CREATE EXTENSION is not supported" or
 			 * "ERROR: nested ALTER EXTENSION is not supported" if create
 			 * extension or just the alter extension respectively is specified
-			 * in an extension script file. We don't do anything fancy here for
-			 * BDR, other than ensuring the alter extension ... drop function/
-			 * drop extension statements within extension script file aren't
-			 * replicated, which will be taken care by the flag
+			 * in an extension script file. We don't do anything fancy here
+			 * for BDR, other than ensuring the alter extension ... drop
+			 * function/ drop extension statements within extension script
+			 * file aren't replicated, which will be taken care by the flag
 			 * bdr_in_extension that's set to true previously.
 			 */
 

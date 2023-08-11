@@ -314,8 +314,8 @@ bdr_maintain_db_workers(void)
 		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
 
 	/*
-	 * We may want to use the SPI within the loop that processes detached nodes,
-	 * so copy the matched list of node IDs.
+	 * We may want to use the SPI within the loop that processes detached
+	 * nodes, so copy the matched list of node IDs.
 	 */
 
 	for (i = 0; i < SPI_processed; i++)
@@ -493,9 +493,9 @@ bdr_maintain_db_workers(void)
 				ReplicationSlotDrop(slot_name, true);
 				elog(LOG, "dropped slot %s due to node detach", slot_name);
 
-				if(!we_were_dropped)
+				if (!we_were_dropped)
 				{
-					char       roname[256];
+					char		roname[256];
 
 					snprintf(roname, sizeof(roname), BDR_REPORIGIN_ID_FORMAT,
 							 node->sysid, node->timeline, node->dboid, myid.dboid,
@@ -514,14 +514,15 @@ bdr_maintain_db_workers(void)
 	}
 
 	/*
-	 * If at least one worker was found alive and killed in the above for loop,
-	 * we check again next time for dropping replication slots of the detached
-	 * peers. However, we want to do this soon, so setting the latch ensures
-	 * the per-db worker doesn't go into long wait in its main loop. And, we
-	 * set the latch specifically after ReplicationSlotDrop() call in the above
-	 * for loop, because it can get reset by ConditionVariablePrepareToSleep()
-	 * or ConditionVariableSleep() (called via ReplicationSlotDrop() ->
-	 * ReplicationSlotAcquire()) making per-db worker go into long wait.
+	 * If at least one worker was found alive and killed in the above for
+	 * loop, we check again next time for dropping replication slots of the
+	 * detached peers. However, we want to do this soon, so setting the latch
+	 * ensures the per-db worker doesn't go into long wait in its main loop.
+	 * And, we set the latch specifically after ReplicationSlotDrop() call in
+	 * the above for loop, because it can get reset by
+	 * ConditionVariablePrepareToSleep() or ConditionVariableSleep() (called
+	 * via ReplicationSlotDrop() -> ReplicationSlotAcquire()) making per-db
+	 * worker go into long wait.
 	 */
 	if (at_least_one_worker_terminated)
 		SetLatch(&MyProc->procLatch);
@@ -548,10 +549,10 @@ bdr_maintain_db_workers(void)
 		 * over. But for now that's what we do.
 		 *
 		 * We could set the node as 'dead'. This is a local state, since it
-		 * could still be detaching on other nodes. So we shouldn't just update
-		 * bdr_nodes, we'd have to do a non-replicated update in a replicated
-		 * table and it'd be ugly. We'll need a side-table for local node
-		 * state.
+		 * could still be detaching on other nodes. So we shouldn't just
+		 * update bdr_nodes, we'd have to do a non-replicated update in a
+		 * replicated table and it'd be ugly. We'll need a side-table for
+		 * local node state.
 		 *
 		 * Or we could delete the row locally. We're eventually consistent
 		 * anyway, right? We'd have to do that with do_not_replicate set.
@@ -559,7 +560,8 @@ bdr_maintain_db_workers(void)
 	}
 
 	/*
-	 * Now we can remove replication origins linked to detached node(s) (if any).
+	 * Now we can remove replication origins linked to detached node(s) (if
+	 * any).
 	 */
 	StartTransactionCommand();
 	PushActiveSnapshot(GetTransactionSnapshot());
@@ -835,9 +837,9 @@ out:
 	/*
 	 * Now we need to tell the lock manager about the changed node count.
 	 *
-	 * Now that node join takes the DDL lock and detach is careful to wait until
-	 * it completes, the node count should only change when it's safe. In
-	 * particular it should only go up when the DDL lock is held.
+	 * Now that node join takes the DDL lock and detach is careful to wait
+	 * until it completes, the node count should only change when it's safe.
+	 * In particular it should only go up when the DDL lock is held.
 	 */
 	bdr_worker_slot->data.perdb.nnodes = nnodes;
 	bdr_locks_set_nnodes(nnodes);
@@ -939,9 +941,9 @@ bdr_perdb_worker_main(Datum main_arg)
 		CommitTransactionCommand();
 
 		/*
-		 * Check whether the local node and remote node have same bdr.max_nodes
-		 * GUC value, if they don't, let's not proceed further unless the same
-		 * value is set to same on both the nodes.
+		 * Check whether the local node and remote node have same
+		 * bdr.max_nodes GUC value, if they don't, let's not proceed further
+		 * unless the same value is set to same on both the nodes.
 		 */
 		if (local_node->init_from_dsn != NULL)
 		{

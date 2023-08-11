@@ -132,7 +132,7 @@ bdr_conflict_type_get_datum(BdrConflictType conflict_type)
 	}
 	Assert(enumname != NULL);
 	conflict_type_oid = BdrGetSysCacheOid2(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-										BdrConflictTypeOid, CStringGetDatum(enumname));
+										   BdrConflictTypeOid, CStringGetDatum(enumname));
 	if (conflict_type_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "bdr.bdr_conflict_type failed", enumname);
@@ -183,7 +183,7 @@ bdr_conflict_resolution_get_datum(BdrConflictResolution conflict_resolution)
 	char	   *enumname = bdr_conflict_resolution_get_name(conflict_resolution);
 
 	conflict_resolution_oid = BdrGetSysCacheOid2(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-											  BdrConflictResolutionOid, CStringGetDatum(enumname));
+												 BdrConflictResolutionOid, CStringGetDatum(enumname));
 	if (conflict_resolution_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "bdr.bdr_conflict_resolution failed", enumname);

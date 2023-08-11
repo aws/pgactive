@@ -160,9 +160,9 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	char		nulls[5] = {' ', ' ', ' ', ' ', 'n'};
 	int			guc_nestlevel;
 
-	HeapTuple   spi_rslt;
-	TupleDesc   spi_rslt_desc;
-	int         col_oid;
+	HeapTuple	spi_rslt;
+	TupleDesc	spi_rslt_desc;
+	int			col_oid;
 	Name		ch_name;
 	bool		isnull;
 
@@ -775,7 +775,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 #else
 		if (local != NULL)
 		{
-			fcinfo.arg[0]=
+			fcinfo.arg[0] =
 				heap_copy_tuple_as_datum(local, RelationGetDescr(rel->rel));
 			fcinfo.argnull[0] = false;
 		}

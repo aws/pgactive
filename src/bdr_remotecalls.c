@@ -65,14 +65,15 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 {
 	PGconn	   *nonrepl_conn;
 	StringInfoData dsn;
-	char *servername;
+	char	   *servername;
+
 	servername = get_connect_string(connstring);
 
 	initStringInfo(&dsn);
 	appendStringInfo(&dsn, "%s %s %s application_name='%s:%s'",
 					 bdr_default_apply_connection_options,
 					 bdr_extra_apply_connection_options,
-					 (servername == NULL ? connstring : servername ),
+					 (servername == NULL ? connstring : servername),
 					 bdr_get_my_cached_node_name(), appnamesuffix);
 
 	/*
@@ -258,13 +259,13 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 * if we're superuser at this point.
 	 */
 	res = PQexec(conn, "SELECT bdr.bdr_version(), bdr.bdr_version_num(), "
-					   "bdr.bdr_variant(), bdr.bdr_min_remote_version_num(), "
-					   "current_setting('is_superuser') AS issuper, "
-					   "bdr.bdr_get_local_node_name() AS node_name, "
-					   "current_database()::text AS dbname, "
-					   "pg_database_size(current_database()) AS dbsize, "
- 					   "current_setting('bdr.max_nodes') AS max_nodes, "
-					   "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
+				 "bdr.bdr_variant(), bdr.bdr_min_remote_version_num(), "
+				 "current_setting('is_superuser') AS issuper, "
+				 "bdr.bdr_get_local_node_name() AS node_name, "
+				 "current_database()::text AS dbname, "
+				 "pg_database_size(current_database()) AS dbsize, "
+				 "current_setting('bdr.max_nodes') AS max_nodes, "
+				 "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -284,7 +285,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	ri->dbname = pstrdup(PQgetvalue(res, 0, 6));
 	ri->dbsize = DatumGetInt64(
 							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 7))));
- 	ri->max_nodes = DatumGetInt32(
+	ri->max_nodes = DatumGetInt32(
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 8))));
 	ri->cur_nodes = DatumGetInt32(
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 9))));
@@ -304,7 +305,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 			 parsed_version_num, remote_bdr_version_str, ri->version_num);
 
 	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
-					   "WHERE datname = current_database();");
+				 "WHERE datname = current_database();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -321,7 +322,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	/* Get the remote node identity */
 	res = PQexec(conn, "SELECT sysid, timeline, dboid "
-					   "FROM bdr.bdr_get_local_nodeid();");
+				 "FROM bdr.bdr_get_local_nodeid();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -349,7 +350,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	/* Get the remote node status */
 	res = PQexec(conn, "SELECT node_status FROM bdr.bdr_nodes WHERE "
-					   "(node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();");
+				 "(node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -464,7 +465,7 @@ Datum
 bdr_test_replication_connection(PG_FUNCTION_ARGS)
 {
 	const char *conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
-	char *servername;
+	char	   *servername;
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -637,7 +638,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 
 		memset(&ri, 0, sizeof(ri));
 		servername = get_connect_string(my_dsn);
-		bdr_test_remote_connectback_internal(conn, &ri, ( servername == NULL ? my_dsn : servername));
+		bdr_test_remote_connectback_internal(conn, &ri, (servername == NULL ? my_dsn : servername));
 
 		if (ri.sysid_str != NULL)
 			values[0] = CStringGetTextDatum(ri.sysid_str);

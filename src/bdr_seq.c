@@ -36,6 +36,7 @@ static Oid	seq_nodeid_dboid = InvalidOid;
 static int16 global_seq_get_nodeid(void);
 
 Datum		bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(bdr_snowflake_id_nextval_oid);
 
 /*
@@ -86,8 +87,8 @@ bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 
 	/*
 	 * This is mainly a failsafe so that we don't generate corrupted sequence
-	 * numbers if machine date is incorrect (or if somebody is still using this
-	 * code after ~2042).
+	 * numbers if machine date is incorrect (or if somebody is still using
+	 * this code after ~2042).
 	 */
 	if (timestamp < 0 || timestamp > MAX_TIMESTAMP)
 		elog(ERROR, "cannot generate sequence, timestamp " UINT64_FORMAT " out of range 0 .. " UINT64_FORMAT,
@@ -111,8 +112,8 @@ bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 	Assert(TIMESTAMP_BITS + NODEID_BITS + SEQUENCE_BITS == 64);
 
 	res = (timestamp << (64 - TIMESTAMP_BITS)) |
-		  (nodeid << (64 - TIMESTAMP_BITS - NODEID_BITS)) |
-		   sequence;
+		(nodeid << (64 - TIMESTAMP_BITS - NODEID_BITS)) |
+		sequence;
 
 	PG_RETURN_INT64(res);
 }
