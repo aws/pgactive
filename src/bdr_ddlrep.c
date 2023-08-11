@@ -59,7 +59,7 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 
 	elog(DEBUG2, "node %s enqueuing DDL command \"%s\" "
 		 "with search_path \"%s\"",
-		 bdr_local_node_name(), command,
+		 bdr_local_node_name(false), command,
 		 search_path == NULL ? "" : search_path);
 
 	if (search_path == NULL)

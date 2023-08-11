@@ -40,4 +40,6 @@ extern BDRLockType bdr_lock_name_to_type(const char *lock_type);
 
 extern void bdr_locks_node_detached(BDRNodeId * node);
 
+extern bool IsBDRLocksShmemLockHeldByMe(void);
+
 #endif

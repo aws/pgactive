@@ -171,7 +171,11 @@ sub initandstart_node {
 sub bdr_update_postgresql_conf {
     my ($node) = shift;
 
-    my $ddl_lock_acquire_timeout =
+    # Set timeouts for lock acquire to avoid indefinite wait loops in tests.
+    # For example, it was noticed in CI tests that LOCK TABLE on bdr.bdr_nodes
+    # in bdr.bdr_detach_nodes can sporadically cause indefinite wait loop in
+    # 042_concurrency_physical.pl.
+    my $lock_acquire_timeout =
         $PostgreSQL::Test::Utils::timeout_default .'s';
 
     # Setting bdr.trace_replay=on here can be a big help, so added for
@@ -191,7 +195,8 @@ sub bdr_update_postgresql_conf {
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
 			bdr.skip_ddl_replication = false
             bdr.max_nodes = 20
-            bdr.bdr_ddl_lock_acquire_timeout = $ddl_lock_acquire_timeout
+            bdr.bdr_ddl_lock_acquire_timeout = $lock_acquire_timeout
+            lock_timeout = $lock_acquire_timeout
     ));
 }
 

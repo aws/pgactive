@@ -2566,3 +2566,13 @@ bdr_get_global_locks_info(PG_FUNCTION_ARGS)
 	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
 }
+
+/*
+ * A simple wrapper to check if calling process is currently holding bdr_locks
+ * shared memory lock.
+ */
+bool
+IsBDRLocksShmemLockHeldByMe(void)
+{
+	return bdr_locks_ctl == NULL ? false : LWLockHeldByMe(bdr_locks_ctl->lock);
+}
