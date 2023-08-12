@@ -1,16 +1,18 @@
 Note that the bdr_dump tool is nothing but pg_dump of core postgres plus
-additional changes shown as diff in this README file.
+additional changes stored in <PG Version>.patch file.
 
-While porting BDR to higher postgres versions:
+While porting BDR to higher postgres versions or refreshing pg_dump source:
+
 1. Copy pg_dump source code files from postgres src/bin/pg_dump directory to
-compat/PG_VERSION/pg_dump directory.
-2. Apply the diff (search for the diff code in the previous versions of pg_dump
-code in compat/PG_VERSION-previous/pg_dump to understand where the code fits in
-newer versions) shown in this README file to respective files under
-compat/PG_VERSION/pg_dump directory.
+src/compat/PG_VERSION/pg_dump directory.
+
+2. Apply the diff (cd src/compat/PG_VERSION/pg_dump and patch -p0 < ../pg_dump.patch).
+
 3. Copy src/fe_utils/string_utils.c from postgres source code to
 compat/PG_VERSION/pg_dump directory. string_utils.c file is needed by pg_dump
 to make pg_dump a self-reliant component while compiling BDR source code.
+
+4. Add the commit hash of postgres in the section "Following table shows commit hash of pg_dump source"
 
 XXX: It might be worth doing this a bit differently - either a dedicated tool
 for BDR or a compile-time script that pulls in the pg_dump code from postgres
@@ -21,105 +23,19 @@ caveat here - it's a bit hard to build the case and even if we do so, no
 backporting) or understand if we need this diff at all for BDR. But that's for
 another day.
 
-bdr_dump diff from core pg_dump:
-========================================
-diff --git a/compat/15/pg_dump/pg_backup.h b/compat/15/pg_dump/pg_backup.h
-index fcc5f6b..5f33047 100644
---- a/compat/15/pg_dump/pg_backup.h
-+++ b/compat/15/pg_dump/pg_backup.h
-@@ -159,6 +159,7 @@ typedef struct _dumpOptions
- 	ConnParams	cparams;
- 
- 	int			binary_upgrade;
-+	int                     bdr_init_node;
- 
- 	/* various user-settable parameters */
- 	bool		schemaOnly;
-diff --git a/compat/15/pg_dump/pg_dump.c b/compat/15/pg_dump/pg_dump.c
-index 17f84d2..717edbc 100644
---- a/compat/15/pg_dump/pg_dump.c
-+++ b/compat/15/pg_dump/pg_dump.c
-@@ -384,6 +384,7 @@ main(int argc, char **argv)
- 		 */
- 		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
- 		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
-+		{"bdr-init-node", no_argument, &dopt.bdr_init_node, 1},
- 		{"column-inserts", no_argument, &dopt.column_inserts, 1},
- 		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
- 		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -8757,6 +8758,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
- {
- 	if (dopt->binary_upgrade)
- 		return true;
-+	if (dopt->bdr_init_node)
-+		return true;
- 	if (tbinfo->attisdropped[colno])
- 		return false;
- 	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -15717,6 +15720,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
- 			}
- 		}
- 
-+		/* Some of the binary compatibility is needed for bdr as well. */
-+		if (dopt->bdr_init_node && tbinfo->relkind == RELKIND_RELATION)
-+		{
-+			for (j = 0; j < tbinfo->numatts; j++)
-+			{
-+				if (!tbinfo->attisdropped[j])
-+					continue;
-+
-+				appendPQExpBufferStr(q, "\n-- For bdr init, recreate dropped column.\n");
-+				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
-+									 "SET attlen = %d, "
-+									 "attalign = '%c', attbyval = false\n"
-+									 "WHERE attname = ",
-+									 tbinfo->attlen[j],
-+									 tbinfo->attalign[j]);
-+				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
-+				appendPQExpBufferStr(q, "\n  AND attrelid = ");
-+				appendStringLiteralAH(q, qualrelname, fout);
-+				appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
-+
-+				if (tbinfo->relkind == RELKIND_RELATION ||
-+					tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
-+					appendPQExpBuffer(q, "ALTER TABLE ONLY %s ", qualrelname);
-+				else
-+					appendPQExpBuffer(q, "ALTER FOREIGN TABLE %s ", qualrelname);
-+
-+				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
-+			}
-+		}
- 		/*
- 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
- 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
+Changes are required for supporting CREATE SERVER and CREATE USER
+MAPPING for BDR, otherwise pg_restore will fail as these objects will
+be present on the joining node. Another way of achieving the same without
+changing pg_dump code is to let BDR clean up these objects before restore
+so that they will be recreated by pg_restore. But there's a problem here
+if restore fails for some reason, these will be missing and dump on next run won't work.
 
-Folllowing change is required for supporting CREATE SERVER and CREATE USER
-MAPPING for BDR. Without this patch pg_restore will fail as these objects will
-be present on the joining node. We cannot clean before restore because if
-restore fails for some reason, these will be missing and dump on next run won't
-work.
-
-diff --git a/compat/11/pg_dump/pg_dump.c b/compat/11/pg_dump/pg_dump.c
-index 54d7000..c9b9e02 100644
---- a/compat/11/pg_dump/pg_dump.c
-+++ b/compat/11/pg_dump/pg_dump.c
-@@ -14671,7 +14671,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
-        res = ExecuteSqlQueryForSingleRow(fout, query->data);
-        fdwname = PQgetvalue(res, 0, 0);
- 
--       appendPQExpBuffer(q, "CREATE SERVER %s", qsrvname);
-+       appendPQExpBuffer(q, "CREATE SERVER IF NOT EXISTS %s", qsrvname);
-        if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
-        {
-                appendPQExpBufferStr(q, " TYPE ");
-@@ -14801,7 +14801,7 @@ dumpUserMappings(Archive *fout,
-                umoptions = PQgetvalue(res, i, i_umoptions);
- 
-                resetPQExpBuffer(q);
--               appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(usename));
-+               appendPQExpBuffer(q, "CREATE USER MAPPING IF NOT EXISTS FOR %s", fmtId(usename));
-                appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
- 
-                if (umoptions && strlen(umoptions) > 0)
-
+Following table shows commit hash of pg_dump source
+| PG Verison | Commit |
+| 11 | ae126929500918334a7ff3120da1c7f2f9a0fe53 |
+| 12 | |
+| 13 | |
+| 14 | |
+| 15 | 1bc19dfcfea71e7ed03eff9d72072579bd678b4c |
+| 16 | |
 
