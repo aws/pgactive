@@ -54,6 +54,19 @@ jobs:
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
 
+      - if: ${{ matrix.version == 'REL_16_STABLE' }}
+        name: Check BDR code indentation (REL_16_STABLE only)
+        run: |
+          cd postgres
+          make -C src/tools/pg_bsd_indent/ -j4 install
+          cat << EOF >> pgindent.ignore
+          src/compat/11/pg_dump/*
+          src/compat/15/pg_dump/*
+          src/compat/16/pg_dump/*
+          EOF
+          src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --show-diff $GITHUB_WORKSPACE/bdr > pgindent.diffs
+          test -s pgindent.diffs && cat pgindent.diffs && exit 1
+
       - name: Build BDR
         run: |
             cd bdr
@@ -87,9 +100,9 @@ jobs:
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
+            postgres/pgindent.diffs
             bdr/test/regression.diffs
             bdr/test/tmp_check/log
             # Upload bdr_pgbench.sh results
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
-
