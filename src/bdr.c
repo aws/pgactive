@@ -109,7 +109,7 @@ bool		bdr_skip_ddl_locking; */
 bool		bdr_do_not_replicate;
 bool		bdr_discard_mismatched_row_attributes;
 bool		bdr_trace_replay;
-int			bdr_trace_ddl_locks_level;
+int			bdr_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
 char	   *bdr_extra_apply_connection_options;
 int			bdr_log_min_messages = WARNING;
 int			bdr_init_node_parallel_jobs;
@@ -1909,7 +1909,7 @@ file_exists(const char *name)
 {
 	struct stat st;
 
-	AssertArg(name != NULL);
+	Assert(name != NULL);
 
 	if (stat(name, &st) == 0)
 		return !S_ISDIR(st.st_mode);

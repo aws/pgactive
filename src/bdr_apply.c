@@ -785,7 +785,9 @@ process_remote_insert(StringInfo s)
 		 */
 		if (apply_update)
 		{
-#if PG_VERSION_NUM >= 120000
+#if PG_VERSION_NUM >= 160000
+			TU_UpdateIndexes update_indexes;
+#elif PG_VERSION_NUM >= 120000
 			bool		update_indexes;
 #endif
 
@@ -801,7 +803,15 @@ process_remote_insert(StringInfo s)
 				ExecStoreHeapTuple(user_tuple, newslot, true);
 			}
 
-#if PG_VERSION_NUM >= 120000
+#if PG_VERSION_NUM >= 160000
+			simple_table_tuple_update(rel->rel,
+									  &(oldslot->tts_tid),
+									  newslot,
+									  estate->es_snapshot,
+									  &update_indexes);
+
+			if (update_indexes != TU_None)
+#elif PG_VERSION_NUM >= 120000
 			simple_table_tuple_update(rel->rel,
 									  &(oldslot->tts_tid),
 									  newslot,
@@ -1076,7 +1086,9 @@ process_remote_update(StringInfo s)
 
 		if (apply_update)
 		{
-#if PG_VERSION_NUM >= 120000
+#if PG_VERSION_NUM >= 160000
+			TU_UpdateIndexes update_indexes;
+#elif PG_VERSION_NUM >= 120000
 			bool		update_indexes;
 #endif
 
@@ -1092,12 +1104,21 @@ process_remote_update(StringInfo s)
 				ExecStoreHeapTuple(user_tuple, newslot, true);
 			}
 
-#if PG_VERSION_NUM >= 120000
+#if PG_VERSION_NUM >= 160000
 			simple_table_tuple_update(rel->rel,
 									  &(oldslot->tts_tid),
 									  newslot,
 									  estate->es_snapshot,
 									  &update_indexes);
+
+			if (update_indexes != TU_None)
+#elif PG_VERSION_NUM >= 120000
+			simple_table_tuple_update(rel->rel,
+									  &(oldslot->tts_tid),
+									  newslot,
+									  estate->es_snapshot,
+									  &update_indexes);
+
 			if (update_indexes)
 #else
 			simple_heap_update(rel->rel, &(TTS_TUP(oldslot)->t_self), TTS_TUP(newslot));
@@ -1809,7 +1830,11 @@ oper_typeStringToTypeName(const char *str)
 	if (pg_strcasecmp(str, "none") == 0)
 		return NULL;
 	else
+#if PG_VERSION_NUM >= 160000
+		return typeStringToTypeName(str, NULL);
+#else
 		return typeStringToTypeName(str);
+#endif
 }
 
 static HeapTuple
@@ -1827,9 +1852,9 @@ process_queued_drop(HeapTuple cmdtup)
 	Oid			elmoutoid;
 	bool		elmisvarlena;
 	TupleDesc	elemdesc;
-	Datum	   *values;
-	int			nelems;
-	int			i;
+	Datum	   *ovalues;
+	int			onelems;
+	int			h;
 	ObjectAddresses *addresses;
 	ErrorContextCallback errcallback;
 
@@ -1849,14 +1874,14 @@ process_queued_drop(HeapTuple cmdtup)
 	get_typlenbyvalalign(elmtype, &elmlen, &elmbyval, &elmalign);
 	deconstruct_array(array, elmtype,
 					  elmlen, elmbyval, elmalign,
-					  &values, NULL, &nelems);
+					  &ovalues, NULL, &onelems);
 
 	getTypeOutputInfo(elmtype, &elmoutoid, &elmisvarlena);
 	elemdesc = TypeGetTupleDesc(elmtype, NIL);
 
 	addresses = new_object_addresses();
 
-	for (i = 0; i < nelems; i++)
+	for (h = 0; h < onelems; h++)
 	{
 		HeapTupleHeader elemhdr;
 		HeapTupleData tmptup;
@@ -1869,7 +1894,7 @@ process_queued_drop(HeapTuple cmdtup)
 		Relation	objrel;
 		ObjectAddress addr;
 
-		elemhdr = (HeapTupleHeader) DatumGetPointer(values[i]);
+		elemhdr = (HeapTupleHeader) DatumGetPointer(ovalues[h]);
 		tmptup.t_len = HeapTupleHeaderGetDatumLength(elemhdr);
 		ItemPointerSetInvalid(&(tmptup.t_self));
 		tmptup.t_tableOid = InvalidOid;
@@ -1913,7 +1938,11 @@ process_queued_drop(HeapTuple cmdtup)
 							  &values, &nulls, &nelems);
 
 			typestring = TextDatumGetCString(values[0]);
+#if PG_VERSION_NUM >= 160000
+			typeName = typeStringToTypeName(typestring, NULL);
+#else
 			typeName = typeStringToTypeName(typestring);
+#endif
 			objnames = typeName->names;
 		}
 		else if (objtype == OBJECT_FUNCTION ||
@@ -1963,7 +1992,11 @@ process_queued_drop(HeapTuple cmdtup)
 					typestring = TextDatumGetCString(values[i]);
 					objargs = lappend(objargs, objtype == OBJECT_OPERATOR ?
 									  oper_typeStringToTypeName(typestring) :
+#if PG_VERSION_NUM >= 160000
+									  typeStringToTypeName(typestring, NULL));
+#else
 									  typeStringToTypeName(typestring));
+#endif
 				}
 			}
 		}
@@ -1993,17 +2026,17 @@ process_queued_drop(HeapTuple cmdtup)
 			datum = heap_getattr(&tmptup, 3, elemdesc, &isnull);
 			if (!isnull)
 			{
-				Datum	   *values;
-				bool	   *nulls;
-				int			nelems;
-				int			i;
+				Datum	   *pvalues;
+				bool	   *pnulls;
+				int			pnelems;
+				int			j;
 
 				deconstruct_array(DatumGetArrayTypeP(datum),
 								  TEXTOID, -1, false, 'i',
-								  &values, &nulls, &nelems);
-				for (i = 0; i < nelems; i++)
+								  &pvalues, &pnulls, &pnelems);
+				for (j = 0; j < nelems; j++)
 					objargs = lappend(objargs,
-									  makeString(TextDatumGetCString(values[i])));
+									  makeString(TextDatumGetCString(pvalues[j])));
 			}
 		}
 
@@ -2919,7 +2952,11 @@ bdr_apply_main(Datum main_arg)
 	 * tell replication_identifier.c about our identifier so it can cache the
 	 * search in shared memory.
 	 */
+#if PG_VERSION_NUM >= 160000
+	replorigin_session_setup(replication_identifier, 0);
+#else
 	replorigin_session_setup(replication_identifier);
+#endif
 
 	/*
 	 * Check whether we already replayed something so we don't replay it

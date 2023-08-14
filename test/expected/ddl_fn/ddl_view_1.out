@@ -1,0 +1,200 @@
+\c postgres
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_src_tbl(a serial, b varchar(100), c date, primary key (a,c)); $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE VIEW public.test_view AS SELECT * FROM public.test_src_tbl WHERE a > 1; $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\d+ test_view
+                                  View "public.test_view"
+ Column |          Type          | Collation | Nullable | Default | Storage  | Description 
+--------+------------------------+-----------+----------+---------+----------+-------------
+ a      | integer                |           |          |         | plain    | 
+ b      | character varying(100) |           |          |         | extended | 
+ c      | date                   |           |          |         | plain    | 
+View definition:
+ SELECT a,
+    b,
+    c
+   FROM test_src_tbl
+  WHERE a > 1;
+
+\c regression
+\d+ test_view
+                                  View "public.test_view"
+ Column |          Type          | Collation | Nullable | Default | Storage  | Description 
+--------+------------------------+-----------+----------+---------+----------+-------------
+ a      | integer                |           |          |         | plain    | 
+ b      | character varying(100) |           |          |         | extended | 
+ c      | date                   |           |          |         | plain    | 
+View definition:
+ SELECT a,
+    b,
+    c
+   FROM test_src_tbl
+  WHERE a > 1;
+
+SELECT * FROM test_view;
+ a | b | c 
+---+---+---
+(0 rows)
+
+INSERT INTO test_src_tbl (b,c) VALUES('a', '2014-01-01'), ('b', '2014-02-02'), ('c', '2014-03-03');
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\c postgres
+SELECT * FROM test_view;
+ a | b |     c      
+---+---+------------
+ 2 | b | 02-02-2014
+ 3 | c | 03-03-2014
+(2 rows)
+
+UPDATE test_view SET b = a || b;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\c regression
+SELECT * FROM test_src_tbl;
+ a | b  |     c      
+---+----+------------
+ 1 | a  | 01-01-2014
+ 2 | 2b | 02-02-2014
+ 3 | 3c | 03-03-2014
+(3 rows)
+
+SELECT * FROM test_view;
+ a | b  |     c      
+---+----+------------
+ 2 | 2b | 02-02-2014
+ 3 | 3c | 03-03-2014
+(2 rows)
+
+SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER VIEW public.test_view  ALTER COLUMN c SET DEFAULT '2000-01-01'; $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+INSERT INTO test_view(b) VALUES('y2k');
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\c postgres
+SELECT * FROM test_src_tbl;
+ a |  b  |     c      
+---+-----+------------
+ 1 | a   | 01-01-2014
+ 2 | 2b  | 02-02-2014
+ 3 | 3c  | 03-03-2014
+ 4 | y2k | 01-01-2000
+(4 rows)
+
+SELECT * FROM test_view;
+ a |  b  |     c      
+---+-----+------------
+ 2 | 2b  | 02-02-2014
+ 3 | 3c  | 03-03-2014
+ 4 | y2k | 01-01-2000
+(3 rows)
+
+SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER VIEW public.test_view RENAME TO renamed_test_view; $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\c regression
+INSERT INTO renamed_test_view(b) VALUES('d');
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\c postgres
+SELECT * FROM test_src_tbl;
+ a |  b  |     c      
+---+-----+------------
+ 1 | a   | 01-01-2014
+ 2 | 2b  | 02-02-2014
+ 3 | 3c  | 03-03-2014
+ 4 | y2k | 01-01-2000
+ 5 | d   | 01-01-2000
+(5 rows)
+
+SELECT * FROM renamed_test_view;
+ a |  b  |     c      
+---+-----+------------
+ 2 | 2b  | 02-02-2014
+ 3 | 3c  | 03-03-2014
+ 4 | y2k | 01-01-2000
+ 5 | d   | 01-01-2000
+(4 rows)
+
+SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP VIEW public.renamed_test_view; $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\d renamed_test_view
+\c regression
+\d renamed_test_view
+SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE VIEW public.test_view AS SELECT * FROM public.test_src_tbl; $DDL$);
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+\set VERBOSITY terse
+SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_src_tbl CASCADE; $DDL$);
+NOTICE:  drop cascades to view public.test_view
+ bdr_replicate_ddl_command 
+---------------------------
+ 
+(1 row)
+
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\d test_view
+\c postgres
+\d test_view

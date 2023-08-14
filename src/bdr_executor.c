@@ -107,7 +107,14 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
 #if PG_VERSION_NUM >= 140000
 											   ,update
 #endif
-											   ,false, NULL, NIL);
+											   ,false
+											   ,NULL
+											   ,NIL
+#if PG_VERSION_NUM >= 160000
+											   ,false);
+#else
+			);
+#endif
 		if (recheckIndexes != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
