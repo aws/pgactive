@@ -374,7 +374,7 @@ sub initandstart_physicaljoin_node {
     my ($join_node, $upstream_node) = @_;
 
     my $new_conf_file = copy_transform_postgresqlconf( $join_node, $upstream_node );
-    my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+    my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
     my $h = start_bdr_init_copy($join_node, $upstream_node, $new_conf_file, [$timeout]);
     $h->finish;
     is($h->result(0), 0, 'bdr_init_copy exited without error');

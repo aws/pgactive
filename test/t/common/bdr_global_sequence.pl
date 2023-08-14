@@ -93,7 +93,7 @@ sub start_insert {
             'psql', '-v', 'ON_ERROR_STOP=1', $upstream_node->connstr($bdr_test_dbname), '-f', '-'
         ],
         '1>', \$stdout, '2>', \$stderr, '<', \$query,
-        IPC::Run::timeout( my $t = 30, exception => $timeout_exc )
+        IPC::Run::timeout( $PostgreSQL::Test::Utils::timeout_default, exception => $timeout_exc )
     );
     return ( $handle, $stdout, $stderr, $query );
 
