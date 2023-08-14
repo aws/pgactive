@@ -1,0 +1,340 @@
+-- tests for functions and triggers
+\c postgres super
+CREATE FUNCTION test_fn(IN inpar character varying (20), INOUT inoutpar integer, OUT timestamp with time zone) RETURNS SETOF record AS
+$$
+BEGIN
+	PERFORM E'\t\r\n\b\f';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE  STRICT;
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | immutable  | unsafe   | super | invoker  |                   | plpgsql  |               | 
+(1 row)
+
+\c regression
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | immutable  | unsafe   | super | invoker  |                   | plpgsql  |               | 
+(1 row)
+
+ALTER FUNCTION test_fn(varchar, integer) SECURITY DEFINER CALLED ON NULL INPUT VOLATILE ROWS 1 COST 1;
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | volatile   | unsafe   | super | definer  |                   | plpgsql  |               | 
+(1 row)
+
+\c postgres
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | volatile   | unsafe   | super | definer  |                   | plpgsql  |               | 
+(1 row)
+
+CREATE OR REPLACE FUNCTION test_fn(IN inpar varchar, INOUT inoutpar integer, OUT timestamp with time zone) RETURNS SETOF record AS
+$$
+BEGIN
+END;
+$$ LANGUAGE plpgsql STABLE;
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | stable     | unsafe   | super | invoker  |                   | plpgsql  |               | 
+(1 row)
+
+\c regression
+\df+ test_fn
+                                                                                                         List of functions
+ Schema |  Name   | Result data type |                              Argument data types                              | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+---------+------------------+-------------------------------------------------------------------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func | stable     | unsafe   | super | invoker  |                   | plpgsql  |               | 
+(1 row)
+
+DROP FUNCTION test_fn(varchar, integer);
+\df test_fn
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+\c postgres
+\df test_fn
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+CREATE FUNCTION test_trigger_fn() RETURNS trigger AS
+$$
+BEGIN
+END;
+$$ LANGUAGE plpgsql;
+\df+ test_trigger_fn
+                                                                                List of functions
+ Schema |      Name       | Result data type | Argument data types | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+-----------------+------------------+---------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+ public | test_trigger_fn | trigger          |                     | func | volatile   | unsafe   | super | invoker  |                   | plpgsql  |               | 
+(1 row)
+
+CREATE FUNCTION showtrigstate(rel regclass)
+RETURNS TABLE (
+	tgname name,
+	tgenabled "char",
+	tgisinternal boolean)
+LANGUAGE sql AS
+$$
+SELECT
+  CASE WHEN t.tgname LIKE 'truncate_trigger%' THEN 'truncate_trigger' ELSE t.tgname END,
+  t.tgenabled, t.tgisinternal
+FROM pg_catalog.pg_trigger t
+WHERE t.tgrelid = $1
+ORDER BY t.tgname;
+$$;
+CREATE TABLE test_trigger_table (f1 integer, f2 text);
+CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON test_trigger_table FOR EACH STATEMENT WHEN (True) EXECUTE PROCEDURE test_trigger_fn();
+CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON test_trigger_table FOR EACH ROW EXECUTE PROCEDURE test_trigger_fn();
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+-- We can't use \d+ here because tgisinternal triggers have names with the oid
+-- appended, and that varies run-to-run. Use a custom query.
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg1 | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+\c regression
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg1 | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+ALTER TRIGGER test_trigger_fn_trg1 ON test_trigger_table RENAME TO test_trigger_fn_trg;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+\c postgres
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table DISABLE TRIGGER test_trigger_fn_trg;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+\c regression
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | O         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table DISABLE TRIGGER ALL;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | D         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+\c postgres
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | D         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+\c regression
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | D         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table ENABLE TRIGGER USER;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+\c postgres
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | O         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | A         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+\c regression
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | A         | f
+ test_trigger_fn_trg2 | O         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+ALTER TABLE test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | A         | f
+ test_trigger_fn_trg2 | R         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+\c postgres
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+        tgname        | tgenabled | tgisinternal 
+----------------------+-----------+--------------
+ test_trigger_fn_trg  | A         | f
+ test_trigger_fn_trg2 | R         | f
+ truncate_trigger     | D         | t
+(3 rows)
+
+DROP TRIGGER test_trigger_fn_trg2 ON test_trigger_table;
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+       tgname        | tgenabled | tgisinternal 
+---------------------+-----------+--------------
+ test_trigger_fn_trg | A         | f
+ truncate_trigger    | D         | t
+(2 rows)
+
+\c regression
+SELECT * FROM showtrigstate('test_trigger_table'::regclass);
+       tgname        | tgenabled | tgisinternal 
+---------------------+-----------+--------------
+ test_trigger_fn_trg | A         | f
+ truncate_trigger    | D         | t
+(2 rows)
+
+-- should fail (for test to be useful it should be called on different node than CREATE FUNCTION)
+DROP FUNCTION test_trigger_fn();
+ERROR:  cannot drop function test_trigger_fn() because other objects depend on it
+DETAIL:  trigger test_trigger_fn_trg on table test_trigger_table depends on function test_trigger_fn()
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+DROP TABLE test_trigger_table;
+DROP FUNCTION test_trigger_fn();
+SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ bdr_wait_for_slots_confirmed_flush_lsn 
+----------------------------------------
+ 
+(1 row)
+
+\d+ test_trigger_table
+\c postgres
+\d+ test_trigger_table
+\df+ test_trigger_fn
+                                                                           List of functions
+ Schema | Name | Result data type | Argument data types | Type | Volatility | Parallel | Owner | Security | Access privileges | Language | Internal name | Description 
+--------+------+------------------+---------------------+------+------------+----------+-------+----------+-------------------+----------+---------------+-------------
+(0 rows)
+
+DROP FUNCTION showtrigstate(regclass);

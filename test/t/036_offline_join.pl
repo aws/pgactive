@@ -86,7 +86,7 @@ $offline_node->stop;
 
 my $new_physical_join_node = PostgreSQL::Test::Cluster->new('new_physical_join_node');
 my $new_conf_file = copy_transform_postgresqlconf( $new_physical_join_node, $node_0 );
-my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
 my $handle = start_bdr_init_copy($new_physical_join_node, $node_0, $new_conf_file,[$timeout]);
 ok($handle->finish, 'bdr_init_copy finished without error');
 

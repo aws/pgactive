@@ -143,8 +143,24 @@ BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/pg_backup_directory.o \
 	$(BDR_DUMP_DIR)/pg_backup_utils.o \
 	$(BDR_DUMP_DIR)/parallel.o \
-	$(BDR_DUMP_DIR)/compress_io.o \
-	$(BDR_DUMP_DIR)/dumputils.o
+	$(BDR_DUMP_DIR)/dumputils.o \
+	$(BDR_DUMP_DIR)/compress_io.o
+
+ifneq ($(wildcard $(BDR_DUMP_DIR)/compress_lz4.c),)
+	BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/compress_lz4.o
+endif
+
+ifneq ($(wildcard $(BDR_DUMP_DIR)/compress_gzip.c),)
+	BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/compress_gzip.o
+endif
+
+ifneq ($(wildcard $(BDR_DUMP_DIR)/compress_none.c),)
+	BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/compress_none.o
+endif
+
+ifneq ($(wildcard $(BDR_DUMP_DIR)/compress_zstd.c),)
+	BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/compress_zstd.o
+endif
 
 # string_utils.c file is needed by pg_dump so we copied it from postgres source
 # code src/fe_utils/ and placed it under
@@ -198,7 +214,16 @@ regress_check: all install
 # install them. So you'll have to copy them manually or patch your postgres
 # tree to install them:
 # https://www.postgresql.org/message-id/CAMsr%2BYFXv%2B2qne6xJW7z_25mYBtktRX5rpkrgrb%2BDRgQ_FxgHQ@mail.gmail.com
-ifeq ($(shell test $(MAJORVERSION) -ge 15; echo $$?),0)
+ifeq ($(shell test $(MAJORVERSION) -eq 16; echo $$?),0)
+$(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
+	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
+
+prove_check: $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm
+	rm -rf $(CURDIR)/test/tmp_check/
+	cd $(srcdir) && TESTDATADIR='$(CURDIR)/test/tmp_check' TESTLOGDIR='$(CURDIR)/test/tmp_check/log' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),test/t/*.pl)
+
+else
+ifeq ($(shell test $(MAJORVERSION) -eq 15; echo $$?),0)
 $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 
@@ -239,6 +264,7 @@ prove_check: $(pgxsdir)/src/test/perl/PostgresNode.pm
 	cd $(srcdir) && TESTDIR='$(CURDIR)/test' PATH="$(shell $(PG_CONFIG) --bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(pgxsdir)/src/test/regress/pg_regress' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(or $(PROVE_TESTS),test/tmp_t/t/*.pl)
 
 	rm -rf $(CURDIR)/test/tmp_t/
+endif
 endif
 
 # Disabled because these tests require "wal_level=logical" and other custom

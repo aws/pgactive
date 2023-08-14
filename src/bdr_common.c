@@ -285,8 +285,7 @@ bdr_find_other_exec(const char *argv0, const char *target,
 {
 	char		cmd[MAXPGPATH];
 	char		line[100];
-	int			pre_dot,
-				post_dot;
+	int			pre_dot;
 
 	if (find_my_exec(argv0, retpath) < 0)
 		return -1;
@@ -307,7 +306,7 @@ bdr_find_other_exec(const char *argv0, const char *target,
 	if (!pipe_read_line(cmd, line, sizeof(line)))
 		return -1;
 
-	if (sscanf(line, "%*s %*s %d.%d", &pre_dot, &post_dot) != 2)
+	if (sscanf(line, "%*s %*s %d", &pre_dot) != 1)
 		return -2;
 
 	*version = pre_dot * 10000;

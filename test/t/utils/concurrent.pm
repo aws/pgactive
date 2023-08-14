@@ -159,7 +159,7 @@ sub concurrent_joins_physical {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
         my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
@@ -343,7 +343,7 @@ sub concurrent_join_detach_physical {
     # Start bdr_init_copy for each node we're asked to joini.
     foreach my $node (@{$join_nodes}) {
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
         my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
@@ -417,7 +417,7 @@ sub concurrent_joins_logical_physical {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
-        my $timeout = IPC::Run::timeout(my $to=10, exception=>"Timed out");
+        my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
         my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }

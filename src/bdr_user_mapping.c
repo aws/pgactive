@@ -13,6 +13,7 @@
  */
 #include "postgres.h"
 
+#include "bdr_compat.h"
 #include "bdr_internal.h"
 
 #include "access/reloptions.h"
