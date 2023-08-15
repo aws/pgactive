@@ -65,7 +65,7 @@ jobs:
           src/compat/16/pg_dump/*
           EOF
           src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --show-diff $GITHUB_WORKSPACE/bdr > pgindent.diffs
-          test -s pgindent.diffs && cat pgindent.diffs && exit 1
+          test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0
 
       - name: Build BDR
         run: |
