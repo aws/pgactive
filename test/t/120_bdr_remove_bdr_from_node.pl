@@ -53,6 +53,16 @@ sub bdr_remove_and_localize_seqs {
     my $node      = shift;
     my $is_detached = shift;
     if ( defined $is_detached && $is_detached ) {
+        # Ensure detached node knows it is actually detached i.e. its
+        # node_status in bdr.bdr_nodes table is updated as 'k'. Otherwise,
+        # bdr.bdr_remove() fails with exception:
+        # 'this BDR node might still be active, not removing'.
+        my $node_name = $node->name();
+	    my $query =
+	        qq[SELECT node_status = 'k' FROM bdr.bdr_nodes WHERE node_name = '$node_name';];
+	    $node->poll_query_until($bdr_test_dbname, $query)
+	        or croak ("timed out waiting for detached node to know it's detached");
+
         $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_remove()" );
         is( $node->safe_psql( $bdr_test_dbname, "select bdr.bdr_is_active_in_db()"),
             'f',
