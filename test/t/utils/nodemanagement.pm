@@ -33,7 +33,6 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     create_bdr_group
     initandstart_physicaljoin_node
     check_join_status
-    check_detach_status
     bdr_detach_nodes
     check_detach_status
     stop_nodes

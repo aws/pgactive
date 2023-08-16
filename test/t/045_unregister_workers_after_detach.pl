@@ -14,16 +14,25 @@ use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
-my $nodes = make_bdr_group(3,'node_');
-my ($node_0,$node_1,$node_2) = @$nodes;
+my $nodes = make_bdr_group(2,'node_');
+my ($node_0,$node_1) = @$nodes;
 
-# Detach a node from 3 node cluster
-note "Detach node_0 from 3 node cluster\n";
+# Detach a node from 2 node cluster
+note "Detach node_0 from 2 node cluster\n";
 bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 my $logstart_0 = get_log_size($node_0);
 my $logstart_1 = get_log_size($node_1);
+
+# Ensure detached node knows it is actually detached i.e. its node_status in
+# bdr.bdr_nodes table is updated as 'k'. This is needed because apply worker on
+# a detached node unregisters only upon deteching node_status as 'k'.
+my $node_0_name = $node_0->name();
+my $query =
+	qq[SELECT node_status = 'k' FROM bdr.bdr_nodes WHERE node_name = '$node_0_name';];
+$node_0->poll_query_until($bdr_test_dbname, $query)
+	or croak ("timed out waiting for detached node to know it's detached");
 
 # Detached node must unregister apply worker
 my $result = wait_for_worker_to_unregister($node_0,
