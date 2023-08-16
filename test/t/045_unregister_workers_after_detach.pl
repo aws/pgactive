@@ -32,7 +32,7 @@ my $node_0_name = $node_0->name();
 my $query =
 	qq[SELECT node_status = 'k' FROM bdr.bdr_nodes WHERE node_name = '$node_0_name';];
 $node_0->poll_query_until($bdr_test_dbname, $query)
-	or croak ("timed out waiting for detached node to know it's detached");
+	or die "timed out waiting for detached node to know it's detached";
 
 # Detached node must unregister apply worker
 my $result = wait_for_worker_to_unregister($node_0,
