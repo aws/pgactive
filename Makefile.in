@@ -146,6 +146,8 @@ BDR_DUMP_OBJS = $(BDR_DUMP_DIR)/pg_dump.o \
 	$(BDR_DUMP_DIR)/dumputils.o \
 	$(BDR_DUMP_DIR)/compress_io.o
 
+BDR_DUMP_LIBS = $(shell $(PG_CONFIG) --libs) -lpgfeutils
+
 ifneq ($(wildcard $(BDR_DUMP_DIR)/compress_lz4.c),)
 	BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/compress_lz4.o
 endif
@@ -169,7 +171,7 @@ endif
 BDR_DUMP_OBJS += $(BDR_DUMP_DIR)/string_utils.o
 
 bdr_dump: $(BDR_DUMP_OBJS)
-	$(CC) $(CFLAGS) $(BDR_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) -lz -lpgfeutils -o $@$(X)
+	$(CC) $(CFLAGS) $(BDR_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(BDR_DUMP_LIBS) -o $@$(X)
 
 bdr_init_copy: src/bdr_init_copy.o src/bdr_common.o
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) -o $@$(X)
