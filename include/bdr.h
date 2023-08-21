@@ -54,7 +54,7 @@
 #endif
 
 #define BDR_LOCALID_FORMAT_ARGS \
-	bdr_get_node_identifier_internal(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
+	bdr_get_nid_internal(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
 
 /*
  * For use with BDR_NODEID_FORMAT_WITHNAME, print our node id tuple and name.
@@ -431,6 +431,7 @@ extern int	bdr_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
 extern int	bdr_init_node_parallel_jobs;
 extern int	bdr_max_nodes;
+extern bool bdr_permit_node_identifier_getter_function_creation;
 
 static const char *const bdr_default_apply_connection_options =
 "connect_timeout=30 "
@@ -824,8 +825,32 @@ extern void InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags);
 #define LSN_FORMAT_ARGS(lsn) (AssertVariableIsOfTypeMacro((lsn), XLogRecPtr), (uint32) ((lsn) >> 32)), ((uint32) (lsn))
 #endif
 
-extern bool bdr_control_file_exists(void);
-extern uint64 bdr_generate_node_identifier_internal(void);
-extern uint64 bdr_get_node_identifier_internal(void);
-extern bool bdr_remove_node_identifier_internal(void);
+/*
+ * Shared memory structure for caching per-db BDR node identifiers.
+ */
+typedef struct BdrNodeIdentifier
+{
+	Oid			dboid;
+	uint64		nid;
+}			BdrNodeIdentifier;
+
+typedef struct BdrNodeIdentifierControl
+{
+	/* Must hold this lock when writing to BdrNodeIdentifierControl members */
+	LWLockId	lock;
+	BdrNodeIdentifier nids[FLEXIBLE_ARRAY_MEMBER];
+}			BdrNodeIdentifierControl;
+
+extern BdrNodeIdentifierControl * BdrNodeIdentifierCtl;
+
+extern void bdr_nid_shmem_init(void);
+extern uint64 bdr_get_nid_internal(void);
+extern bool is_bdr_creating_nid_getter_function(void);
+extern Oid	find_bdr_nid_getter_function(void);
+extern bool is_bdr_nid_getter_function_create(CreateFunctionStmt *stmt);
+extern bool is_bdr_nid_getter_function_drop(DropStmt *stmt);
+extern bool is_bdr_nid_getter_function_alter(AlterFunctionStmt *stmt);
+extern bool is_bdr_nid_getter_function_alter_owner(AlterOwnerStmt *stmt);
+extern bool is_bdr_nid_getter_function_alter_rename(RenameStmt *stmt);
+
 #endif							/* BDR_H */

@@ -69,6 +69,8 @@ bdr_shmem_init(void)
 	bdr_count_shmem_init(bdr_max_workers);
 
 	bdr_locks_shmem_init();
+
+	bdr_nid_shmem_init();
 }
 
 /*

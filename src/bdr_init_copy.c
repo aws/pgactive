@@ -47,7 +47,6 @@
 
 #include "access/xlog_internal.h"
 #include "catalog/pg_control.h"
-#include "common/file_utils.h"
 
 /* Postgres commit cc8d41511721 introduced this header file in version 12. */
 #if PG_VERSION_NUM >= 120000
@@ -55,9 +54,6 @@
 #endif
 
 #include "bdr_internal.h"
-#include "bdr_version.h"
-
-#define LLOGCDIR "pg_logical/checkpoints"
 
 /* Postgres commit 3c6f8c011f85 introduced this macro in version 15. */
 #if PG_VERSION_NUM < 150000
@@ -76,6 +72,7 @@ typedef struct RemoteInfo
 	int			numdbs;
 	Oid		   *dboids;
 	char	  **dbnames;
+	uint64	   *nids;
 	char	  **replication_sets;
 }			RemoteInfo;
 
@@ -85,6 +82,7 @@ typedef struct NodeInfo
 	TimeLineID	remote_tlid;
 	uint64		local_sysid;
 	TimeLineID	local_tlid;
+	uint64	   *nids;
 }			NodeInfo;
 
 typedef enum
@@ -126,25 +124,45 @@ static void wait_postmaster_shutdown(void);
 
 static char *validate_replication_set_input(char *replication_sets);
 
-static void initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name,
-								  Oid dboid, char *remote_connstr, char *local_connstr);
+static void initialize_node_entry(PGconn **conn,
+								  NodeInfo * ni,
+								  char *node_name,
+								  Oid dboid,
+								  char *remote_connstr,
+								  char *local_connstr,
+								  uint64 nid);
+
 static void remove_unwanted_files(char *data_dir);
 static void remove_unwanted_data(PGconn *conn);
-static void initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid, char *remote_lsn);
+static void initialize_replication_identifier(PGconn *conn,
+											  NodeInfo * ni,
+											  Oid dboid,
+											  char *remote_lsn,
+											  uint64 nid);
+
 static char *create_restore_point(PGconn *conn, char *restore_point_name);
-static void initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid);
+static void create_bdr_nid_getter_function(PGconn *conn,
+										   char *dbname,
+										   uint64 nid);
+
+static void initialize_replication_slot(PGconn *conn,
+										NodeInfo * ni,
+										Oid dboid,
+										uint64 nid);
+
+static void install_extension(PGconn *conn, const char *extname);
+static bool extension_exists(PGconn *conn, const char *extname);
+
 static void bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 						   char *local_connstr, char *replication_sets,
-						   int apply_delay);
-
-static RemoteInfo * get_remote_info(char *connstr, uint64 *nid);
+						   int apply_delay, char *dbname, uint64 nid);
+static RemoteInfo * get_remote_info(char *connstr);
 
 static void initialize_data_dir(char *data_dir, char *connstr,
 								char *postgresql_conf, char *pg_hba_conf);
 static bool check_data_dir(char *data_dir, RemoteInfo * remoteinfo);
 
 static uint64 read_sysid(const char *data_dir);
-static void set_node_identifier(const char *data_dir, uint64 nid);
 
 static void WriteConfFile(PQExpBuffer contents);
 static void CopyConfFile(char *fromfile, char *tofile);
@@ -214,7 +232,6 @@ main(int argc, char **argv)
 	int			apply_delay = 0;
 #define PG_CTL_CMD_BUF_SIZE 1000
 	char		pg_ctl_cmd_buf[PG_CTL_CMD_BUF_SIZE];
-	uint64		nid;
 
 	static struct option long_options[] = {
 		{"apply-delay", required_argument, NULL, 'y'},
@@ -403,7 +420,7 @@ main(int argc, char **argv)
 	/* Read the remote server identification. */
 	print_msg(VERBOSITY_NORMAL,
 			  _("Getting remote server identification ...\n"));
-	remote_info = get_remote_info(remote_connstr, &nid);
+	remote_info = get_remote_info(remote_connstr);
 
 	/* If there are no BDR enabled dbs, just bail. */
 	if (remote_info->numdbs < 1)
@@ -422,9 +439,6 @@ main(int argc, char **argv)
 		remote_info->sysid != read_sysid(data_dir))
 		die(_("Local data directory is not basebackup of remote node.\n"));
 
-	/* Let's now use BDR generated node identifier. */
-	remote_info->sysid = nid;
-
 	print_msg(VERBOSITY_NORMAL,
 			  _("Detected %d BDR database(s) on remote server\n"),
 			  remote_info->numdbs);
@@ -432,7 +446,7 @@ main(int argc, char **argv)
 	/*
 	 * Start the cloning process
 	 */
-
+	node_info.local_sysid = remote_info->sysid;
 	node_info.remote_sysid = remote_info->sysid;
 	node_info.remote_tlid = remote_info->tlid;
 
@@ -442,14 +456,10 @@ main(int argc, char **argv)
 	 */
 	node_info.local_tlid = remote_info->tlid + 1;
 
-	/* Generate new identifier for local node. */
-	node_info.local_sysid = GenerateNodeIdentifier();
-	print_msg(VERBOSITY_VERBOSE,
-			  _("Generated new local system identifier: " UINT64_FORMAT "\n"),
-			  node_info.local_sysid);
-
 	print_msg(VERBOSITY_NORMAL,
 			  _("Updating BDR configuration on the remote node:\n"));
+
+	node_info.nids = (uint64 *) pg_malloc0(remote_info->numdbs * sizeof(uint64));
 
 	/*
 	 * Initialize remote node.
@@ -465,6 +475,13 @@ main(int argc, char **argv)
 		char	   *db_remote_connstr = get_connstr(remote_connstr, dbname,
 													NULL, NULL, NULL);
 
+		/* Generate new identifier for local node i.e. BDR-enabled database. */
+		node_info.nids[i] = GenerateNodeIdentifier();
+		print_msg(VERBOSITY_NORMAL,
+				  _("Generated new BDR node identifier " UINT64_FORMAT " for database %s\n"),
+				  node_info.nids[i],
+				  dbname);
+
 		remote_conn = connectdb(db_remote_connstr);
 
 		/*
@@ -473,7 +490,7 @@ main(int argc, char **argv)
 		print_msg(VERBOSITY_NORMAL,
 				  _(" %s: creating replication slot ...\n"), dbname);
 		initialize_replication_slot(remote_conn, &node_info,
-									remote_info->dboids[i]);
+									remote_info->dboids[i], node_info.nids[i]);
 
 		/*
 		 * Create node entry for future local node.
@@ -482,7 +499,7 @@ main(int argc, char **argv)
 				  _(" %s: creating node entry for local node ...\n"), dbname);
 		initialize_node_entry(&remote_conn, &node_info, node_name,
 							  remote_info->dboids[i],
-							  db_remote_connstr, db_local_connstr);
+							  db_remote_connstr, db_local_connstr, node_info.nids[i]);
 
 		/* Don't hold connection since the next step might take long time. */
 		PQfinish(remote_conn);
@@ -505,7 +522,7 @@ main(int argc, char **argv)
 	print_msg(VERBOSITY_NORMAL, _("Creating restore point on remote node ...\n"));
 
 	snprintf(restore_point_name, NAMEDATALEN,
-			 "bdr_" UINT64_FORMAT, node_info.local_sysid);
+			 "bdr_" UINT64_FORMAT, GenerateNodeIdentifier());
 	remote_lsn = create_restore_point(remote_conn, restore_point_name);
 
 	PQfinish(remote_conn);
@@ -587,16 +604,6 @@ main(int argc, char **argv)
 	wait_postmaster_shutdown();
 
 	/*
-	 * Individualize the local node by assigning a new BDR node identifier.
-	 *
-	 * We can't rely on the timeline ID alone, even though it's incremented on
-	 * promotion of the copy, because we can't make sure it's globally unique.
-	 * If node A is copied to node B, then node A is copied to node C, both
-	 * nodes B and C will have the same tlid.
-	 */
-	set_node_identifier(data_dir, node_info.local_sysid);
-
-	/*
 	 * Start the node again, now with BDR active so that we can join the node
 	 * to the BDR cluster. This is final start, so don't log to to special log
 	 * file anymore.
@@ -631,7 +638,8 @@ main(int argc, char **argv)
 		print_msg(VERBOSITY_VERBOSE,
 				  _(" %s: creating replication identifier ...\n"), dbname);
 		initialize_replication_identifier(local_conn, &node_info,
-										  remote_info->dboids[i], remote_lsn);
+										  remote_info->dboids[i], remote_lsn,
+										  remote_info->nids[i]);
 
 		/*
 		 * And finally add the node to the cluster.
@@ -639,9 +647,10 @@ main(int argc, char **argv)
 		print_msg(VERBOSITY_NORMAL,
 				  _(" %s: adding the database to BDR cluster ...\n"), dbname);
 		print_msg(VERBOSITY_VERBOSE,
-				  _(" %s: replication sets: %s"), dbname, replication_sets);
+				  _(" %s: replication sets: %s\n"), dbname, replication_sets);
 		bdr_node_start(local_conn, node_name, db_remote_connstr,
-					   db_local_connstr, replication_sets, apply_delay);
+					   db_local_connstr, replication_sets, apply_delay,
+					   dbname, node_info.nids[i]);
 
 		PQfinish(local_conn);
 		local_conn = NULL;
@@ -829,91 +838,16 @@ run_basebackup(const char *remote_connstr, const char *data_dir)
 }
 
 /*
- * Set BDR node identifier. Note that this the id that we used for registering
- * the slots.
- */
-static void
-set_node_identifier(const char *data_dir, uint64 nid)
-{
-	char		path[MAXPGPATH];
-	char		tmppath[MAXPGPATH];
-	FILE	   *fp;
-
-	snprintf(tmppath, MAXPGPATH, "%s/pg_logical/%s.tmp", data_dir,
-			 BDR_CONTROL_FILE);
-
-	/* make sure no old temp file is remaining */
-	if (unlink(tmppath) < 0 && errno != ENOENT)
-		die(_("could not remove file \"%s\""), tmppath);
-
-	fp = fopen(tmppath, PG_BINARY_W);
-	if (!fp)
-		die(_("could not create file \"%s\""), tmppath);
-
-	/*
-	 * Write magic number, PG version and BDR version to the control file to
-	 * verify file content correctness upon reading.
-	 */
-	fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
-	fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
-	fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
-	fprintf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", nid);
-
-	if (ferror(fp) || fclose(fp))
-	{
-		unlink(tmppath);
-		die(_("could not write to file \"%s\""), tmppath);
-	}
-
-	/* Rename temporary file to BDR control file to make things permanent. */
-	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
-
-	/*
-	 * Postgres commit cc8d41511721 changed this function input parameters in
-	 * version 12.
-	 */
-#if PG_VERSION_NUM < 120000
-	durable_rename(tmppath, path, progname);
-#else
-	durable_rename(tmppath, path);
-#endif
-
-	print_msg(VERBOSITY_VERBOSE, "Created BDR control file and written node identifier to it.\n");
-	return;
-}
-
-/*
  * Cleans specified files that were replicated via basebackup but we don't
  * want it.
  */
 static void
 remove_unwanted_files(char *data_dir)
 {
-	char		path[MAXPGPATH];
-
 	/*
-	 * We will generate a new BDR node identifier, so BDR control file (if
-	 * exists) from the basebackup won't be needed.
+	 * This is a no-op function for now, if needed can be used to remove
+	 * unwanted files.
 	 */
-	snprintf(path, MAXPGPATH, "%s/pg_logical/%s", data_dir, BDR_CONTROL_FILE);
-
-	if (file_exists(path))
-	{
-		if (unlink(path) < 0 && errno != ENOENT)
-			die(_("could not remove file \"%s\""), path);
-
-		/*
-		 * Postgres commit cc8d41511721 changed this function input parameters
-		 * in version 12.
-		 */
-#if PG_VERSION_NUM < 120000
-		fsync_parent_path(path, progname);
-#else
-		fsync_parent_path(path);
-#endif
-
-		print_msg(VERBOSITY_VERBOSE, "Removed BDR control file.\n");
-	}
 }
 
 /*
@@ -984,7 +918,7 @@ check_data_dir(char *data_dir, RemoteInfo * remoteinfo)
  * to register replication slots for future use.
  */
 static void
-initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid)
+initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid, uint64 nid)
 {
 	NameData	slotname;
 	PQExpBuffer query = createPQExpBuffer();
@@ -992,7 +926,7 @@ initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid)
 	BDRNodeId	node;
 
 	/* dboids are the same, because we just cloned... */
-	node.sysid = ni->local_sysid;
+	node.sysid = nid;
 	node.timeline = ni->local_tlid;
 	node.dboid = dboid;
 	bdr_slot_name(&slotname, &node, dboid);
@@ -1015,16 +949,14 @@ initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid)
  * Read replication info about remote connection
  */
 static RemoteInfo *
-get_remote_info(char *remote_connstr, uint64 *nid)
+get_remote_info(char *remote_connstr)
 {
 	RemoteInfo *ri = (RemoteInfo *) pg_malloc0(sizeof(RemoteInfo));
 	char	   *remote_sysid;
 	char	   *remote_tlid;
-	char	   *remote_nid;
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
-	PQExpBuffer cmd;
 
 	/*
 	 * Fetch the system identification info (sysid, tlid) via replication
@@ -1077,42 +1009,6 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 	if (sscanf(remote_tlid, "%u", &ri->tlid) != 1)
 		die(_("Could not parse remote tlid %s\n"), remote_tlid);
 
-	/* Fetch BDR node identifier via standard SQL connection. */
-	remote_conn = PQconnectdb(remote_connstr);
-	if (PQstatus(remote_conn) != CONNECTION_OK)
-	{
-		PQclear(res);
-		die(_("Could not connect to the remote server: %s"),
-			PQerrorMessage(remote_conn));
-	}
-
-	cmd = createPQExpBuffer();
-	appendPQExpBufferStr(cmd,
-						 "SELECT bdr.bdr_get_node_identifier() AS node_id;");
-
-	res = PQexec(remote_conn, cmd->data);
-	if (PQresultStatus(res) != PGRES_TUPLES_OK)
-	{
-		PQclear(res);
-		die(_("Could not send command \"%s\": %s\n"), cmd->data,
-			PQerrorMessage(remote_conn));
-	}
-
-	if (PQntuples(res) != 1 || PQnfields(res) != 1)
-	{
-		PQclear(res);
-		die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
-			PQntuples(res), PQnfields(res));
-	}
-
-	remote_nid = PQgetvalue(res, 0, 0);
-	*nid = strtou64(remote_nid, NULL, 10);
-
-	destroyPQExpBuffer(cmd);
-	PQclear(res);
-	PQfinish(remote_conn);
-	remote_conn = NULL;
-
 	/*
 	 * Fetch list of BDR enabled databases via standard SQL connection.
 	 */
@@ -1134,6 +1030,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 	ri->dboids = (Oid *) pg_malloc(ri->numdbs * sizeof(Oid));
 	ri->dbnames = (char **) pg_malloc(ri->numdbs * sizeof(char *));
+	ri->nids = (uint64 *) pg_malloc0(ri->numdbs * sizeof(uint64));
 
 	for (i = 0; i < ri->numdbs; i++)
 	{
@@ -1160,6 +1057,7 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 		char	   *dbname = ri->dbnames[i];
 		char	   *db_connstr = get_connstr(remote_connstr, dbname,
 											 NULL, NULL, NULL);
+		char	   *nid_str;
 
 		remote_conn = connectdb(db_connstr);
 
@@ -1196,6 +1094,27 @@ get_remote_info(char *remote_connstr, uint64 *nid)
 
 		ri->replication_sets[i] = pstrdup(PQgetvalue(res, 0, 0));
 
+		PQclear(res);
+
+		/* Fetch BDR node identifier via standard SQL connection. */
+		res = PQexec(remote_conn,
+					 "SELECT bdr.bdr_get_node_identifier() AS node_id;");
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			PQclear(res);
+			die(_("Could not fetch BDR node identifier: %s\n"),
+				PQerrorMessage(remote_conn));
+		}
+
+		if (PQntuples(res) != 1 || PQnfields(res) != 1)
+		{
+			PQclear(res);
+			die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
+				PQntuples(res), PQnfields(res));
+		}
+
+		nid_str = PQgetvalue(res, 0, 0);
+		ri->nids[i] = strtou64(nid_str, NULL, 10);
 		PQclear(res);
 		PQfinish(remote_conn);
 		remote_conn = NULL;
@@ -1316,7 +1235,7 @@ validate_replication_set_input(char *replication_sets)
  */
 void
 initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
-					  char *remote_connstr, char *local_connstr)
+					  char *remote_connstr, char *local_connstr, uint64 nid)
 {
 	PQExpBuffer query = createPQExpBuffer();
 	PGresult   *res;
@@ -1338,7 +1257,7 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 					  "	node_dboid, node_name, node_init_from_dsn,"
 					  "  node_local_dsn)"
 					  " VALUES (" BDR_NODE_STATUS_CATCHUP_S ", '" UINT64_FORMAT "', %u, %u, %s, %s, %s);",
-					  ni->local_sysid, ni->local_tlid, dboid,
+					  nid, ni->local_tlid, dboid,
 					  PQescapeLiteral(*conn, node_name, strlen(node_name)),
 					  PQescapeLiteral(*conn, remote_connstr, strlen(remote_connstr)),
 					  PQescapeLiteral(*conn, local_connstr, strlen(local_connstr)));
@@ -1362,7 +1281,6 @@ static void
 remove_unwanted_data(PGconn *conn)
 {
 	PGresult   *res;
-	const char *dropident_sql;
 
 	/* Remove any BDR security labels. */
 	res = PQexec(conn, "DELETE FROM pg_catalog.pg_shseclabel WHERE provider = 'bdr';");
@@ -1374,10 +1292,9 @@ remove_unwanted_data(PGconn *conn)
 	}
 	PQclear(res);
 
-	dropident_sql = "SELECT pg_catalog.pg_replication_origin_drop(roname) FROM pg_catalog.pg_replication_origin;";
-
 	/* Remove replication identifiers. */
-	res = PQexec(conn, dropident_sql);
+	res = PQexec(conn,
+				 "SELECT pg_catalog.pg_replication_origin_drop(roname) FROM pg_catalog.pg_replication_origin;");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		PQclear(res);
@@ -1390,14 +1307,15 @@ remove_unwanted_data(PGconn *conn)
  * Initialize new remote identifier to specific position.
  */
 static void
-initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid, char *remote_lsn)
+initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid,
+								  char *remote_lsn, uint64 nid)
 {
 	PGresult   *res;
 	char		remote_ident[256];
 	PQExpBuffer query = createPQExpBuffer();
 
 	snprintf(remote_ident, sizeof(remote_ident), BDR_REPORIGIN_ID_FORMAT,
-			 ni->remote_sysid, ni->remote_tlid, dboid, dboid,
+			 nid, ni->remote_tlid, dboid, dboid,
 			 EMPTY_REPLICATION_NAME);
 
 	printfPQExpBuffer(query, "SELECT pg_catalog.pg_replication_origin_create('%s')",
@@ -1459,10 +1377,63 @@ create_restore_point(PGconn *conn, char *restore_point_name)
 	return remote_lsn;
 }
 
+/*
+ * Create BDR node identifier getter function on local node.
+ */
+static void
+create_bdr_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
+{
+	PQExpBuffer query = createPQExpBuffer();
+	PGresult   *res;
+	char		buf[256];
+	const char *const setup_query =
+		"BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;\n"
+		"SET LOCAL bdr.permit_node_identifier_getter_function_creation = true;\n";
+
+	print_msg(VERBOSITY_NORMAL,
+			  _("Creating BDR node identifier getter function for database %s ...\n"),
+			  dbname);
+
+	/*
+	 * Setup the environment. We need to tell BDR via GUC to allow us create
+	 * getter function.
+	 */
+	res = PQexec(conn, setup_query);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		die(_("Could not begin transaction to create of BDR node identifier getter function for database %s %s: %s\n"),
+			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	PQclear(res);
+
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
+
+	/*
+	 * We use CREATE OR REPLACE here so that the getter function this local
+	 * node got from remote node (via physical backup) is replaced.
+	 */
+	printfPQExpBuffer(query, "CREATE OR REPLACE FUNCTION bdr.%s() RETURNS numeric AS $$ "
+					  "SELECT %s::numeric $$ LANGUAGE SQL;",
+					  BDR_NID_GETTER_FUNC_NAME, buf);
+
+	res = PQexec(conn, query->data);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		die(_("Could not create BDR node identifier getter function for database %s %s: %s\n"),
+			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	PQclear(res);
+
+	/* Save changes. */
+	res = PQexec(conn, "COMMIT");
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		die(_("Could not commit transaction to create of BDR node identifier getter function for database %s %s: %s\n"),
+			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	PQclear(res);
+
+	destroyPQExpBuffer(query);
+}
 
 static void
 bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
-			   char *local_connstr, char *replication_sets, int apply_delay)
+			   char *local_connstr, char *replication_sets, int apply_delay,
+			   char *dbname, uint64 nid)
 {
 	PQExpBuffer query = createPQExpBuffer();
 	PQExpBuffer repsets = createPQExpBuffer();
@@ -1472,14 +1443,22 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	if (!extension_exists(conn, "bdr"))
 		install_extension(conn, "bdr");
 
+	/* Ceate BDR node identifier getter function on node. */
+	create_bdr_nid_getter_function(conn, dbname, nid);
+
 	/*
 	 * replication_sets is comma separated list of strings so all we need to
 	 * do is put the brackets around it to make it valid input for pg array
 	 */
 	printfPQExpBuffer(repsets, "{%s}", replication_sets);
 
-	/* Add the node to the cluster. */
-	printfPQExpBuffer(query, "SELECT bdr.bdr_join_group(%s, %s, %s, replication_sets := %s, apply_delay := %d);",
+	/*
+	 * Add the node to the cluster. We already created BDR node identifier
+	 * getter function on the node above, so skip it.
+	 */
+	printfPQExpBuffer(query, "SELECT bdr.bdr_join_group(%s, %s, %s, "
+					  "replication_sets := %s, apply_delay := %d, "
+					  "bypass_node_identifier_creation := true);",
 					  PQescapeLiteral(conn, node_name, strlen(node_name)),
 					  PQescapeLiteral(conn, local_connstr, strlen(local_connstr)),
 					  PQescapeLiteral(conn, remote_connstr, strlen(remote_connstr)),

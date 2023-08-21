@@ -222,7 +222,7 @@ SELECT pg_catalog.pg_extension_config_dump('bdr_nodes', 'WHERE false');
 CREATE UNIQUE INDEX bdr_nodes_node_name ON bdr_nodes(node_name);
 
 COMMENT ON TABLE bdr_nodes IS 'All known nodes in this BDR group';
-COMMENT ON COLUMN bdr_nodes.node_sysid IS 'BDR generated node identifier from the BDR control file of the node';
+COMMENT ON COLUMN bdr_nodes.node_sysid IS 'BDR generated node identifier';
 COMMENT ON COLUMN bdr_nodes.node_timeline IS 'Timeline ID of this node';
 COMMENT ON COLUMN bdr_nodes.node_dboid IS 'Local database oid on the cluster (node_sysid, node_timeline)';
 COMMENT ON COLUMN bdr_nodes.node_status IS 'Readiness of the node: [b]eginning setup, [i]nitializing, [c]atchup, creating [o]utbound slots, [r]eady, [k]illed. Doesn''t indicate connected/disconnected.';
@@ -670,7 +670,8 @@ CREATE FUNCTION _bdr_begin_join_private (
     remote_sysid OUT text,
     remote_timeline OUT oid,
     remote_dboid OUT oid,
-    bypass_collation_checks boolean
+    bypass_collation_checks boolean,
+    bypass_node_identifier_creation boolean
 )
 RETURNS record LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -693,6 +694,15 @@ BEGIN
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
     LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;
     LOCK TABLE pg_catalog.pg_shseclabel IN EXCLUSIVE MODE;
+
+    -- Generate BDR node identifier if asked
+    IF bypass_node_identifier_creation THEN
+      RAISE WARNING USING
+        MESSAGE = 'skipping creation of BDR node identifier for this node',
+        HINT = 'The ''bypass_node_identifier_creation'' option is only available for bdr_init_copy tool.';
+    ELSE
+      PERFORM bdr._bdr_generate_node_identifier_private();
+    END IF;
 
     SELECT sysid, timeline, dboid INTO localid
     FROM bdr.bdr_get_local_nodeid();
@@ -920,7 +930,8 @@ CREATE FUNCTION bdr_join_group (
     node_local_dsn text DEFAULT NULL,
     apply_delay integer DEFAULT NULL,
     replication_sets text[] DEFAULT ARRAY['default'],
-    bypass_collation_checks boolean DEFAULT false
+    bypass_collation_checks boolean DEFAULT false,
+    bypass_node_identifier_creation boolean DEFAULT false
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -977,16 +988,14 @@ BEGIN
             ERRCODE = 'feature_not_supported';
     END IF;
 
-    -- Generate BDR node identifier
-    PERFORM bdr.bdr_generate_node_identifier();
-
     PERFORM bdr._bdr_begin_join_private(
         caller := '',
         local_node_name := local_node_name,
         node_local_dsn := CASE WHEN node_local_dsn IS NULL
           THEN node_external_dsn ELSE node_local_dsn END,
         remote_dsn := join_using_dsn,
-        bypass_collation_checks := bypass_collation_checks);
+        bypass_collation_checks := bypass_collation_checks,
+        bypass_node_identifier_creation := bypass_node_identifier_creation);
 
     SELECT sysid, timeline, dboid INTO localid
     FROM bdr.bdr_get_local_nodeid();
@@ -1050,7 +1059,7 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean) IS
+COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean, boolean) IS
 'Join an existing BDR group by connecting to a member node and copying its contents';
 
 CREATE FUNCTION bdr_create_group (
@@ -1700,8 +1709,7 @@ BEGIN
   DELETE FROM bdr.bdr_conflict_history;
   DELETE FROM bdr.bdr_replication_set_config;
 
-  -- Remove BDR control file containing node identifier.
-  PERFORM bdr.bdr_remove_node_identifier();
+  PERFORM bdr._bdr_remove_node_identifier_private();
 
   -- We can't drop the BDR extension, we just need to tell the user to do that.
   RAISE NOTICE 'BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.';
@@ -1930,32 +1938,35 @@ ON bdr.bdr_nodes
 FOR EACH ROW
 EXECUTE PROCEDURE bdr_handle_rejoin();
 
-CREATE FUNCTION bdr_generate_node_identifier()
-RETURNS numeric
-LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_generate_node_identifier';
+CREATE FUNCTION _bdr_generate_node_identifier_private()
+RETURNS void
+AS 'MODULE_PATHNAME','bdr_generate_node_identifier'
+LANGUAGE C STRICT;
 
-REVOKE ALL ON FUNCTION bdr_generate_node_identifier() FROM PUBLIC;
+REVOKE ALL ON FUNCTION _bdr_generate_node_identifier_private() FROM PUBLIC;
 
-COMMENT ON FUNCTION bdr_generate_node_identifier()
-IS 'Generate BDR node identifier and write it to BDR control file';
+COMMENT ON FUNCTION _bdr_generate_node_identifier_private()
+IS 'Generate BDR node identifier and create its getter function';
+
+CREATE FUNCTION _bdr_remove_node_identifier_private()
+RETURNS boolean
+AS 'MODULE_PATHNAME','bdr_remove_node_identifier'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION _bdr_remove_node_identifier_private() FROM PUBLIC;
+
+COMMENT ON FUNCTION _bdr_remove_node_identifier_private()
+IS 'Remove BDR node identifier getter function';
 
 CREATE FUNCTION bdr_get_node_identifier()
 RETURNS numeric
-LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_get_node_identifier';
+AS 'MODULE_PATHNAME','bdr_get_node_identifier'
+LANGUAGE C STRICT;
 
 REVOKE ALL ON FUNCTION bdr_get_node_identifier() FROM PUBLIC;
 
 COMMENT ON FUNCTION bdr_get_node_identifier()
-IS 'Read BDR node identifier from BDR control file';
-
-CREATE FUNCTION bdr_remove_node_identifier()
-RETURNS boolean
-LANGUAGE C STRICT VOLATILE AS 'MODULE_PATHNAME','bdr_remove_node_identifier';
-
-REVOKE ALL ON FUNCTION bdr_remove_node_identifier() FROM PUBLIC;
-
-COMMENT ON FUNCTION bdr_remove_node_identifier()
-IS 'Remove BDR node identifier from BDR control file';
+IS 'Get BDR node identifier';
 
 CREATE FUNCTION bdr_fdw_validator(
     options text[],

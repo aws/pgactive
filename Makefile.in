@@ -41,6 +41,7 @@ OBJS = src/bdr.o \
 	src/bdr_executor.o \
 	src/bdr_init_replica.o \
 	src/bdr_locks.o \
+	src/bdr_node_identifier.o \
 	src/bdr_nodecache.o \
 	src/bdr_messaging.o \
 	src/bdr_monitoring.o \

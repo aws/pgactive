@@ -848,6 +848,76 @@ static void
 	BDRLockType lock_type = BDR_LOCK_WRITE;
 
 	/*
+	 * Only BDR can create/drop/alter BDR node identifier getter function on
+	 * local node i.e. np replication to other BDR members.
+	 */
+	switch (nodeTag(parsetree))
+	{
+		case T_CreateFunctionStmt:	/* CREATE FUNCTION */
+			if (is_bdr_nid_getter_function_create((CreateFunctionStmt *) parsetree))
+			{
+				if (is_bdr_creating_nid_getter_function() ||
+					bdr_permit_node_identifier_getter_function_creation)
+					goto done;
+				else
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("creation of BDR node identifier getter function is not allowed")));
+			}
+			break;
+		case T_DropStmt:		/* DROP FUNCTION */
+			if (is_bdr_nid_getter_function_drop((DropStmt *) parsetree))
+			{
+				if (is_bdr_creating_nid_getter_function() ||
+					bdr_permit_node_identifier_getter_function_creation)
+					goto done;
+				else
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("dropping of BDR node identifier getter function is not allowed")));
+			}
+			break;
+		case T_AlterFunctionStmt:	/* ALTER FUNCTION */
+			if (is_bdr_nid_getter_function_alter((AlterFunctionStmt *) parsetree))
+			{
+				if (is_bdr_creating_nid_getter_function() ||
+					bdr_permit_node_identifier_getter_function_creation)
+					goto done;
+				else
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("altering of BDR node identifier getter function is not allowed")));
+			}
+			break;
+		case T_AlterOwnerStmt:	/* ALTER FUNCTION OWNER TO */
+			if (is_bdr_nid_getter_function_alter_owner((AlterOwnerStmt *) parsetree))
+			{
+				if (is_bdr_creating_nid_getter_function() ||
+					bdr_permit_node_identifier_getter_function_creation)
+					goto done;
+				else
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("altering of BDR node identifier getter function is not allowed")));
+			}
+			break;
+		case T_RenameStmt:		/* ALTER FUNCTION RENAME TO */
+			if (is_bdr_nid_getter_function_alter_rename((RenameStmt *) parsetree))
+			{
+				if (is_bdr_creating_nid_getter_function() ||
+					bdr_permit_node_identifier_getter_function_creation)
+					goto done;
+				else
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("altering of BDR node identifier getter function is not allowed")));
+			}
+			break;
+		default:
+			break;
+	}
+
+	/*
 	 * If DDL replication is disabled, let's call the next process utility
 	 * hook (if any) or the standard one. The reason is that there is no
 	 * reason to filter anything in such a case.
