@@ -26,6 +26,9 @@ my $node_0_standby = PostgreSQL::Test::Cluster->new('node_0_standby');
 $node_0_standby->init_from_backup($node_0, $backup_name, has_streaming => 1);
 $node_0_standby->start;
 
+# Wait for standby catchup
+$node_0->wait_for_catchup($node_0_standby);
+
 my $query = qq[SELECT * FROM bdr._bdr_node_identifier_getter_private();];
 
 my $node_0_res = $node_0->safe_psql($bdr_test_dbname, $query);
