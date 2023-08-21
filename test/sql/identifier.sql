@@ -6,7 +6,9 @@ FROM bdr.bdr_get_local_nodeid();
 
 SELECT current_database() = 'postgres';
 
--- Test probing for remote node information
+-- Test probing for remote node information. Note that local node and remote
+-- node having different node identifiers (r.sysid = l.sysid false) as each
+-- database gets unique BDR node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
@@ -25,7 +27,9 @@ SELECT
     r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
 FROM bdr.bdr_get_remote_nodeinfo('dbname='||current_database()) r;
 
--- Test probing for replication connection
+-- Test probing for replication connection. Note that local node and remote
+-- node having different node identifiers (r.sysid = l.sysid false) as each
+-- database gets unique BDR node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
@@ -64,3 +68,22 @@ WHERE node_name IS NULL;
 -- Check to see if we can get the local node name
 SELECT bdr.bdr_get_local_node_name() = 'node-pg';
 
+-- Verify that creating/altering/dropping of BDR node identifier getter
+-- function is disallowed.
+
+-- Must fail
+CREATE OR REPLACE FUNCTION bdr._bdr_node_identifier_getter_private()
+RETURNS numeric AS $$ SELECT '123456'::numeric $$
+LANGUAGE SQL;
+
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private STABLE;
+
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private OWNER TO CURRENT_USER;
+
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private RENAME TO alice;
+
+-- Must fail
+DROP FUNCTION bdr._bdr_node_identifier_getter_private()

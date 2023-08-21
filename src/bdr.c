@@ -14,7 +14,6 @@
  */
 #include "postgres.h"
 
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "bdr.h"
@@ -64,7 +63,6 @@
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/numeric.h"
 #include "catalog/pg_database.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
@@ -114,6 +112,7 @@ char	   *bdr_extra_apply_connection_options;
 int			bdr_log_min_messages = WARNING;
 int			bdr_init_node_parallel_jobs;
 int			bdr_max_nodes;
+bool		bdr_permit_node_identifier_getter_function_creation;
 
 PG_MODULE_MAGIC;
 
@@ -139,9 +138,6 @@ PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_skip_changes(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_get_node_identifier(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_remove_node_identifier(PG_FUNCTION_ARGS);
 PGDLLIMPORT extern Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
@@ -160,9 +156,6 @@ PG_FUNCTION_INFO_V1(bdr_get_workers_info);
 PG_FUNCTION_INFO_V1(bdr_skip_changes);
 PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
-PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
-PG_FUNCTION_INFO_V1(bdr_get_node_identifier);
-PG_FUNCTION_INFO_V1(bdr_remove_node_identifier);
 PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
@@ -170,8 +163,6 @@ static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType
 static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
-
-static bool file_exists(const char *name);
 
 static bool check_bdr_max_nodes(int *newval, void **extra, GucSource source);
 
@@ -595,9 +586,9 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	bdr_worker_slot->worker_proc = MyProc;
 
 	/* Check if we decided to unregister this worker. */
-	if (!bdr_control_file_exists())
+	if (!OidIsValid(find_bdr_nid_getter_function()))
 	{
-		elog(LOG, "unregistering %s worker due to missing BDR control file",
+		elog(LOG, "unregistering %s worker due to missing BDR node identifier getter function",
 			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply");
 
 		LWLockRelease(BdrWorkerCtl->lock);
@@ -605,10 +596,10 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	}
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	bdr_make_my_nodeid(&myid);
 	StartTransactionCommand();
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
+	bdr_make_my_nodeid(&myid);
 	mystatus = bdr_nodes_get_local_status(&myid, true);
 	SPI_finish();
 	PopActiveSnapshot();
@@ -1190,6 +1181,15 @@ _PG_init(void)
 							PGC_POSTMASTER,
 							0,
 							check_bdr_max_nodes, NULL, NULL);
+
+	DefineCustomBoolVariable("bdr.permit_node_identifier_getter_function_creation",
+							 "Internal. Set during physical node joining with bdr_init_copy only",
+							 NULL,
+							 &bdr_permit_node_identifier_getter_function_creation,
+							 false,
+							 PGC_SUSET,
+							 0,
+							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
 
 	EmitWarningsOnPlaceholders("bdr");
 
@@ -1903,319 +1903,3 @@ InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
 	MemoryContextSwitchTo(old_context);
 }
 #endif
-
-static bool
-file_exists(const char *name)
-{
-	struct stat st;
-
-	Assert(name != NULL);
-
-	if (stat(name, &st) == 0)
-		return !S_ISDIR(st.st_mode);
-	else if (!(errno == ENOENT || errno == ENOTDIR))
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not access file \"%s\": %m", name)));
-
-	return false;
-}
-
-bool
-bdr_control_file_exists(void)
-{
-	char		path[MAXPGPATH];
-
-	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
-
-	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
-
-	return file_exists(path);
-}
-
-uint64
-bdr_generate_node_identifier_internal(void)
-{
-	uint64		nid = 0;
-	char		path[MAXPGPATH];
-	char		tmppath[MAXPGPATH];
-	FILE	   *fp;
-
-	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
-
-	/*
-	 * Let's do this under a lock to ensure the new node identifier gets
-	 * generated only once on this node.
-	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-
-	if (file_exists(path))
-	{
-		ereport(NOTICE,
-				(errmsg("BDR node identifier for this node has already been generated")));
-
-		goto done;
-	}
-
-	snprintf(tmppath, MAXPGPATH, "pg_logical/%s.tmp", BDR_CONTROL_FILE);
-
-	/* make sure no old temp file is remaining */
-	if (unlink(tmppath) < 0 && errno != ENOENT)
-	{
-		LWLockRelease(BdrWorkerCtl->lock);
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not remove file \"%s\": %m", tmppath)));
-	}
-
-	fp = AllocateFile(tmppath, PG_BINARY_W);
-	if (!fp)
-	{
-		LWLockRelease(BdrWorkerCtl->lock);
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not create file \"%s\": %m", tmppath)));
-	}
-
-	/*
-	 * Write magic number, PG version and BDR version to the control file to
-	 * verify file content correctness upon reading.
-	 */
-	fprintf(fp, "MAGIC NUMBER: %u\n", BDR_CONTROL_FILE_MAGIC_NUMBER);
-	fprintf(fp, "PG VERSION: %u\n", PG_VERSION_NUM);
-	fprintf(fp, "BDR VERSION: %u\n", BDR_VERSION_NUM);
-
-	/*
-	 * Generate BDR node identifier using similar logic that Postgres uses to
-	 * generate system_identifier.
-	 */
-	nid = GenerateNodeIdentifier();
-
-	/* And, write the node identifier to BDR control file. */
-	fprintf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", nid);
-
-	if (ferror(fp) || FreeFile(fp))
-	{
-		int			save_errno = errno;
-
-		unlink(tmppath);
-		errno = save_errno;
-		LWLockRelease(BdrWorkerCtl->lock);
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not write to file \"%s\": %m", tmppath)));
-	}
-
-	/* Rename temporary file to BDR control file to make things permanent. */
-	durable_rename(tmppath, path, ERROR);
-
-done:
-	LWLockRelease(BdrWorkerCtl->lock);
-	return nid;
-}
-
-/*
- * Generate BDR node identifier, write it to BDR control file and return the
- * generated ID. Return NULL with some info if control file already exists for
- * this node.
- */
-Datum
-bdr_generate_node_identifier(PG_FUNCTION_ARGS)
-{
-	uint64		nid;
-	char		buf[256];
-	Datum		result;
-
-	nid = bdr_generate_node_identifier_internal();
-
-	if (nid == 0)
-		PG_RETURN_NULL();
-
-	/* Convert to numeric. */
-	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
-	result = DirectFunctionCall3(numeric_in,
-								 CStringGetDatum(buf),
-								 ObjectIdGetDatum(0),
-								 Int32GetDatum(-1));
-
-	PG_RETURN_DATUM(result);
-}
-
-uint64
-bdr_get_node_identifier_internal(void)
-{
-	uint64		nid = 0;
-	char		path[MAXPGPATH];
-	FILE	   *fp;
-	bool		acquired_lock = false;
-	uint32		magic_number;
-	uint32		pg_version;
-	uint32		bdr_version;
-
-	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
-
-	if (!LWLockHeldByMe(BdrWorkerCtl->lock))
-	{
-		LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-		acquired_lock = true;
-	}
-
-	if (!file_exists(path))
-	{
-		ereport(NOTICE,
-				(errcode_for_file_access(),
-				 errmsg("BDR control file doesn't exist")));
-
-		goto done;
-	}
-
-	fp = AllocateFile(path, PG_BINARY_R);
-	if (!fp)
-	{
-		if (acquired_lock)
-			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not read from file \"%s\": %m", path)));
-	}
-
-	if (fscanf(fp, "MAGIC NUMBER: %u\n", &magic_number) != 1 ||
-		fscanf(fp, "PG VERSION: %u\n", &pg_version) != 1 ||
-		fscanf(fp, "BDR VERSION: %u\n", &bdr_version) != 1 ||
-		fscanf(fp, "NODE IDENTIFIER: " UINT64_FORMAT "\n", &nid) != 1)
-	{
-		if (acquired_lock)
-			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not read from file \"%s\": %m", path)));
-	}
-
-	if (magic_number != BDR_CONTROL_FILE_MAGIC_NUMBER ||
-		pg_version != PG_VERSION_NUM ||
-		bdr_version != BDR_VERSION_NUM)
-	{
-		if (acquired_lock)
-			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("invalid data found in file \"%s\": %m", path)));
-	}
-
-	if (ferror(fp) || FreeFile(fp))
-	{
-		if (acquired_lock)
-			LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not read from file \"%s\": %m", path)));
-	}
-
-done:
-	/* Release the lock only if we acquired in this function. */
-	if (acquired_lock)
-		LWLockRelease(BdrWorkerCtl->lock);
-
-	return nid;
-}
-
-/*
- * Read node identifier from BDR control file and return it. Return NULL if
- * control file doesn't exist.
- */
-Datum
-bdr_get_node_identifier(PG_FUNCTION_ARGS)
-{
-	uint64		nid;
-	char		buf[256];
-	Datum		result;
-
-	nid = bdr_get_node_identifier_internal();
-
-	if (nid == 0)
-		PG_RETURN_NULL();
-
-	/* Convert to numeric. */
-	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
-	result = DirectFunctionCall3(numeric_in,
-								 CStringGetDatum(buf),
-								 ObjectIdGetDatum(0),
-								 Int32GetDatum(-1));
-
-	PG_RETURN_DATUM(result);
-}
-
-bool
-bdr_remove_node_identifier_internal(void)
-{
-	char		path[MAXPGPATH];
-	int			i;
-	bool		remove = true;
-
-	snprintf(path, MAXPGPATH, "pg_logical/%s", BDR_CONTROL_FILE);
-
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-
-	if (!file_exists(path))
-	{
-		ereport(NOTICE,
-				(errcode_for_file_access(),
-				 errmsg("BDR control file doesn't exist, and it may have been already removed")));
-
-		remove = false;
-		goto done;
-	}
-
-	for (i = 0; i < bdr_max_workers; i++)
-	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
-
-		if (w->worker_type == BDR_WORKER_PERDB)
-		{
-			if (w->worker_proc != NULL)
-			{
-				Assert(OidIsValid(w->worker_proc->databaseId));
-				ereport(NOTICE,
-						(errmsg("cannot remove BDR control file as BDR is still active on this node for database \"%s\"",
-								get_database_name(w->worker_proc->databaseId))));
-
-				remove = false;
-			}
-		}
-	}
-
-	if (remove)
-	{
-		if (unlink(path) < 0 && errno != ENOENT)
-		{
-			LWLockRelease(BdrWorkerCtl->lock);
-			ereport(ERROR,
-					(errcode_for_file_access(),
-					 errmsg("could not remove file \"%s\": %m", path)));
-		}
-
-		fsync_fname("pg_logical", true);
-	}
-
-done:
-	LWLockRelease(BdrWorkerCtl->lock);
-	return remove;
-}
-
-/*
- * Remove BDR control file if BDR is active for no database on this node.
- * Returns true if control file is removed, otherwise false.
- */
-Datum
-bdr_remove_node_identifier(PG_FUNCTION_ARGS)
-{
-	bool		removed;
-
-	removed = bdr_remove_node_identifier_internal();
-
-	PG_RETURN_BOOL(removed);
-}

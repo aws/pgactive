@@ -260,6 +260,15 @@ server restart to take effect.
     Set this parameter either in configuration file or via ALTER SYSTEM SET
     command. Changes take effect on server restart.
 
+`bdr.permit_node_identifier_getter_function_creation` (`boolean`)
+
+    This parameter is intended for internal use only. When set BDR allows
+    creation of BDR node identifier getter function.
+
+    ::: WARNING
+      **Warning**
+      Inconsiderate usage of this option easily allows to break replication setups.
+    :::
   ---------------------------------------------------- ------------------------------------ ---------------------------------------------
   [Prev](settings-prerequisite.md)     [Home](README.md)     [Next](node-management.md)  
   Prerequisite [PostgreSQL] parameters    [Up](settings.md)                                Node Management

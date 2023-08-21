@@ -13,7 +13,9 @@ SELECT current_database() = 'postgres';
  t
 (1 row)
 
--- Test probing for remote node information
+-- Test probing for remote node information. Note that local node and remote
+-- node having different node identifiers (r.sysid = l.sysid false) as each
+-- database gets unique BDR node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
@@ -27,7 +29,7 @@ FROM bdr.bdr_get_remote_nodeinfo('dbname=regression') r,
      bdr.bdr_get_local_nodeid() l;
  ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? 
 ----------+----------+----------+----------+----------+----------+----------+----------
- t        | t        | t        | t        | t        | t        | t        | t
+ f        | t        | t        | t        | t        | t        | t        | t
 (1 row)
 
 -- bdr.bdr_get_remote_nodeinfo can also be used to probe the local dsn
@@ -40,7 +42,9 @@ FROM bdr.bdr_get_remote_nodeinfo('dbname='||current_database()) r;
  t
 (1 row)
 
--- Test probing for replication connection
+-- Test probing for replication connection. Note that local node and remote
+-- node having different node identifiers (r.sysid = l.sysid false) as each
+-- database gets unique BDR node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
@@ -49,7 +53,7 @@ FROM bdr.bdr_test_replication_connection('dbname=regression') r,
      bdr.bdr_get_local_nodeid() l;
  ?column? | ?column? | ?column? 
 ----------+----------+----------
- t        | t        | t
+ f        | t        | t
 (1 row)
 
 -- Probing replication connection for the local dsn will work too
@@ -98,3 +102,22 @@ SELECT bdr.bdr_get_local_node_name() = 'node-pg';
  t
 (1 row)
 
+-- Verify that creating/altering/dropping of BDR node identifier getter
+-- function is disallowed.
+-- Must fail
+CREATE OR REPLACE FUNCTION bdr._bdr_node_identifier_getter_private()
+RETURNS numeric AS $$ SELECT '123456'::numeric $$
+LANGUAGE SQL;
+ERROR:  creation of BDR node identifier getter function is not allowed
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private STABLE;
+ERROR:  altering of BDR node identifier getter function is not allowed
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private OWNER TO CURRENT_USER;
+ERROR:  altering of BDR node identifier getter function is not allowed
+-- Must fail
+ALTER FUNCTION bdr._bdr_node_identifier_getter_private RENAME TO alice;
+ERROR:  altering of BDR node identifier getter function is not allowed
+-- Must fail
+DROP FUNCTION bdr._bdr_node_identifier_getter_private()
+ERROR:  dropping of BDR node identifier getter function is not allowed
