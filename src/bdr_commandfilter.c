@@ -843,13 +843,14 @@ static void
 	bool		incremented_nestlevel = false;
 	bool		affects_only_nonpermanent;
 	bool		entered_extension = false;
+	bool		altering_bdr_nid_func = false;
 
 	/* take strongest lock by default. */
 	BDRLockType lock_type = BDR_LOCK_WRITE;
 
 	/*
 	 * Only BDR can create/drop/alter BDR node identifier getter function on
-	 * local node i.e. np replication to other BDR members.
+	 * local node i.e. no replication to other BDR members.
 	 */
 	switch (nodeTag(parsetree))
 	{
@@ -878,43 +879,30 @@ static void
 			}
 			break;
 		case T_AlterFunctionStmt:	/* ALTER FUNCTION */
-			if (is_bdr_nid_getter_function_alter((AlterFunctionStmt *) parsetree))
-			{
-				if (is_bdr_creating_nid_getter_function() ||
-					bdr_permit_node_identifier_getter_function_creation)
-					goto done;
-				else
-					ereport(ERROR,
-							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("altering of BDR node identifier getter function is not allowed")));
-			}
+			altering_bdr_nid_func =
+				is_bdr_nid_getter_function_alter((AlterFunctionStmt *) parsetree);
 			break;
 		case T_AlterOwnerStmt:	/* ALTER FUNCTION OWNER TO */
-			if (is_bdr_nid_getter_function_alter_owner((AlterOwnerStmt *) parsetree))
-			{
-				if (is_bdr_creating_nid_getter_function() ||
-					bdr_permit_node_identifier_getter_function_creation)
-					goto done;
-				else
-					ereport(ERROR,
-							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("altering of BDR node identifier getter function is not allowed")));
-			}
+			altering_bdr_nid_func =
+				is_bdr_nid_getter_function_alter_owner((AlterOwnerStmt *) parsetree);
 			break;
 		case T_RenameStmt:		/* ALTER FUNCTION RENAME TO */
-			if (is_bdr_nid_getter_function_alter_rename((RenameStmt *) parsetree))
-			{
-				if (is_bdr_creating_nid_getter_function() ||
-					bdr_permit_node_identifier_getter_function_creation)
-					goto done;
-				else
-					ereport(ERROR,
-							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("altering of BDR node identifier getter function is not allowed")));
-			}
+			altering_bdr_nid_func =
+				is_bdr_nid_getter_function_alter_rename((RenameStmt *) parsetree);
 			break;
 		default:
 			break;
+	}
+
+	if (altering_bdr_nid_func)
+	{
+		if (is_bdr_creating_nid_getter_function() ||
+			bdr_permit_node_identifier_getter_function_creation)
+			goto done;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("altering of BDR node identifier getter function is not allowed")));
 	}
 
 	/*

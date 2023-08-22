@@ -110,11 +110,11 @@ get_bdr_nid_getter_function_dependency(void)
 }
 
 /*
- * Generate a BDR node identifier and store it a static getter function. The
+ * Generate a BDR node identifier and store it in a static getter function. The
  * static getter function approach not only helps each database joining BDR
  * group get a unique identifier, but also helps achieve failover of BDR node
- * in streaming replication as the standby will have the getter function
- * replicated to it.
+ * in streaming replication (while keeping the same node identifiers) as the
+ * standby will have the getter function replicated to it.
  */
 Datum
 bdr_generate_node_identifier(PG_FUNCTION_ARGS)
