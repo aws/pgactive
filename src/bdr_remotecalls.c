@@ -645,10 +645,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 		else
 			isnull[0] = true;
 
-		if (ri.nodeid.timeline != 0)
-			values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
-		else
-			isnull[1] = true;
+		values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
 
 		if (ri.nodeid.dboid != InvalidOid)
 			values[2] = ObjectIdGetDatum(ri.nodeid.dboid);

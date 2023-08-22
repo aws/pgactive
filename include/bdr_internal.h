@@ -54,7 +54,7 @@ typedef enum BdrNodeStatus
 
 #define BDR_NID_GETTER_FUNC_NAME "_bdr_node_identifier_getter_private"
 
-#define BDRThisTimeLineID 1
+#define BDRThisTimeLineID 0
 
 /* Structure representing bdr_nodes record */
 typedef struct BDRNodeId

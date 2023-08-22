@@ -855,14 +855,8 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 	 */
 	Assert(ni->sysid != 0);
 
-	/*
-	 * A zero timeline means something's not initialized right, since it
-	 * should be set up before our bgworkers are launched.
-	 *
-	 * If you trip this, you probably tried to access the node identity before
-	 * a bgworker called BackgroundWorkerInitializeConnection.
-	 */
-	Assert(ni->timeline != 0);
+	Assert(ni->timeline == 0);
+
 	/* Current database must be known */
 	Assert(ni->dboid != InvalidOid);
 }
