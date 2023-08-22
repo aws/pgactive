@@ -449,12 +449,7 @@ main(int argc, char **argv)
 	node_info.local_sysid = remote_info->sysid;
 	node_info.remote_sysid = remote_info->sysid;
 	node_info.remote_tlid = remote_info->tlid;
-
-	/*
-	 * Once the physical replication reaches the restore point, it will bump
-	 * the timeline by one.
-	 */
-	node_info.local_tlid = remote_info->tlid + 1;
+	node_info.local_tlid = remote_info->tlid;
 
 	print_msg(VERBOSITY_NORMAL,
 			  _("Updating BDR configuration on the remote node:\n"));
@@ -1008,6 +1003,8 @@ get_remote_info(char *remote_connstr)
 
 	if (sscanf(remote_tlid, "%u", &ri->tlid) != 1)
 		die(_("Could not parse remote tlid %s\n"), remote_tlid);
+
+	ri->tlid = BDRThisTimeLineID;
 
 	/*
 	 * Fetch list of BDR enabled databases via standard SQL connection.

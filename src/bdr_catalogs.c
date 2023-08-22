@@ -846,7 +846,7 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 {
 	Assert(ni != NULL);
 	ni->sysid = bdr_get_nid_internal();
-	ni->timeline = ThisTimeLineID;
+	ni->timeline = BDRThisTimeLineID;
 	ni->dboid = MyDatabaseId;
 
 	/*
@@ -865,4 +865,84 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 	Assert(ni->timeline != 0);
 	/* Current database must be known */
 	Assert(ni->dboid != InvalidOid);
+}
+
+/*
+ * Get the remote node's node_seq_id from bdr.bdr_nodes table via SPI.
+ */
+int
+bdr_remote_node_seq_id(void)
+{
+	int			spi_ret;
+	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
+	Datum		values[3];
+	bool		isnull;
+	char		sysid_str[33];
+	Oid			schema_oid;
+	BDRNodeId  *node;
+	bool		tx_started = false;
+	int			node_seq_id;
+
+	Assert(IsBdrApplyWorker());
+
+	node = &(GetBdrApplyWorkerShmemPtr()->remote_node);
+
+	if (!IsTransactionState())
+	{
+		tx_started = true;
+		StartTransactionCommand();
+	}
+
+	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
+
+	/*
+	 * Determine if BDR is present on this DB. The output plugin can be
+	 * started on a db that doesn't actually have BDR active, but we don't
+	 * want to allow that.
+	 *
+	 * Check for a bdr schema.
+	 */
+	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid,
+									CStringGetDatum("bdr"));
+	if (schema_oid == InvalidOid)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("no BDR schema is present in database %s, cannot create a BDR slot",
+						get_database_name(MyDatabaseId)),
+				 errhint("There is no bdr.connections entry for this database on the target node or BDR is not in shared_preload_libraries.")));
+	}
+
+	values[0] = CStringGetTextDatum(sysid_str);
+	values[1] = ObjectIdGetDatum(node->timeline);
+	values[2] = ObjectIdGetDatum(node->dboid);
+
+	spi_ret = SPI_execute_with_args(
+									"SELECT node_seq_id FROM bdr.bdr_nodes "
+									"WHERE node_sysid = $1 AND node_timeline = $2 AND node_dboid = $3",
+									3, argtypes, values, NULL, false, 1);
+
+	if (spi_ret != SPI_OK_SELECT)
+		elog(ERROR, "unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
+
+	if (SPI_processed == 0)
+		elog(ERROR, "unable to fetch rows from bdr.bdr_nodes");
+
+	node_seq_id = DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[0],
+											  SPI_tuptable->tupdesc, 1,
+											  &isnull));
+
+	if (isnull)
+		elog(ERROR, "node_seq_id in bdr.bdr_nodes table cannot be null");
+
+	SPI_finish();
+	PopActiveSnapshot();
+
+	if (tx_started)
+		CommitTransactionCommand();
+
+	return node_seq_id;
 }
