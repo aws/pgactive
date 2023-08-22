@@ -1,7 +1,7 @@
 \c postgres
 
 -- No real way to test the sysid, so ignore it
-SELECT timeline= 1, dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
+SELECT timeline = 0, dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
 FROM bdr.bdr_get_local_nodeid();
 
 SELECT current_database() = 'postgres';

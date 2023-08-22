@@ -1448,43 +1448,39 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 	}
 	else
 	{
-		BDRNodeId	local,
-					remote;
+		int			local_node_seq_id;
+		int			remote_node_seq_id;
 
 		/*
-		 * Timestamps are equal. Use sysid + timeline id to decide which tuple
-		 * to retain.
-		 */
-		bdr_fetch_sysid_via_node_id(local_node_id, &local);
-		bdr_fetch_sysid_via_node_id(remote_node_id, &remote);
-
-		/*
-		 * As the timestamps were equal, we have to break the tie in a
-		 * consistent manner that'll match across all nodes.
+		 * Timestamps were equal, so we have to break the tie in a consistent
+		 * manner that'll match across all nodes. Therefore, we'll use
+		 * node_seq_id to decide which tuple to retain. The node with lesser
+		 * node_seq_id always wins.
 		 *
-		 * Use the ordering of the node's unique identifier, the tuple of
-		 * (sysid, timelineid, dboid).
+		 * XXX: We might need a better, more sophisticated and
+		 * user-controllable mechanism here to break the ties.
 		 */
-		if (local.sysid < remote.sysid)
-			*perform_update = true;
-		else if (local.sysid > remote.sysid)
+		local_node_seq_id = bdr_local_node_seq_id();
+		remote_node_seq_id = bdr_remote_node_seq_id();
+
+		if (local_node_seq_id <= 0)
+			elog(ERROR, "invalid node_seq_id on local node");
+
+		if (remote_node_seq_id <= 0)
+			elog(ERROR, "invalid node_seq_id on remote node");
+
+		if (local_node_seq_id < remote_node_seq_id)
 			*perform_update = false;
-		else if (local.timeline < remote.timeline)
+		else if (local_node_seq_id > remote_node_seq_id)
 			*perform_update = true;
-		else if (local.timeline > remote.timeline)
-			*perform_update = false;
-		else if (local.dboid < remote.dboid)
-			*perform_update = true;
-		else if (local.dboid > remote.dboid)
-			*perform_update = false;
 		else
-			/* shouldn't happen */
-			elog(ERROR, "unsuccessful node comparison");
+			/* shouldn't happen because node_seq_ids are unique */
+			elog(ERROR, "unsuccessful node_seq_id comparison");
 
 		/*
-		 * We don't log whether we used timestamp, sysid or timeline id to
-		 * decide which tuple to retain. That'll be in the log record anyway,
-		 * so we can reconstruct the decision from the log record later.
+		 * We don't log node_seq_id used to decide which tuple to retain. The
+		 * node with lesser node_seq_id always wins, so one can look at the
+		 * bdr.bdr_nodes table to reconstruct the decision.
 		 */
 		if (*perform_update)
 		{
@@ -3036,4 +3032,10 @@ bool
 IsBdrApplyWorker(void)
 {
 	return bdr_apply_worker != NULL;
+}
+
+BdrApplyWorker *
+GetBdrApplyWorkerShmemPtr(void)
+{
+	return bdr_apply_worker;
 }

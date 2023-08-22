@@ -325,7 +325,7 @@ bdr_nodeid_name(const BDRNodeId * const node,
  * not invalidating it on change isn't a big deal; about all it can do
  * is affect synchronous_standby_names .
  *
- * Must be called after background worker setup so ThisTimeLineID
+ * Must be called after background worker setup so BDRThisTimeLineID
  * is initialized, while there's an open txn.
  *
  * TODO: If we made the nodecache eager, so it reloaded fully on

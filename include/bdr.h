@@ -54,7 +54,7 @@
 #endif
 
 #define BDR_LOCALID_FORMAT_ARGS \
-	bdr_get_nid_internal(), ThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
+	bdr_get_nid_internal(), BDRThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
 
 /*
  * For use with BDR_NODEID_FORMAT_WITHNAME, print our node id tuple and name.
@@ -648,6 +648,7 @@ extern void bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type);
 extern void bdr_supervisor_register(void);
 extern bool IsBdrApplyWorker(void);
 extern bool IsBdrPerdbWorker(void);
+extern BdrApplyWorker * GetBdrApplyWorkerShmemPtr(void);
 
 extern Oid	bdr_get_supervisordb_oid(bool missing_ok);
 
@@ -673,6 +674,7 @@ extern void bdr_bdr_node_free(BDRNodeInfo * node);
 extern void bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus oldstatus);
 extern void bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const int *seq_id);
 extern List *bdr_read_connection_configs(void);
+extern int	bdr_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *bdr_nodeid_name(const BDRNodeId * const node,
