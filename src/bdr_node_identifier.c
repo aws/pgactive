@@ -29,11 +29,9 @@
 
 PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_get_node_identifier(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_remove_node_identifier(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
 PG_FUNCTION_INFO_V1(bdr_get_node_identifier);
-PG_FUNCTION_INFO_V1(bdr_remove_node_identifier);
 
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 BdrNodeIdentifierControl *BdrNodeIdentifierCtl = NULL;
@@ -66,7 +64,6 @@ static void bdr_nid_shmem_reset_all(bool need_lock);
 static void bdr_nid_shmem_set(Oid dboid, uint64 nid);
 static uint64 bdr_nid_shmem_get(Oid dboid);
 static void pg_bdr_xact_callback(XactEvent event, void *arg);
-static bool bdr_remove_nid_internal(void);
 static void bdr_spi_exec(const char *cmd, int ret);
 static bool get_bdr_nid_getter_function_dependency(void);
 static bool is_bdr_nid_getter_function_in_stmt(ObjectType objtype,
@@ -249,86 +246,6 @@ bdr_get_node_identifier(PG_FUNCTION_ARGS)
 								 Int32GetDatum(-1));
 
 	PG_RETURN_DATUM(result);
-}
-
-/*
- * Remove BDR node identifier getter function for current database.
- */
-static bool
-bdr_remove_nid_internal(void)
-{
-	StringInfoData cmd;
-	int			i;
-	bool		remove = true;
-	bool		is_getter_func_part_of_extension;
-
-	Assert(IsTransactionState());
-
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-
-	for (i = 0; i < bdr_max_workers; i++)
-	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
-
-		if (w->worker_type == BDR_WORKER_PERDB)
-		{
-			if (w->worker_proc != NULL)
-			{
-				Assert(OidIsValid(w->worker_proc->databaseId));
-				ereport(NOTICE,
-						(errmsg("cannot drop BDR node identifier getter function as BDR is still active on this node for database \"%s\"",
-								get_database_name(w->worker_proc->databaseId))));
-
-				remove = false;
-			}
-		}
-	}
-
-	if (!remove)
-		goto done;
-
-	/* flag that we are manipulating BDR artifacts */
-	SET_BDRART;
-
-	initStringInfo(&cmd);
-
-	is_getter_func_part_of_extension =
-		get_bdr_nid_getter_function_dependency();
-
-	if (is_getter_func_part_of_extension)
-	{
-		appendStringInfo(&cmd, "ALTER EXTENSION bdr DROP FUNCTION bdr.%s();",
-						 BDR_NID_GETTER_FUNC_NAME);
-		bdr_spi_exec(cmd.data, SPI_OK_UTILITY);
-		resetStringInfo(&cmd);
-	}
-
-	appendStringInfo(&cmd, "DROP FUNCTION bdr.%s();",
-					 BDR_NID_GETTER_FUNC_NAME);
-	bdr_spi_exec(cmd.data, SPI_OK_UTILITY);
-	bdr_nid_shmem_reset(MyDatabaseId);
-
-	/* done manipulating BDR artifacts */
-	UNSET_BDRART;
-
-	pfree(cmd.data);
-
-done:
-	LWLockRelease(BdrWorkerCtl->lock);
-	return remove;
-}
-
-/*
- * Remove BDR node identifier getter function for current database.
- */
-Datum
-bdr_remove_node_identifier(PG_FUNCTION_ARGS)
-{
-	bool		removed;
-
-	removed = bdr_remove_nid_internal();
-
-	PG_RETURN_BOOL(removed);
 }
 
 /*
