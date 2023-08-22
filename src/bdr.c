@@ -580,8 +580,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 
 	/* Connect to our database */
 	BackgroundWorkerInitializeConnectionByOid(dboid, InvalidOid, 0);
-
-	Assert(BDRThisTimeLineID > 0);
+	Assert(ThisTimeLineID > 0);
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	bdr_worker_slot->worker_pid = MyProcPid;

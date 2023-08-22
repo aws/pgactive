@@ -142,7 +142,7 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 	cb->message_cb = pg_decode_message;
 	cb->shutdown_cb = pg_decode_shutdown;
 
-	Assert(BDRThisTimeLineID > 0);
+	Assert(ThisTimeLineID > 0);
 }
 
 /* Ensure a bdr_parse_... arg is non-null */

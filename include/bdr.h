@@ -49,6 +49,10 @@
 #define BDR_NODEID_FORMAT "("UINT64_FORMAT",%u,%u,%s)"
 #define BDR_NODEID_FORMAT_WITHNAME "%s ("UINT64_FORMAT",%u,%u,%s)"
 
+#if PG_VERSION_NUM >= 150000
+#define ThisTimeLineID	GetWALInsertionTimeLine()
+#endif
+
 #define BDR_LOCALID_FORMAT_ARGS \
 	bdr_get_nid_internal(), BDRThisTimeLineID, MyDatabaseId, EMPTY_REPLICATION_NAME
 
