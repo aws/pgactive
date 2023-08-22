@@ -1454,7 +1454,11 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 		/*
 		 * Timestamps were equal, so we have to break the tie in a consistent
 		 * manner that'll match across all nodes. Therefore, we'll use
-		 * node_seq_id to decide which tuple to retain.
+		 * node_seq_id to decide which tuple to retain. The node with lesser
+		 * node_seq_id always wins.
+		 *
+		 * XXX: We might need a better, more sophisticated and
+		 * user-controllable mechanism here to break the ties.
 		 */
 		local_node_seq_id = bdr_local_node_seq_id();
 		remote_node_seq_id = bdr_remote_node_seq_id();
@@ -1466,16 +1470,16 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 			elog(ERROR, "invalid node_seq_id on remote node");
 
 		if (local_node_seq_id < remote_node_seq_id)
-			*perform_update = true;
-		else if (local_node_seq_id > remote_node_seq_id)
 			*perform_update = false;
+		else if (local_node_seq_id > remote_node_seq_id)
+			*perform_update = true;
 		else
 			/* shouldn't happen because node_seq_ids are unique */
 			elog(ERROR, "unsuccessful node_seq_id comparison");
 
 		/*
 		 * We don't log node_seq_id used to decide which tuple to retain. The
-		 * node with greater node_seq_id always wins, so one can look at the
+		 * node with lesser node_seq_id always wins, so one can look at the
 		 * bdr.bdr_nodes table to reconstruct the decision.
 		 */
 		if (*perform_update)
