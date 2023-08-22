@@ -163,16 +163,6 @@ numeric
 Get BDR node identifier for current node. Use of this function is restricted to
 superusers by default, but access may be granted to others using `GRANT`.
 
-`bdr._bdr_remove_node_identifier_private()`
-
-boolean
-
-Remove BDR node identifier getter function for current node. Return true if
-successfully removed, otherwise false. Typically, this is not supposed to be
-used by users directly, BDR uses it internally while removing BDR from local
-node. Use of this function is restricted to superusers by default, but access
-may be granted to others using `GRANT`.
-
 `bdr.bdr_apply_pause()`
 
 void

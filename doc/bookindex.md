@@ -117,9 +117,6 @@ functions](functions-node-mgmt.md)
 bdr.bdr_detach_nodes, [Node management
 functions](functions-node-mgmt.md)
 
-bdr.bdr_remove_node_identifier(), [Node management
-functions](functions-node-mgmt.md)
-
 bdr.bdr_replicate_ddl_command, [Node management
 functions](functions-node-mgmt.md)
 

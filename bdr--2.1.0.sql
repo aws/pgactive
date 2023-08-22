@@ -1709,8 +1709,6 @@ BEGIN
   DELETE FROM bdr.bdr_conflict_history;
   DELETE FROM bdr.bdr_replication_set_config;
 
-  PERFORM bdr._bdr_remove_node_identifier_private();
-
   -- We can't drop the BDR extension, we just need to tell the user to do that.
   RAISE NOTICE 'BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.';
 END;
@@ -1947,16 +1945,6 @@ REVOKE ALL ON FUNCTION _bdr_generate_node_identifier_private() FROM PUBLIC;
 
 COMMENT ON FUNCTION _bdr_generate_node_identifier_private()
 IS 'Generate BDR node identifier and create its getter function';
-
-CREATE FUNCTION _bdr_remove_node_identifier_private()
-RETURNS boolean
-AS 'MODULE_PATHNAME','bdr_remove_node_identifier'
-LANGUAGE C STRICT;
-
-REVOKE ALL ON FUNCTION _bdr_remove_node_identifier_private() FROM PUBLIC;
-
-COMMENT ON FUNCTION _bdr_remove_node_identifier_private()
-IS 'Remove BDR node identifier getter function';
 
 CREATE FUNCTION bdr_get_node_identifier()
 RETURNS numeric
