@@ -1066,10 +1066,6 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			/*
 			 * We treat properties of the database its self as node-specific
 			 * and don't try to replicate GUCs set on the database, etc.
-			 *
-			 * Same with event triggers, and event triggers don't support
-			 * capturing event triggers so 9.4bdr can't replicate them. 9.6
-			 * could.
 			 */
 		case T_AlterDatabaseStmt:
 		case T_AlterDatabaseSetStmt:
