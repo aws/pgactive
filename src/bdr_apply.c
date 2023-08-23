@@ -2345,7 +2345,7 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 /*
  * Read a remote action type and process the action record.
  *
- * May set got_SIGTERM to stop processing before next record.
+ * May set ProcDiePending to stop processing before next record.
  */
 static void
 bdr_process_remote_action(StringInfo s)
@@ -2652,7 +2652,7 @@ bdr_apply_work(PGconn *streamConn)
 	/* mark as idle, before starting to loop */
 	pgstat_report_activity(STATE_IDLE, NULL);
 
-	while (!got_SIGTERM)
+	while (!ProcDiePending)
 	{
 		int			rc;
 		int			r;
@@ -2684,9 +2684,9 @@ bdr_apply_work(PGconn *streamConn)
 			elog(ERROR, "connection to other side has died");
 		}
 
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
@@ -2709,7 +2709,7 @@ bdr_apply_work(PGconn *streamConn)
 
 		for (;;)
 		{
-			if (got_SIGTERM)
+			if (ProcDiePending)
 				break;
 
 			if (copybuf != NULL)

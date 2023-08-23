@@ -979,13 +979,13 @@ bdr_perdb_worker_main(Datum main_arg)
 	/* Launch the apply workers */
 	bdr_maintain_db_workers();
 
-	while (!got_SIGTERM)
+	while (!ProcDiePending)
 	{
 		wait = true;
 
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),

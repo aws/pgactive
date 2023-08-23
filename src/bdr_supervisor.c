@@ -174,9 +174,9 @@ bdr_register_perdb_worker(Oid dboid)
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
 
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
@@ -474,8 +474,8 @@ bdr_supervisor_worker_main(Datum main_arg)
 	Assert(DatumGetInt32(main_arg) == 0);
 	Assert(IsBackgroundWorker);
 
-	pqsignal(SIGHUP, bdr_sighup);
-	pqsignal(SIGTERM, bdr_sigterm);
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
+	pqsignal(SIGTERM, die);
 	BackgroundWorkerUnblockSignals();
 
 	/*
@@ -541,7 +541,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 
 	bdr_supervisor_rescan_dbs();
 
-	while (!got_SIGTERM)
+	while (!ProcDiePending)
 	{
 		int			rc;
 		long		timeout = 180000L;
@@ -572,9 +572,9 @@ bdr_supervisor_worker_main(Datum main_arg)
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);
 
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),

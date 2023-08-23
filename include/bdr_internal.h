@@ -92,9 +92,6 @@ typedef struct BdrConnectionConfig
 	char	   *replication_sets;
 }			BdrConnectionConfig;
 
-extern volatile sig_atomic_t got_SIGTERM;
-extern volatile sig_atomic_t got_SIGHUP;
-
 extern void bdr_error_nodeids_must_differ(const BDRNodeId * const other_nodeid);
 extern BdrConnectionConfig * bdr_get_connection_config(const BDRNodeId * nodeid,
 													   bool missing_ok);

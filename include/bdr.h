@@ -13,6 +13,12 @@
 #include "miscadmin.h"
 #include "access/xlogdefs.h"
 #include "postmaster/bgworker.h"
+
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM >= 130000
+#include "postmaster/interrupt.h"
+#endif
+
 #include "replication/logical.h"
 #include "utils/resowner.h"
 #include "storage/latch.h"
@@ -651,8 +657,11 @@ extern BdrApplyWorker * GetBdrApplyWorkerShmemPtr(void);
 
 extern Oid	bdr_get_supervisordb_oid(bool missing_ok);
 
-extern void bdr_sighup(SIGNAL_ARGS);
-extern void bdr_sigterm(SIGNAL_ARGS);
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
+extern volatile sig_atomic_t ConfigReloadPending;
+extern void SignalHandlerForConfigReload(SIGNAL_ARGS);
+#endif
 
 extern int	find_perdb_worker_slot(Oid dboid,
 								   BdrWorker * *worker_found);

@@ -81,8 +81,10 @@
 #define PG_MAX_JOBS INT_MAX
 #endif
 
-volatile sig_atomic_t got_SIGTERM = false;
-volatile sig_atomic_t got_SIGHUP = false;
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
+volatile sig_atomic_t ConfigReloadPending = false;
+#endif
 
 ResourceOwner bdr_saved_resowner;
 Oid			BdrSchemaOid = InvalidOid;
@@ -227,39 +229,19 @@ bdr_error_severity(int elevel)
 	return elevel_char;
 }
 
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
 void
-bdr_sigterm(SIGNAL_ARGS)
+SignalHandlerForConfigReload(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
 
-	got_SIGTERM = true;
-
-	/*
-	 * For now allow to interrupt all queries. It'd be better if we were more
-	 * granular, only allowing to interrupt some things, but that's a bit
-	 * harder than we have time for right now.
-	 */
-	InterruptPending = true;
-	ProcDiePending = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
+	ConfigReloadPending = true;
+	SetLatch(MyLatch);
 
 	errno = save_errno;
 }
-
-void
-bdr_sighup(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	got_SIGHUP = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
-
-	errno = save_errno;
-}
+#endif
 
 /*
  * Get database Oid of the remotedb.
@@ -569,8 +551,8 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	Assert(OidIsValid(dboid));
 
 	/* Establish signal handlers before unblocking signals. */
-	pqsignal(SIGHUP, bdr_sighup);
-	pqsignal(SIGTERM, bdr_sigterm);
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
+	pqsignal(SIGTERM, die);
 
 	/* We're now ready to receive signals */
 	BackgroundWorkerUnblockSignals();
