@@ -21,6 +21,7 @@
 
 #include "replication/logical.h"
 #include "utils/resowner.h"
+#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lock.h"
 #include "tcop/utility.h"
@@ -863,4 +864,68 @@ extern bool is_bdr_nid_getter_function_alter(AlterFunctionStmt *stmt);
 extern bool is_bdr_nid_getter_function_alter_owner(AlterOwnerStmt *stmt);
 extern bool is_bdr_nid_getter_function_alter_rename(RenameStmt *stmt);
 
+/* Postgres commit cfdf4dc4fc96 introduced this pseudo-event in version 12. */
+#if PG_VERSION_NUM >= 120000
+static inline int
+BDRWaitLatch(Latch *latch, int wakeEvents, long timeout,
+			 uint32 wait_event_info)
+{
+	return WaitLatch(latch, wakeEvents, timeout, wait_event_info);
+}
+static inline int
+BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
+					 long timeout, uint32 wait_event_info)
+{
+	return WaitLatchOrSocket(latch, wakeEvents, sock, timeout,
+							 wait_event_info);
+}
+#else
+#define WL_EXIT_ON_PM_DEATH	 (1 << 5)
+
+static inline int
+BDRWaitLatch(Latch *latch, int wakeEvents, long timeout,
+			 uint32 wait_event_info)
+{
+	int			events;
+	int			rc;
+
+	events = wakeEvents;
+	if (events & WL_EXIT_ON_PM_DEATH)
+	{
+		events &= ~WL_EXIT_ON_PM_DEATH;
+		events |= WL_POSTMASTER_DEATH;
+	}
+
+	rc = WaitLatch(latch, events, timeout, wait_event_info);
+
+	if ((wakeEvents & WL_EXIT_ON_PM_DEATH) &&
+		(rc & WL_POSTMASTER_DEATH))
+		proc_exit(1);
+
+	return rc;
+}
+
+static inline int
+BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
+					 long timeout, uint32 wait_event_info)
+{
+	int			events;
+	int			rc;
+
+	events = wakeEvents;
+	if (events & WL_EXIT_ON_PM_DEATH)
+	{
+		events &= ~WL_EXIT_ON_PM_DEATH;
+		events |= WL_POSTMASTER_DEATH;
+	}
+
+	rc = WaitLatchOrSocket(latch, events, sock, timeout, wait_event_info);
+
+	if ((wakeEvents & WL_EXIT_ON_PM_DEATH) &&
+		(rc & WL_POSTMASTER_DEATH))
+		proc_exit(1);
+
+	return rc;
+}
+#endif
 #endif							/* BDR_H */

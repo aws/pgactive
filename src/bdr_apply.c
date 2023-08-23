@@ -50,7 +50,6 @@
 #include "replication/logical.h"
 #include "replication/origin.h"
 
-#include "storage/ipc.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -350,7 +349,6 @@ process_remote_begin(StringInfo s)
 		{
 			long		sec;
 			int			usec;
-			int			ret;
 			long		delay_ms;
 			TimestampTz current;
 
@@ -406,15 +404,10 @@ process_remote_begin(StringInfo s)
 					break;
 			}
 
-			ret = WaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-							delay_ms, PG_WAIT_EXTENSION);
-
-			if (ret & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								delay_ms, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-
 			CHECK_FOR_INTERRUPTS();
 		}
 	}
@@ -2657,33 +2650,6 @@ bdr_apply_work(PGconn *streamConn)
 		int			rc;
 		int			r;
 
-		/*
-		 * Background workers mustn't call usleep() or any direct equivalent:
-		 * instead, they may wait on their process latch, which sleeps as
-		 * necessary, but is awakened if postmaster dies.  That way the
-		 * background process goes away immediately in an emergency.
-		 */
-		rc = WaitLatchOrSocket(&MyProc->procLatch,
-							   WL_SOCKET_READABLE | WL_LATCH_SET |
-							   WL_TIMEOUT | WL_POSTMASTER_DEATH,
-							   fd, 1000L, PG_WAIT_EXTENSION);
-
-		ResetLatch(&MyProc->procLatch);
-
-		MemoryContextSwitchTo(MessageContext);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
-		CHECK_FOR_INTERRUPTS();
-
-		if (PQstatus(streamConn) == CONNECTION_BAD)
-		{
-			bdr_count_disconnect();
-			elog(ERROR, "connection to other side has died");
-		}
-
 		if (ConfigReloadPending)
 		{
 			ConfigReloadPending = false;
@@ -2691,6 +2657,28 @@ bdr_apply_work(PGconn *streamConn)
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
+		}
+
+		/*
+		 * Background workers mustn't call usleep() or any direct equivalent:
+		 * instead, they may wait on their process latch, which sleeps as
+		 * necessary, but is awakened if postmaster dies.  That way the
+		 * background process goes away immediately in an emergency.
+		 */
+		rc = BDRWaitLatchOrSocket(&MyProc->procLatch,
+								  WL_SOCKET_READABLE | WL_LATCH_SET |
+								  WL_TIMEOUT | WL_POSTMASTER_DEATH,
+								  fd, 1000L, PG_WAIT_EXTENSION);
+
+		ResetLatch(&MyProc->procLatch);
+		CHECK_FOR_INTERRUPTS();
+
+		MemoryContextSwitchTo(MessageContext);
+
+		if (PQstatus(streamConn) == CONNECTION_BAD)
+		{
+			bdr_count_disconnect();
+			elog(ERROR, "connection to other side has died");
 		}
 
 		if (rc & WL_LATCH_SET)
@@ -2815,13 +2803,10 @@ bdr_apply_work(PGconn *streamConn)
 		 */
 		while (BdrWorkerCtl->pause_apply && !IsTransactionState())
 		{
+			rc = BDRWaitLatch(&MyProc->procLatch,
+							  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							  300000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_TIMEOUT | WL_LATCH_SET | WL_POSTMASTER_DEATH,
-						   300000L, PG_WAIT_EXTENSION);
-
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
 
 			if (rc & WL_LATCH_SET)
 			{

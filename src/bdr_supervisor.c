@@ -35,7 +35,6 @@
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
-#include "storage/ipc.h"
 
 #include "utils/builtins.h"
 #include "utils/elog.h"
@@ -160,19 +159,13 @@ bdr_register_perdb_worker(Oid dboid)
 	 */
 	for (;;)
 	{
-		int			rc;
-
 		LWLockRelease(BdrWorkerCtl->lock);
 
-		rc = WaitLatch(&MyProc->procLatch,
-					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   100L, PG_WAIT_EXTENSION);
-
+		(void) BDRWaitLatch(&MyProc->procLatch,
+							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							100L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
+		CHECK_FOR_INTERRUPTS();
 
 		if (ConfigReloadPending)
 		{
@@ -182,8 +175,6 @@ bdr_register_perdb_worker(Oid dboid)
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
-
-		CHECK_FOR_INTERRUPTS();
 
 		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 
@@ -546,6 +537,15 @@ bdr_supervisor_worker_main(Datum main_arg)
 		int			rc;
 		long		timeout = 180000L;
 
+		if (ConfigReloadPending)
+		{
+			ConfigReloadPending = false;
+			ProcessConfigFile(PGC_SIGHUP);
+			/* set log_min_messages */
+			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+							PGC_POSTMASTER, PGC_S_OVERRIDE);
+		}
+
 #ifdef USE_ASSERT_CHECKING
 
 		/*
@@ -562,24 +562,11 @@ bdr_supervisor_worker_main(Datum main_arg)
 		 * running startup, but we're expecting to need it to do other things
 		 * down the track, so might as well keep it alive...
 		 */
-		rc = WaitLatch(&MyProc->procLatch,
-					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   timeout, PG_WAIT_EXTENSION);
-
+		rc = BDRWaitLatch(&MyProc->procLatch,
+						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+						  timeout, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
-		if (ConfigReloadPending)
-		{
-			ConfigReloadPending = false;
-			ProcessConfigFile(PGC_SIGHUP);
-			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
-							PGC_POSTMASTER, PGC_S_OVERRIDE);
-		}
+		CHECK_FOR_INTERRUPTS();
 
 		if (rc & WL_LATCH_SET)
 		{
@@ -589,8 +576,6 @@ bdr_supervisor_worker_main(Datum main_arg)
 			 */
 			bdr_supervisor_rescan_dbs();
 		}
-
-		CHECK_FOR_INTERRUPTS();
 
 #ifdef USE_ASSERT_CHECKING
 		check_for_multiple_perdb_workers();

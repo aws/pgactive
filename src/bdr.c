@@ -49,7 +49,6 @@
 
 #include "replication/origin.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
@@ -1612,13 +1611,9 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 		 */
 		while (bdr_get_worker_pid_byid(&remote, BDR_WORKER_APPLY) != 0)
 		{
-			int			ret = WaitLatch(&MyProc->procLatch,
-										WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-										500, PG_WAIT_EXTENSION);
-
-			if (ret & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								500L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}

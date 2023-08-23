@@ -175,7 +175,6 @@
 #include "replication/slot.h"
 
 #include "storage/barrier.h"
-#include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
 #include "storage/procarray.h"
@@ -1147,8 +1146,6 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 
 	while (true)
 	{
-		int			rc;
-
 #ifdef USE_ASSERT_CHECKING
 		if (bdr_ddl_lock_acquire_timeout > 0)
 		{
@@ -1192,14 +1189,9 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 		}
 		LWLockRelease(bdr_locks_ctl->lock);
 
-		rc = WaitLatch(&MyProc->procLatch,
-					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   10000L, PG_WAIT_EXTENSION);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
+		(void) BDRWaitLatch(&MyProc->procLatch,
+							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							10000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 	}
@@ -1336,22 +1328,16 @@ cancel_conflicting_transactions(void)
 		}
 		else if (GetCurrentTimestamp() < killtime)
 		{
-			int			rc;
-
 			/* Increasing backoff interval for wait time with limit of 1s */
 			waittime *= 2;
 			if (waittime > 1000000)
 				waittime = 1000000;
 
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-						   waittime, PG_WAIT_EXTENSION);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								waittime, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-
-			/* emergency bailout if postmaster has died */
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
+			CHECK_FOR_INTERRUPTS();
 		}
 		else
 		{
@@ -2370,8 +2356,6 @@ bdr_locks_check_dml(void)
 		/* Wait for lock to be released. */
 		for (;;)
 		{
-			int			rc;
-
 			if (!TIMESTAMP_IS_NOEND(canceltime) &&
 				GetCurrentTimestamp() < canceltime)
 			{
@@ -2380,8 +2364,6 @@ bdr_locks_check_dml(void)
 						 errmsg("canceling statement due to global lock timeout")));
 			}
 
-			CHECK_FOR_INTERRUPTS();
-
 			LWLockAcquire(bdr_locks_ctl->lock, LW_SHARED);
 			lock_held_by_peer = bdr_locks_peer_has_lock(BDR_LOCK_WRITE);
 			LWLockRelease(bdr_locks_ctl->lock);
@@ -2389,15 +2371,11 @@ bdr_locks_check_dml(void)
 			if (!lock_held_by_peer)
 				break;
 
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-						   10000L, PG_WAIT_EXTENSION);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								10000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-
-			/* emergency bailout if postmaster has died */
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
+			CHECK_FOR_INTERRUPTS();
 		}
 	}
 }

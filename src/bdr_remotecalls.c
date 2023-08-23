@@ -36,7 +36,6 @@
 #include "postmaster/bgworker.h"
 #include "postmaster/bgwriter.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"

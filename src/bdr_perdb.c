@@ -38,7 +38,6 @@
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
-#include "storage/ipc.h"
 
 #include "utils/builtins.h"
 #include "utils/elog.h"
@@ -853,7 +852,6 @@ bdr_perdb_worker_main(Datum main_arg)
 	int			rc = 0;
 	BdrPerdbWorker *perdb;
 	StringInfoData si;
-	bool		wait;
 	BDRNodeId	myid;
 
 	is_perdb_worker = true;
@@ -981,8 +979,6 @@ bdr_perdb_worker_main(Datum main_arg)
 
 	while (!ProcDiePending)
 	{
-		wait = true;
-
 		if (ConfigReloadPending)
 		{
 			ConfigReloadPending = false;
@@ -1004,29 +1000,20 @@ bdr_perdb_worker_main(Datum main_arg)
 		 * passed without events. That's a stopgap for the case a backend
 		 * committed txn changes but died before setting the latch.
 		 */
-		if (wait)
-		{
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-						   180000L, PG_WAIT_EXTENSION);
-
-			ResetLatch(&MyProc->procLatch);
-
-			/* emergency bailout if postmaster has died */
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
-			if (rc & WL_LATCH_SET)
-			{
-				/*
-				 * If the perdb worker's latch is set we're being asked to
-				 * rescan and launch new apply workers.
-				 */
-				bdr_maintain_db_workers();
-			}
-		}
-
+		rc = BDRWaitLatch(&MyProc->procLatch,
+						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+						  180000L, PG_WAIT_EXTENSION);
+		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
+
+		if (rc & WL_LATCH_SET)
+		{
+			/*
+			 * If the perdb worker's latch is set we're being asked to rescan
+			 * and launch new apply workers.
+			 */
+			bdr_maintain_db_workers();
+		}
 	}
 
 	perdb->p_dboid = InvalidOid;
