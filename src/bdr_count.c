@@ -26,7 +26,6 @@
 #include "replication/origin.h"
 
 #include "storage/fd.h"
-#include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/spin.h"
 
