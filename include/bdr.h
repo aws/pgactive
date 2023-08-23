@@ -328,7 +328,7 @@ typedef enum
 	 * This shm array slot is unused and may be allocated. Must be zero, as
 	 * it's set by memset(...) during shm segment init.
 	 */
-	BDR_WORKER_EMPTY_SLOT = 0,
+	BDR_WORKER_EMPTY_SLOT,
 	/* This shm array slot contains data for a BdrApplyWorker */
 	BDR_WORKER_APPLY,
 	/* This is data for a per-database worker BdrPerdbWorker */
@@ -373,29 +373,28 @@ typedef struct BdrWorker
 typedef enum BdrNodesAttno
 {
 	BDR_NODES_ATT_SYSID = 1,
-	BDR_NODES_ATT_TIMELINE = 2,
-	BDR_NODES_ATT_DBOID = 3,
-	BDR_NODES_ATT_STATUS = 4,
-	BDR_NODES_ATT_NAME = 5,
-	BDR_NODES_ATT_LOCAL_DSN = 6,
-	BDR_NODES_ATT_INIT_FROM_DSN = 7,
-	BDR_NODES_ATT_READ_ONLY = 8,
-	BDR_NODES_ATT_SEQ_ID = 9
-} BdrNodesAttno;
+	BDR_NODES_ATT_TIMELINE,
+	BDR_NODES_ATT_DBOID,
+	BDR_NODES_ATT_STATUS,
+	BDR_NODES_ATT_NAME,
+	BDR_NODES_ATT_LOCAL_DSN,
+	BDR_NODES_ATT_INIT_FROM_DSN,
+	BDR_NODES_ATT_READ_ONLY,
+	BDR_NODES_ATT_SEQ_ID
+}			BdrNodesAttno;
 
 typedef enum BdrConnectionsAttno
 {
 	BDR_CONN_ATT_SYSID = 1,
-	BDR_CONN_ATT_TIMELINE = 2,
-	BDR_CONN_ATT_DBOID = 3,
-	BDR_CONN_ATT_ORIGIN_SYSID = 4,
-	BDR_CONN_ATT_ORIGIN_TIMELINE = 5,
-	BDR_CONN_ATT_ORIGIN_DBOID = 6,
-	BDR_CONN_ATT_IS_UNIDIRECTIONAL = 7,
-	BDR_CONN_DSN = 8,
-	BDR_CONN_APPLY_DELAY = 9,
-	BDR_CONN_REPLICATION_SETS = 10
-} BdrConnectionsAttno;
+	BDR_CONN_ATT_TIMELINE,
+	BDR_CONN_ATT_DBOID,
+	BDR_CONN_ATT_ORIGIN_SYSID,
+	BDR_CONN_ATT_ORIGIN_TIMELINE,
+	BDR_CONN_ATT_ORIGIN_DBOID,
+	BDR_CONN_DSN,
+	BDR_CONN_APPLY_DELAY,
+	BDR_CONN_REPLICATION_SETS
+}			BdrConnectionsAttno;
 
 typedef struct BdrFlushPosition
 {

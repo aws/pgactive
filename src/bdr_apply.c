@@ -171,7 +171,7 @@ format_action_description(
 	}
 
 	appendStringInfo(si,
-					 " in commit before %X/%X, xid %u commited at %s (action #%u)",
+					 " in commit before %X/%X, xid %u committed at %s (action #%u)",
 					 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
 					 replication_origin_xid,
 					 timestamptz_to_str(replorigin_session_origin_timestamp),
@@ -1601,7 +1601,7 @@ check_apply_update(BdrConflictType conflict_type,
 static void
 queued_command_error_callback(void *arg)
 {
-	errcontext("during DDL replay of ddl statement: %s", (char *) arg);
+	errcontext("during replay of DDL statement: %s", (char *) arg);
 }
 
 void
@@ -2908,7 +2908,6 @@ bdr_apply_main(Datum main_arg)
 	 * Set our local application_name for our SPI connections. We want to see
 	 * the remote name in pg_stat_activity here.
 	 */
-	resetStringInfo(&query);
 	appendStringInfo(&query, "%s:%s", bdr_apply_config->node_name, "apply");
 	if (bdr_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");

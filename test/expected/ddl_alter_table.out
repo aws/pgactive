@@ -786,7 +786,7 @@ ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY table
 -- Will also fail with an ERROR
 SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
 ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_inh_chld1 is a regular table
-CONTEXT:  during DDL replay of ddl statement: ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
+CONTEXT:  during replay of DDL statement: ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
 -- Will be permitted
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = true;

@@ -1136,7 +1136,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 	 * ---
 	 */
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
-		 LOCKTRACE "sent DDL lock mode %s request for " BDR_NODEID_FORMAT_WITHNAME "), waiting for confirmation",
+		 LOCKTRACE "sent DDL lock mode %s request for " BDR_NODEID_FORMAT_WITHNAME ", waiting for confirmation",
 		 bdr_lock_type_to_name(lock_type), BDR_LOCALID_FORMAT_WITHNAME_ARGS);
 
 #ifdef USE_ASSERT_CHECKING
@@ -1758,7 +1758,7 @@ bdr_locks_node_detached(BDRNodeId * node)
 
 	bdr_locks_find_my_database(false);
 
-	elog(INFO, "XXX testing if node holds ddl lock");
+	elog(INFO, "checking if node holds global DDL lock");
 
 	/*
 	 * Rather than looking up the replication origin of the node being
@@ -1781,15 +1781,15 @@ bdr_locks_node_detached(BDRNodeId * node)
 		peer_holds_lock = bdr_nodeid_eq(node, &owner);
 		CommitTransactionCommand();
 
-		elog(INFO, "XXX target peer holds lock: %d", peer_holds_lock);
+		elog(INFO, "target peer holds global DDL lock: %d", peer_holds_lock);
 	}
 	LWLockRelease(bdr_locks_ctl->lock);
 
 	if (peer_holds_lock)
 	{
-		elog(INFO, "XXX attempting to release lock");
+		elog(INFO, "attempting to release global DDL lock");
 		bdr_locks_release_local_ddl_lock(node);
-		elog(INFO, "XXX attempted to release lock");
+		elog(INFO, "attempted to release global DDL lock");
 	}
 }
 

@@ -32,7 +32,7 @@ SELECT bdr.bdr_replicate_ddl_command($$
         );
 $$);
 ERROR:  cannot run CREATE TABLE on read-only BDR node
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
         );
@@ -82,7 +82,7 @@ SELECT bdr.bdr_replicate_ddl_command($$
         );
 $$);
 ERROR:  cannot run CREATE TABLE on read-only BDR node
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
         CREATE TABLE public.test (
                 data text
         );

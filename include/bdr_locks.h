@@ -12,10 +12,10 @@
 
 typedef enum BDRLockType
 {
-	BDR_LOCK_NOLOCK = 0,		/* no lock (not used) */
-	BDR_LOCK_DDL = 1,			/* lock against DDL */
-	BDR_LOCK_WRITE = 2			/* lock against any write */
-} BDRLockType;
+	BDR_LOCK_NOLOCK,			/* no lock (not used) */
+	BDR_LOCK_DDL,				/* lock against DDL */
+	BDR_LOCK_WRITE				/* lock against any write */
+}			BDRLockType;
 
 void		bdr_locks_startup(void);
 void		bdr_locks_set_nnodes(int nnodes);

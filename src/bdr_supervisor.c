@@ -236,7 +236,7 @@ bdr_supervisor_rescan_dbs()
 	 *
 	 * The lock taken on pg_shseclabel must be strong enough to conflict with
 	 * the lock taken be bdr.bdr_connection_add(...) to ensure that any
-	 * transactions adding new labels have commited and cleaned up before we
+	 * transactions adding new labels have committed and cleaned up before we
 	 * read it. Otherwise a race between the supervisor latch being set in a
 	 * commit hook and the tuples actually becoming visible is possible.
 	 */

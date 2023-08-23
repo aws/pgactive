@@ -624,7 +624,6 @@ bdr_maintain_db_workers(void)
 	ret = SPI_execute_with_args(
 								"SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
 								"  conn_sysid, conn_timeline, conn_dboid, "
-								"  conn_is_unidirectional, "
 								"  conn_origin_dboid <> 0 AS origin_is_my_id, "
 								"  node_status "
 								"FROM bdr.bdr_connections "
@@ -690,18 +689,6 @@ bdr_maintain_db_workers(void)
 								   &isnull);
 		Assert(!isnull);
 		target.dboid = DatumGetObjectId(temp_datum);
-
-		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
-								   getattno("conn_is_unidirectional"),
-								   &isnull);
-		Assert(!isnull);
-		if (DatumGetBool(temp_datum))
-		{
-			ereport(WARNING,
-					(errmsg("unidirectional connection to " BDR_NODEID_FORMAT " ignored; UDR support has been removed",
-							BDR_NODEID_FORMAT_ARGS(target))));
-			continue;
-		}
 
 		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								   getattno("origin_is_my_id"),

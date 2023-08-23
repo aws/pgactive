@@ -27,23 +27,22 @@ SELECT
 FROM pg_catalog.pg_attribute
 WHERE attrelid = 'bdr.bdr_connections'::regclass
 ORDER BY attnum;
- attnum |        attname         | attisdropped 
---------+------------------------+--------------
-     -7 | tableoid               | f
-     -6 | cmax                   | f
-     -5 | xmax                   | f
-     -4 | cmin                   | f
-     -3 | xmin                   | f
-     -1 | ctid                   | f
-      1 | conn_sysid             | f
-      2 | conn_timeline          | f
-      3 | conn_dboid             | f
-      4 | conn_origin_sysid      | f
-      5 | conn_origin_timeline   | f
-      6 | conn_origin_dboid      | f
-      7 | conn_is_unidirectional | f
-      8 | conn_dsn               | f
-      9 | conn_apply_delay       | f
-     10 | conn_replication_sets  | f
-(16 rows)
+ attnum |        attname        | attisdropped 
+--------+-----------------------+--------------
+     -7 | tableoid              | f
+     -6 | cmax                  | f
+     -5 | xmax                  | f
+     -4 | cmin                  | f
+     -3 | xmin                  | f
+     -1 | ctid                  | f
+      1 | conn_sysid            | f
+      2 | conn_timeline         | f
+      3 | conn_dboid            | f
+      4 | conn_origin_sysid     | f
+      5 | conn_origin_timeline  | f
+      6 | conn_origin_dboid     | f
+      7 | conn_dsn              | f
+      8 | conn_apply_delay      | f
+      9 | conn_replication_sets | f
+(15 rows)
 
