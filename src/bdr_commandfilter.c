@@ -1310,14 +1310,20 @@ static void
 
 		case T_CreateFdwStmt:
 		case T_AlterFdwStmt:
+			/* XXX: we should probably support all of these at some point */
+			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
+			break;
+
+			/*
+			 * Execute the following only on local node i.e. no replication to
+			 * other BDR members.
+			 */
 		case T_CreateForeignServerStmt:
 		case T_AlterForeignServerStmt:
 		case T_CreateUserMappingStmt:
 		case T_AlterUserMappingStmt:
 		case T_DropUserMappingStmt:
-			/* XXX: we should probably support all of these at some point */
-			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
-			break;
+			goto done;
 
 		case T_CompositeTypeStmt:	/* CREATE TYPE (composite) */
 		case T_CreateEnumStmt:	/* CREATE TYPE AS ENUM */
@@ -1405,6 +1411,13 @@ static void
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set")));
 				}
+
+				/*
+				 * Execute the DROP SERVER only on local node i.e. no
+				 * replication to other BDR members.
+				 */
+				if (stmt->removeType == OBJECT_FOREIGN_SERVER)
+					goto done;
 			}
 			break;
 
