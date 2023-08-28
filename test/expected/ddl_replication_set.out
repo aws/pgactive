@@ -146,37 +146,37 @@ SELECT * FROM bdr.bdr_get_table_replication_sets('switcheroo');
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{default,blubber}');
 ERROR:  replication set name "default" is reserved
 HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["default","blubber"] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["default","blubber"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{blubber,default}');
 ERROR:  replication set name "default" is reserved
 HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["blubber","default"] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["blubber","default"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{frakbar,all}');
 ERROR:  replication set name "all" is reserved
 HINT:  To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["frakbar","all"] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["frakbar","all"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 --invalid characters
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{///}');
 ERROR:  replication set name "///" contains invalid character
 HINT:  Replication set names may only contain letters, numbers, and the underscore character.
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["///"] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["///"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 --too short/long
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{""}');
 ERROR:  replication set name "" is too short
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : [""] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : [""] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 SELECT bdr.bdr_set_table_replication_sets('switcheroo', '{12345678901234567890123456789012345678901234567890123456789012345678901234567890}');
 ERROR:  replication set name "12345678901234567890123456789012345678901234567890123456789012345678901234567890" is too long
-CONTEXT:  during DDL replay of ddl statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["12345678901234567890123456789012345678901234567890123456789012345678901234567890"] }'
+CONTEXT:  during replay of DDL statement: SECURITY LABEL FOR bdr ON TABLE public.switcheroo IS '{ "sets" : ["12345678901234567890123456789012345678901234567890123456789012345678901234567890"] }'
 SQL statement "SELECT bdr.bdr_replicate_ddl_command(format('SECURITY LABEL FOR bdr ON TABLE %s IS %L', p_relation, v_label))"
 PL/pgSQL function bdr.bdr_set_table_replication_sets(regclass,text[]) line 40 at PERFORM
 \c postgres

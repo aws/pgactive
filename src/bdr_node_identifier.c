@@ -21,7 +21,6 @@
 #include "commands/dbcommands.h"
 #include "executor/spi.h"
 #include "parser/parse_func.h"
-#include "storage/ipc.h"
 #include "storage/proc.h"
 #include "utils/fmgrprotos.h"
 #include "utils/lsyscache.h"

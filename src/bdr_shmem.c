@@ -20,7 +20,6 @@
 
 #include "postmaster/bgworker.h"
 
-#include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
 #include "storage/shmem.h"
