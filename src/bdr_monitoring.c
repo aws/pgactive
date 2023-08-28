@@ -21,7 +21,6 @@
 
 #include "utils/pg_lsn.h"
 
-#include "storage/ipc.h"
 #include "storage/proc.h"
 
 #include "pgstat.h"
@@ -62,7 +61,6 @@ bdr_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 	{
 		XLogRecPtr	oldest_confirmed_lsn = InvalidXLogRecPtr;
 		int			oldest_slot_pos = -1;
-		int			rc;
 
 		LWLockAcquire(ReplicationSlotControlLock, LW_SHARED);
 		for (i = 0; i < max_replication_slots; i++)
@@ -95,17 +93,11 @@ bdr_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 		if (oldest_confirmed_lsn >= target_lsn)
 			break;
 
-		rc = WaitLatch(&MyProc->procLatch,
-					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   1000, PG_WAIT_EXTENSION);
-
+		(void) BDRWaitLatch(&MyProc->procLatch,
+							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							1000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
-
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
 		CHECK_FOR_INTERRUPTS();
-
 	} while (1);
 
 	PG_RETURN_VOID();

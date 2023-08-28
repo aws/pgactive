@@ -49,7 +49,6 @@
 
 #include "replication/origin.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
@@ -81,8 +80,10 @@
 #define PG_MAX_JOBS INT_MAX
 #endif
 
-volatile sig_atomic_t got_SIGTERM = false;
-volatile sig_atomic_t got_SIGHUP = false;
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
+volatile sig_atomic_t ConfigReloadPending = false;
+#endif
 
 ResourceOwner bdr_saved_resowner;
 Oid			BdrSchemaOid = InvalidOid;
@@ -164,8 +165,6 @@ static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorker
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
 
-static bool check_bdr_max_nodes(int *newval, void **extra, GucSource source);
-
 static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
 	{"peers", DDL_LOCK_TRACE_PEERS, false},
@@ -229,39 +228,19 @@ bdr_error_severity(int elevel)
 	return elevel_char;
 }
 
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
 void
-bdr_sigterm(SIGNAL_ARGS)
+SignalHandlerForConfigReload(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
 
-	got_SIGTERM = true;
-
-	/*
-	 * For now allow to interrupt all queries. It'd be better if we were more
-	 * granular, only allowing to interrupt some things, but that's a bit
-	 * harder than we have time for right now.
-	 */
-	InterruptPending = true;
-	ProcDiePending = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
+	ConfigReloadPending = true;
+	SetLatch(MyLatch);
 
 	errno = save_errno;
 }
-
-void
-bdr_sighup(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	got_SIGHUP = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
-
-	errno = save_errno;
-}
+#endif
 
 /*
  * Get database Oid of the remotedb.
@@ -485,7 +464,6 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 	ForceSyncCommit();
 
 	/* acquire remote decoding slot */
-	resetStringInfo(&query);
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "bdr");
 
@@ -572,8 +550,8 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	Assert(OidIsValid(dboid));
 
 	/* Establish signal handlers before unblocking signals. */
-	pqsignal(SIGHUP, bdr_sighup);
-	pqsignal(SIGTERM, bdr_sigterm);
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
+	pqsignal(SIGTERM, die);
 
 	/* We're now ready to receive signals */
 	BackgroundWorkerUnblockSignals();
@@ -949,19 +927,6 @@ bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
 }
 
 /*
- * GUC check_hook for bdr.max_nodes
- */
-static bool
-check_bdr_max_nodes(int *newval, void **extra, GucSource source)
-{
-	ereport(NOTICE,
-			(errmsg("bdr.max_nodes must be set to the same value on all BDR members"),
-			 errdetail("Otherwise a new node can't join BDR group or an existing node can't start BDR workers.")));
-
-	return true;
-}
-
-/*
  * Entrypoint of this module - called at shared_preload_libraries time in the
  * context of the postmaster.
  *
@@ -1181,7 +1146,7 @@ _PG_init(void)
 							4, 2, MAX_NODE_ID + 1,
 							PGC_POSTMASTER,
 							0,
-							check_bdr_max_nodes, NULL, NULL);
+							NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.permit_node_identifier_getter_function_creation",
 							 "Internal. Set during physical node joining with bdr_init_copy only",
@@ -1381,7 +1346,7 @@ Datum
 bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 {
 	Datum		values[3];
-	bool		isnull[3] = {false, false, false};
+	bool		isnull[3];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		sysid_str[33];
@@ -1391,6 +1356,9 @@ bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
 
@@ -1408,7 +1376,7 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *slot_name = NameStr(*PG_GETARG_NAME(0));
 	Datum		values[5];
-	bool		isnull[5] = {false, false, false, false, false};
+	bool		isnull[5];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
@@ -1417,6 +1385,9 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	bdr_parse_slot_name(slot_name, &remote, &local_dboid);
 
@@ -1439,7 +1410,7 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *replident_name = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Datum		values[5];
-	bool		isnull[5] = {false, false, false, false, false};
+	bool		isnull[5];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
@@ -1448,6 +1419,9 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	bdr_parse_replident_name(replident_name, &remote, &local_dboid);
 
@@ -1637,13 +1611,9 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 		 */
 		while (bdr_get_worker_pid_byid(&remote, BDR_WORKER_APPLY) != 0)
 		{
-			int			ret = WaitLatch(&MyProc->procLatch,
-										WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-										500, PG_WAIT_EXTENSION);
-
-			if (ret & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								500L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}

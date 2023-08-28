@@ -823,20 +823,25 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 				(errmsg("cannot create an external logical replication extension when BDR is active")));
 }
 
+#if PG_VERSION_NUM >= 150000
 static void
-			bdr_commandfilter(PlannedStmt *pstmt,
-							  const char *queryString,
-#if PG_VERSION_NUM >= 150000
-							  bool readOnlyTree,
-#endif
-							  ProcessUtilityContext context,
-							  ParamListInfo params,
-							  QueryEnvironment *queryEnv,
-							  DestReceiver *dest,
-#if PG_VERSION_NUM >= 150000
-							  QueryCompletion *qc)
+bdr_commandfilter(PlannedStmt *pstmt,
+				  const char *queryString,
+				  bool readOnlyTree,
+				  ProcessUtilityContext context,
+				  ParamListInfo params,
+				  QueryEnvironment *queryEnv,
+				  DestReceiver *dest,
+				  QueryCompletion *qc)
 #else
-							  char *completionTag)
+static void
+bdr_commandfilter(PlannedStmt *pstmt,
+				  const char *queryString,
+				  ProcessUtilityContext context,
+				  ParamListInfo params,
+				  QueryEnvironment *queryEnv,
+				  DestReceiver *dest,
+				  char *completionTag)
 #endif
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -1061,10 +1066,6 @@ static void
 			/*
 			 * We treat properties of the database its self as node-specific
 			 * and don't try to replicate GUCs set on the database, etc.
-			 *
-			 * Same with event triggers, and event triggers don't support
-			 * capturing event triggers so 9.4bdr can't replicate them. 9.6
-			 * could.
 			 */
 		case T_AlterDatabaseStmt:
 		case T_AlterDatabaseSetStmt:

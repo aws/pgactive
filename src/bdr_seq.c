@@ -69,7 +69,7 @@ bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 
 	int64		current_ts = GetCurrentTimestamp();
 
-	if (PG_NARGS() >= 2)
+	if (PG_NARGS() == 2)
 	{
 		/*
 		 * We allow an override timestamp to be passed for testing purposes

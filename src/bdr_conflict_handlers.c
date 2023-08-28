@@ -171,9 +171,6 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 
 	Relation	rel;
 
-	if (PG_NARGS() != 5)
-		elog(ERROR, "expecting five arguments, got %d", PG_NARGS());
-
 	if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) || PG_ARGISNULL(3))
 		elog(ERROR, "relation, handler name, handler procedure, and handler type must be non-null");
 
@@ -351,9 +348,6 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	int			guc_nestlevel;
 
 	Relation	rel;
-
-	if (PG_NARGS() != 2)
-		elog(ERROR, "expecting exactly two arguments");
 
 	if (bdr_conflict_handler_table_oid == InvalidOid)
 		bdr_conflict_handlers_init();

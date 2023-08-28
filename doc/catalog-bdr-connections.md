@@ -22,7 +22,6 @@ connection string.
   `conn_origin_sysid`        `text`                                                                                 If set, ignore this entry unless the local sysid is this.
   `conn_origin_timeline`     `oid`                                                                                  If set, ignore this entry unless the local timeline is this.
   `conn_origin_dboid`        `oid`                                                                                  If set, ignore this entry unless the local dboid is this.
-  `conn_is_unidirectional`   `boolean`                                                                              Indicates that this connection is unidirectional; there won\'t be a corresponding inbound connection from the peer node.
   `conn_dsn`                 `text`      `bdr.bdr_nodes``.node_local_dsn`                A libpq-style connection string specifying how to make a connection to this node from other nodes.
   `conn_apply_delay`         `integer`                                                                              If set, milliseconds to wait before applying each transaction from the remote node. Mainly for debugging. If null, the global default applies.
   `conn_replication_sets`    `text[]`    `Node management function:``replication_sets`   Replication sets this connection should participate in, if non-default.

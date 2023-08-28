@@ -36,7 +36,6 @@
 #include "postmaster/bgworker.h"
 #include "postmaster/bgwriter.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -403,19 +402,10 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		memset(&ri, 0, sizeof(ri));
 		bdr_get_remote_nodeinfo_internal(conn, &ri);
 
-		if (ri.sysid_str != NULL)
-		{
-			values[0] = CStringGetTextDatum(ri.sysid_str);
-			values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
-			values[2] = ObjectIdGetDatum(ri.nodeid.dboid);
-		}
-		else
-		{
-			/* Old peer version lacks sysid info */
-			isnull[0] = true;
-			isnull[1] = true;
-			isnull[2] = true;
-		}
+		Assert(ri.sysid_str != NULL);
+		values[0] = CStringGetTextDatum(ri.sysid_str);
+		values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
+		values[2] = ObjectIdGetDatum(ri.nodeid.dboid);
 		values[3] = CStringGetTextDatum(ri.variant);
 		values[4] = CStringGetTextDatum(ri.version);
 		values[5] = Int32GetDatum(ri.version_num);
@@ -472,11 +462,14 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	NameData	appname;
 	BDRNodeId	remote;
 	Datum		values[3];
-	bool		isnull[3] = {false, false, false};
+	bool		isnull[3];
 	char		sysid_str[33];
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	snprintf(NameStr(appname), NAMEDATALEN, "BDR test connection");
 	servername = get_connect_string(conninfo);
@@ -614,13 +607,13 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	const char *remote_servername;
 	const char *servername;
 	Datum		values[8];
-	bool		isnull[8] = {false, false, false, false, false, false, false, false};
+	bool		isnull[8];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
 
-	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-		elog(ERROR, "both arguments must be non-null");
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
 	my_dsn = text_to_cstring(PG_GETARG_TEXT_P(1));
