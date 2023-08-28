@@ -405,7 +405,7 @@ typedef struct BdrFlushPosition
 }			BdrFlushPosition;
 
 /* GUCs */
-extern int	bdr_default_apply_delay;
+extern int	bdr_debug_apply_delay;
 extern int	bdr_max_workers;
 extern int	bdr_max_databases;
 extern char *bdr_temp_dump_directory;
@@ -426,8 +426,8 @@ extern int	bdr_ddl_lock_timeout;
 #ifdef USE_ASSERT_CHECKING
 extern int	bdr_ddl_lock_acquire_timeout;
 #endif
-extern bool bdr_trace_replay;
-extern int	bdr_trace_ddl_locks_level;
+extern bool bdr_debug_trace_replay;
+extern int	bdr_debug_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
 extern int	bdr_init_node_parallel_jobs;
 extern int	bdr_max_nodes;

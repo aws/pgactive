@@ -319,7 +319,7 @@ specified LSN is skipped, not replayed.
   This function is [*very dangerous*]. Improper use can completely break your replication setup, and almost any use will cause your cluster nodes to become inconsistent with each other. It is intended only for recovery from situations where replication is broken by un-replayable DDL or similar.
 
 Use the
-[`bdr.trace_replay`](bdr-configuration-variables.md#GUC-BDR-TRACE-REPLAY)
+[`bdr.debug_trace_replay`](bdr-configuration-variables.md#GUC-BDR-TRACE-REPLAY)
 setting to enable replay tracing and find the problem change to skip, or
 look at the error context emitted in log messages if there\'s an error.
 You may need to set `log_error_verbosity = verbose` in

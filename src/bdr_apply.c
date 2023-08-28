@@ -288,7 +288,7 @@ process_remote_begin(StringInfo s)
 	pgstat_report_activity(STATE_RUNNING, statbuf);
 
 	if (apply_delay == -1)
-		apply_delay = bdr_default_apply_delay;
+		apply_delay = bdr_debug_apply_delay;
 
 	/*
 	 * If we're in catchup mode, see if this transaction is relayed from
@@ -330,7 +330,7 @@ process_remote_begin(StringInfo s)
 		pfree(remote_ident);
 	}
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -462,7 +462,7 @@ process_remote_commit(StringInfo s)
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -620,7 +620,7 @@ process_remote_insert(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -954,7 +954,7 @@ process_remote_update(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -1243,7 +1243,7 @@ process_remote_delete(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -1771,7 +1771,7 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 
 	MemoryContextSwitchTo(oldcontext);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		elog(LOG, "TRACE: QUEUED_DDL: [%s] with search_path [%s]",
 			 cmdstr, search_path);
@@ -2055,7 +2055,7 @@ process_queued_drop(HeapTuple cmdtup)
 		add_exact_object_address(&addr, addresses);
 	}
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 

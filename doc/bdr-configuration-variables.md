@@ -91,7 +91,7 @@ server restart to take effect.
     acquired. To limit overall duration use a
     `statement_timeout`.
 
-`bdr.trace_ddl_locks_level` (`boolean`)
+`bdr.debug_trace_ddl_locks_level` (`boolean`)
 
     Override the default debug log level for BDR DDL locking (used in
     [DDL replication](ddl-replication.md)) so that DDL-lock related
@@ -121,12 +121,11 @@ server restart to take effect.
 ## 4.2.1. Less common or internal configuration variables
 
 
-`bdr.default_apply_delay` (`integer`)
+`bdr.debug_apply_delay` (`integer`)
 
-    Sets a default apply delay (in milliseconds) for all configured
-    connections that don\'t have a explicitly configured apply delay in
-    their `bdr.bdr_connections` entry as set at node create or
-    join time.
+    Sets a apply delay (in milliseconds) for all configured connections that
+    don\'t have a explicitly configured apply delay in their
+    `bdr.bdr_connections` entry as set at node create or join time.
 
     BDR won\'t replay a transaction on peer nodes until at least the
     specified number of milliseconds have elapsed since it was
@@ -180,7 +179,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-`bdr.trace_replay` (`boolean`)
+`bdr.debug_trace_replay` (`boolean`)
 
     When `on`, emits a log message for each remote action
     processed by a BDR downstream apply worker. The message records the

@@ -177,7 +177,7 @@ sub bdr_update_postgresql_conf {
     my $lock_acquire_timeout =
         $PostgreSQL::Test::Utils::timeout_default .'s';
 
-    # Setting bdr.trace_replay=on here can be a big help, so added for
+    # Setting bdr.debug_trace_replay=on here can be a big help, so added for
     # discoverability.
     $node->append_conf(
         'postgresql.conf', qq(
@@ -189,12 +189,12 @@ sub bdr_update_postgresql_conf {
             max_replication_slots = 20
             # Make sure there are enough background worker slots for BDR to run
             max_worker_processes = 20
-            log_min_messages = debug2
-            #bdr.trace_replay = off
+            #log_min_messages = debug2
+            #bdr.debug_trace_replay = off
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
 			bdr.skip_ddl_replication = false
             bdr.max_nodes = 20
-            bdr.bdr_ddl_lock_acquire_timeout = $lock_acquire_timeout
+            bdr.ddl_lock_acquire_timeout = $lock_acquire_timeout
             lock_timeout = $lock_acquire_timeout
     ));
 }
