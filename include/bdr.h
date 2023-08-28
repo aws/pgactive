@@ -776,6 +776,7 @@ typedef struct remote_node_info
 	char	   *dbname;
 	int64		dbsize;			/* database size in bytes */
 	int			max_nodes;
+	bool		skip_ddl_replication;
 	int			cur_nodes;
 
 	/* collation related info */

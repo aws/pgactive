@@ -1007,7 +1007,8 @@ _PG_init(void)
 
 	DefineCustomBoolVariable("bdr.skip_ddl_replication",
 							 "Internal. DDL replication in BDR is not a fully supported feature yet.",
-							 "Currently used internally for node initialization and tests.",
+							 "This parameter must be set to the same value on all BDR members, otherwise "
+							 "a new node can't join BDR group or an existing node can't start BDR workers.",
 							 &bdr_skip_ddl_replication,
 							 true,
 							 PGC_SUSET,
