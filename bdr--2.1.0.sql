@@ -521,7 +521,7 @@ COMMENT ON COLUMN bdr_connections.conn_dsn IS 'A libpq-style connection string s
 COMMENT ON COLUMN bdr_connections.conn_apply_delay IS 'If set, milliseconds to wait before applying each transaction from the remote node. Mainly for debugging. If null, the global default applies.';
 COMMENT ON COLUMN bdr_connections.conn_replication_sets IS 'Replication sets this connection should participate in, if non-default';
 
-SELECT pg_catalog.pg_extension_config_dump('bdr_connections', '');
+SELECT pg_catalog.pg_extension_config_dump('bdr_connections', 'WHERE false');
 
 CREATE FUNCTION bdr_connections_changed()
 RETURNS void
