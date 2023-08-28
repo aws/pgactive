@@ -19,7 +19,7 @@ my ($node_0, $node_1, $node_2) = @$nodes;
 
 for my $node (@$nodes) {
     $node->append_conf('postgresql.conf', q[
-    bdr.bdr_ddl_lock_timeout = '1s'
+    bdr.ddl_lock_timeout = '1s'
     ]);
     $node->restart;
 }

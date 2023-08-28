@@ -476,7 +476,7 @@ bdr_locks_set_commit_pending_state(BDRLockState state)
 static int
 ddl_lock_log_level(int ddl_lock_trace_level)
 {
-	return ddl_lock_trace_level >= bdr_trace_ddl_locks_level ? LOG : DEBUG1;
+	return ddl_lock_trace_level >= bdr_debug_trace_ddl_locks_level ? LOG : DEBUG1;
 }
 
 /*
@@ -1026,7 +1026,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 			 bdr_lock_type_to_name(bdr_my_locks_database->lock_type),
 			 bdr_my_locks_database->nnodes,
 			 BDR_LOCALID_FORMAT_WITHNAME_ARGS,
-			 GetConfigOption("bdr.trace_ddl_locks_level", false, false));
+			 GetConfigOption("bdr.debug_trace_ddl_locks_level", false, false));
 	}
 	else
 	{
@@ -1035,7 +1035,7 @@ bdr_acquire_ddl_lock(BDRLockType lock_type)
 			 bdr_lock_type_to_name(lock_type),
 			 bdr_my_locks_database->nnodes,
 			 BDR_LOCALID_FORMAT_WITHNAME_ARGS,
-			 GetConfigOption("bdr.trace_ddl_locks_level", false, false));
+			 GetConfigOption("bdr.debug_trace_ddl_locks_level", false, false));
 	}
 
 	/* register an XactCallback to release the lock */

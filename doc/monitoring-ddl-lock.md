@@ -11,7 +11,7 @@ is still trying to acquire it, and how long it\'s been trying or has
 held the lock.
 
 DDL locking activity can be traced using the
-[bdr.trace_ddl_locks_level](bdr-configuration-variables.md#GUC-BDR-TRACE-DDL-LOCKS-LEVEL)
+[bdr.debug_trace_ddl_locks_level](bdr-configuration-variables.md#GUC-BDR-TRACE-DDL-LOCKS-LEVEL)
 setting using the PostgreSQL log files, which provides the most complete
 and useful way to see DDL locking activity. It is strongly recommended
 that you enable DDL lock tracing.

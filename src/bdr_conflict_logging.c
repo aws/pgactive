@@ -379,10 +379,10 @@ bdr_conflict_log_table(BdrApplyConflict * conflict)
 	bdr_make_my_nodeid(&myid);
 
 	if (IsAbortedTransactionBlockState())
-		elog(ERROR, "bdr: attempt to log conflict in aborted transaction");
+		elog(ERROR, "attempt to log conflict in aborted transaction");
 
 	if (!IsTransactionState())
-		elog(ERROR, "bdr: attempt to log conflict without surrounding transaction");
+		elog(ERROR, "attempt to log conflict without surrounding transaction");
 
 	if (!bdr_log_conflicts_to_table)
 		/* No logging enabled and we don't own any memory, just bail */

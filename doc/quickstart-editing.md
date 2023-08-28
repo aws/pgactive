@@ -22,7 +22,7 @@ Edit the postgresql.conf file for both nodes/instances:
     #log_line_prefix = 'd=%d p=%p a=%a%q '
 
     # Useful options for playing with conflicts
-    #bdr.default_apply_delay=2000   # milliseconds
+    #bdr.debug_apply_delay=2000   # milliseconds
     #bdr.log_conflicts_to_table=on
     
 ```
