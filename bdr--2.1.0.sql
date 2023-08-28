@@ -427,6 +427,7 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   dbname OUT text,
   dbsize OUT int8,
   max_nodes OUT integer,
+  skip_ddl_replication OUT boolean,
   cur_nodes OUT integer,
   datcollate OUT text,
   datctype OUT text)
@@ -686,6 +687,7 @@ DECLARE
     remote_nodeinfo_r RECORD;
 	  cur_node RECORD;
     local_max_node_value integer;
+    local_skip_ddl_replication_value boolean;
     local_db_collation_info_r RECORD;
     collation_errmsg text;
     collation_hintmsg text;
@@ -821,6 +823,22 @@ BEGIN
                 HINT = 'The parameter must be set to the same value on all BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
+
+		-- using pg_file_settings here as bdr.skip_ddl_replication is SET to on when entering
+		-- the function.
+		SELECT setting::boolean INTO local_skip_ddl_replication_value FROM pg_file_settings
+			WHERE name = 'bdr.skip_ddl_replication'
+			ORDER BY seqno DESC
+			LIMIT 1;
+
+		IF local_skip_ddl_replication_value <> remote_nodeinfo.skip_ddl_replication THEN
+			RAISE USING
+				MESSAGE = 'joining node and BDR group have different values for bdr.skip_ddl_replication parameter',
+				DETAIL = format('bdr.skip_ddl_replication value for joining node is ''%s'' and remote node is ''%s''.',
+								local_skip_ddl_replication_value, remote_nodeinfo.skip_ddl_replication),
+				HINT = 'The parameter must be set to the same value on all BDR members.',
+				ERRCODE = 'object_not_in_prerequisite_state';
+		END IF;
 
         IF local_max_node_value = remote_nodeinfo.cur_nodes THEN
             RAISE USING

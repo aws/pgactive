@@ -1033,7 +1033,8 @@ _PG_init(void)
 
 	DefineCustomBoolVariable("bdr.skip_ddl_replication",
 							 "Internal. Set during local restore during init_replica only",
-							 NULL,
+							 "This parameter must be set to the same value on all BDR members, otherwise "
+							 "a new node can't join BDR group or an existing node can't start BDR workers.",
 							 &bdr_skip_ddl_replication,
 							 true,
 							 PGC_SUSET,

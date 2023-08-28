@@ -942,8 +942,8 @@ bdr_perdb_worker_main(Datum main_arg)
 
 		/*
 		 * Check whether the local node and remote node have same
-		 * bdr.max_nodes GUC value, if they don't, let's not proceed further
-		 * unless the same value is set to same on both the nodes.
+		 * bdr.max_nodes and bdr.skip_ddl_replication GUC values, if they
+		 * don't, let's not proceed further.
 		 */
 		if (local_node->init_from_dsn != NULL)
 		{
@@ -966,6 +966,15 @@ bdr_perdb_worker_main(Datum main_arg)
 									bdr_max_nodes,
 									BDR_LOCALID_FORMAT_ARGS,
 									ri.max_nodes),
+							 errhint("The parameter must be set to the same value on all BDR members.")));
+
+				if (prev_bdr_skip_ddl_replication != ri.skip_ddl_replication)
+					ereport(ERROR,
+							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+							 errmsg("bdr.skip_ddl_replication parameter value (%s) on local node " BDR_NODEID_FORMAT " doesn't match with remote node (%s)",
+									prev_bdr_skip_ddl_replication ? "true" : "false",
+									BDR_LOCALID_FORMAT_ARGS,
+									ri.skip_ddl_replication ? "true" : "false"),
 							 errhint("The parameter must be set to the same value on all BDR members.")));
 
 				free_remote_node_info(&ri);

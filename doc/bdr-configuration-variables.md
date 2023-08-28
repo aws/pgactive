@@ -144,8 +144,12 @@ server restart to take effect.
 
     Only affects BDR. Skips replication and apply of DDL changes.
     This is set to on by default so that a BDR node bevahes as a non BDR one by
-    default.  This option can be changed globally or enabled locally
-    (at the session level) but only by superusers.
+    default. A new node fails to join a BDR group if it has a different value
+    for this parameter when compared with its upstream node. An existing node
+    can't start BDR workers if the parameter value doesn't match with its
+    upstream node. Hence, users must ensure all BDR members have the same value
+    for the parameter at any point of time. This option can be changed globally
+    or enabled locally (at the session level) but only by superusers.
 
     ::: WARNING
       **Warning**
