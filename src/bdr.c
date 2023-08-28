@@ -942,12 +942,17 @@ _PG_init(void)
 		if (!process_shared_preload_libraries_in_progress)
 			ereport(ERROR,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("bdr can only be loaded via shared_preload_libraries")));
+					 errmsg("bdr must be loaded via shared_preload_libraries")));
 
 		if (!track_commit_timestamp)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr requires \"track_commit_timestamp\" to be enabled")));
+					 errmsg("bdr requires track_commit_timestamp to be enabled")));
+
+		if (wal_level < WAL_LEVEL_LOGICAL)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("bdr requires wal_level >= logical")));
 	}
 
 	/* XXX: make it changeable at SIGHUP? */
