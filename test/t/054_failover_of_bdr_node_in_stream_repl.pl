@@ -102,38 +102,32 @@ $node_0_standby->promote;
 # Update DSNs of new primary a.k.a standby after failover in bdr.bdr_nodes and
 # bdr.bdr_connections tables. Note that this step may not be necessary in
 # production if standby uses the same DSN as that of the primary after failover.
-$node_1->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_nodes SET node_local_dsn = '$node_0_standby_connstr'
-       WHERE node_local_dsn = '$node_0_connstr' AND node_init_from_dsn IS NULL;]);
-$node_1->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_nodes SET node_init_from_dsn = '$node_0_standby_connstr'
-       WHERE node_init_from_dsn = '$node_0_connstr' AND node_init_from_dsn IS NOT NULL;]);
-$node_1->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_connections SET conn_dsn = '$node_0_standby_connstr'
-       WHERE conn_dsn = '$node_0_connstr';]);
-
-# Restart standby so that the BDR machinary gets started up and we are able to
-# update DSNs.
+#
+#  First restart standby so that the BDR machinary gets started up and we are
+# able to update DSNs.
 $node_0_standby->restart;
-
 $node_0_standby->safe_psql( $bdr_test_dbname,
         qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_0_standby->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
 
 $node_0_standby->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_nodes SET node_local_dsn = '$node_0_standby_connstr'
-       WHERE node_local_dsn = '$node_0_connstr' AND node_init_from_dsn IS NULL;]);
-$node_0_standby->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_nodes SET node_init_from_dsn = '$node_0_standby_connstr'
-       WHERE node_init_from_dsn = '$node_0_connstr' AND node_init_from_dsn IS NOT NULL;]);
-$node_0_standby->safe_psql($bdr_test_dbname,
-    qq[UPDATE bdr.bdr_connections SET conn_dsn = '$node_0_standby_connstr'
-       WHERE conn_dsn = '$node_0_connstr';]);
+    qq[SELECT bdr.bdr_update_node_conninfo('node_0', '$node_0_standby_connstr')]);
+
+$node_1->safe_psql($bdr_test_dbname,
+   qq[SELECT bdr.bdr_update_node_conninfo('node_0', '$node_0_standby_connstr')]);
+
+# Restart the BDR nodes for the changes to take effect.
+$node_0_standby->restart;
+$node_1->restart;
 
 $node_0_standby->safe_psql( $bdr_test_dbname,
         qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_0_standby->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
+        or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
+$node_1->safe_psql( $bdr_test_dbname,
+        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+$node_1->safe_psql( $bdr_test_dbname, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
         or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
 
 # Perform some DML in the BDR group after new primary joined BDR group
@@ -172,6 +166,48 @@ $node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
 
 is($node_0_standby_res, $expected, "BDR node a.k.a new primary after failover has all the DDL data");
 is($node_1_res, $expected, "BDR node node_1 has all the DDL data after new primary joined BDR group seamlessly");
+
+# While here, test bdr.bdr_conninfo_cmp()
+$pgport = $node_1->port;
+$pghost = $node_1->host;
+
+# Connection strings are equivalent with entries are in different order
+my $connstr1 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+my $connstr2 = "dbname=$bdr_test_dbname host=$pghost port=$pgport";
+$query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
+$node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
+is($node_1_res, 't', "connection strings are equivalent with entries in different order");
+
+# Connection strings are equivalent with entries are in same order
+$connstr1 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+$connstr2 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
+$query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
+$node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
+is($node_1_res, 't', "connection strings are equivalent with entries in same order");
+
+# Connection strings are equivalent with entries are in same order
+$connstr1 = $node_0_standby_connstr;
+$connstr2 = $node_1_connstr;
+$query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
+$node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
+is($node_1_res, 'f', "connection strings are different for different servers");
+
+# NULL input
+$connstr1 = $node_0_standby_connstr;
+$query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', NULL);];
+$node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
+is($node_1_res, '', "NULL input for connection string is detected");
+
+# Invalid connection string
+$connstr1 = "alpha";
+$query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
+# Must not use safe_psql since we expect an error here
+my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
+($psql_ret, $psql_stdout, $psql_stderr) = $node_1->psql(
+    $bdr_test_dbname,
+    $query);
+like($psql_stderr, qr/.*ERROR.*invalid connection string syntax:.*/,
+     "invalid connection string is detected");
 
 done_testing();
 
