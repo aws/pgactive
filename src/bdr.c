@@ -165,7 +165,6 @@ static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorker
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
 
-static bool check_bdr_max_nodes(int *newval, void **extra, GucSource source);
 static const struct config_enum_entry bdr_debug_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
 	{"peers", DDL_LOCK_TRACE_PEERS, false},
