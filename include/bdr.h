@@ -13,8 +13,15 @@
 #include "miscadmin.h"
 #include "access/xlogdefs.h"
 #include "postmaster/bgworker.h"
+
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM >= 130000
+#include "postmaster/interrupt.h"
+#endif
+
 #include "replication/logical.h"
 #include "utils/resowner.h"
+#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lock.h"
 #include "tcop/utility.h"
@@ -328,7 +335,7 @@ typedef enum
 	 * This shm array slot is unused and may be allocated. Must be zero, as
 	 * it's set by memset(...) during shm segment init.
 	 */
-	BDR_WORKER_EMPTY_SLOT = 0,
+	BDR_WORKER_EMPTY_SLOT,
 	/* This shm array slot contains data for a BdrApplyWorker */
 	BDR_WORKER_APPLY,
 	/* This is data for a per-database worker BdrPerdbWorker */
@@ -373,29 +380,28 @@ typedef struct BdrWorker
 typedef enum BdrNodesAttno
 {
 	BDR_NODES_ATT_SYSID = 1,
-	BDR_NODES_ATT_TIMELINE = 2,
-	BDR_NODES_ATT_DBOID = 3,
-	BDR_NODES_ATT_STATUS = 4,
-	BDR_NODES_ATT_NAME = 5,
-	BDR_NODES_ATT_LOCAL_DSN = 6,
-	BDR_NODES_ATT_INIT_FROM_DSN = 7,
-	BDR_NODES_ATT_READ_ONLY = 8,
-	BDR_NODES_ATT_SEQ_ID = 9
-} BdrNodesAttno;
+	BDR_NODES_ATT_TIMELINE,
+	BDR_NODES_ATT_DBOID,
+	BDR_NODES_ATT_STATUS,
+	BDR_NODES_ATT_NAME,
+	BDR_NODES_ATT_LOCAL_DSN,
+	BDR_NODES_ATT_INIT_FROM_DSN,
+	BDR_NODES_ATT_READ_ONLY,
+	BDR_NODES_ATT_SEQ_ID
+}			BdrNodesAttno;
 
 typedef enum BdrConnectionsAttno
 {
 	BDR_CONN_ATT_SYSID = 1,
-	BDR_CONN_ATT_TIMELINE = 2,
-	BDR_CONN_ATT_DBOID = 3,
-	BDR_CONN_ATT_ORIGIN_SYSID = 4,
-	BDR_CONN_ATT_ORIGIN_TIMELINE = 5,
-	BDR_CONN_ATT_ORIGIN_DBOID = 6,
-	BDR_CONN_ATT_IS_UNIDIRECTIONAL = 7,
-	BDR_CONN_DSN = 8,
-	BDR_CONN_APPLY_DELAY = 9,
-	BDR_CONN_REPLICATION_SETS = 10
-} BdrConnectionsAttno;
+	BDR_CONN_ATT_TIMELINE,
+	BDR_CONN_ATT_DBOID,
+	BDR_CONN_ATT_ORIGIN_SYSID,
+	BDR_CONN_ATT_ORIGIN_TIMELINE,
+	BDR_CONN_ATT_ORIGIN_DBOID,
+	BDR_CONN_DSN,
+	BDR_CONN_APPLY_DELAY,
+	BDR_CONN_REPLICATION_SETS
+}			BdrConnectionsAttno;
 
 typedef struct BdrFlushPosition
 {
@@ -405,7 +411,7 @@ typedef struct BdrFlushPosition
 }			BdrFlushPosition;
 
 /* GUCs */
-extern int	bdr_default_apply_delay;
+extern int	bdr_debug_apply_delay;
 extern int	bdr_max_workers;
 extern int	bdr_max_databases;
 extern char *bdr_temp_dump_directory;
@@ -426,8 +432,8 @@ extern int	bdr_ddl_lock_timeout;
 #ifdef USE_ASSERT_CHECKING
 extern int	bdr_ddl_lock_acquire_timeout;
 #endif
-extern bool bdr_trace_replay;
-extern int	bdr_trace_ddl_locks_level;
+extern bool bdr_debug_trace_replay;
+extern int	bdr_debug_trace_ddl_locks_level;
 extern char *bdr_extra_apply_connection_options;
 extern int	bdr_init_node_parallel_jobs;
 extern int	bdr_max_nodes;
@@ -652,8 +658,11 @@ extern BdrApplyWorker * GetBdrApplyWorkerShmemPtr(void);
 
 extern Oid	bdr_get_supervisordb_oid(bool missing_ok);
 
-extern void bdr_sighup(SIGNAL_ARGS);
-extern void bdr_sigterm(SIGNAL_ARGS);
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
+extern volatile sig_atomic_t ConfigReloadPending;
+extern void SignalHandlerForConfigReload(SIGNAL_ARGS);
+#endif
 
 extern int	find_perdb_worker_slot(Oid dboid,
 								   BdrWorker * *worker_found);
@@ -767,6 +776,7 @@ typedef struct remote_node_info
 	char	   *dbname;
 	int64		dbsize;			/* database size in bytes */
 	int			max_nodes;
+	bool		skip_ddl_replication;
 	int			cur_nodes;
 
 	/* collation related info */
@@ -855,4 +865,68 @@ extern bool is_bdr_nid_getter_function_alter(AlterFunctionStmt *stmt);
 extern bool is_bdr_nid_getter_function_alter_owner(AlterOwnerStmt *stmt);
 extern bool is_bdr_nid_getter_function_alter_rename(RenameStmt *stmt);
 
+/* Postgres commit cfdf4dc4fc96 introduced this pseudo-event in version 12. */
+#if PG_VERSION_NUM >= 120000
+static inline int
+BDRWaitLatch(Latch *latch, int wakeEvents, long timeout,
+			 uint32 wait_event_info)
+{
+	return WaitLatch(latch, wakeEvents, timeout, wait_event_info);
+}
+static inline int
+BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
+					 long timeout, uint32 wait_event_info)
+{
+	return WaitLatchOrSocket(latch, wakeEvents, sock, timeout,
+							 wait_event_info);
+}
+#else
+#define WL_EXIT_ON_PM_DEATH	 (1 << 5)
+
+static inline int
+BDRWaitLatch(Latch *latch, int wakeEvents, long timeout,
+			 uint32 wait_event_info)
+{
+	int			events;
+	int			rc;
+
+	events = wakeEvents;
+	if (events & WL_EXIT_ON_PM_DEATH)
+	{
+		events &= ~WL_EXIT_ON_PM_DEATH;
+		events |= WL_POSTMASTER_DEATH;
+	}
+
+	rc = WaitLatch(latch, events, timeout, wait_event_info);
+
+	if ((wakeEvents & WL_EXIT_ON_PM_DEATH) &&
+		(rc & WL_POSTMASTER_DEATH))
+		proc_exit(1);
+
+	return rc;
+}
+
+static inline int
+BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
+					 long timeout, uint32 wait_event_info)
+{
+	int			events;
+	int			rc;
+
+	events = wakeEvents;
+	if (events & WL_EXIT_ON_PM_DEATH)
+	{
+		events &= ~WL_EXIT_ON_PM_DEATH;
+		events |= WL_POSTMASTER_DEATH;
+	}
+
+	rc = WaitLatchOrSocket(latch, events, sock, timeout, wait_event_info);
+
+	if ((wakeEvents & WL_EXIT_ON_PM_DEATH) &&
+		(rc & WL_POSTMASTER_DEATH))
+		proc_exit(1);
+
+	return rc;
+}
+#endif
 #endif							/* BDR_H */

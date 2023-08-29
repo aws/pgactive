@@ -36,7 +36,6 @@
 #include "postmaster/bgworker.h"
 #include "postmaster/bgwriter.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -265,6 +264,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				 "current_database()::text AS dbname, "
 				 "pg_database_size(current_database()) AS dbsize, "
 				 "current_setting('bdr.max_nodes') AS max_nodes, "
+				 "current_setting('bdr.skip_ddl_replication') AS skip_ddl_replication, "
 				 "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -272,7 +272,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				(errmsg("unable to get BDR information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-	Assert(PQnfields(res) == 10);
+	Assert(PQnfields(res) == 11);
 	Assert(PQntuples(res) == 1);
 	remote_bdr_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_bdr_version_str);
@@ -287,8 +287,10 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 7))));
 	ri->max_nodes = DatumGetInt32(
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 8))));
+	ri->skip_ddl_replication = DatumGetBool(
+											DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 9))));
 	ri->cur_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 9))));
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 10))));
 	PQclear(res);
 
 	/*
@@ -381,8 +383,8 @@ Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[16];
-	bool		isnull[16];
+	Datum		values[17];
+	bool		isnull[17];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -403,19 +405,10 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		memset(&ri, 0, sizeof(ri));
 		bdr_get_remote_nodeinfo_internal(conn, &ri);
 
-		if (ri.sysid_str != NULL)
-		{
-			values[0] = CStringGetTextDatum(ri.sysid_str);
-			values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
-			values[2] = ObjectIdGetDatum(ri.nodeid.dboid);
-		}
-		else
-		{
-			/* Old peer version lacks sysid info */
-			isnull[0] = true;
-			isnull[1] = true;
-			isnull[2] = true;
-		}
+		Assert(ri.sysid_str != NULL);
+		values[0] = CStringGetTextDatum(ri.sysid_str);
+		values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
+		values[2] = ObjectIdGetDatum(ri.nodeid.dboid);
 		values[3] = CStringGetTextDatum(ri.variant);
 		values[4] = CStringGetTextDatum(ri.version);
 		values[5] = Int32GetDatum(ri.version_num);
@@ -430,17 +423,18 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[10] = CStringGetTextDatum(ri.dbname);
 		values[11] = Int64GetDatum(ri.dbsize);
 		values[12] = Int32GetDatum(ri.max_nodes);
-		values[13] = Int32GetDatum(ri.cur_nodes);
+		values[13] = BoolGetDatum(ri.skip_ddl_replication);
+		values[14] = Int32GetDatum(ri.cur_nodes);
 
 		if (ri.datcollate == NULL)
-			isnull[14] = true;
-		else
-			values[14] = CStringGetTextDatum(ri.datcollate);
-
-		if (ri.datctype == NULL)
 			isnull[15] = true;
 		else
-			values[15] = CStringGetTextDatum(ri.datctype);
+			values[15] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[16] = true;
+		else
+			values[16] = CStringGetTextDatum(ri.datctype);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
@@ -472,11 +466,14 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	NameData	appname;
 	BDRNodeId	remote;
 	Datum		values[3];
-	bool		isnull[3] = {false, false, false};
+	bool		isnull[3];
 	char		sysid_str[33];
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	snprintf(NameStr(appname), NAMEDATALEN, "BDR test connection");
 	servername = get_connect_string(conninfo);
@@ -614,13 +611,13 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	const char *remote_servername;
 	const char *servername;
 	Datum		values[8];
-	bool		isnull[8] = {false, false, false, false, false, false, false, false};
+	bool		isnull[8];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
 
-	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-		elog(ERROR, "both arguments must be non-null");
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
 	my_dsn = text_to_cstring(PG_GETARG_TEXT_P(1));

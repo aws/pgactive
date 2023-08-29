@@ -91,7 +91,7 @@ server restart to take effect.
     acquired. To limit overall duration use a
     `statement_timeout`.
 
-`bdr.trace_ddl_locks_level` (`boolean`)
+`bdr.debug_trace_ddl_locks_level` (`boolean`)
 
     Override the default debug log level for BDR DDL locking (used in
     [DDL replication](ddl-replication.md)) so that DDL-lock related
@@ -121,12 +121,11 @@ server restart to take effect.
 ## 4.2.1. Less common or internal configuration variables
 
 
-`bdr.default_apply_delay` (`integer`)
+`bdr.debug_apply_delay` (`integer`)
 
-    Sets a default apply delay (in milliseconds) for all configured
-    connections that don\'t have a explicitly configured apply delay in
-    their `bdr.bdr_connections` entry as set at node create or
-    join time.
+    Sets a apply delay (in milliseconds) for all configured connections that
+    don\'t have a explicitly configured apply delay in their
+    `bdr.bdr_connections` entry as set at node create or join time.
 
     BDR won\'t replay a transaction on peer nodes until at least the
     specified number of milliseconds have elapsed since it was
@@ -144,8 +143,12 @@ server restart to take effect.
 
     Only affects BDR. Skips replication and apply of DDL changes.
     This is set to on by default so that a BDR node bevahes as a non BDR one by
-    default.  This option can be changed globally or enabled locally
-    (at the session level) but only by superusers.
+    default. A new node fails to join a BDR group if it has a different value
+    for this parameter when compared with its upstream node. An existing node
+    can't start BDR workers if the parameter value doesn't match with its
+    upstream node. Hence, users must ensure all BDR members have the same value
+    for the parameter at any point of time. This option can be changed globally
+    or enabled locally (at the session level) but only by superusers.
 
     ::: WARNING
       **Warning**
@@ -180,7 +183,7 @@ server restart to take effect.
       Inconsiderate usage of this option easily allows to break replication setups.
     :::
 
-`bdr.trace_replay` (`boolean`)
+`bdr.debug_trace_replay` (`boolean`)
 
     When `on`, emits a log message for each remote action
     processed by a BDR downstream apply worker. The message records the

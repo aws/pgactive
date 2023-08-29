@@ -150,7 +150,7 @@ functions](functions-replication-sets.md)
 bdr.ddl_lock_timeout configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.default_apply_delay configuration parameter, [Less common or
+bdr.debug_apply_delay configuration parameter, [Less common or
 internal configuration
 variables](bdr-configuration-variables.md#AEN783)
 
@@ -197,10 +197,10 @@ functions](functions-replication-sets.md)
 bdr.temp_dump_directory configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.trace_ddl_locks_level configuration parameter, [BDR specific
+bdr.debug_trace_ddl_locks_level configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
-bdr.trace_replay configuration parameter, [Less common or internal
+bdr.debug_trace_replay configuration parameter, [Less common or internal
 configuration variables](bdr-configuration-variables.md#AEN783)
 
 bdr.bdr_wait_for_slots_confirmed_flush_lsn, [Node management

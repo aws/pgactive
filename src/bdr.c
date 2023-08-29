@@ -49,7 +49,6 @@
 
 #include "replication/origin.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
@@ -81,8 +80,10 @@
 #define PG_MAX_JOBS INT_MAX
 #endif
 
-volatile sig_atomic_t got_SIGTERM = false;
-volatile sig_atomic_t got_SIGHUP = false;
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
+volatile sig_atomic_t ConfigReloadPending = false;
+#endif
 
 ResourceOwner bdr_saved_resowner;
 Oid			BdrSchemaOid = InvalidOid;
@@ -96,7 +97,7 @@ Oid			BdrSupervisorDbOid = InvalidOid;
 
 /* GUC storage */
 static bool bdr_synchronous_commit;
-int			bdr_default_apply_delay;
+int			bdr_debug_apply_delay;
 int			bdr_max_workers;
 int			bdr_max_databases;
 bool		bdr_skip_ddl_replication;
@@ -106,8 +107,8 @@ bool		prev_bdr_skip_ddl_replication;
 bool		bdr_skip_ddl_locking; */
 bool		bdr_do_not_replicate;
 bool		bdr_discard_mismatched_row_attributes;
-bool		bdr_trace_replay;
-int			bdr_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
+bool		bdr_debug_trace_replay;
+int			bdr_debug_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
 char	   *bdr_extra_apply_connection_options;
 int			bdr_log_min_messages = WARNING;
 int			bdr_init_node_parallel_jobs;
@@ -164,9 +165,7 @@ static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorker
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
 
-static bool check_bdr_max_nodes(int *newval, void **extra, GucSource source);
-
-static const struct config_enum_entry bdr_trace_ddl_locks_level_options[] = {
+static const struct config_enum_entry bdr_debug_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
 	{"peers", DDL_LOCK_TRACE_PEERS, false},
 	{"acquire_release", DDL_LOCK_TRACE_ACQUIRE_RELEASE, false},
@@ -229,39 +228,19 @@ bdr_error_severity(int elevel)
 	return elevel_char;
 }
 
+/* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
+#if PG_VERSION_NUM < 130000
 void
-bdr_sigterm(SIGNAL_ARGS)
+SignalHandlerForConfigReload(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
 
-	got_SIGTERM = true;
-
-	/*
-	 * For now allow to interrupt all queries. It'd be better if we were more
-	 * granular, only allowing to interrupt some things, but that's a bit
-	 * harder than we have time for right now.
-	 */
-	InterruptPending = true;
-	ProcDiePending = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
+	ConfigReloadPending = true;
+	SetLatch(MyLatch);
 
 	errno = save_errno;
 }
-
-void
-bdr_sighup(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	got_SIGHUP = true;
-
-	if (MyProc)
-		SetLatch(&MyProc->procLatch);
-
-	errno = save_errno;
-}
+#endif
 
 /*
  * Get database Oid of the remotedb.
@@ -360,7 +339,8 @@ bdr_connect(const char *conninfo,
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
-				 errmsg("establish BDR: %s", PQerrorMessage(streamConn)),
+				 errmsg("could not connect to the server in replication mode: %s",
+						PQerrorMessage(streamConn)),
 				 errdetail("Connection string is '%s'", conninfo_repl.data)));
 	}
 
@@ -406,7 +386,8 @@ bdr_connect(const char *conninfo,
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
-				 errmsg("establish BDR: %s", PQerrorMessage(conn)),
+				 errmsg("could not connect to the server in non-replication mode: %s",
+						PQerrorMessage(streamConn)),
 				 errdetail("Connection string is '%s'", conninfo_nrepl.data)));
 	}
 
@@ -485,7 +466,6 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 	ForceSyncCommit();
 
 	/* acquire remote decoding slot */
-	resetStringInfo(&query);
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "bdr");
 
@@ -572,8 +552,8 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	Assert(OidIsValid(dboid));
 
 	/* Establish signal handlers before unblocking signals. */
-	pqsignal(SIGHUP, bdr_sighup);
-	pqsignal(SIGTERM, bdr_sigterm);
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
+	pqsignal(SIGTERM, die);
 
 	/* We're now ready to receive signals */
 	BackgroundWorkerUnblockSignals();
@@ -949,19 +929,6 @@ bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
 }
 
 /*
- * GUC check_hook for bdr.max_nodes
- */
-static bool
-check_bdr_max_nodes(int *newval, void **extra, GucSource source)
-{
-	ereport(NOTICE,
-			(errmsg("bdr.max_nodes must be set to the same value on all BDR members"),
-			 errdetail("Otherwise a new node can't join BDR group or an existing node can't start BDR workers.")));
-
-	return true;
-}
-
-/*
  * Entrypoint of this module - called at shared_preload_libraries time in the
  * context of the postmaster.
  *
@@ -977,25 +944,31 @@ _PG_init(void)
 		if (!process_shared_preload_libraries_in_progress)
 			ereport(ERROR,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("bdr can only be loaded via shared_preload_libraries")));
+					 errmsg("bdr must be loaded via shared_preload_libraries")));
 
 		if (!track_commit_timestamp)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr requires \"track_commit_timestamp\" to be enabled")));
+					 errmsg("bdr requires track_commit_timestamp to be enabled")));
+
+		if (wal_level < WAL_LEVEL_LOGICAL)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("bdr requires wal_level >= logical")));
 	}
 
 	/* XXX: make it changeable at SIGHUP? */
 	DefineCustomBoolVariable("bdr.synchronous_commit",
-							 "bdr specific synchronous commit value",
+							 "BDR specific synchronous commit setting.",
 							 NULL,
 							 &bdr_synchronous_commit,
-							 false, PGC_POSTMASTER,
+							 false,
+							 PGC_POSTMASTER,
 							 0,
 							 NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.log_conflicts_to_table",
-							 "Log BDR conflicts to bdr.conflict_history table",
+							 "Log BDR conflicts to bdr.conflict_history table.",
 							 NULL,
 							 &bdr_log_conflicts_to_table,
 							 false,
@@ -1004,7 +977,7 @@ _PG_init(void)
 							 NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.conflict_logging_include_tuples",
-							 "Log whole tuples when logging BDR conflicts",
+							 "Log whole tuples when logging BDR conflicts.",
 							 NULL,
 							 &bdr_conflict_logging_include_tuples,
 							 true,
@@ -1013,27 +986,29 @@ _PG_init(void)
 							 NULL, NULL, NULL);
 /* replaced by bdr_skip_ddl_replication for now
 	DefineCustomBoolVariable("bdr.permit_ddl_locking",
-							 "Allow commands that can acquire the global "
-							 "DDL lock",
+							 "Allow commands that can acquire global DDL lock.",
 							 NULL,
 							 &bdr_permit_ddl_locking,
-							 true, PGC_USERSET,
+							 true,
+							 PGC_USERSET,
 							 0,
 							 NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.permit_unsafe_ddl_commands",
 							 "Allow commands that might cause data or " \
-							 "replication problems under BDR to run",
+							 "replication problems under BDR to run.",
 							 NULL,
 							 &bdr_permit_unsafe_commands,
-							 false, PGC_SUSET,
+							 false,
+							 PGC_SUSET,
 							 0,
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
 */
 
 	DefineCustomBoolVariable("bdr.skip_ddl_replication",
-							 "Internal. Set during local restore during init_replica only",
-							 NULL,
+							 "Internal. DDL replication in BDR is not a fully supported feature yet.",
+							 "This parameter must be set to the same value on all BDR members, otherwise "
+							 "a new node can't join BDR group or an existing node can't start BDR workers.",
 							 &bdr_skip_ddl_replication,
 							 true,
 							 PGC_SUSET,
@@ -1049,27 +1024,28 @@ _PG_init(void)
 							 0,
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
 */
-	DefineCustomIntVariable("bdr.default_apply_delay",
-							"default replication apply delay, can be overwritten per connection",
-							NULL,
-							&bdr_default_apply_delay,
+	DefineCustomIntVariable("bdr.debug_apply_delay",
+							"Sets apply delay for all configured BDR connections.",
+							"A transaction won't be replayed until at least apply_delay "
+							"milliseconds have elapsed since it was committed.",
+							&bdr_debug_apply_delay,
 							0, 0, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
 	DefineCustomIntVariable("bdr.max_ddl_lock_delay",
-							"Sets the maximum delay before canceling queries while waiting for global lock",
-							"If se to -1 max_standby_streaming_delay will be used",
+							"Sets maximum delay before canceling queries while waiting for global lock.",
+							"If set to -1, max_standby_streaming_delay will be used.",
 							&bdr_max_ddl_lock_delay,
 							-1, -1, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
-	DefineCustomIntVariable("bdr.bdr_ddl_lock_timeout",
-							"Sets the maximum allowed duration of any wait for a global lock",
-							"If se to -1 lock_timeout will be used",
+	DefineCustomIntVariable("bdr.ddl_lock_timeout",
+							"Sets maximum allowed duration of any wait for a global lock.",
+							"If set to -1, lock_timeout will be used.",
 							&bdr_ddl_lock_timeout,
 							-1, -1, INT_MAX,
 							PGC_SIGHUP,
@@ -1084,9 +1060,9 @@ _PG_init(void)
 	 *
 	 * XXX: Might need this in production too?
 	 */
-	DefineCustomIntVariable("bdr.bdr_ddl_lock_acquire_timeout",
-							"Sets the maximum allowed duration of wait for global lock acquisition",
-							"If set to -1, the acquirer waits for global lock indefinitely",
+	DefineCustomIntVariable("bdr.ddl_lock_acquire_timeout",
+							"Sets maximum allowed duration of wait for global lock acquisition.",
+							"If set to -1, the acquirer waits for global lock indefinitely.",
 							&bdr_ddl_lock_acquire_timeout,
 							-1, -1, INT_MAX,
 							PGC_SUSET,
@@ -1100,15 +1076,16 @@ _PG_init(void)
 	 * files. Instead for now just allow user to specify dump storage.
 	 */
 	DefineCustomStringVariable("bdr.temp_dump_directory",
-							   "Directory to store dumps for local restore",
+							   "Directory to store dumps for local restore.",
 							   NULL,
 							   &bdr_temp_dump_directory,
-							   "/tmp", PGC_SIGHUP,
+							   "/tmp",
+							   PGC_SIGHUP,
 							   0,
 							   NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.do_not_replicate",
-							 "Internal. Set during local initialization from basebackup only",
+							 "Internal. Set during local initialization from basebackup only.",
 							 NULL,
 							 &bdr_do_not_replicate,
 							 false,
@@ -1127,26 +1104,28 @@ _PG_init(void)
 							 0,
 							 NULL, bdr_discard_mismatched_row_attributes_assign_hook, NULL);
 
-	DefineCustomBoolVariable("bdr.trace_replay",
-							 "Log each remote action as it is received",
+	DefineCustomBoolVariable("bdr.debug_trace_replay",
+							 "Log a message for each remote action processed "
+							 "by a BDR apply worker.",
 							 NULL,
-							 &bdr_trace_replay,
-							 false, PGC_SIGHUP,
+							 &bdr_debug_trace_replay,
+							 false,
+							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomEnumVariable("bdr.trace_ddl_locks_level",
-							 "Log DDL locking activity at this log level",
+	DefineCustomEnumVariable("bdr.debug_trace_ddl_locks_level",
+							 "Log DDL locking activity at this log level.",
 							 NULL,
-							 &bdr_trace_ddl_locks_level,
+							 &bdr_debug_trace_ddl_locks_level,
 							 DDL_LOCK_TRACE_STATEMENT,
-							 bdr_trace_ddl_locks_level_options,
+							 bdr_debug_trace_ddl_locks_level_options,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
 	DefineCustomStringVariable("bdr.extra_apply_connection_options",
-							   "connection options to add to all peer node connections",
+							   "Connection options to add to all peer node connections.",
 							   NULL,
 							   &bdr_extra_apply_connection_options,
 							   "",
@@ -1155,7 +1134,7 @@ _PG_init(void)
 							   NULL, NULL, NULL);
 
 	DefineCustomEnumVariable("bdr.log_min_messages",
-							 gettext_noop("log_min_messages for the BDR bgworkers."),
+							 "log_min_messages for BDR bgworkers.",
 							 NULL,
 							 &bdr_log_min_messages,
 							 WARNING,
@@ -1165,7 +1144,7 @@ _PG_init(void)
 							 NULL, NULL, NULL);
 
 	DefineCustomIntVariable("bdr.init_node_parallel_jobs",
-							"Sets the parallel jobs to be used by dump and restore while logical join of a node",
+							"Sets parallel jobs to be used by dump and restore while logical join of a node.",
 							"Set this to a reasonable value based on database size and number of objects it has.",
 							&bdr_init_node_parallel_jobs,
 							2, 1, PG_MAX_JOBS,
@@ -1174,22 +1153,22 @@ _PG_init(void)
 							NULL, NULL, NULL);
 
 	DefineCustomIntVariable("bdr.max_nodes",
-							"Sets maximum allowed nodes in a BDR group",
-							"This parameter must be set to the same value on all BDR members, otherwise "
+							"Sets maximum allowed nodes in a BDR group.",
+							"This parameter must be set to same value on all BDR members, otherwise "
 							"a new node can't join BDR group or an existing node can't start BDR workers.",
 							&bdr_max_nodes,
 							4, 2, MAX_NODE_ID + 1,
 							PGC_POSTMASTER,
 							0,
-							check_bdr_max_nodes, NULL, NULL);
+							NULL, NULL, NULL);
 
 	DefineCustomBoolVariable("bdr.permit_node_identifier_getter_function_creation",
-							 "Internal. Set during physical node joining with bdr_init_copy only",
+							 "Internal. Set during physical node joining with bdr_init_copy only.",
 							 NULL,
 							 &bdr_permit_node_identifier_getter_function_creation,
 							 false,
 							 PGC_SUSET,
-							 0,
+							 GUC_SUPERUSER_ONLY | GUC_DISALLOW_IN_FILE | GUC_DISALLOW_IN_AUTO_FILE,
 							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
 
 	EmitWarningsOnPlaceholders("bdr");
@@ -1381,7 +1360,7 @@ Datum
 bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 {
 	Datum		values[3];
-	bool		isnull[3] = {false, false, false};
+	bool		isnull[3];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		sysid_str[33];
@@ -1391,6 +1370,9 @@ bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
 
@@ -1408,7 +1390,7 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *slot_name = NameStr(*PG_GETARG_NAME(0));
 	Datum		values[5];
-	bool		isnull[5] = {false, false, false, false, false};
+	bool		isnull[5];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
@@ -1417,6 +1399,9 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	bdr_parse_slot_name(slot_name, &remote, &local_dboid);
 
@@ -1439,7 +1424,7 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *replident_name = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Datum		values[5];
-	bool		isnull[5] = {false, false, false, false, false};
+	bool		isnull[5];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
@@ -1448,6 +1433,9 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
 
 	bdr_parse_replident_name(replident_name, &remote, &local_dboid);
 
@@ -1637,13 +1625,9 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 		 */
 		while (bdr_get_worker_pid_byid(&remote, BDR_WORKER_APPLY) != 0)
 		{
-			int			ret = WaitLatch(&MyProc->procLatch,
-										WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-										500, PG_WAIT_EXTENSION);
-
-			if (ret & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								500L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}

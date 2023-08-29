@@ -69,14 +69,14 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD COLUMN col3_fail timestamptz NOT NULL DEFAULT now();
 $DDL$);
 ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl is a regular table
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
 ALTER TABLE public.test_tbl ADD COLUMN col3_fail timestamptz NOT NULL DEFAULT now();
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD COLUMN serial_col_node1 SERIAL;
 $DDL$);
 ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl is a regular table
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
 ALTER TABLE public.test_tbl ADD COLUMN serial_col_node1 SERIAL;
 
 SELECT bdr.bdr_replicate_ddl_command($DDL$
@@ -1100,7 +1100,7 @@ ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY table
 -- Will also fail with an ERROR
 SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root; $DDL$);
 ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_inh_chld1 is a regular table
-CONTEXT:  during DDL replay of ddl statement:  ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root; 
+CONTEXT:  during replay of DDL statement:  ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root; 
 -- Will be permitted
 BEGIN;
 SET LOCAL bdr.skip_ddl_replication = true;

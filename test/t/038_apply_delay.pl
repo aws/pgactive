@@ -23,7 +23,7 @@ wait_for_apply($node_0, $node_1);
 foreach my $node ($node_0, $node_1)
 {
     $node->safe_psql($bdr_test_dbname,
-        q[ALTER SYSTEM SET bdr.default_apply_delay = 500;]);
+        q[ALTER SYSTEM SET bdr.debug_apply_delay = 500;]);
     $node->safe_psql($bdr_test_dbname,
         q[ALTER SYSTEM SET bdr.log_conflicts_to_table = on;]);
     $node->safe_psql($bdr_test_dbname,

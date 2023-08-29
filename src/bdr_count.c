@@ -26,7 +26,6 @@
 #include "replication/origin.h"
 
 #include "storage/fd.h"
-#include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/spin.h"
 
@@ -347,9 +346,7 @@ bdr_get_stats(PG_FUNCTION_ARGS)
 	}
 	LWLockRelease(BdrCountCtl->lock);
 
-	tuplestore_donestoring(tupstore);
-
-	return (Datum) 0;
+	PG_RETURN_VOID();
 }
 
 /*

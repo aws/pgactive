@@ -413,14 +413,6 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 			data->client_db_encoding = pstrdup(strVal(elem->arg));
 		else if (strcmp(elem->defname, "forward_changesets") == 0)
 			bdr_parse_bool(elem, &data->forward_changesets);
-		else if (strcmp(elem->defname, "unidirectional") == 0)
-		{
-			bool		is_unidirectional;
-
-			bdr_parse_bool(elem, &is_unidirectional);
-			if (is_unidirectional)
-				elog(ERROR, "support for unidirectional connections has been removed");
-		}
 		else if (strcmp(elem->defname, "replication_sets") == 0)
 		{
 			int			i;

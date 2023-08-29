@@ -38,7 +38,6 @@
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
-#include "storage/ipc.h"
 
 #include "utils/builtins.h"
 #include "utils/elog.h"
@@ -624,7 +623,6 @@ bdr_maintain_db_workers(void)
 	ret = SPI_execute_with_args(
 								"SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
 								"  conn_sysid, conn_timeline, conn_dboid, "
-								"  conn_is_unidirectional, "
 								"  conn_origin_dboid <> 0 AS origin_is_my_id, "
 								"  node_status "
 								"FROM bdr.bdr_connections "
@@ -690,18 +688,6 @@ bdr_maintain_db_workers(void)
 								   &isnull);
 		Assert(!isnull);
 		target.dboid = DatumGetObjectId(temp_datum);
-
-		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
-								   getattno("conn_is_unidirectional"),
-								   &isnull);
-		Assert(!isnull);
-		if (DatumGetBool(temp_datum))
-		{
-			ereport(WARNING,
-					(errmsg("unidirectional connection to " BDR_NODEID_FORMAT " ignored; UDR support has been removed",
-							BDR_NODEID_FORMAT_ARGS(target))));
-			continue;
-		}
 
 		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								   getattno("origin_is_my_id"),
@@ -866,7 +852,6 @@ bdr_perdb_worker_main(Datum main_arg)
 	int			rc = 0;
 	BdrPerdbWorker *perdb;
 	StringInfoData si;
-	bool		wait;
 	BDRNodeId	myid;
 
 	is_perdb_worker = true;
@@ -942,8 +927,8 @@ bdr_perdb_worker_main(Datum main_arg)
 
 		/*
 		 * Check whether the local node and remote node have same
-		 * bdr.max_nodes GUC value, if they don't, let's not proceed further
-		 * unless the same value is set to same on both the nodes.
+		 * bdr.max_nodes and bdr.skip_ddl_replication GUC values, if they
+		 * don't, let's not proceed further.
 		 */
 		if (local_node->init_from_dsn != NULL)
 		{
@@ -966,6 +951,15 @@ bdr_perdb_worker_main(Datum main_arg)
 									bdr_max_nodes,
 									BDR_LOCALID_FORMAT_ARGS,
 									ri.max_nodes),
+							 errhint("The parameter must be set to the same value on all BDR members.")));
+
+				if (prev_bdr_skip_ddl_replication != ri.skip_ddl_replication)
+					ereport(ERROR,
+							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+							 errmsg("bdr.skip_ddl_replication parameter value (%s) on local node " BDR_NODEID_FORMAT " doesn't match with remote node (%s)",
+									prev_bdr_skip_ddl_replication ? "true" : "false",
+									BDR_LOCALID_FORMAT_ARGS,
+									ri.skip_ddl_replication ? "true" : "false"),
 							 errhint("The parameter must be set to the same value on all BDR members.")));
 
 				free_remote_node_info(&ri);
@@ -992,13 +986,11 @@ bdr_perdb_worker_main(Datum main_arg)
 	/* Launch the apply workers */
 	bdr_maintain_db_workers();
 
-	while (!got_SIGTERM)
+	while (!ProcDiePending)
 	{
-		wait = true;
-
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
 			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
@@ -1017,29 +1009,20 @@ bdr_perdb_worker_main(Datum main_arg)
 		 * passed without events. That's a stopgap for the case a backend
 		 * committed txn changes but died before setting the latch.
 		 */
-		if (wait)
-		{
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-						   180000L, PG_WAIT_EXTENSION);
-
-			ResetLatch(&MyProc->procLatch);
-
-			/* emergency bailout if postmaster has died */
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
-			if (rc & WL_LATCH_SET)
-			{
-				/*
-				 * If the perdb worker's latch is set we're being asked to
-				 * rescan and launch new apply workers.
-				 */
-				bdr_maintain_db_workers();
-			}
-		}
-
+		rc = BDRWaitLatch(&MyProc->procLatch,
+						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+						  180000L, PG_WAIT_EXTENSION);
+		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
+
+		if (rc & WL_LATCH_SET)
+		{
+			/*
+			 * If the perdb worker's latch is set we're being asked to rescan
+			 * and launch new apply workers.
+			 */
+			bdr_maintain_db_workers();
+		}
 	}
 
 	perdb->p_dboid = InvalidOid;

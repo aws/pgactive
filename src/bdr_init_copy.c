@@ -1063,7 +1063,6 @@ get_remote_info(char *remote_connstr)
 					 "WHERE c.conn_sysid = n.node_sysid AND\n"
 					 "      c.conn_timeline = n.node_timeline AND\n"
 					 "      c.conn_dboid = n.node_dboid AND\n"
-					 "      c.conn_is_unidirectional = false AND\n"
 					 "      n.node_status = " BDR_NODE_STATUS_READY_S "\n"
 					 "GROUP BY conn_replication_sets");
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)

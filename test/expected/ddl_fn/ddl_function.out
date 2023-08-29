@@ -415,7 +415,7 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(
 ERROR:  cannot drop function public.test_trigger_fn() because other objects depend on it
 DETAIL:  trigger test_trigger_fn_trg on table public.test_trigger_table depends on function public.test_trigger_fn()
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
-CONTEXT:  during DDL replay of ddl statement:  DROP FUNCTION public.test_trigger_fn(); 
+CONTEXT:  during replay of DDL statement:  DROP FUNCTION public.test_trigger_fn(); 
 SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_trigger_table; $DDL$);
  bdr_replicate_ddl_command 
 ---------------------------

@@ -10,7 +10,7 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$
 $DDL$);
 ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
 HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
   CREATE TABLE public.foo(id integer PRIMARY KEY, bar integer);
   INSERT INTO public.foo(id, bar) VALUES (1, 42);
 
@@ -34,7 +34,7 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$
 $DDL$);
 ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
 HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.
-CONTEXT:  during DDL replay of ddl statement: 
+CONTEXT:  during replay of DDL statement: 
   SET LOCAL search_path = 'public';
   ALTER TABLE foo ADD COLUMN baz integer;
   UPDATE foo SET baz = bar;

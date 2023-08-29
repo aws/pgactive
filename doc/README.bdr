@@ -37,7 +37,7 @@ psql -p 5435 -c 'create database radius'
 
 cat <<EOF | tee /etc/postgresql/11/node1/conf.d/bdr.conf /etc/postgresql/11/node2/conf.d/bdr.conf
 shared_preload_libraries = 'bdr'
-bdr.trace_replay = on
+bdr.debug_trace_replay = on
 wal_level = 'logical'
 track_commit_timestamp = on
 max_replication_slots = 20

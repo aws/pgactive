@@ -50,7 +50,6 @@
 #include "replication/logical.h"
 #include "replication/origin.h"
 
-#include "storage/ipc.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -171,7 +170,7 @@ format_action_description(
 	}
 
 	appendStringInfo(si,
-					 " in commit before %X/%X, xid %u commited at %s (action #%u)",
+					 " in commit before %X/%X, xid %u committed at %s (action #%u)",
 					 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
 					 replication_origin_xid,
 					 timestamptz_to_str(replorigin_session_origin_timestamp),
@@ -288,7 +287,7 @@ process_remote_begin(StringInfo s)
 	pgstat_report_activity(STATE_RUNNING, statbuf);
 
 	if (apply_delay == -1)
-		apply_delay = bdr_default_apply_delay;
+		apply_delay = bdr_debug_apply_delay;
 
 	/*
 	 * If we're in catchup mode, see if this transaction is relayed from
@@ -330,7 +329,7 @@ process_remote_begin(StringInfo s)
 		pfree(remote_ident);
 	}
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -350,7 +349,6 @@ process_remote_begin(StringInfo s)
 		{
 			long		sec;
 			int			usec;
-			int			ret;
 			long		delay_ms;
 			TimestampTz current;
 
@@ -406,15 +404,10 @@ process_remote_begin(StringInfo s)
 					break;
 			}
 
-			ret = WaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-							delay_ms, PG_WAIT_EXTENSION);
-
-			if (ret & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								delay_ms, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-
 			CHECK_FOR_INTERRUPTS();
 		}
 	}
@@ -462,7 +455,7 @@ process_remote_commit(StringInfo s)
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -620,7 +613,7 @@ process_remote_insert(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -954,7 +947,7 @@ process_remote_update(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -1243,7 +1236,7 @@ process_remote_delete(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -1601,7 +1594,7 @@ check_apply_update(BdrConflictType conflict_type,
 static void
 queued_command_error_callback(void *arg)
 {
-	errcontext("during DDL replay of ddl statement: %s", (char *) arg);
+	errcontext("during replay of DDL statement: %s", (char *) arg);
 }
 
 void
@@ -1771,7 +1764,7 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 
 	MemoryContextSwitchTo(oldcontext);
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		elog(LOG, "TRACE: QUEUED_DDL: [%s] with search_path [%s]",
 			 cmdstr, search_path);
@@ -2055,7 +2048,7 @@ process_queued_drop(HeapTuple cmdtup)
 		add_exact_object_address(&addr, addresses);
 	}
 
-	if (bdr_trace_replay)
+	if (bdr_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -2345,7 +2338,7 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 /*
  * Read a remote action type and process the action record.
  *
- * May set got_SIGTERM to stop processing before next record.
+ * May set ProcDiePending to stop processing before next record.
  */
 static void
 bdr_process_remote_action(StringInfo s)
@@ -2652,10 +2645,19 @@ bdr_apply_work(PGconn *streamConn)
 	/* mark as idle, before starting to loop */
 	pgstat_report_activity(STATE_IDLE, NULL);
 
-	while (!got_SIGTERM)
+	while (!ProcDiePending)
 	{
 		int			rc;
 		int			r;
+
+		if (ConfigReloadPending)
+		{
+			ConfigReloadPending = false;
+			ProcessConfigFile(PGC_SIGHUP);
+			/* set log_min_messages */
+			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+							PGC_POSTMASTER, PGC_S_OVERRIDE);
+		}
 
 		/*
 		 * Background workers mustn't call usleep() or any direct equivalent:
@@ -2663,34 +2665,20 @@ bdr_apply_work(PGconn *streamConn)
 		 * necessary, but is awakened if postmaster dies.  That way the
 		 * background process goes away immediately in an emergency.
 		 */
-		rc = WaitLatchOrSocket(&MyProc->procLatch,
-							   WL_SOCKET_READABLE | WL_LATCH_SET |
-							   WL_TIMEOUT | WL_POSTMASTER_DEATH,
-							   fd, 1000L, PG_WAIT_EXTENSION);
+		rc = BDRWaitLatchOrSocket(&MyProc->procLatch,
+								  WL_SOCKET_READABLE | WL_LATCH_SET |
+								  WL_TIMEOUT | WL_POSTMASTER_DEATH,
+								  fd, 1000L, PG_WAIT_EXTENSION);
 
 		ResetLatch(&MyProc->procLatch);
+		CHECK_FOR_INTERRUPTS();
 
 		MemoryContextSwitchTo(MessageContext);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
-		CHECK_FOR_INTERRUPTS();
 
 		if (PQstatus(streamConn) == CONNECTION_BAD)
 		{
 			bdr_count_disconnect();
 			elog(ERROR, "connection to other side has died");
-		}
-
-		if (got_SIGHUP)
-		{
-			got_SIGHUP = false;
-			ProcessConfigFile(PGC_SIGHUP);
-			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
-							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
 		if (rc & WL_LATCH_SET)
@@ -2709,7 +2697,7 @@ bdr_apply_work(PGconn *streamConn)
 
 		for (;;)
 		{
-			if (got_SIGTERM)
+			if (ProcDiePending)
 				break;
 
 			if (copybuf != NULL)
@@ -2815,13 +2803,10 @@ bdr_apply_work(PGconn *streamConn)
 		 */
 		while (BdrWorkerCtl->pause_apply && !IsTransactionState())
 		{
+			rc = BDRWaitLatch(&MyProc->procLatch,
+							  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							  300000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_TIMEOUT | WL_LATCH_SET | WL_POSTMASTER_DEATH,
-						   300000L, PG_WAIT_EXTENSION);
-
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
 
 			if (rc & WL_LATCH_SET)
 			{
@@ -2908,7 +2893,6 @@ bdr_apply_main(Datum main_arg)
 	 * Set our local application_name for our SPI connections. We want to see
 	 * the remote name in pg_stat_activity here.
 	 */
-	resetStringInfo(&query);
 	appendStringInfo(&query, "%s:%s", bdr_apply_config->node_name, "apply");
 	if (bdr_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");

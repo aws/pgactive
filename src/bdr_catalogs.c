@@ -482,7 +482,6 @@ bdr_read_connection_configs()
 					 "  AND  conn_origin_timeline = $2 "
 					 "  AND  conn_origin_dboid = $3)) "
 					 "  AND node_status <> " BDR_NODE_STATUS_KILLED_S " "
-					 "  AND NOT conn_is_unidirectional "
 					 "ORDER BY conn_sysid, conn_timeline, conn_dboid, "
 					 "         conn_origin_sysid ASC NULLS LAST, "
 					 "         conn_timeline ASC NULLS LAST, "

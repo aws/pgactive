@@ -823,20 +823,25 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 				(errmsg("cannot create an external logical replication extension when BDR is active")));
 }
 
+#if PG_VERSION_NUM >= 150000
 static void
-			bdr_commandfilter(PlannedStmt *pstmt,
-							  const char *queryString,
-#if PG_VERSION_NUM >= 150000
-							  bool readOnlyTree,
-#endif
-							  ProcessUtilityContext context,
-							  ParamListInfo params,
-							  QueryEnvironment *queryEnv,
-							  DestReceiver *dest,
-#if PG_VERSION_NUM >= 150000
-							  QueryCompletion *qc)
+bdr_commandfilter(PlannedStmt *pstmt,
+				  const char *queryString,
+				  bool readOnlyTree,
+				  ProcessUtilityContext context,
+				  ParamListInfo params,
+				  QueryEnvironment *queryEnv,
+				  DestReceiver *dest,
+				  QueryCompletion *qc)
 #else
-							  char *completionTag)
+static void
+bdr_commandfilter(PlannedStmt *pstmt,
+				  const char *queryString,
+				  ProcessUtilityContext context,
+				  ParamListInfo params,
+				  QueryEnvironment *queryEnv,
+				  DestReceiver *dest,
+				  char *completionTag)
 #endif
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -1061,10 +1066,6 @@ static void
 			/*
 			 * We treat properties of the database its self as node-specific
 			 * and don't try to replicate GUCs set on the database, etc.
-			 *
-			 * Same with event triggers, and event triggers don't support
-			 * capturing event triggers so 9.4bdr can't replicate them. 9.6
-			 * could.
 			 */
 		case T_AlterDatabaseStmt:
 		case T_AlterDatabaseSetStmt:
@@ -1310,14 +1311,20 @@ static void
 
 		case T_CreateFdwStmt:
 		case T_AlterFdwStmt:
+			/* XXX: we should probably support all of these at some point */
+			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
+			break;
+
+			/*
+			 * Execute the following only on local node i.e. no replication to
+			 * other BDR members.
+			 */
 		case T_CreateForeignServerStmt:
 		case T_AlterForeignServerStmt:
 		case T_CreateUserMappingStmt:
 		case T_AlterUserMappingStmt:
 		case T_DropUserMappingStmt:
-			/* XXX: we should probably support all of these at some point */
-			error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
-			break;
+			goto done;
 
 		case T_CompositeTypeStmt:	/* CREATE TYPE (composite) */
 		case T_CreateEnumStmt:	/* CREATE TYPE AS ENUM */
@@ -1405,6 +1412,13 @@ static void
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set")));
 				}
+
+				/*
+				 * Execute the DROP SERVER only on local node i.e. no
+				 * replication to other BDR members.
+				 */
+				if (stmt->removeType == OBJECT_FOREIGN_SERVER)
+					goto done;
 			}
 			break;
 

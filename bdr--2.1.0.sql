@@ -427,6 +427,7 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   dbname OUT text,
   dbsize OUT int8,
   max_nodes OUT integer,
+  skip_ddl_replication OUT boolean,
   cur_nodes OUT integer,
   datcollate OUT text,
   datctype OUT text)
@@ -466,7 +467,7 @@ CREATE FUNCTION bdr_test_remote_connectback (
     is_superuser OUT boolean)
 RETURNS record
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C STRICT;
 
 REVOKE ALL ON FUNCTION bdr_test_remote_connectback(text,text) FROM public;
 
@@ -500,14 +501,6 @@ CREATE TABLE bdr_connections (
         CHECK ((conn_origin_sysid = '0') = (conn_origin_timeline = 0)
            AND (conn_origin_sysid = '0') = (conn_origin_dboid = 0)),
 
-    -- Indicates that this connection is unidirectional; there won't be a
-    -- corresponding inbound connection from the peer node. Only permitted
-    -- where the conn_origin fields are set.
-    conn_is_unidirectional boolean not null default false,
-
-    CONSTRAINT unidirectional_conn_must_have_origin
-        CHECK ((NOT conn_is_unidirectional) OR (conn_origin_sysid <> '0')),
-
     conn_dsn text not null,
 
     conn_apply_delay integer
@@ -529,7 +522,7 @@ COMMENT ON COLUMN bdr_connections.conn_dsn IS 'A libpq-style connection string s
 COMMENT ON COLUMN bdr_connections.conn_apply_delay IS 'If set, milliseconds to wait before applying each transaction from the remote node. Mainly for debugging. If null, the global default applies.';
 COMMENT ON COLUMN bdr_connections.conn_replication_sets IS 'Replication sets this connection should participate in, if non-default';
 
-SELECT pg_catalog.pg_extension_config_dump('bdr_connections', '');
+SELECT pg_catalog.pg_extension_config_dump('bdr_connections', 'WHERE false');
 
 CREATE FUNCTION bdr_connections_changed()
 RETURNS void
@@ -597,20 +590,18 @@ BEGIN
         (conn_sysid, conn_timeline, conn_dboid,
          conn_origin_sysid, conn_origin_timeline, conn_origin_dboid,
          conn_dsn,
-         conn_apply_delay, conn_replication_sets,
-         conn_is_unidirectional)
+         conn_apply_delay, conn_replication_sets)
         VALUES
         (sysid, timeline, dboid,
          '0', 0, 0,
          node_external_dsn,
          CASE WHEN apply_delay = -1 THEN NULL ELSE apply_delay END,
-         replication_sets, false);
+         replication_sets);
     EXCEPTION WHEN unique_violation THEN
         UPDATE bdr.bdr_connections
         SET conn_dsn = node_external_dsn,
             conn_apply_delay = CASE WHEN apply_delay = -1 THEN NULL ELSE apply_delay END,
-            conn_replication_sets = replication_sets,
-            conn_is_unidirectional = false
+            conn_replication_sets = replication_sets
         WHERE conn_sysid = sysid
           AND conn_timeline = timeline
           AND conn_dboid = dboid
@@ -686,6 +677,7 @@ DECLARE
     remote_nodeinfo_r RECORD;
 	  cur_node RECORD;
     local_max_node_value integer;
+    local_skip_ddl_replication_value boolean;
     local_db_collation_info_r RECORD;
     collation_errmsg text;
     collation_hintmsg text;
@@ -711,15 +703,14 @@ BEGIN
 
     -- If there's already an entry for ourselves in bdr.bdr_connections then we
     -- know this node is part of an active BDR group and cannot be joined to
-    -- another group. Unidirectional connections are ignored.
+    -- another group.
     PERFORM 1 FROM bdr_connections
     WHERE conn_sysid = localid.sysid
       AND conn_timeline = localid.timeline
       AND conn_dboid = localid.dboid
       AND (conn_origin_sysid = '0'
            AND conn_origin_timeline = 0
-           AND conn_origin_dboid = 0)
-      AND conn_is_unidirectional = 'f';
+           AND conn_origin_dboid = 0);
 
     IF FOUND THEN
         RAISE USING
@@ -821,6 +812,22 @@ BEGIN
                 HINT = 'The parameter must be set to the same value on all BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
+
+		-- using pg_file_settings here as bdr.skip_ddl_replication is SET to on when entering
+		-- the function.
+		SELECT setting::boolean INTO local_skip_ddl_replication_value FROM pg_file_settings
+			WHERE name = 'bdr.skip_ddl_replication'
+			ORDER BY seqno DESC
+			LIMIT 1;
+
+		IF local_skip_ddl_replication_value <> remote_nodeinfo.skip_ddl_replication THEN
+			RAISE USING
+				MESSAGE = 'joining node and BDR group have different values for bdr.skip_ddl_replication parameter',
+				DETAIL = format('bdr.skip_ddl_replication value for joining node is ''%s'' and remote node is ''%s''.',
+								local_skip_ddl_replication_value, remote_nodeinfo.skip_ddl_replication),
+				HINT = 'The parameter must be set to the same value on all BDR members.',
+				ERRCODE = 'object_not_in_prerequisite_state';
+		END IF;
 
         IF local_max_node_value = remote_nodeinfo.cur_nodes THEN
             RAISE USING
@@ -1044,12 +1051,11 @@ BEGIN
     INSERT INTO bdr.bdr_connections (
         conn_sysid, conn_timeline, conn_dboid,
         conn_origin_sysid, conn_origin_timeline, conn_origin_dboid,
-        conn_dsn, conn_apply_delay, conn_replication_sets,
-        conn_is_unidirectional
+        conn_dsn, conn_apply_delay, conn_replication_sets
     ) VALUES (
         localid.sysid, localid.timeline, localid.dboid,
         '0', 0, 0,
-        node_external_dsn, apply_delay, replication_sets, false
+        node_external_dsn, apply_delay, replication_sets
     );
 
     -- Now ensure the per-db worker is started if it's not already running.
@@ -1476,7 +1482,7 @@ BEGIN
       AND conn_dboid = dboid
     ) > 1
   THEN
-    RAISE WARNING 'There are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be returned.',node_name;
+    RAISE WARNING 'there are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be returned.',node_name;
   END IF;
 
   SELECT bdr.bdr_get_connection_replication_sets(sysid, timeline, dboid) INTO replication_sets;
@@ -1513,7 +1519,7 @@ BEGIN
       AND conn_dboid = dboid
     ) > 1
   THEN
-    RAISE WARNING 'There are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be changed. Use the 6-argument form of this function to change others.',node_name;
+    RAISE WARNING 'there are node-specific override entries for node % in bdr.bdr_connections. Only the default connection''s replication sets will be changed. Use the 6-argument form of this function to change others.',node_name;
   END IF;
 
   PERFORM bdr.bdr_set_connection_replication_sets(replication_sets, sysid, timeline, dboid);
@@ -1647,10 +1653,10 @@ BEGIN
        AND plugin = 'bdr';
 
   -- and replication origins
-    PERFORM pg_replication_origin_drop(roname)
-    FROM pg_catalog.pg_replication_origin,
-         bdr.bdr_parse_replident_name(roname) pi
-    WHERE pi.local_dboid = (select oid from pg_database where datname = current_database());
+  PERFORM pg_replication_origin_drop(roname)
+  FROM pg_catalog.pg_replication_origin,
+       bdr.bdr_parse_replident_name(roname) pi
+  WHERE pi.local_dboid = (select oid from pg_database where datname = current_database());
 
   -- Strip the security labels we use for replication sets from all the tables
   FOR _tableoid IN

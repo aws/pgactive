@@ -5,18 +5,18 @@
 
 typedef enum BdrMessageType
 {
-	BDR_MESSAGE_START = 0,		/* bdr started */
+	BDR_MESSAGE_START,			/* bdr started */
 	/* DDL locking */
-	BDR_MESSAGE_ACQUIRE_LOCK = 1,
-	BDR_MESSAGE_RELEASE_LOCK = 2,
-	BDR_MESSAGE_CONFIRM_LOCK = 3,
-	BDR_MESSAGE_DECLINE_LOCK = 4,
+	BDR_MESSAGE_ACQUIRE_LOCK,
+	BDR_MESSAGE_RELEASE_LOCK,
+	BDR_MESSAGE_CONFIRM_LOCK,
+	BDR_MESSAGE_DECLINE_LOCK,
 	/* Replay confirmations */
-	BDR_MESSAGE_REQUEST_REPLAY_CONFIRM = 5,
-	BDR_MESSAGE_REPLAY_CONFIRM = 6
+	BDR_MESSAGE_REQUEST_REPLAY_CONFIRM,
+	BDR_MESSAGE_REPLAY_CONFIRM
 	/* Node detach/join */
 
-} BdrMessageType;
+}			BdrMessageType;
 
 extern void bdr_process_remote_message(StringInfo s);
 extern void bdr_prepare_message(StringInfo s, BdrMessageType message_type);

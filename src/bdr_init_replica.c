@@ -46,7 +46,6 @@
 #include "postmaster/bgworker.h"
 #include "postmaster/bgwriter.h"
 
-#include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
@@ -873,18 +872,10 @@ bdr_wait_for_local_node_ready()
 
 	while (status != BDR_NODE_STATUS_READY)
 	{
-		int			rc;
-
-		rc = WaitLatch(&MyProc->procLatch,
-					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-					   1000, PG_WAIT_EXTENSION);
-
+		(void) BDRWaitLatch(&MyProc->procLatch,
+							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							1000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
-
-		/* emergency bailout if postmaster has died */
-		if (rc & WL_POSTMASTER_DEATH)
-			proc_exit(1);
-
 		CHECK_FOR_INTERRUPTS();
 
 		StartTransactionCommand();
@@ -1427,18 +1418,10 @@ bdr_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 		 */
 		while (bgw_status == BGWH_STARTED && bgw_pid == prev_bgw_pid)
 		{
-			int			rc;
-
-			rc = WaitLatch(&MyProc->procLatch,
-						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
-						   1000L, PG_WAIT_EXTENSION);
-
+			(void) BDRWaitLatch(&MyProc->procLatch,
+								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								1000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
-
-			/* emergency bailout if postmaster has died */
-			if (rc & WL_POSTMASTER_DEATH)
-				proc_exit(1);
-
 			CHECK_FOR_INTERRUPTS();
 
 			/* Is our worker still replaying? */
