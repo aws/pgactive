@@ -1929,7 +1929,7 @@ bdr_conninfo_cmp(PG_FUNCTION_ARGS)
 
 		for (opt2 = opts2; opt2->keyword != NULL; ++opt2)
 		{
-			if (strcmp(opt1->keyword, opt2->keyword) == 0)
+			if (pg_strcasecmp(opt1->keyword, opt2->keyword) == 0)
 			{
 				if (opt1->val == NULL && opt2->val == NULL)
 				{
@@ -1941,7 +1941,7 @@ bdr_conninfo_cmp(PG_FUNCTION_ARGS)
 					(opt1->val != NULL && opt2->val == NULL))
 					break;
 
-				if (strcmp(opt1->val, opt2->val) == 0)
+				if (pg_strcasecmp(opt1->val, opt2->val) == 0)
 				{
 					found = true;
 					break;

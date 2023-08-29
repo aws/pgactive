@@ -171,21 +171,21 @@ is($node_1_res, $expected, "BDR node node_1 has all the DDL data after new prima
 $pgport = $node_1->port;
 $pghost = $node_1->host;
 
-# Connection strings are equivalent with entries are in different order
+# Connection strings are equivalent with entries in different order
 my $connstr1 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
 my $connstr2 = "dbname=$bdr_test_dbname host=$pghost port=$pgport";
 $query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
 $node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
 is($node_1_res, 't', "connection strings are equivalent with entries in different order");
 
-# Connection strings are equivalent with entries are in same order
+# Connection strings are equivalent with entries in same order
 $connstr1 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
 $connstr2 = "port=$pgport host=$pghost dbname=$bdr_test_dbname";
 $query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];
 $node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
 is($node_1_res, 't', "connection strings are equivalent with entries in same order");
 
-# Connection strings are equivalent with entries are in same order
+# Connection strings are different for different servers
 $connstr1 = $node_0_standby_connstr;
 $connstr2 = $node_1_connstr;
 $query = qq[SELECT bdr.bdr_conninfo_cmp('$connstr1', '$connstr2');];

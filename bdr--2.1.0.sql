@@ -1991,7 +1991,7 @@ DECLARE
   r record;
   updated_rows int; -- a variable to store the row count
 BEGIN
-  -- Only one tx can be update node connection info
+  -- Only one tx can update node connection info
   LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;
   LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
 
@@ -2011,7 +2011,7 @@ BEGIN
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows = 0 THEN
-    RAISE EXCEPTION 'node_init_from_dsn is not updated';
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_nodes to update node_init_from_dsn';
   END IF;
 
   -- Update node DSN for passed-in node.
@@ -2021,7 +2021,7 @@ BEGIN
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows = 0 THEN
-    RAISE EXCEPTION 'node_local_dsn is not updated';
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_nodes to update node_local_dsn';
   END IF;
 
   -- Update node DSN for passed-in node in bdr.bdr_connections.
@@ -2033,7 +2033,7 @@ BEGIN
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows = 0 THEN
-    RAISE EXCEPTION 'conn_dsn is not updated';
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_connections to update conn_dsn';
   END IF;
 END;
 $body$;
