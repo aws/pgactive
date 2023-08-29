@@ -206,7 +206,6 @@ sub _create_db_and_exts {
 
     $node->safe_psql( 'postgres', qq{CREATE DATABASE $db;} );
     $node->safe_psql( $db,    q{CREATE EXTENSION bdr;} );
-
 }
 sub initandstart_join_node {
     my $join_node          = shift;
