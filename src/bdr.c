@@ -140,7 +140,8 @@ PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_skip_changes(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
-PGDLLIMPORT extern Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_conninfo_cmp(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
@@ -160,6 +161,7 @@ PG_FUNCTION_INFO_V1(bdr_skip_changes);
 PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
 PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
+PG_FUNCTION_INFO_V1(bdr_conninfo_cmp);
 PG_FUNCTION_INFO_V1(bdr_destroy_temporary_dump_directories);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
@@ -1891,6 +1893,87 @@ InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
 	MemoryContextSwitchTo(old_context);
 }
 #endif
+
+/*
+ * Compare two passed-in connection strings and return true if they are
+ * equivalent, regardless of the order of the connection string entries. Return
+ * error if any of the passed-in connection string is invalid.
+ */
+Datum
+bdr_conninfo_cmp(PG_FUNCTION_ARGS)
+{
+	char	   *conninfo1 = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	char	   *conninfo2 = text_to_cstring(PG_GETARG_TEXT_PP(1));
+	PQconninfoOption *opts1 = NULL;
+	PQconninfoOption *opts2 = NULL;
+	char	   *err = NULL;
+	PQconninfoOption *opt1;
+	PQconninfoOption *opt2;
+
+	opts1 = PQconninfoParse(conninfo1, &err);
+	if (opts1 == NULL)
+	{
+		/* The error string is malloc'd, so we must free it explicitly */
+		char	   *errcopy = err ? pstrdup(err) : "out of memory";
+
+		PQfreemem(err);
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("invalid connection string syntax: %s", errcopy)));
+	}
+
+	opts2 = PQconninfoParse(conninfo2, &err);
+	if (opts2 == NULL)
+	{
+		/* The error string is malloc'd, so we must free it explicitly */
+		char	   *errcopy = err ? pstrdup(err) : "out of memory";
+
+		PQfreemem(err);
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("invalid connection string syntax: %s", errcopy)));
+	}
+
+	for (opt1 = opts1; opt1->keyword != NULL; ++opt1)
+	{
+		bool		found = false;
+
+		for (opt2 = opts2; opt2->keyword != NULL; ++opt2)
+		{
+			if (pg_strcasecmp(opt1->keyword, opt2->keyword) == 0)
+			{
+				if (opt1->val == NULL && opt2->val == NULL)
+				{
+					found = true;
+					break;
+				}
+
+				if ((opt1->val == NULL && opt2->val != NULL) ||
+					(opt1->val != NULL && opt2->val == NULL))
+					break;
+
+				if (pg_strcasecmp(opt1->val, opt2->val) == 0)
+				{
+					found = true;
+					break;
+				}
+				else
+					break;
+			}
+		}
+
+		if (found == false)
+		{
+			PQconninfoFree(opts1);
+			PQconninfoFree(opts2);
+			PG_RETURN_BOOL(false);
+		}
+	}
+
+	PQconninfoFree(opts1);
+	PQconninfoFree(opts2);
+	PG_RETURN_BOOL(true);
+}
 
 void
 destroy_temp_dump_dirs(int code, Datum arg)

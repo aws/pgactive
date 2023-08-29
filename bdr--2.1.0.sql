@@ -1984,6 +1984,77 @@ LANGUAGE C STRICT;
 
 CREATE FOREIGN DATA WRAPPER bdr_fdw VALIDATOR bdr_fdw_validator;
 
+CREATE FUNCTION bdr_conninfo_cmp(
+  conninfo1 text,
+  conninfo2 text
+)
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+CREATE FUNCTION bdr_update_node_conninfo (
+    node_name_to_update text,
+    node_dsn_to_update text
+    )
+RETURNS void LANGUAGE plpgsql VOLATILE
+SET search_path = bdr, pg_catalog
+AS $body$
+DECLARE
+  r record;
+  updated_rows int; -- a variable to store the row count
+BEGIN
+  -- Only one tx can update node connection info
+  LOCK TABLE bdr.bdr_nodes IN EXCLUSIVE MODE;
+  LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
+
+  SELECT * FROM bdr.bdr_nodes WHERE node_name = node_name_to_update
+    INTO r;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'no node with name % found in bdr.bdr_nodes',
+      node_name_to_update;
+  END IF;
+
+  -- Update node DSNs for all nodes that joined BDR group using passed-in node.
+  UPDATE bdr.bdr_nodes SET node_init_from_dsn = node_dsn_to_update
+    WHERE node_init_from_dsn IS NOT NULL AND
+      bdr.bdr_conninfo_cmp(node_init_from_dsn, r.node_local_dsn) AND
+      node_status = bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY');
+
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  IF updated_rows = 0 THEN
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_nodes to update node_init_from_dsn';
+  END IF;
+
+  -- Update node DSN for passed-in node.
+  UPDATE bdr.bdr_nodes SET node_local_dsn = node_dsn_to_update
+    WHERE node_name = node_name_to_update AND
+      node_status = bdr.bdr_node_status_to_char('BDR_NODE_STATUS_READY');
+
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  IF updated_rows = 0 THEN
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_nodes to update node_local_dsn';
+  END IF;
+
+  -- Update node DSN for passed-in node in bdr.bdr_connections.
+  UPDATE bdr.bdr_connections SET conn_dsn = node_dsn_to_update
+    WHERE conn_sysid = r.node_sysid AND
+      conn_timeline = r.node_timeline AND
+      conn_dboid = r.node_dboid AND
+      conn_dsn = r.node_local_dsn;
+
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  IF updated_rows = 0 THEN
+    RAISE EXCEPTION 'could not find any row in bdr.bdr_connections to update conn_dsn';
+  END IF;
+END;
+$body$;
+
+REVOKE ALL ON FUNCTION bdr_update_node_conninfo(text, text) FROM public;
+
+COMMENT ON FUNCTION bdr_update_node_conninfo(text, text) IS
+'Updates a node connection info across BDR internal tables.';
+
 -- RESET bdr.permit_unsafe_ddl_commands; is removed for now
 RESET bdr.skip_ddl_replication;
 RESET search_path;
