@@ -1563,6 +1563,16 @@ LANGUAGE C STRICT IMMUTABLE;
 COMMENT ON FUNCTION bdr_format_replident_name(text, oid, oid, oid, name) IS
 'Format a BDR replication identifier name from node identity parameters';
 
+CREATE FUNCTION _bdr_destroy_temporary_dump_directories_private()
+RETURNS void
+AS 'MODULE_PATHNAME','bdr_destroy_temporary_dump_directories'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION _bdr_destroy_temporary_dump_directories_private() FROM public;
+
+COMMENT ON FUNCTION _bdr_destroy_temporary_dump_directories_private() IS
+'Remove temporary dump directories used for node initialization.';
+
 -- Completely de-BDR-ize a node. Updated to fix #281.
 CREATE FUNCTION bdr_remove (
   force boolean DEFAULT false)
@@ -1714,6 +1724,8 @@ BEGIN
   DELETE FROM bdr.bdr_conflict_handlers;
   DELETE FROM bdr.bdr_conflict_history;
   DELETE FROM bdr.bdr_replication_set_config;
+
+  PERFORM bdr._bdr_destroy_temporary_dump_directories_private();
 
   -- We can't drop the BDR extension, we just need to tell the user to do that.
   RAISE NOTICE 'BDR removed from this node. You can now DROP EXTENSION bdr and, if this is the last BDR node on this PostgreSQL instance, remove bdr from shared_preload_libraries.';
