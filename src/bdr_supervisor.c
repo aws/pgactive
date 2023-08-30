@@ -41,6 +41,8 @@
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
 
+static bool destroy_temp_dump_dirs_callback_registered = false;
+
 /*
  * Register a new perdb worker for a database. The worker MUST not already
  * exist.
@@ -481,6 +483,18 @@ bdr_supervisor_worker_main(Datum main_arg)
 	}
 
 	MyProcPort = (Port *) calloc(1, sizeof(Port));
+
+	/*
+	 * Destroy leftover temporary dump directories (if any) from previous run.
+	 * Also, register a proc_exit callback so that things get destroyed for
+	 * clean exits.
+	 */
+	destroy_temp_dump_dirs(0, 0);
+	if (!destroy_temp_dump_dirs_callback_registered)
+	{
+		on_proc_exit(destroy_temp_dump_dirs, 0);
+		destroy_temp_dump_dirs_callback_registered = true;
+	}
 
 	/*
 	 * Unfortunately we currently can't access shared catalogs like

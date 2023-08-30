@@ -159,17 +159,6 @@ bdr_ensure_ext_installed(PGconn *pgconn)
 	pfree(installed_version);
 }
 
-static void
-bdr_init_replica_cleanup_tmpdir(int errcode, Datum tmpdir)
-{
-	struct stat st;
-	const char *dir = DatumGetCString(tmpdir);
-
-	if (stat(dir, &st) == 0)
-		if (!rmtree(dir, true))
-			elog(WARNING, "failed to clean up BDR dump temporary directory %s on exit/error", dir);
-}
-
 /*
  * Function to execute a given commnd.
  *
@@ -310,8 +299,9 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 					 "-c session_replication_role=replica'",
 					 (l_servername == NULL ? node->local_dsn : l_servername), bdr_get_my_cached_node_name());
 
-	snprintf(tmpdir, sizeof(tmpdir), "%s/postgres-bdr-%s.%d",
-			 bdr_temp_dump_directory, snapshot, getpid());
+	snprintf(tmpdir, sizeof(tmpdir), "%s/%s-" UINT64_FORMAT "-%s.%d",
+			 bdr_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
+			 GetSystemIdentifier(), snapshot, getpid());
 
 	if (MakePGDirectory(tmpdir) < 0)
 	{
@@ -336,7 +326,7 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 	BdrWorkerCtl->in_init_exec_dump_restore = true;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
+	PG_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 							CStringGetDatum(tmpdir));
 	{
 		/* Get contents from remote node with pg_dump */
@@ -366,15 +356,15 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 
 		bdr_execute_command(cmd->data);
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_init_replica_cleanup_tmpdir,
+	PG_END_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 								PointerGetDatum(tmpdir));
 
 	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
 	BdrWorkerCtl->in_init_exec_dump_restore = false;
 	LWLockRelease(BdrWorkerCtl->lock);
 
-	/* Clean up temporary directory we used for storing pg_dump. */
-	bdr_init_replica_cleanup_tmpdir(0, CStringGetDatum(tmpdir));
+	/* Destroy temporary directory we used for storing pg_dump. */
+	destroy_temp_dump_dir(0, CStringGetDatum(tmpdir));
 
 	pfree(origin_dsn->data);
 	pfree(origin_dsn);

@@ -14,6 +14,7 @@
  */
 #include "postgres.h"
 
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "bdr.h"
@@ -141,6 +142,7 @@ PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_conninfo_cmp(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
@@ -160,6 +162,7 @@ PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
 PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
 PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
 PG_FUNCTION_INFO_V1(bdr_conninfo_cmp);
+PG_FUNCTION_INFO_V1(bdr_destroy_temporary_dump_directories);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
@@ -1082,7 +1085,7 @@ _PG_init(void)
 							   NULL,
 							   &bdr_temp_dump_directory,
 							   "/tmp",
-							   PGC_SIGHUP,
+							   PGC_POSTMASTER,
 							   0,
 							   NULL, NULL, NULL);
 
@@ -1970,4 +1973,60 @@ bdr_conninfo_cmp(PG_FUNCTION_ARGS)
 	PQconninfoFree(opts1);
 	PQconninfoFree(opts2);
 	PG_RETURN_BOOL(true);
+}
+
+void
+destroy_temp_dump_dirs(int code, Datum arg)
+{
+	DIR		   *dir;
+	struct dirent *de;
+	char		prefix[MAXPGPATH];
+
+	snprintf(prefix, sizeof(prefix), "%s/%s-" UINT64_FORMAT "-",
+			 bdr_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
+			 GetSystemIdentifier());
+
+	dir = AllocateDir(bdr_temp_dump_directory);
+	while ((de = ReadDir(dir, bdr_temp_dump_directory)) != NULL)
+	{
+		char		path[MAXPGPATH];
+		struct stat st;
+
+		CHECK_FOR_INTERRUPTS();
+
+		/* Skip special stuff */
+		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+			continue;
+
+		snprintf(path, sizeof(path), "%s/%s", bdr_temp_dump_directory,
+				 de->d_name);
+
+		if (stat(path, &st) == 0 && S_ISDIR(st.st_mode))
+		{
+			if (strncmp(de->d_name, prefix, strlen(prefix)) == 0)
+				destroy_temp_dump_dir(0, CStringGetDatum(path));
+		}
+	}
+	FreeDir(dir);
+}
+
+void
+destroy_temp_dump_dir(int code, Datum arg)
+{
+	struct stat st;
+	const char *dir = DatumGetCString(arg);
+
+	if (stat(dir, &st) == 0 && S_ISDIR(st.st_mode))
+	{
+		if (!rmtree(dir, true))
+			elog(WARNING, "failed to clean up BDR dump temporary directory %s", dir);
+	}
+}
+
+Datum
+bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
+{
+	destroy_temp_dump_dirs(0, 0);
+
+	PG_RETURN_VOID();
 }
