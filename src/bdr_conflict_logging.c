@@ -38,7 +38,8 @@
 #include "catalog/pg_enum.h"
 
 /* GUCs */
-bool		bdr_log_conflicts_to_table = false;
+bool		bdr_log_conflicts_to_table = true;
+bool		bdr_log_conflicts_to_logfile = false;
 bool		bdr_conflict_logging_include_tuples = false;
 
 static Oid	BdrConflictTypeOid = InvalidOid;
@@ -590,6 +591,9 @@ bdr_conflict_log_serverlog(BdrApplyConflict * conflict)
 	char	   *resolution_name;
 
 #define CONFLICT_MSG_PREFIX "CONFLICT: remote %s:"
+
+	if (!bdr_log_conflicts_to_logfile)
+		return;
 
 	/* Create text representation of the PKEY tuple */
 	initStringInfo(&s_key);

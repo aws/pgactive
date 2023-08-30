@@ -193,6 +193,7 @@ sub bdr_update_postgresql_conf {
             #bdr.debug_trace_replay = off
             log_line_prefix = '%m %p %d [%a] %c:%l (%v:%t) '
 			bdr.skip_ddl_replication = false
+			bdr.log_conflicts_to_table = false
             bdr.max_nodes = 20
             bdr.ddl_lock_acquire_timeout = $lock_acquire_timeout
             lock_timeout = $lock_acquire_timeout
