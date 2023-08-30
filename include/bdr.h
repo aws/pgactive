@@ -930,7 +930,7 @@ BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
 }
 #endif
 
-#define TEMP_DUMP_DIR_PREFIX "bdr-dump-"
+#define TEMP_DUMP_DIR_PREFIX "bdr-dump"
 extern void destroy_temp_dump_dirs(int code, Datum arg);
 extern void destroy_temp_dump_dir(int code, Datum arg);
 #endif							/* BDR_H */

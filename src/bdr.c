@@ -1980,6 +1980,11 @@ destroy_temp_dump_dirs(int code, Datum arg)
 {
 	DIR		   *dir;
 	struct dirent *de;
+	char		prefix[MAXPGPATH];
+
+	snprintf(prefix, sizeof(prefix), "%s/%s-" UINT64_FORMAT "-",
+			 bdr_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
+			 GetSystemIdentifier());
 
 	dir = AllocateDir(bdr_temp_dump_directory);
 	while ((de = ReadDir(dir, bdr_temp_dump_directory)) != NULL)
@@ -1998,8 +2003,7 @@ destroy_temp_dump_dirs(int code, Datum arg)
 
 		if (stat(path, &st) == 0 && S_ISDIR(st.st_mode))
 		{
-			if (strncmp(de->d_name, TEMP_DUMP_DIR_PREFIX,
-						strlen(TEMP_DUMP_DIR_PREFIX)) == 0)
+			if (strncmp(de->d_name, prefix, strlen(prefix)) == 0)
 				destroy_temp_dump_dir(0, CStringGetDatum(path));
 		}
 	}

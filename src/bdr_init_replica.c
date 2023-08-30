@@ -299,8 +299,9 @@ bdr_init_exec_dump_restore(BDRNodeInfo * node, char *snapshot)
 					 "-c session_replication_role=replica'",
 					 (l_servername == NULL ? node->local_dsn : l_servername), bdr_get_my_cached_node_name());
 
-	snprintf(tmpdir, sizeof(tmpdir), "%s/%s%s.%d", bdr_temp_dump_directory,
-			 TEMP_DUMP_DIR_PREFIX, snapshot, getpid());
+	snprintf(tmpdir, sizeof(tmpdir), "%s/%s-" UINT64_FORMAT "-%s.%d",
+			 bdr_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
+			 GetSystemIdentifier(), snapshot, getpid());
 
 	if (MakePGDirectory(tmpdir) < 0)
 	{
