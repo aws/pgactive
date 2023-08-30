@@ -23,6 +23,12 @@ server restart to take effect.
     logged to the bdr.bdr_conflict_history table. See Conflict logging
     for details. Requires a server reload to take effect.
 
+`bdr.log_conflicts_to_logfile` (`boolean`)
+
+    This boolean option controls whether detected BDR conflicts get
+    logged to the PostgreSQL log file. See Conflict logging
+    for details. Requires a server reload to take effect.
+
 `bdr.synchronous_commit` (`boolean`)
 
     This boolean option controls whether the
