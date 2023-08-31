@@ -995,6 +995,18 @@ BEGIN
             ERRCODE = 'feature_not_supported';
     END IF;
 
+    -- Error when joining database has any tables
+    IF join_using_dsn IS NOT NULL then
+        PERFORM n.nspname, r.relname
+            FROM pg_class r INNER JOIN pg_namespace n ON r.relnamespace = n.oid
+            WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
+            AND relkind = 'r'
+            AND relpersistence = 'p' LIMIT 1;
+        RAISE USING
+            MESSAGE = 'Joining database is not empty',
+            HINT = 'Existing table(s) found in the joining database. Start with an empty database';
+    END IF;
+
     PERFORM bdr._bdr_begin_join_private(
         caller := '',
         local_node_name := local_node_name,
