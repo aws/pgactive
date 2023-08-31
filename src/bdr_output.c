@@ -102,6 +102,8 @@ typedef struct
 	char	  **replication_sets;
 }			BdrOutputData;
 
+static BdrWalsenderWorker * bdr_walsender_worker = NULL;
+
 /* These must be available to pg_dlsym() */
 static void pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
 							  bool is_init);
@@ -657,6 +659,10 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		bdr_worker_slot->data.walsnd.walsender = MyWalSnd;
 		bdr_worker_slot->data.walsnd.slot = MyReplicationSlot;
 		bdr_nodeid_cpy(&bdr_worker_slot->data.walsnd.remote_node, &data->remote_node);
+		bdr_worker_slot->data.walsnd.last_sent_xact_id = InvalidTransactionId;
+		bdr_worker_slot->data.walsnd.last_sent_xact_committs = 0;
+		bdr_worker_slot->data.walsnd.last_sent_xact_at = 0;
+		bdr_walsender_worker = &bdr_worker_slot->data.walsnd;
 
 		LWLockRelease(BdrWorkerCtl->lock);
 	}
@@ -763,6 +769,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 {
 	BdrOutputData *data = ctx->output_plugin_private;
 	int			flags = 0;
+	TimestampTz committime;
 
 	AssertVariableIsOfType(&pg_decode_begin_txn, LogicalDecodeBeginCB);
 
@@ -793,8 +800,10 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	pq_sendint64(ctx->out, txn->end_lsn);
 #if PG_VERSION_NUM >= 150000
 	pq_sendint64(ctx->out, txn->xact_time.commit_time);
+	committime = txn->xact_time.commit_time;
 #else
 	pq_sendint64(ctx->out, txn->commit_time);
+	committime = txn->commit_time;
 #endif
 	pq_sendint(ctx->out, txn->xid, 4);
 
@@ -816,6 +825,12 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	}
 
 	OutputPluginWrite(ctx, true);
+
+	/* Save last sent transaction info */
+	bdr_walsender_worker->last_sent_xact_id = txn->xid;
+	bdr_walsender_worker->last_sent_xact_committs = committime;
+	bdr_walsender_worker->last_sent_xact_at = GetCurrentTimestamp();
+
 	return;
 }
 

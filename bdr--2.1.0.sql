@@ -1382,20 +1382,6 @@ LANGUAGE C STRICT IMMUTABLE;
 COMMENT ON FUNCTION bdr_format_slot_name(text, oid, oid, oid, name) IS
 'Format a BDR slot name from node identity parameters';
 
-CREATE VIEW bdr.bdr_node_slots AS
-SELECT n.node_name,
- s.slot_name, s.restart_lsn AS slot_restart_lsn, s.confirmed_flush_lsn AS slot_confirmed_lsn,
- s.active AS walsender_active,
- s.active_pid AS walsender_pid,
- r.sent_lsn, r.write_lsn, r.flush_lsn, r.replay_lsn
-FROM
- pg_catalog.pg_replication_slots s
- CROSS JOIN LATERAL bdr.bdr_parse_slot_name(s.slot_name) ps(remote_sysid, remote_timeline, remote_dboid, local_dboid, replication_name)
- INNER JOIN bdr.bdr_nodes n ON ((n.node_sysid = ps.remote_sysid) AND (n.node_timeline = ps.remote_timeline) AND (n.node_dboid = ps.remote_dboid))
- LEFT JOIN pg_catalog.pg_stat_replication r ON (r.pid = s.active_pid)
-WHERE ps.local_dboid = (select oid from pg_database where datname = current_database())
-  AND s.plugin = 'bdr';
-
 CREATE FUNCTION bdr_get_local_node_name() RETURNS text
 LANGUAGE sql
 AS $$
@@ -2054,6 +2040,62 @@ REVOKE ALL ON FUNCTION bdr_update_node_conninfo(text, text) FROM public;
 
 COMMENT ON FUNCTION bdr_update_node_conninfo(text, text) IS
 'Updates a node connection info across BDR internal tables.';
+
+CREATE FUNCTION get_last_applied_xact_info(
+  sysid text,
+  timeline oid,
+  dboid oid,
+  OUT last_applied_xact_id oid,
+  OUT last_applied_xact_committs timestamptz,
+  OUT last_applied_xact_at timestamptz
+)
+RETURNS record
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION get_last_applied_xact_info(text, oid, oid) FROM public;
+
+COMMENT ON FUNCTION get_last_applied_xact_info(text, oid, oid) IS
+'Gets last applied transaction info of apply worker for a given node.';
+
+CREATE FUNCTION get_replication_lag_info(
+    OUT slot_name name,
+    OUT last_sent_xact_id oid,
+    OUT last_sent_xact_committs timestamptz,
+    OUT last_sent_xact_at timestamptz,
+    OUT last_applied_xact_id oid,
+    OUT last_applied_xact_committs timestamptz,
+    OUT last_applied_xact_at timestamptz
+)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C VOLATILE STRICT;
+
+REVOKE ALL ON FUNCTION get_replication_lag_info() FROM public;
+
+COMMENT ON FUNCTION get_replication_lag_info() IS
+'Gets replication lag info.';
+
+CREATE VIEW bdr.bdr_node_slots AS
+SELECT n.node_name,
+ s.slot_name, s.restart_lsn AS slot_restart_lsn, s.confirmed_flush_lsn AS slot_confirmed_lsn,
+ s.active AS walsender_active,
+ s.active_pid AS walsender_pid,
+ r.sent_lsn, r.write_lsn, r.flush_lsn, r.replay_lsn,
+ l.last_sent_xact_id,
+ l.last_sent_xact_committs,
+ l.last_sent_xact_at,
+ l.last_applied_xact_id,
+ l.last_applied_xact_committs,
+ l.last_applied_xact_at
+FROM
+ pg_catalog.pg_replication_slots s
+ CROSS JOIN LATERAL bdr.bdr_parse_slot_name(s.slot_name) ps(remote_sysid, remote_timeline, remote_dboid, local_dboid, replication_name)
+ INNER JOIN bdr.bdr_nodes n ON ((n.node_sysid = ps.remote_sysid) AND (n.node_timeline = ps.remote_timeline) AND (n.node_dboid = ps.remote_dboid))
+ INNER JOIN bdr.get_replication_lag_info() l ON (l.slot_name = s.slot_name)
+ LEFT JOIN pg_catalog.pg_stat_replication r ON (r.pid = s.active_pid)
+WHERE ps.local_dboid = (select oid from pg_database where datname = current_database())
+  AND s.plugin = 'bdr';
 
 -- RESET bdr.permit_unsafe_ddl_commands; is removed for now
 RESET bdr.skip_ddl_replication;

@@ -110,10 +110,11 @@ SELECT COUNT(*) = 1 AS OK FROM bdr.bdr_nodes
 
 \c regression
 -- The downstream's slot on the upstream MUST be gone
-SELECT * FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
- node_name | slot_name | slot_restart_lsn | slot_confirmed_lsn | walsender_active | walsender_pid | sent_lsn | write_lsn | flush_lsn | replay_lsn 
------------+-----------+------------------+--------------------+------------------+---------------+----------+-----------+-----------+------------
-(0 rows)
+SELECT COUNT(*) = 0 AS OK FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
+ ok 
+----
+ t
+(1 row)
 
 \c postgres
 -- The upstream's slot on the downstream MAY be gone, or may be present, so

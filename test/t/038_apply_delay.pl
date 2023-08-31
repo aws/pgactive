@@ -122,4 +122,21 @@ foreach my $node (@{$nodes})
         "expected delete/delete conflict found on " . $node->name);
 }
 
+# verify time-based replication lag info
+my $xid = $node_0->safe_psql(
+	$bdr_test_dbname, qq[
+	BEGIN;
+	INSERT INTO city(city_sid, name) VALUES (55, 'Alpha Price');
+	SELECT pg_current_xact_id()::xid;
+	COMMIT;
+]);
+wait_for_apply($node_0, $node_1);
+
+my $result = $node_0->safe_psql($bdr_test_dbname,
+    qq[SELECT last_sent_xact_id, last_sent_xact_committs = last_applied_xact_committs,
+        last_sent_xact_at < last_applied_xact_at FROM bdr.get_replication_lag_info()
+       WHERE last_sent_xact_id = $xid;]);
+
+is($result, qq($xid|t|t), "found time-based replication lag info");
+
 done_testing();

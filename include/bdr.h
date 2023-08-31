@@ -277,6 +277,15 @@ typedef struct BdrApplyWorker
 	 * held.
 	 */
 	Latch	   *proclatch;
+
+	/* last applied transaction id */
+	TransactionId last_applied_xact_id;
+
+	/* last applied transaction commit timestamp */
+	TimestampTz last_applied_xact_committs;
+
+	/* timestamp at which last change was applied */
+	TimestampTz last_applied_xact_at;
 }			BdrApplyWorker;
 
 /*
@@ -321,6 +330,14 @@ typedef struct BdrWalsenderWorker
 	/* Identification for the remote the connection comes from. */
 	BDRNodeId	remote_node;
 
+	/* last sent transaction id */
+	TransactionId last_sent_xact_id;
+
+	/* last sent transaction commit timestamp */
+	TimestampTz last_sent_xact_committs;
+
+	/* timestamp at which last change was sent */
+	TimestampTz last_sent_xact_at;
 }			BdrWalsenderWorker;
 
 /*
@@ -933,4 +950,7 @@ BDRWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
 #define TEMP_DUMP_DIR_PREFIX "bdr-dump"
 extern void destroy_temp_dump_dirs(int code, Datum arg);
 extern void destroy_temp_dump_dir(int code, Datum arg);
+
+extern int	find_apply_worker_slot(const BDRNodeId * const remote,
+								   BdrWorker * *worker_found);
 #endif							/* BDR_H */

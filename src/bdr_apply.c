@@ -538,6 +538,11 @@ process_remote_commit(StringInfo s)
 
 	bdr_count_commit();
 
+	/* Save last applied transaction info */
+	bdr_apply_worker->last_applied_xact_id = replication_origin_xid;
+	bdr_apply_worker->last_applied_xact_committs = replorigin_session_origin_timestamp;
+	bdr_apply_worker->last_applied_xact_at = GetCurrentTimestamp();
+
 	replication_origin_xid = InvalidTransactionId;
 	replorigin_session_origin_lsn = InvalidXLogRecPtr;
 	replorigin_session_origin_timestamp = 0;
