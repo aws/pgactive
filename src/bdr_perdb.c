@@ -108,7 +108,7 @@ find_perdb_worker_slot(Oid dboid, BdrWorker * *worker_found)
  *
  * Note that there's no guarantee that the worker is actually started up.
  */
-static int
+int
 find_apply_worker_slot(const BDRNodeId * const remote, BdrWorker * *worker_found)
 {
 	int			i,

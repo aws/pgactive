@@ -142,11 +142,27 @@ foreach my $node (@{$nodes})
 
 # Check that the conflicts are reported in the log file
 # should have one as bdr.log_conflicts_to_logfile is set to true
-
 $result = find_in_log($node_1,
     qr[.*CONFLICT: remote DELETE: could not find existing row. Resolution: skip_change; PKEY.*],
     $logstart_1);
 ok($result, "bdr.log_conflicts_to_logfile set to true logs in the log file");
+
+# Verify time-based replication lag info
+my $xid = $node_0->safe_psql(
+	$bdr_test_dbname, qq[
+	BEGIN;
+	INSERT INTO city(city_sid, name) VALUES (55, 'Alpha Price');
+	SELECT txid_current();
+	COMMIT;
+]);
+wait_for_apply($node_0, $node_1);
+
+# Wait until apply worker on node_1 applies the xact sent by node_0
+my $caughtup_query =
+  qq[SELECT EXISTS (SELECT 1 FROM bdr.get_replication_lag_info()
+     WHERE last_applied_xact_id >= $xid);];
+$node_0->poll_query_until($bdr_test_dbname, $caughtup_query)
+  or die "Timed out while waiting for apply worker on node_1 applies the xact sent by node_0";
 
 done_testing();
 

@@ -76,7 +76,7 @@ SELECT COUNT(*) = 1 AS OK FROM bdr.bdr_nodes
 \c regression
 
 -- The downstream's slot on the upstream MUST be gone
-SELECT * FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
+SELECT COUNT(*) = 0 AS OK FROM bdr.bdr_node_slots WHERE node_name = 'node-pg'; -- EMPTY
 
 \c postgres
 

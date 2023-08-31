@@ -143,6 +143,8 @@ PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_conninfo_cmp(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
@@ -163,12 +165,22 @@ PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
 PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
 PG_FUNCTION_INFO_V1(bdr_conninfo_cmp);
 PG_FUNCTION_INFO_V1(bdr_destroy_temporary_dump_directories);
+PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
+PG_FUNCTION_INFO_V1(get_replication_lag_info);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
 static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
 static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
+
+static void GetConnectionDSN(uint64 sysid, StringInfoData *dsn);
+static void GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
+												 BDRNodeId myid,
+												 StringInfoData *dsn,
+												 TransactionId *xid,
+												 TimestampTz *committs,
+												 TimestampTz *applied_at);
 
 static const struct config_enum_entry bdr_debug_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
@@ -546,6 +558,9 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 		BdrPerdbWorker *perdb;
 
 		apply = &bdr_worker_slot->data.apply;
+		apply->last_applied_xact_id = InvalidTransactionId;
+		apply->last_applied_xact_committs = 0;
+		apply->last_applied_xact_at = 0;
 		Assert(apply->perdb != NULL);
 		perdb = &apply->perdb->data.perdb;
 		dboid = perdb->c_dboid;
@@ -2038,4 +2053,234 @@ bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
 	destroy_temp_dump_dirs(0, 0);
 
 	PG_RETURN_VOID();
+}
+
+Datum
+get_last_applied_xact_info(PG_FUNCTION_ARGS)
+{
+	Datum		values[3];
+	bool		isnull[3];
+	TupleDesc	tupleDesc;
+	HeapTuple	returnTuple;
+	BDRNodeId	target;
+	char	   *sysid_str = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	BdrWorker  *worker;
+	bool		lock_acquired = false;
+	TransactionId xid = InvalidTransactionId;
+	TimestampTz committs = 0;
+	TimestampTz applied_at = 0;
+
+	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+		PG_RETURN_VOID();
+
+	if (sscanf(sysid_str, UINT64_FORMAT, &target.sysid) != 1)
+		elog(ERROR, "parsing of sysid as uint64 failed");
+
+	target.timeline = PG_GETARG_OID(1);
+	target.dboid = PG_GETARG_OID(2);
+
+	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
+
+	memset(values, 0, sizeof(values));
+	memset(isnull, 0, sizeof(isnull));
+
+	if (!LWLockHeldByMe(BdrWorkerCtl->lock))
+	{
+		LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+		lock_acquired = true;
+	}
+
+	if (find_apply_worker_slot(&target, &worker) != -1)
+	{
+		BdrApplyWorker *apply;
+
+		apply = &worker->data.apply;
+		xid = apply->last_applied_xact_id;
+		committs = apply->last_applied_xact_committs;
+		applied_at = apply->last_applied_xact_at;
+	}
+	else
+		elog(LOG, "could not find apply worker for a given node " BDR_NODEID_FORMAT "",
+			 BDR_NODEID_FORMAT_ARGS(target));
+
+	values[0] = ObjectIdGetDatum(xid);
+	values[1] = TimestampTzGetDatum(committs);
+	values[2] = TimestampTzGetDatum(applied_at);
+
+	if (lock_acquired)
+		LWLockRelease(BdrWorkerCtl->lock);
+
+	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
+	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
+}
+
+static void
+GetConnectionDSN(uint64 sysid, StringInfoData *dsn)
+{
+	char		sysid_str[33];
+	char	   *result;
+	StringInfoData cmd;
+
+	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, sysid);
+
+	initStringInfo(&cmd);
+	appendStringInfo(&cmd, "SELECT conn_dsn FROM bdr.bdr_connections WHERE conn_sysid = '%s';",
+					 sysid_str);
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	Assert(SPI_processed == 1);
+	Assert(SPI_tuptable->tupdesc->natts == 1);
+
+	result = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+
+	appendStringInfo(dsn, "%s", result);
+
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+
+	pfree(cmd.data);
+}
+
+static void
+GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
+									 BDRNodeId myid,
+									 StringInfoData *dsn,
+									 TransactionId *xid,
+									 TimestampTz *committs,
+									 TimestampTz *applied_at)
+{
+	PGconn	   *conn;
+	PGresult   *res;
+	StringInfoData cmd;
+
+	conn = bdr_connect_nonrepl(dsn->data, "apply_info");
+
+	/* Make sure BDR is actually present and active on the remote */
+	bdr_ensure_ext_installed(conn);
+
+	*xid = InvalidTransactionId;
+	*committs = 0;
+	*applied_at = 0;
+
+	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+							PointerGetDatum(&conn));
+	{
+		initStringInfo(&cmd);
+		appendStringInfo(&cmd, "SELECT * FROM bdr.get_last_applied_xact_info('%s', %u, %u);",
+						 sysid_str, myid.timeline, myid.dboid);
+
+		res = PQexec(conn, cmd.data);
+
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			elog(ERROR, "unable to fetch apply info: status %s: %s",
+				 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+		}
+
+		if (PQntuples(res) == 0)
+			goto done;
+
+		if (PQntuples(res) != 1 || PQnfields(res) != 3)
+		{
+			elog(ERROR, "could not fetch apply info: got %d rows and %d columns, expected 1 row and 3 columns",
+				 PQntuples(res), PQnfields(res));
+		}
+
+		*xid = DatumGetObjectId(DirectFunctionCall1(oidin,
+													CStringGetDatum(PQgetvalue(res, 0, 0))));
+		*committs = DatumGetTimestampTz(
+										DirectFunctionCall3(timestamptz_in,
+															CStringGetDatum(PQgetvalue(res, 0, 1)),
+															ObjectIdGetDatum(InvalidOid),
+															Int32GetDatum(-1)));
+		*applied_at = DatumGetTimestampTz(
+										  DirectFunctionCall3(timestamptz_in,
+															  CStringGetDatum(PQgetvalue(res, 0, 2)),
+															  ObjectIdGetDatum(InvalidOid),
+															  Int32GetDatum(-1)));
+	}
+	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+								PointerGetDatum(&conn));
+
+done:
+	pfree(cmd.data);
+	PQclear(res);
+	PQfinish(conn);
+}
+
+Datum
+get_replication_lag_info(PG_FUNCTION_ARGS)
+{
+#define GET_REPLICATION_LAG_INFO_COLS	7
+	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
+	int			i;
+	BDRNodeId	myid;
+	char		local_sysid_str[33];
+
+	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+		PG_RETURN_VOID();
+
+	bdr_make_my_nodeid(&myid);
+	snprintf(local_sysid_str, sizeof(local_sysid_str), UINT64_FORMAT,
+			 myid.sysid);
+
+	/* Construct the tuplestore and tuple descriptor */
+	InitMaterializedSRF(fcinfo, 0);
+
+	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+	for (i = 0; i < bdr_max_workers; i++)
+	{
+		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
+		bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
+		BdrWalsenderWorker *ws;
+		StringInfoData conn_dsn;
+		TransactionId last_applied_xact_id;
+		TimestampTz last_applied_xact_committs;
+		TimestampTz last_applied_xact_at;
+
+		/* unused slot */
+		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+			continue;
+
+		/* unconnected slot */
+		if (w->worker_proc == NULL)
+			continue;
+
+		/* we'll deal with walsender workers only */
+		if (w->worker_type == BDR_WORKER_APPLY ||
+			w->worker_type == BDR_WORKER_PERDB)
+			continue;
+
+		Assert(w->worker_type == BDR_WORKER_WALSENDER);
+		ws = &w->data.walsnd;
+
+		initStringInfo(&conn_dsn);
+		GetConnectionDSN(ws->remote_node.sysid, &conn_dsn);
+		GetLastAppliedXactInfoFromRemoteNode(local_sysid_str, myid, &conn_dsn,
+											 &last_applied_xact_id,
+											 &last_applied_xact_committs,
+											 &last_applied_xact_at);
+		pfree(conn_dsn.data);
+
+		values[0] = NameGetDatum(&ws->slot->data.name);
+		values[1] = ObjectIdGetDatum(ws->last_sent_xact_id);
+		values[2] = TimestampTzGetDatum(ws->last_sent_xact_committs);
+		values[3] = TimestampTzGetDatum(ws->last_sent_xact_at);
+		values[4] = ObjectIdGetDatum(last_applied_xact_id);
+		values[5] = TimestampTzGetDatum(last_applied_xact_committs);
+		values[6] = TimestampTzGetDatum(last_applied_xact_at);
+		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
+							 values, nulls);
+	}
+	LWLockRelease(BdrWorkerCtl->lock);
+
+	PG_RETURN_VOID();
+#undef GET_REPLICATION_LAG_INFO_COLS
 }
