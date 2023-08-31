@@ -477,8 +477,10 @@ bdr_nid_shmem_init(void)
 static void
 bdr_nid_shmem_reset(Oid dboid)
 {
+	int			i;
+
 	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
-	for (int i = 0; i < bdr_max_databases; i++)
+	for (i = 0; i < bdr_max_databases; i++)
 	{
 		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
 
@@ -495,10 +497,12 @@ bdr_nid_shmem_reset(Oid dboid)
 static void
 bdr_nid_shmem_reset_all(bool need_lock)
 {
+	int			i;
+
 	if (need_lock)
 		LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
 
-	for (int i = 0; i < bdr_max_databases; i++)
+	for (i = 0; i < bdr_max_databases; i++)
 	{
 		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
 
@@ -513,8 +517,10 @@ bdr_nid_shmem_reset_all(bool need_lock)
 static void
 bdr_nid_shmem_set(Oid dboid, uint64 nid)
 {
+	int			i;
+
 	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
-	for (int i = 0; i < bdr_max_databases; i++)
+	for (i = 0; i < bdr_max_databases; i++)
 	{
 		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
 
@@ -531,10 +537,11 @@ bdr_nid_shmem_set(Oid dboid, uint64 nid)
 static uint64
 bdr_nid_shmem_get(Oid dboid)
 {
+	int			i;
 	uint64		nid = 0;
 
 	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_SHARED);
-	for (int i = 0; i < bdr_max_databases; i++)
+	for (i = 0; i < bdr_max_databases; i++)
 	{
 		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
 
