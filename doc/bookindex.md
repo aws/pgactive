@@ -172,6 +172,9 @@ variables](bdr-configuration-variables.md#AEN783)
 bdr.log_conflicts_to_table configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 
+bdr.log_conflicts_to_logfile configuration parameter, [BDR specific
+configuration variables](bdr-configuration-variables.md)
+
 bdr.max_ddl_lock_delay configuration parameter, [BDR specific
 configuration variables](bdr-configuration-variables.md)
 

@@ -433,6 +433,7 @@ extern int	bdr_max_workers;
 extern int	bdr_max_databases;
 extern char *bdr_temp_dump_directory;
 extern bool bdr_log_conflicts_to_table;
+extern bool bdr_log_conflicts_to_logfile;
 extern bool bdr_conflict_logging_include_tuples;
 
 /* replaced by bdr_skip_ddl_replication for now

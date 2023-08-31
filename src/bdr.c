@@ -991,6 +991,15 @@ _PG_init(void)
 							 "Log BDR conflicts to bdr.conflict_history table.",
 							 NULL,
 							 &bdr_log_conflicts_to_table,
+							 true,
+							 PGC_SIGHUP,
+							 0,
+							 NULL, NULL, NULL);
+
+	DefineCustomBoolVariable("bdr.log_conflicts_to_logfile",
+							 "Log BDR conflicts to postgres log file.",
+							 NULL,
+							 &bdr_log_conflicts_to_logfile,
 							 false,
 							 PGC_SIGHUP,
 							 0,

@@ -12,6 +12,7 @@ use PostgreSQL::Test::Utils;
 use IPC::Run;
 use Test::More;
 use utils::nodemanagement;
+use Time::HiRes qw(usleep);
 
 # Create an upstream node and bring up bdr
 my $nodes = make_bdr_group(2,'node_');
@@ -34,6 +35,8 @@ foreach my $node ($node_0, $node_1)
         q[SELECT pg_reload_conf();]);
 }
 
+my $logstart_1 = get_log_size($node_1);
+
 # Repeat a conflicting action multiple times.
 #
 # apply_delay isn't a sleep after each apply, its the minimum age before
@@ -51,6 +54,14 @@ foreach my $i (0..2)
 my $nconflicts_0 = $node_0->safe_psql($bdr_test_dbname, q[SELECT count(*) FROM bdr.bdr_conflict_history]);
 my $nconflicts_1 = $node_1->safe_psql($bdr_test_dbname, q[SELECT count(*) FROM bdr.bdr_conflict_history]);
 cmp_ok($nconflicts_0 + $nconflicts_1, "==", 3, "detected required conflicts");
+
+# Check that no conflict are reported in the log file
+# should have one if bdr.log_conflicts_to_logfile is set to true
+
+my $result = !find_in_log($node_1,
+    qr[.*CONFLICT: remote INSERT: row was previously INSERTed at node node_1.*PKEY: city_sid.*],
+    $logstart_1);
+ok($result, "bdr.log_conflicts_to_logfile default value does not log in the log file");
 
 # check insert/insert output
 my $ch_query = q[SELECT conflict_type, conflict_resolution, local_tuple, remote_tuple, local_commit_time IS NULL, local_conflict_time - local_commit_time BETWEEN INTERVAL '0.25' SECOND AND INTERVAL '0.75' SECOND FROM bdr.bdr_conflict_history];
@@ -94,9 +105,16 @@ is($node_1->safe_psql($bdr_test_dbname, $ch_query . " WHERE conflict_id = 5"),
    "expected insert/delete conflicts found on node1")
    or diag $node_1->safe_psql($bdr_test_dbname, $ch_query_diag);
 
+# We'll check that conflicts are logged to the log file if requested
+$node_1->safe_psql($bdr_test_dbname,
+        q[ALTER SYSTEM SET bdr.log_conflicts_to_logfile = on;]);
+$node_1->safe_psql($bdr_test_dbname, q[SELECT pg_reload_conf();]);
+
 # simple delete/delete conflict
 $node_0->psql($bdr_test_dbname, q[INSERT INTO city(city_sid, name) VALUES (2, 'Tom Price');]);
 wait_for_apply($node_0, $node_1);
+
+$logstart_1 = get_log_size($node_1);
 
 # Delete same tuple on two nodes at the same time to generate delete/delete
 # conflict.
@@ -122,7 +140,14 @@ foreach my $node (@{$nodes})
         "expected delete/delete conflict found on " . $node->name);
 }
 
-# verify time-based replication lag info
+# Check that the conflicts are reported in the log file
+# should have one as bdr.log_conflicts_to_logfile is set to true
+$result = find_in_log($node_1,
+    qr[.*CONFLICT: remote DELETE: could not find existing row. Resolution: skip_change; PKEY.*],
+    $logstart_1);
+ok($result, "bdr.log_conflicts_to_logfile set to true logs in the log file");
+
+# Verify time-based replication lag info
 my $xid = $node_0->safe_psql(
 	$bdr_test_dbname, qq[
 	BEGIN;
@@ -140,3 +165,29 @@ $node_0->poll_query_until($bdr_test_dbname, $caughtup_query)
   or die "Timed out while waiting for apply worker on node_1 applies the xact sent by node_0";
 
 done_testing();
+
+# Return the size of logfile of $node in bytes
+sub get_log_size
+{
+	my ($node) = @_;
+
+	return (stat $node->logfile)[7];
+}
+
+# Find $pat in logfile of $node after $off-th byte
+sub find_in_log
+{
+	my ($node, $pat, $off) = @_;
+	#my $max_attempts = $PostgreSQL::Test::Utils::timeout_default * 10;
+	my $max_attempts = 60 * 10;
+	my $log;
+
+	while ($max_attempts-- >= 0)
+	{
+		$log = PostgreSQL::Test::Utils::slurp_file($node->logfile, $off);
+		last if ($log =~ m/$pat/);
+		usleep(100_000);
+	}
+
+	return $log =~ m/$pat/;
+}
