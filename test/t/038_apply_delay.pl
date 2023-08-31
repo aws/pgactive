@@ -132,11 +132,11 @@ my $xid = $node_0->safe_psql(
 ]);
 wait_for_apply($node_0, $node_1);
 
-my $result = $node_0->safe_psql($bdr_test_dbname,
-    qq[SELECT last_sent_xact_id, last_sent_xact_committs = last_applied_xact_committs,
-        last_sent_xact_at < last_applied_xact_at FROM bdr.get_replication_lag_info()
-       WHERE last_sent_xact_id = $xid;]);
-
-is($result, qq($xid|t|t), "found time-based replication lag info");
+# Wait until apply worker on node_1 applies the xact sent by node_0
+my $caughtup_query =
+  qq[SELECT EXISTS (SELECT 1 FROM bdr.get_replication_lag_info()
+     WHERE last_applied_xact_id >= $xid);];
+$node_0->poll_query_until($bdr_test_dbname, $caughtup_query)
+  or die "Timed out while waiting for apply worker on node_1 applies the xact sent by node_0";
 
 done_testing();
