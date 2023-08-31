@@ -127,7 +127,7 @@ my $xid = $node_0->safe_psql(
 	$bdr_test_dbname, qq[
 	BEGIN;
 	INSERT INTO city(city_sid, name) VALUES (55, 'Alpha Price');
-	SELECT txid_current()::xid;
+	SELECT txid_current();
 	COMMIT;
 ]);
 wait_for_apply($node_0, $node_1);
