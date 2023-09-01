@@ -2322,14 +2322,12 @@ check_file_system_mount_points(PG_FUNCTION_ARGS)
 #ifdef WIN32
 	ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("checking file system mount points is not supported by this installation")));
+			 errmsg("checking file system mount point is not supported by this installation")));
 #endif
 	char	   *path1 = text_to_cstring(PG_GETARG_TEXT_P(0));
-	char	   *path2 = text_to_cstring(PG_GETARG_TEXT_P(0));
+	char	   *path2 = text_to_cstring(PG_GETARG_TEXT_P(1));
 	struct stat buf1;
 	struct stat buf2;
-	uint64		device_id1;
-	uint64		device_id2;
 
 	if (stat(path1, &buf1) != 0)
 		ereport(ERROR,
@@ -2343,11 +2341,8 @@ check_file_system_mount_points(PG_FUNCTION_ARGS)
 				 errmsg("failed to check mount point for path \"%s\": %m",
 						path2)));
 
-	/* Get device IDs of the mount points of the paths */
-	device_id1 = buf1.st_dev * buf1.st_blksize;
-	device_id2 = buf2.st_dev * buf2.st_blksize;
-
-	if (device_id1 == device_id2)
+	/* Compare device IDs of the mount points of the paths */
+	if (buf1.st_dev == buf2.st_dev)
 		PG_RETURN_BOOL(true);
 
 	PG_RETURN_BOOL(false);

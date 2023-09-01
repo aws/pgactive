@@ -683,7 +683,7 @@ DECLARE
     collation_hintmsg text;
     data_dir text;
     temp_dump_dir text;
-    file_system_mount_point_same boolean;
+    same_file_system_mount_point boolean;
     free_disk_space1 int8;
     free_disk_space1_p text;
     free_disk_space2 int8;
@@ -830,8 +830,8 @@ BEGIN
 
         IF free_disk_space1 < remote_nodeinfo.dbsize THEN
           RAISE USING
-            MESSAGE = 'joining node data directory has insufficient space',
-            DETAIL = format('joining node has %s free and remote database is %s in size.',
+            MESSAGE = 'joining node data directory file system mount point has insufficient space',
+            DETAIL = format('joining node has %s free disk space and remote database is %s in size.',
                             free_disk_space1_p, remote_dbsize_p),
             HINT = 'Ensure enough free space on joining node file system.',
             ERRCODE = 'object_not_in_prerequisite_state';
@@ -848,21 +848,21 @@ BEGIN
         -- factors. Hence we produce a warning, not failure here.
         IF free_disk_space2 < (remote_nodeinfo.dbsize/2) THEN
           RAISE WARNING USING
-            MESSAGE = 'joining node temporary dump directory has insufficient space',
-            DETAIL = format('joining node has %s free and remote database is %s in size.',
+            MESSAGE = 'joining node temporary dump directory file system mount point has insufficient space',
+            DETAIL = format('joining node has %s free disk space and remote database is %s in size.',
                             free_disk_space2_p, remote_dbsize_p),
             HINT = 'Ensure enough free space on joining node file system.',
             ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
         SELECT bdr.check_file_system_mount_points(data_dir, temp_dump_dir)
-          INTO file_system_mount_point_same;
+          INTO same_file_system_mount_point;
 
-        IF file_system_mount_point_same THEN
+        IF same_file_system_mount_point THEN
           IF free_disk_space1 <
              (remote_nodeinfo.dbsize + remote_nodeinfo.dbsize/2) THEN
             RAISE WARNING USING
-              MESSAGE = 'joining node has insufficient space',
+              MESSAGE = 'joining node has insufficient disk space',
               HINT = 'Ensure enough free space on joining node file system.',
               ERRCODE = 'object_not_in_prerequisite_state';
           END IF;
