@@ -753,29 +753,25 @@ BEGIN
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
+    IF NOT bypass_user_tables_check THEN
+      PERFORM 1 FROM pg_class r
+        INNER JOIN pg_namespace n ON r.relnamespace = n.oid
+        WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
+        AND relkind = 'r' AND relpersistence = 'p';
+
+      IF FOUND THEN
+          RAISE USING
+              MESSAGE = 'database joining BDR group has existing user tables',
+              HINT = 'Ensure no user tables on the database.',
+              ERRCODE = 'object_not_in_prerequisite_state';
+      END IF;
+    END IF;
+
     -- Now interrogate the remote node, if specified, and sanity check its
     -- connection too. The discovered node identity is returned if found.
     --
     -- This will error out if there are issues with the remote node.
     IF remote_dsn IS NOT NULL THEN
-        IF bypass_user_tables_check THEN
-          RAISE WARNING USING
-            MESSAGE = 'skipping pre-existing user tables check on database joining BDR group',
-            HINT = 'The ''bypass_user_tables_check'' option is only available for bdr_init_copy tool.';
-        ELSE
-          PERFORM 1 FROM pg_class r
-            INNER JOIN pg_namespace n ON r.relnamespace = n.oid
-            WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
-            AND relkind = 'r' AND relpersistence = 'p';
-
-          IF FOUND THEN
-              RAISE USING
-                  MESSAGE = 'database joining BDR group has existing user tables',
-                  HINT = 'Ensure no user tables on the database.',
-                  ERRCODE = 'object_not_in_prerequisite_state';
-          END IF;
-        END IF;
-
         SELECT * INTO remote_nodeinfo
         FROM bdr_get_remote_nodeinfo(remote_dsn);
 
@@ -1190,7 +1186,8 @@ BEGIN
         join_using_dsn := null,
         node_local_dsn := node_local_dsn,
         apply_delay := apply_delay,
-        replication_sets := replication_sets);
+        replication_sets := replication_sets,
+        bypass_user_tables_check := true);
 END;
 $body$;
 
