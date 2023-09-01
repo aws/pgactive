@@ -681,6 +681,14 @@ DECLARE
     local_db_collation_info_r RECORD;
     collation_errmsg text;
     collation_hintmsg text;
+    data_dir text;
+    temp_dump_dir text;
+    file_system_mount_point_same boolean;
+    free_disk_space1 int8;
+    free_disk_space1_p text;
+    free_disk_space2 int8;
+    free_disk_space2_p text;
+    remote_dbsize_p text;
 BEGIN
     -- Only one tx can be adding connections
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
@@ -811,6 +819,53 @@ BEGIN
                                 local_max_node_value, remote_nodeinfo.max_nodes),
                 HINT = 'The parameter must be set to the same value on all BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT setting FROM pg_settings
+          WHERE name = 'data_directory' INTO data_dir;
+
+        SELECT bdr.get_free_disk_space(data_dir) INTO free_disk_space1;
+        SELECT pg_size_pretty(free_disk_space1) INTO free_disk_space1_p;
+        SELECT pg_size_pretty(remote_nodeinfo.dbsize) INTO remote_dbsize_p;
+
+        IF free_disk_space1 < remote_nodeinfo.dbsize THEN
+          RAISE USING
+            MESSAGE = 'joining node data directory has insufficient space',
+            DETAIL = format('joining node has %s free and remote database is %s in size.',
+                            free_disk_space1_p, remote_dbsize_p),
+            HINT = 'Ensure enough free space on joining node file system.',
+            ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT setting FROM pg_settings
+          WHERE name = 'bdr.temp_dump_directory' INTO temp_dump_dir;
+
+        SELECT bdr.get_free_disk_space(temp_dump_dir) INTO free_disk_space2;
+        SELECT pg_size_pretty(free_disk_space2) INTO free_disk_space2_p;
+
+        -- We estimate that pg_dump needs at least 50% of database size. It is
+        -- an estimation, the real produced dump size depends on various
+        -- factors. Hence we produce a warning, not failure here.
+        IF free_disk_space2 < (remote_nodeinfo.dbsize/2) THEN
+          RAISE WARNING USING
+            MESSAGE = 'joining node temporary dump directory has insufficient space',
+            DETAIL = format('joining node has %s free and remote database is %s in size.',
+                            free_disk_space2_p, remote_dbsize_p),
+            HINT = 'Ensure enough free space on joining node file system.',
+            ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT bdr.check_file_system_mount_points(data_dir, temp_dump_dir)
+          INTO file_system_mount_point_same;
+
+        IF file_system_mount_point_same THEN
+          IF free_disk_space1 <
+             (remote_nodeinfo.dbsize + remote_nodeinfo.dbsize/2) THEN
+            RAISE WARNING USING
+              MESSAGE = 'joining node has insufficient space',
+              HINT = 'Ensure enough free space on joining node file system.',
+              ERRCODE = 'object_not_in_prerequisite_state';
+          END IF;
         END IF;
 
 		-- using pg_file_settings here as bdr.skip_ddl_replication is SET to on when entering
@@ -2096,6 +2151,32 @@ FROM
  LEFT JOIN pg_catalog.pg_stat_replication r ON (r.pid = s.active_pid)
 WHERE ps.local_dboid = (select oid from pg_database where datname = current_database())
   AND s.plugin = 'bdr';
+
+CREATE FUNCTION get_free_disk_space(
+  path text,
+  OUT free_disk_space int8
+)
+RETURNS bigint
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION get_free_disk_space(text) FROM public;
+
+COMMENT ON FUNCTION get_free_disk_space(text) IS
+'Gets free disk space in bytes of filesystem to which given path is mounted.';
+
+CREATE FUNCTION check_file_system_mount_points(
+  path1 text,
+  path2 text
+)
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION check_file_system_mount_points(text, text) FROM public;
+
+COMMENT ON FUNCTION check_file_system_mount_points(text, text) IS
+'Checks if given paths are on same file system mount points.';
 
 -- RESET bdr.permit_unsafe_ddl_commands; is removed for now
 RESET bdr.skip_ddl_replication;
