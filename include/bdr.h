@@ -701,6 +701,7 @@ extern void bdr_bdr_node_free(BDRNodeInfo * node);
 extern void bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus oldstatus);
 extern void bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const int *seq_id);
 extern List *bdr_read_connection_configs(void);
+extern List *bdr_get_all_local_dsn(void);
 extern int	bdr_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
@@ -748,7 +749,8 @@ extern struct pg_conn *bdr_establish_connection_and_slot(const char *dsn,
 														 char **out_snapshot);
 
 extern PGconn *bdr_connect_nonrepl(const char *connstring,
-								   const char *appnamesuffix);
+								   const char *appnamesuffix,
+								   bool report_fatal);
 
 /* Helper for PG_ENSURE_ERROR_CLEANUP to close a PGconn */
 extern void bdr_cleanup_conn_close(int code, Datum offset);
