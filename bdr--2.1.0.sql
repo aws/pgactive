@@ -719,6 +719,20 @@ BEGIN
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
+    IF remote_dsn IS NOT NULL THEN
+      PERFORM 1 FROM pg_class r
+        INNER JOIN pg_namespace n ON r.relnamespace = n.oid
+        WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
+        AND relkind = 'r' AND relpersistence = 'p';
+
+      IF FOUND THEN
+          RAISE USING
+              MESSAGE = 'database joining BDR group has existing user tables',
+              HINT = 'Ensure no user tables on the database.',
+              ERRCODE = 'object_not_in_prerequisite_state';
+      END IF;
+    END IF;
+
     -- Validate that the local connection is usable and matches the node
     -- identity of the node we're running on.
     --
