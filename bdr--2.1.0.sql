@@ -661,8 +661,9 @@ CREATE FUNCTION _bdr_begin_join_private (
     remote_sysid OUT text,
     remote_timeline OUT oid,
     remote_dboid OUT oid,
-    bypass_collation_checks boolean,
-    bypass_node_identifier_creation boolean
+    bypass_collation_check boolean,
+    bypass_node_identifier_creation boolean,
+    bypass_user_tables_check boolean
 )
 RETURNS record LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -719,20 +720,6 @@ BEGIN
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
-    IF remote_dsn IS NOT NULL THEN
-      PERFORM 1 FROM pg_class r
-        INNER JOIN pg_namespace n ON r.relnamespace = n.oid
-        WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
-        AND relkind = 'r' AND relpersistence = 'p';
-
-      IF FOUND THEN
-          RAISE USING
-              MESSAGE = 'database joining BDR group has existing user tables',
-              HINT = 'Ensure no user tables on the database.',
-              ERRCODE = 'object_not_in_prerequisite_state';
-      END IF;
-    END IF;
-
     -- Validate that the local connection is usable and matches the node
     -- identity of the node we're running on.
     --
@@ -771,6 +758,24 @@ BEGIN
     --
     -- This will error out if there are issues with the remote node.
     IF remote_dsn IS NOT NULL THEN
+        IF bypass_user_tables_check THEN
+          RAISE WARNING USING
+            MESSAGE = 'skipping pre-existing user tables check on database joining BDR group',
+            HINT = 'The ''bypass_user_tables_check'' option is only available for bdr_init_copy tool.';
+        ELSE
+          PERFORM 1 FROM pg_class r
+            INNER JOIN pg_namespace n ON r.relnamespace = n.oid
+            WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
+            AND relkind = 'r' AND relpersistence = 'p';
+
+          IF FOUND THEN
+              RAISE USING
+                  MESSAGE = 'database joining BDR group has existing user tables',
+                  HINT = 'Ensure no user tables on the database.',
+                  ERRCODE = 'object_not_in_prerequisite_state';
+          END IF;
+        END IF;
+
         SELECT * INTO remote_nodeinfo
         FROM bdr_get_remote_nodeinfo(remote_dsn);
 
@@ -859,7 +864,7 @@ BEGIN
           collation_errmsg := 'joining node and remote node have different database collation settings';
           collation_hintmsg := 'Use the same database collation settings for both nodes.';
 
-          IF bypass_collation_checks THEN
+          IF bypass_collation_check THEN
             RAISE WARNING USING
               MESSAGE = collation_errmsg,
               HINT = collation_hintmsg,
@@ -951,8 +956,9 @@ CREATE FUNCTION bdr_join_group (
     node_local_dsn text DEFAULT NULL,
     apply_delay integer DEFAULT NULL,
     replication_sets text[] DEFAULT ARRAY['default'],
-    bypass_collation_checks boolean DEFAULT false,
-    bypass_node_identifier_creation boolean DEFAULT false
+    bypass_collation_check boolean DEFAULT false,
+    bypass_node_identifier_creation boolean DEFAULT false,
+    bypass_user_tables_check boolean DEFAULT false
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -1015,8 +1021,9 @@ BEGIN
         node_local_dsn := CASE WHEN node_local_dsn IS NULL
           THEN node_external_dsn ELSE node_local_dsn END,
         remote_dsn := join_using_dsn,
-        bypass_collation_checks := bypass_collation_checks,
-        bypass_node_identifier_creation := bypass_node_identifier_creation);
+        bypass_collation_check := bypass_collation_check,
+        bypass_node_identifier_creation := bypass_node_identifier_creation,
+        bypass_user_tables_check := bypass_user_tables_check);
 
     SELECT sysid, timeline, dboid INTO localid
     FROM bdr.bdr_get_local_nodeid();
@@ -1079,7 +1086,7 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean, boolean) IS
+COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean, boolean, boolean) IS
 'Join an existing BDR group by connecting to a member node and copying its contents';
 
 CREATE FUNCTION bdr_create_group (
