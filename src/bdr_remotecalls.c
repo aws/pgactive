@@ -377,14 +377,37 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
 
 	PQclear(res);
+
+	/* Fetch total indexes size from remote node */
+	res = PQexec(conn, "SELECT sum(pg_indexes_size(r.oid)) AS indexessize "
+				 "FROM pg_class r JOIN pg_namespace n "
+				 "ON relnamespace = n.oid WHERE n.nspname NOT IN "
+				 "('pg_catalog', 'bdr', 'information_schema') "
+				 "AND relkind = 'r' AND relpersistence = 'p';");
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get total indexes size from remote node"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+
+	Assert(PQnfields(res) == 1);
+	Assert(PQntuples(res) == 1);
+
+	if (PQgetisnull(res, 0, 0))
+		ri->indexessize = 0;
+	else
+		ri->indexessize = DatumGetInt64(
+										DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 0))));
+
+	PQclear(res);
 }
 
 Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[17];
-	bool		isnull[17];
+	Datum		values[18];
+	bool		isnull[18];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -422,19 +445,20 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[9] = CStringGetTextDatum(ri.node_name);
 		values[10] = CStringGetTextDatum(ri.dbname);
 		values[11] = Int64GetDatum(ri.dbsize);
-		values[12] = Int32GetDatum(ri.max_nodes);
-		values[13] = BoolGetDatum(ri.skip_ddl_replication);
-		values[14] = Int32GetDatum(ri.cur_nodes);
+		values[12] = Int64GetDatum(ri.indexessize);
+		values[13] = Int32GetDatum(ri.max_nodes);
+		values[14] = BoolGetDatum(ri.skip_ddl_replication);
+		values[15] = Int32GetDatum(ri.cur_nodes);
 
 		if (ri.datcollate == NULL)
-			isnull[15] = true;
-		else
-			values[15] = CStringGetTextDatum(ri.datcollate);
-
-		if (ri.datctype == NULL)
 			isnull[16] = true;
 		else
-			values[16] = CStringGetTextDatum(ri.datctype);
+			values[16] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[17] = true;
+		else
+			values[17] = CStringGetTextDatum(ri.datctype);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

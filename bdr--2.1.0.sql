@@ -426,6 +426,7 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   node_name OUT text,
   dbname OUT text,
   dbsize OUT int8,
+  indexessize OUT int8,
   max_nodes OUT integer,
   skip_ddl_replication OUT boolean,
   cur_nodes OUT integer,
@@ -828,10 +829,15 @@ BEGIN
         SELECT pg_size_pretty(free_disk_space1) INTO free_disk_space1_p;
         SELECT pg_size_pretty(remote_nodeinfo.dbsize) INTO remote_dbsize_p;
 
-        IF free_disk_space1 < remote_nodeinfo.dbsize THEN
-          RAISE USING
-            MESSAGE = 'joining node data directory file system mount point has insufficient space',
-            DETAIL = format('joining node has %s free disk space and remote database is %s in size.',
+        -- We estimate that postgres needs 20% more disk space as temporary
+        -- workspace while restoring database for running queries or building
+        -- indexes. Note that it is just an estimation, the actual disk space
+        -- needed depends on various factors. Hence we emit a warning to inform
+        -- early, not an error.
+        IF free_disk_space1 < (1.2 * remote_nodeinfo.dbsize) THEN
+          RAISE WARNING USING
+            MESSAGE = 'node might fail to join BDR group as disk space is likely to be insufficient',
+            DETAIL = format('joining node data directory file system mount point has %s free disk space and remote database is %s in size.',
                             free_disk_space1_p, remote_dbsize_p),
             HINT = 'Ensure enough free space on joining node file system.',
             ERRCODE = 'object_not_in_prerequisite_state';
@@ -843,15 +849,16 @@ BEGIN
         SELECT bdr.get_free_disk_space(temp_dump_dir) INTO free_disk_space2;
         SELECT pg_size_pretty(free_disk_space2) INTO free_disk_space2_p;
 
-        -- We estimate that pg_dump needs at least 50% of database size. It is
-        -- an estimation, the real produced dump size depends on various
-        -- factors. Hence we produce a warning, not failure here.
-        IF free_disk_space2 < (remote_nodeinfo.dbsize/2) THEN
+        -- We estimate that pg_dump needs at least 50% of database size
+        -- excluding total size of indexes on the database. Note that it is
+        -- just an estimation, the actual disk space needed depends on various
+        -- factors. Hence we emit a warning to inform early, not an error.
+        IF free_disk_space2 < ((remote_nodeinfo.dbsize - remote_nodeinfo.indexessize)/2) THEN
           RAISE WARNING USING
-            MESSAGE = 'joining node temporary dump directory file system mount point has insufficient space',
-            DETAIL = format('joining node has %s free disk space and remote database is %s in size.',
+            MESSAGE = 'node might fail to join BDR group as disk space required to store temporary dump is likely to be insufficient',
+            DETAIL = format('bdr.temp_dump_directory file system mount point has %s free disk space and remote database is %s in size.',
                             free_disk_space2_p, remote_dbsize_p),
-            HINT = 'Ensure enough free space on joining node file system.',
+            HINT = 'Ensure enough free space on bdr.temp_dump_directory file system.',
             ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
@@ -860,9 +867,9 @@ BEGIN
 
         IF same_file_system_mount_point THEN
           IF free_disk_space1 <
-             (remote_nodeinfo.dbsize + remote_nodeinfo.dbsize/2) THEN
+             ((1.2 * remote_nodeinfo.dbsize) + ((remote_nodeinfo.dbsize - remote_nodeinfo.indexessize)/2)) THEN
             RAISE WARNING USING
-              MESSAGE = 'joining node has insufficient disk space',
+              MESSAGE = 'node might fail to join BDR group as disk space required to store both remote database and temporary dump is likely to be insufficient',
               HINT = 'Ensure enough free space on joining node file system.',
               ERRCODE = 'object_not_in_prerequisite_state';
           END IF;
