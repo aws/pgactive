@@ -1454,7 +1454,8 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	 */
 	printfPQExpBuffer(query, "SELECT bdr.bdr_join_group(%s, %s, %s, "
 					  "replication_sets := %s, apply_delay := %d, "
-					  "bypass_node_identifier_creation := true);",
+					  "bypass_node_identifier_creation := true, "
+					  "bypass_user_tables_check := true)",
 					  PQescapeLiteral(conn, node_name, strlen(node_name)),
 					  PQescapeLiteral(conn, local_connstr, strlen(local_connstr)),
 					  PQescapeLiteral(conn, remote_connstr, strlen(remote_connstr)),

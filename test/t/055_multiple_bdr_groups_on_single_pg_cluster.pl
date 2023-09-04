@@ -42,6 +42,9 @@ $host = $node_g1_c1->host;
 my $node_g1_c1_connstr = "port=$port host=$host dbname=$alpha";
 my $logstart = get_log_size($node_g2_c2);
 
+# Ensure database is empty before joining BDR group
+$node_g2_c2->safe_psql($bravo, q[DROP TABLE fruits;]);
+
 $node_g2_c2->safe_psql($bravo, qq{
     SELECT bdr.bdr_join_group(
         local_node_name := 'node_g2_g1_c2',

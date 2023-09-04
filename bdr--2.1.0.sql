@@ -661,8 +661,9 @@ CREATE FUNCTION _bdr_begin_join_private (
     remote_sysid OUT text,
     remote_timeline OUT oid,
     remote_dboid OUT oid,
-    bypass_collation_checks boolean,
-    bypass_node_identifier_creation boolean
+    bypass_collation_check boolean,
+    bypass_node_identifier_creation boolean,
+    bypass_user_tables_check boolean
 )
 RETURNS record LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -750,6 +751,20 @@ BEGIN
             MESSAGE = 'local dsn does not have superuser rights',
             DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, node_local_dsn),
             ERRCODE = 'object_not_in_prerequisite_state';
+    END IF;
+
+    IF NOT bypass_user_tables_check THEN
+      PERFORM 1 FROM pg_class r
+        INNER JOIN pg_namespace n ON r.relnamespace = n.oid
+        WHERE n.nspname NOT IN ('pg_catalog', 'bdr', 'information_schema')
+        AND relkind = 'r' AND relpersistence = 'p';
+
+      IF FOUND THEN
+          RAISE USING
+              MESSAGE = 'database joining BDR group has existing user tables',
+              HINT = 'Ensure no user tables in the database.',
+              ERRCODE = 'object_not_in_prerequisite_state';
+      END IF;
     END IF;
 
     -- Now interrogate the remote node, if specified, and sanity check its
@@ -845,7 +860,7 @@ BEGIN
           collation_errmsg := 'joining node and remote node have different database collation settings';
           collation_hintmsg := 'Use the same database collation settings for both nodes.';
 
-          IF bypass_collation_checks THEN
+          IF bypass_collation_check THEN
             RAISE WARNING USING
               MESSAGE = collation_errmsg,
               HINT = collation_hintmsg,
@@ -937,8 +952,9 @@ CREATE FUNCTION bdr_join_group (
     node_local_dsn text DEFAULT NULL,
     apply_delay integer DEFAULT NULL,
     replication_sets text[] DEFAULT ARRAY['default'],
-    bypass_collation_checks boolean DEFAULT false,
-    bypass_node_identifier_creation boolean DEFAULT false
+    bypass_collation_check boolean DEFAULT false,
+    bypass_node_identifier_creation boolean DEFAULT false,
+    bypass_user_tables_check boolean DEFAULT false
     )
 RETURNS void LANGUAGE plpgsql VOLATILE
 SET search_path = bdr, pg_catalog
@@ -1001,8 +1017,9 @@ BEGIN
         node_local_dsn := CASE WHEN node_local_dsn IS NULL
           THEN node_external_dsn ELSE node_local_dsn END,
         remote_dsn := join_using_dsn,
-        bypass_collation_checks := bypass_collation_checks,
-        bypass_node_identifier_creation := bypass_node_identifier_creation);
+        bypass_collation_check := bypass_collation_check,
+        bypass_node_identifier_creation := bypass_node_identifier_creation,
+        bypass_user_tables_check := bypass_user_tables_check);
 
     SELECT sysid, timeline, dboid INTO localid
     FROM bdr.bdr_get_local_nodeid();
@@ -1065,7 +1082,7 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean, boolean) IS
+COMMENT ON FUNCTION bdr_join_group(text, text, text, text, integer, text[], boolean, boolean, boolean) IS
 'Join an existing BDR group by connecting to a member node and copying its contents';
 
 CREATE FUNCTION bdr_create_group (
@@ -1169,7 +1186,8 @@ BEGIN
         join_using_dsn := null,
         node_local_dsn := node_local_dsn,
         apply_delay := apply_delay,
-        replication_sets := replication_sets);
+        replication_sets := replication_sets,
+        bypass_user_tables_check := true);
 END;
 $body$;
 
