@@ -17,11 +17,11 @@ use utils::nodemanagement qw(
 		);
 
 # Create an upstream node and bring up bdr
-my $nodes = make_bdr_group(3,'node_');
+my $nodes = make_bdr_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
 
-# Detach a node from 3 node cluster
-note "Detach node_0 from 3 node cluster\n";
+# Detach a node from 2 node cluster
+note "Detach node_0 from 2 node cluster\n";
 bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
@@ -40,7 +40,7 @@ my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
     $bdr_test_dbname,
     $join_query);
 like($psql_stderr, qr/.*ERROR.*database joining BDR group has existing user tables/,
-     "joining of a node failed due to existing user tables on database");
+     "joining of a node failed due to existing user tables in database");
 
 # Ensure database is empty before joining BDR group
 $node_0->safe_psql($bdr_test_dbname, q[DROP TABLE db_not_empty;]);

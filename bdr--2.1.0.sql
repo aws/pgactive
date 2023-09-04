@@ -762,7 +762,7 @@ BEGIN
       IF FOUND THEN
           RAISE USING
               MESSAGE = 'database joining BDR group has existing user tables',
-              HINT = 'Ensure no user tables on the database.',
+              HINT = 'Ensure no user tables in the database.',
               ERRCODE = 'object_not_in_prerequisite_state';
       END IF;
     END IF;
