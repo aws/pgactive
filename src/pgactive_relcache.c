@@ -1,20 +1,20 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_relcache.c
- *		BDR relation caching
+ * pgactive_relcache.c
+ *		pgactive relation caching
  *
  * Caching relation specific information
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_relcache.c
+ *		pgactive_relcache.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "access/genam.h"
 #include "access/heapam.h"
@@ -31,10 +31,10 @@
 #include "utils/jsonb.h"
 #include "utils/rel.h"
 
-static HTAB *BDRRelcacheHash = NULL;
+static HTAB *pgactiveRelcacheHash = NULL;
 
 static void
-BDRRelcacheHashInvalidateEntry(BDRRelation * entry)
+pgactiveRelcacheHashInvalidateEntry(pgactiveRelation * entry)
 {
 	int			i;
 
@@ -51,18 +51,18 @@ BDRRelcacheHashInvalidateEntry(BDRRelation * entry)
 }
 
 void
-BDRRelcacheHashInvalidateCallback(Datum arg, Oid relid)
+pgactiveRelcacheHashInvalidateCallback(Datum arg, Oid relid)
 {
 	HASH_SEQ_STATUS status;
-	BDRRelation *entry;
+	pgactiveRelation *entry;
 
 	/*
-	 * We sometimes explicitly invalidate the entire bdr relcache -
+	 * We sometimes explicitly invalidate the entire pgactive relcache -
 	 * independent of actual system caused invalidations. Without that this
 	 * situation could not happen as the normall inval callback only gets
 	 * registered after creating the hash.
 	 */
-	if (BDRRelcacheHash == NULL)
+	if (pgactiveRelcacheHash == NULL)
 		return;
 
 	/*
@@ -71,16 +71,16 @@ BDRRelcacheHashInvalidateCallback(Datum arg, Oid relid)
 	 */
 	if (relid == InvalidOid)
 	{
-		hash_seq_init(&status, BDRRelcacheHash);
+		hash_seq_init(&status, pgactiveRelcacheHash);
 
-		while ((entry = (BDRRelation *) hash_seq_search(&status)) != NULL)
+		while ((entry = (pgactiveRelation *) hash_seq_search(&status)) != NULL)
 		{
 			entry->valid = false;
 		}
 	}
 	else
 	{
-		if ((entry = hash_search(BDRRelcacheHash, &relid,
+		if ((entry = hash_search(pgactiveRelcacheHash, &relid,
 								 HASH_FIND, NULL)) != NULL)
 		{
 			entry->valid = false;
@@ -89,7 +89,7 @@ BDRRelcacheHashInvalidateCallback(Datum arg, Oid relid)
 }
 
 static void
-bdr_relcache_initialize()
+pgactive_relcache_initialize()
 {
 	HASHCTL		ctl;
 
@@ -100,20 +100,20 @@ bdr_relcache_initialize()
 	/* Initialize the hash table. */
 	MemSet(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(Oid);
-	ctl.entrysize = sizeof(BDRRelation);
+	ctl.entrysize = sizeof(pgactiveRelation);
 	ctl.hash = tag_hash;
 	ctl.hcxt = CacheMemoryContext;
 
-	BDRRelcacheHash = hash_create("BDR relation cache", 128, &ctl,
+	pgactiveRelcacheHash = hash_create("pgactive relation cache", 128, &ctl,
 								  HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
-	CacheRegisterRelcacheCallback(BDRRelcacheHashInvalidateCallback,
+	CacheRegisterRelcacheCallback(pgactiveRelcacheHashInvalidateCallback,
 								  (Datum) 0);
 }
 
 void
-bdr_validate_replication_set_name(const char *name,
+pgactive_validate_replication_set_name(const char *name,
 								  bool allow_implicit)
 {
 	const char *cp;
@@ -158,12 +158,12 @@ bdr_validate_replication_set_name(const char *name,
 				(errcode(ERRCODE_NAME_TOO_LONG),
 				 errmsg("replication set name \"%s\" is reserved",
 						name),
-				 errhint("To reset a relation's replication sets to defaults, use bdr.bdr_set_table_replication_sets('relation_name', NULL).")));
+				 errhint("To reset a relation's replication sets to defaults, use pgactive.pgactive_set_table_replication_sets('relation_name', NULL).")));
 	}
 }
 
 void
-bdr_parse_relation_options(const char *label, BDRRelation * rel)
+pgactive_parse_relation_options(const char *label, pgactiveRelation * rel)
 {
 	JsonbIterator *it;
 	JsonbValue	v;
@@ -226,7 +226,7 @@ bdr_parse_relation_options(const char *label, BDRRelation * rel)
 			oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
 
 			setname = pnstrdup(v.val.string.val, v.val.string.len);
-			bdr_validate_replication_set_name(setname, false);
+			pgactive_validate_replication_set_name(setname, false);
 
 			if (rel != NULL)
 			{
@@ -249,10 +249,10 @@ bdr_parse_relation_options(const char *label, BDRRelation * rel)
 
 }
 
-BDRRelation *
-bdr_table_open(Oid reloid, LOCKMODE lockmode)
+pgactiveRelation *
+pgactive_table_open(Oid reloid, LOCKMODE lockmode)
 {
-	BDRRelation *entry;
+	pgactiveRelation *entry;
 	bool		found;
 	Relation	rel;
 	ObjectAddress object;
@@ -260,13 +260,13 @@ bdr_table_open(Oid reloid, LOCKMODE lockmode)
 
 	rel = table_open(reloid, lockmode);
 
-	if (BDRRelcacheHash == NULL)
-		bdr_relcache_initialize();
+	if (pgactiveRelcacheHash == NULL)
+		pgactive_relcache_initialize();
 
 	/*
 	 * HASH_ENTER returns the existing entry if present or creates a new one.
 	 */
-	entry = hash_search(BDRRelcacheHash, (void *) &reloid,
+	entry = hash_search(pgactiveRelcacheHash, (void *) &reloid,
 						HASH_ENTER, &found);
 
 	/* possibly a new relcache.c relcache entry */
@@ -275,12 +275,12 @@ bdr_table_open(Oid reloid, LOCKMODE lockmode)
 	if (found && entry->valid)
 		return entry;
 	else if (found)
-		BDRRelcacheHashInvalidateEntry(entry);
+		pgactiveRelcacheHashInvalidateEntry(entry);
 
 	/* zero out data part of the entry */
-	memset(((char *) entry) + offsetof(BDRRelation, conflict_handlers),
+	memset(((char *) entry) + offsetof(pgactiveRelation, conflict_handlers),
 		   0,
-		   sizeof(BDRRelation) - offsetof(BDRRelation, conflict_handlers));
+		   sizeof(pgactiveRelation) - offsetof(pgactiveRelation, conflict_handlers));
 
 	entry->reloid = reloid;
 	entry->num_replication_sets = -1;
@@ -289,8 +289,8 @@ bdr_table_open(Oid reloid, LOCKMODE lockmode)
 	object.objectId = reloid;
 	object.objectSubId = 0;
 
-	label = GetSecurityLabel(&object, BDR_SECLABEL_PROVIDER);
-	bdr_parse_relation_options(label, entry);
+	label = GetSecurityLabel(&object, pgactive_SECLABEL_PROVIDER);
+	pgactive_parse_relation_options(label, entry);
 
 	entry->valid = true;
 
@@ -298,7 +298,7 @@ bdr_table_open(Oid reloid, LOCKMODE lockmode)
 }
 
 void
-bdr_table_close(BDRRelation * rel, LOCKMODE lockmode)
+pgactive_table_close(pgactiveRelation * rel, LOCKMODE lockmode)
 {
 	table_close(rel->rel, lockmode);
 	rel->rel = NULL;
@@ -306,7 +306,7 @@ bdr_table_close(BDRRelation * rel, LOCKMODE lockmode)
 
 
 static bool
-relation_in_replication_set(BDRRelation * r, const char *setname)
+relation_in_replication_set(pgactiveRelation * r, const char *setname)
 {
 	/* "all" set contains, surprise, all relations */
 	if (strcmp(setname, "all") == 0)
@@ -375,7 +375,7 @@ replset_lookup(Relation rel, const char *cname)
  * currently can't invalidate the cache correctly otherwise.
  */
 void
-bdr_heap_compute_replication_settings(BDRRelation * r,
+pgactive_heap_compute_replication_settings(pgactiveRelation * r,
 									  int conf_num_replication_sets,
 									  char **conf_replication_sets)
 {
@@ -411,7 +411,7 @@ bdr_heap_compute_replication_settings(BDRRelation * r,
 		if (!relation_in_replication_set(r, setname))
 			continue;
 
-		repl_sets = table_open(BdrReplicationSetConfigRelid, AccessShareLock);
+		repl_sets = table_open(pgactiveReplicationSetConfigRelid, AccessShareLock);
 		tuple = replset_lookup(repl_sets, setname);
 
 		if (tuple != NULL)

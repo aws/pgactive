@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_apply.c
+ * pgactive_apply.c
  *		Replication!!!
  *
  * Replication???
@@ -8,7 +8,7 @@
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_apply.c
+ *		pgactive_apply.c
  *
  * -------------------------------------------------------------------------
  */
@@ -16,9 +16,9 @@
 
 #include <unistd.h>
 
-#include "bdr.h"
-#include "bdr_locks.h"
-#include "bdr_messaging.h"
+#include "pgactive.h"
+#include "pgactive_locks.h"
+#include "pgactive_messaging.h"
 
 #include "funcapi.h"
 #include "libpq-fe.h"
@@ -76,7 +76,7 @@ Oid			QueuedDDLCommandsRelid = InvalidOid;
 Oid			QueuedDropsRelid = InvalidOid;
 
 /* Global apply worker state */
-BDRNodeId	origin;
+pgactiveNodeId	origin;
 bool		started_transaction = false;
 
 /* During apply, holds xid of remote transaction */
@@ -84,9 +84,9 @@ TransactionId replication_origin_xid = InvalidTransactionId;
 
 /*
  * For tracking of the remote origin's information when in catchup mode
- * (BDR_OUTPUT_TRANSACTION_HAS_ORIGIN).
+ * (pgactive_OUTPUT_TRANSACTION_HAS_ORIGIN).
  */
-static BDRNodeId remote_origin;
+static pgactiveNodeId remote_origin;
 static XLogRecPtr remote_origin_lsn = InvalidXLogRecPtr;
 
 /* The local identifier for the remote's origin, if any. */
@@ -103,11 +103,11 @@ static uint32 xact_action_counter;
  * This code only runs within an apply bgworker, so we can stash a pointer to our
  * state in shm in a global for convenient access.
  */
-static BdrApplyWorker * bdr_apply_worker = NULL;
+static pgactiveApplyWorker * pgactive_apply_worker = NULL;
 
-static BdrConnectionConfig * bdr_apply_config = NULL;
+static pgactiveConnectionConfig * pgactive_apply_config = NULL;
 
-dlist_head	bdr_lsn_association = DLIST_STATIC_INIT(bdr_lsn_association);
+dlist_head	pgactive_lsn_association = DLIST_STATIC_INIT(pgactive_lsn_association);
 
 struct ActionErrCallbackArg
 {
@@ -118,20 +118,20 @@ struct ActionErrCallbackArg
 	bool		suppress_output;
 };
 
-static BDRRelation * read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg);
-static void read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup);
+static pgactiveRelation * read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg);
+static void read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup);
 
-static void check_apply_update(BdrConflictType conflict_type,
+static void check_apply_update(pgactiveConflictType conflict_type,
 							   RepOriginId local_node_id, TimestampTz local_ts,
-							   BDRRelation * rel, HeapTuple local_tuple,
+							   pgactiveRelation * rel, HeapTuple local_tuple,
 							   HeapTuple remote_tuple, HeapTuple *new_tuple,
 							   bool *perform_update, bool *log_update,
-							   BdrConflictResolution * resolution);
+							   pgactiveConflictResolution * resolution);
 
-static void check_bdr_wakeups(BDRRelation * rel);
+static void check_pgactive_wakeups(pgactiveRelation * rel);
 static HeapTuple process_queued_drop(HeapTuple cmdtup);
 static void process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started);
-static bool bdr_performing_work(void);
+static bool pgactive_performing_work(void);
 
 static void process_remote_begin(StringInfo s);
 static void process_remote_commit(StringInfo s);
@@ -178,15 +178,15 @@ format_action_description(
 
 	if (replorigin_session_origin != InvalidRepOriginId)
 	{
-		appendStringInfo(si, " from node " BDR_NODEID_FORMAT_WITHNAME,
-						 BDR_NODEID_FORMAT_WITHNAME_ARGS(origin));
+		appendStringInfo(si, " from node " pgactive_NODEID_FORMAT_WITHNAME,
+						 pgactive_NODEID_FORMAT_WITHNAME_ARGS(origin));
 	}
 
 	if (remote_origin_id != InvalidRepOriginId)
 	{
-		appendStringInfo(si, " forwarded from commit %X/%X on node " BDR_NODEID_FORMAT_WITHNAME,
+		appendStringInfo(si, " forwarded from commit %X/%X on node " pgactive_NODEID_FORMAT_WITHNAME,
 						 LSN_FORMAT_ARGS(remote_origin_lsn),
-						 BDR_NODEID_FORMAT_WITHNAME_ARGS(remote_origin));
+						 pgactive_NODEID_FORMAT_WITHNAME_ARGS(remote_origin));
 	}
 }
 
@@ -217,12 +217,12 @@ process_remote_begin(StringInfo s)
 	TimestampTz committime;
 	TransactionId remote_xid;
 	char		statbuf[100];
-	int			apply_delay = bdr_apply_config->apply_delay;
+	int			apply_delay = pgactive_apply_config->apply_delay;
 	int			flags = 0;
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
 
-	Assert(bdr_apply_worker != NULL);
+	Assert(pgactive_apply_worker != NULL);
 
 	xact_action_counter = 1;
 	memset(&cbarg, 0, sizeof(struct ActionErrCallbackArg));
@@ -247,9 +247,9 @@ process_remote_begin(StringInfo s)
 	committime = pq_getmsgint64(s);
 	remote_xid = pq_getmsgint(s, 4);
 
-	if (flags & BDR_OUTPUT_TRANSACTION_HAS_ORIGIN)
+	if (flags & pgactive_OUTPUT_TRANSACTION_HAS_ORIGIN)
 	{
-		bdr_getmsg_nodeid(s, &remote_origin, false);
+		pgactive_getmsg_nodeid(s, &remote_origin, false);
 		remote_origin_lsn = pq_getmsgint64(s);
 	}
 	else
@@ -280,28 +280,28 @@ process_remote_begin(StringInfo s)
 	replication_origin_xid = remote_xid;
 
 	snprintf(statbuf, sizeof(statbuf),
-			 "bdr_apply: BEGIN origin(orig_lsn, timestamp): %X/%X, %s",
+			 "pgactive_apply: BEGIN origin(orig_lsn, timestamp): %X/%X, %s",
 			 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
 			 timestamptz_to_str(committime));
 
 	pgstat_report_activity(STATE_RUNNING, statbuf);
 
 	if (apply_delay == -1)
-		apply_delay = bdr_debug_apply_delay;
+		apply_delay = pgactive_debug_apply_delay;
 
 	/*
 	 * If we're in catchup mode, see if this transaction is relayed from
 	 * elsewhere and prepare to advance the appropriate replication origin.
 	 */
-	if (flags & BDR_OUTPUT_TRANSACTION_HAS_ORIGIN)
+	if (flags & pgactive_OUTPUT_TRANSACTION_HAS_ORIGIN)
 	{
 		char	   *remote_ident;
 		MemoryContext old_ctx;
-		BDRNodeId	my_nodeid;
+		pgactiveNodeId	my_nodeid;
 
-		bdr_make_my_nodeid(&my_nodeid);
+		pgactive_make_my_nodeid(&my_nodeid);
 
-		if (bdr_nodeid_eq(&remote_origin, &my_nodeid))
+		if (pgactive_nodeid_eq(&remote_origin, &my_nodeid))
 		{
 			/*
 			 * This might not have to be an error condition, but we don't cope
@@ -318,7 +318,7 @@ process_remote_begin(StringInfo s)
 		 * another node, we need to get the local RepOriginId for that node
 		 * based on the (sysid, timelineid, dboid) supplied in catchup mode.
 		 */
-		remote_ident = bdr_replident_name(&remote_origin, MyDatabaseId);
+		remote_ident = pgactive_replident_name(&remote_origin, MyDatabaseId);
 
 		old_ctx = CurrentMemoryContext;
 		StartTransactionCommand();
@@ -329,7 +329,7 @@ process_remote_begin(StringInfo s)
 		pfree(remote_ident);
 	}
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -367,8 +367,8 @@ process_remote_begin(StringInfo s)
 				/* ignore small skews */
 				if (sec > 1)
 					ereport(WARNING,
-							(errmsg("clock skew detected: node " BDR_NODEID_FORMAT_WITHNAME " clock is ahead of local clock by at least %ld.%03d seconds",
-									BDR_NODEID_FORMAT_WITHNAME_ARGS(origin), sec,
+							(errmsg("clock skew detected: node " pgactive_NODEID_FORMAT_WITHNAME " clock is ahead of local clock by at least %ld.%03d seconds",
+									pgactive_NODEID_FORMAT_WITHNAME_ARGS(origin), sec,
 									usec / 1000)));
 
 				/*
@@ -404,7 +404,7 @@ process_remote_begin(StringInfo s)
 					break;
 			}
 
-			(void) BDRWaitLatch(&MyProc->procLatch,
+			(void) pgactiveWaitLatch(&MyProc->procLatch,
 								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 								delay_ms, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
@@ -434,7 +434,7 @@ process_remote_commit(StringInfo s)
 	ErrorContextCallback errcallback;
 	struct ActionErrCallbackArg cbarg;
 
-	Assert(bdr_apply_worker != NULL);
+	Assert(pgactive_apply_worker != NULL);
 
 	xact_action_counter++;
 	memset(&cbarg, 0, sizeof(struct ActionErrCallbackArg));
@@ -455,7 +455,7 @@ process_remote_commit(StringInfo s)
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -469,15 +469,15 @@ process_remote_commit(StringInfo s)
 
 	Assert(committime == replorigin_session_origin_timestamp);
 
-	Assert(replorigin_session_origin_lsn == commit_afterend_lsn /* bdr 2.0 msg */
-		   || replorigin_session_origin_lsn == commit_lsn); /* bdr 1.0 msg */
+	Assert(replorigin_session_origin_lsn == commit_afterend_lsn /* pgactive 2.0 msg */
+		   || replorigin_session_origin_lsn == commit_lsn); /* pgactive 1.0 msg */
 
 	/*
-	 * BDR 1.0 used to send the start-of-commit lsn (commit_lsn) in BEGIN, not
+	 * pgactive 1.0 used to send the start-of-commit lsn (commit_lsn) in BEGIN, not
 	 * the position of the end of the commit record, and we might have used
 	 * that in the replorigin settings if that's all we had.
 	 *
-	 * That's wrong; we're supposed to use end-of-commit + 1. But with BDR 1.0
+	 * That's wrong; we're supposed to use end-of-commit + 1. But with pgactive 1.0
 	 * we don't have that information. To protect against replaying the same
 	 * commit again, report that we've flushed at least 1 byte past
 	 * start-of-commit.
@@ -487,7 +487,7 @@ process_remote_commit(StringInfo s)
 
 	if (started_transaction)
 	{
-		BdrFlushPosition *flushpos;
+		pgactiveFlushPosition *flushpos;
 
 		CommitTransactionCommand();
 		MemoryContextSwitchTo(MessageContext);
@@ -496,13 +496,13 @@ process_remote_commit(StringInfo s)
 		 * Associate the end of the remote commit lsn with the local end of
 		 * the commit record.
 		 */
-		flushpos = (BdrFlushPosition *)
-			MemoryContextAlloc(TopMemoryContext, sizeof(BdrFlushPosition));
+		flushpos = (pgactiveFlushPosition *)
+			MemoryContextAlloc(TopMemoryContext, sizeof(pgactiveFlushPosition));
 		flushpos->local_end = XactLastCommitEnd;
 		/* Feedback is supposed to be the last flushed LSN + 1 */
 		flushpos->remote_end = replorigin_session_origin_lsn;
 
-		dlist_push_tail(&bdr_lsn_association, &flushpos->node);
+		dlist_push_tail(&pgactive_lsn_association, &flushpos->node);
 
 		/* report stats, only relevant if something was actually written */
 		pgstat_report_stat(false);
@@ -534,14 +534,14 @@ process_remote_commit(StringInfo s)
 						   XactLastCommitEnd, false, true);
 	}
 
-	CurrentResourceOwner = bdr_saved_resowner;
+	CurrentResourceOwner = pgactive_saved_resowner;
 
-	bdr_count_commit();
+	pgactive_count_commit();
 
 	/* Save last applied transaction info */
-	bdr_apply_worker->last_applied_xact_id = replication_origin_xid;
-	bdr_apply_worker->last_applied_xact_committs = replorigin_session_origin_timestamp;
-	bdr_apply_worker->last_applied_xact_at = GetCurrentTimestamp();
+	pgactive_apply_worker->last_applied_xact_id = replication_origin_xid;
+	pgactive_apply_worker->last_applied_xact_committs = replorigin_session_origin_timestamp;
+	pgactive_apply_worker->last_applied_xact_at = GetCurrentTimestamp();
 
 	replication_origin_xid = InvalidTransactionId;
 	replorigin_session_origin_lsn = InvalidXLogRecPtr;
@@ -554,20 +554,20 @@ process_remote_commit(StringInfo s)
 	 * last record we're supposed to process. Since the end lsn points to the
 	 * start of the next record, we should stop if replay equals it.
 	 */
-	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr
-		&& bdr_apply_worker->replay_stop_lsn <= commit_afterend_lsn)
+	if (pgactive_apply_worker->replay_stop_lsn != InvalidXLogRecPtr
+		&& pgactive_apply_worker->replay_stop_lsn <= commit_afterend_lsn)
 	{
 		ereport(LOG,
-				(errmsg("bdr apply finished processing; replayed up to %X/%X of required %X/%X",
+				(errmsg("pgactive apply finished processing; replayed up to %X/%X of required %X/%X",
 						LSN_FORMAT_ARGS(commit_afterend_lsn),
-						LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn))));
+						LSN_FORMAT_ARGS(pgactive_apply_worker->replay_stop_lsn))));
 
 		/*
 		 * We clear the replay_stop_lsn field to indicate successful catchup,
 		 * so we don't need a separate flag field in shmem for all apply
 		 * workers.
 		 */
-		bdr_apply_worker->replay_stop_lsn = InvalidXLogRecPtr;
+		pgactive_apply_worker->replay_stop_lsn = InvalidXLogRecPtr;
 
 		/*
 		 * flush all writes so the latest position can be reported back to the
@@ -588,10 +588,10 @@ process_remote_insert(StringInfo s)
 {
 	char		action;
 	EState	   *estate;
-	BDRTupleData new_tuple;
+	pgactiveTupleData new_tuple;
 	TupleTableSlot *newslot;
 	TupleTableSlot *oldslot;
-	BDRRelation *rel;
+	pgactiveRelation *rel;
 	bool		started_tx;
 	ResultRelInfo *relinfo = makeNode(ResultRelInfo);
 	ItemPointer conflicts;
@@ -612,13 +612,13 @@ process_remote_insert(StringInfo s)
 	errcallback.previous = error_context_stack;
 	error_context_stack = &errcallback;
 
-	started_tx = bdr_performing_work();
+	started_tx = pgactive_performing_work();
 
-	Assert(bdr_apply_worker != NULL);
+	Assert(pgactive_apply_worker != NULL);
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -635,16 +635,16 @@ process_remote_insert(StringInfo s)
 	if (action != 'N')
 		elog(ERROR, "expected new tuple but got %d", action);
 
-	estate = bdr_create_rel_estate(rel->rel, relinfo);
+	estate = pgactive_create_rel_estate(rel->rel, relinfo);
 
 #if PG_VERSION_NUM >= 120000
 	oldslot = table_slot_create(rel->rel, &estate->es_tupleTable);
 #else
-	oldslot = ExecInitExtraTupleSlotBdr(estate, NULL);
+	oldslot = ExecInitExtraTupleSlotpgactive(estate, NULL);
 	ExecSetSlotDescriptor(oldslot, RelationGetDescr(rel->rel));
 #endif
 
-	newslot = ExecInitExtraTupleSlotBdr(estate, NULL);
+	newslot = ExecInitExtraTupleSlotpgactive(estate, NULL);
 	ExecSetSlotDescriptor(newslot, RelationGetDescr(rel->rel));
 
 	read_tuple_parts(s, rel, &new_tuple);
@@ -749,8 +749,8 @@ process_remote_insert(StringInfo s)
 		bool		apply_update;
 		bool		log_update;
 		HeapTuple	user_tuple = NULL;
-		BdrApplyConflict *apply_conflict = NULL;	/* Mute compiler */
-		BdrConflictResolution resolution;
+		pgactiveApplyConflict *apply_conflict = NULL;	/* Mute compiler */
+		pgactiveConflictResolution resolution;
 
 		get_local_tuple_origin(TTS_TUP(oldslot), &local_ts, &local_node_id);
 
@@ -758,7 +758,7 @@ process_remote_insert(StringInfo s)
 		 * Use conflict triggers and/or last-update-wins to decide which tuple
 		 * to retain.
 		 */
-		check_apply_update(BdrConflictType_InsertInsert,
+		check_apply_update(pgactiveConflictType_InsertInsert,
 						   local_node_id, local_ts, rel,
 						   TTS_TUP(oldslot), TTS_TUP(newslot), &user_tuple,
 						   &apply_update, &log_update, &resolution);
@@ -768,14 +768,14 @@ process_remote_insert(StringInfo s)
 		 */
 		if (log_update)
 		{
-			apply_conflict = bdr_make_apply_conflict(
-													 BdrConflictType_InsertInsert, resolution,
+			apply_conflict = pgactive_make_apply_conflict(
+													 pgactiveConflictType_InsertInsert, resolution,
 													 replication_origin_xid, rel, oldslot, local_node_id,
 													 newslot, local_ts, NULL /* no error */ );
 
-			bdr_conflict_log_serverlog(apply_conflict);
+			pgactive_conflict_log_serverlog(apply_conflict);
 
-			bdr_count_insert_conflict();
+			pgactive_count_insert_conflict();
 		}
 
 		/*
@@ -791,7 +791,7 @@ process_remote_insert(StringInfo s)
 
 			/*
 			 * User specified conflict handler provided a new tuple; form it
-			 * to a bdr tuple.
+			 * to a pgactive tuple.
 			 */
 			if (user_tuple)
 			{
@@ -825,14 +825,14 @@ process_remote_insert(StringInfo s)
 			/* races will be resolved by abort/retry */
 			UserTableUpdateOpenIndexes(estate, newslot, relinfo, false);
 
-			bdr_count_insert();
+			pgactive_count_insert();
 		}
 
 		/* Log conflict to table */
 		if (log_update)
 		{
-			bdr_conflict_log_table(apply_conflict);
-			bdr_conflict_logging_cleanup();
+			pgactive_conflict_log_table(apply_conflict);
+			pgactive_conflict_logging_cleanup();
 		}
 	}
 	else
@@ -843,20 +843,20 @@ process_remote_insert(StringInfo s)
 		simple_heap_insert(rel->rel, TTS_TUP(newslot));
 #endif
 		UserTableUpdateOpenIndexes(estate, newslot, relinfo, false);
-		bdr_count_insert();
+		pgactive_count_insert();
 	}
 
 	PopActiveSnapshot();
 
 	ExecCloseIndices(relinfo);
 
-	check_bdr_wakeups(rel);
+	check_pgactive_wakeups(rel);
 
 	/*
 	 * execute DDL if insertion was into the ddl command queue and if ddl
 	 * replication is wanted
 	 */
-	if (!prev_bdr_skip_ddl_replication && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
+	if (!prev_pgactive_skip_ddl_replication && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
 										   RelationGetRelid(rel->rel) == QueuedDropsRelid))
 	{
 		HeapTuple	ht;
@@ -877,7 +877,7 @@ process_remote_insert(StringInfo s)
 		ht = heap_copytuple(TTS_TUP(newslot));
 
 		LockRelationIdForSession(&lockid, RowExclusiveLock);
-		bdr_table_close(rel, NoLock);
+		pgactive_table_close(rel, NoLock);
 
 		ExecResetTupleTable(estate->es_tupleTable, true);
 		FreeExecutorState(estate);
@@ -908,7 +908,7 @@ process_remote_insert(StringInfo s)
 	}
 	else
 	{
-		bdr_table_close(rel, NoLock);
+		pgactive_table_close(rel, NoLock);
 		ExecResetTupleTable(estate->es_tupleTable, true);
 		FreeExecutorState(estate);
 	}
@@ -928,10 +928,10 @@ process_remote_update(StringInfo s)
 	TupleTableSlot *oldslot;
 	bool		pkey_sent;
 	bool		found_tuple;
-	BDRTupleData old_tuple;
-	BDRTupleData new_tuple;
+	pgactiveTupleData old_tuple;
+	pgactiveTupleData new_tuple;
 	Oid			idxoid;
-	BDRRelation *rel;
+	pgactiveRelation *rel;
 	Relation	idxrel;
 	ScanKeyData skey[INDEX_MAX_KEYS];
 	HeapTuple	user_tuple = NULL,
@@ -948,11 +948,11 @@ process_remote_update(StringInfo s)
 	errcallback.previous = error_context_stack;
 	error_context_stack = &errcallback;
 
-	bdr_performing_work();
+	pgactive_performing_work();
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -971,15 +971,15 @@ process_remote_update(StringInfo s)
 	if (action != 'K' && action != 'N')
 		elog(ERROR, "expected action 'N' or 'K', got %c", action);
 
-	estate = bdr_create_rel_estate(rel->rel, relinfo);
+	estate = pgactive_create_rel_estate(rel->rel, relinfo);
 #if PG_VERSION_NUM >= 120000
 	oldslot = table_slot_create(rel->rel, &estate->es_tupleTable);
 #else
-	oldslot = ExecInitExtraTupleSlotBdr(estate, NULL);
+	oldslot = ExecInitExtraTupleSlotpgactive(estate, NULL);
 	ExecSetSlotDescriptor(oldslot, RelationGetDescr(rel->rel));
 #endif
 
-	newslot = ExecInitExtraTupleSlotBdr(estate, NULL);
+	newslot = ExecInitExtraTupleSlotpgactive(estate, NULL);
 	ExecSetSlotDescriptor(newslot, RelationGetDescr(rel->rel));
 
 	if (action == 'K')
@@ -1031,8 +1031,8 @@ process_remote_update(StringInfo s)
 		RepOriginId local_node_id;
 		bool		apply_update;
 		bool		log_update;
-		BdrApplyConflict *apply_conflict = NULL;	/* Mute compiler */
-		BdrConflictResolution resolution;
+		pgactiveApplyConflict *apply_conflict = NULL;	/* Mute compiler */
+		pgactiveConflictResolution resolution;
 
 		remote_tuple = heap_modify_tuple(TTS_TUP(oldslot),
 										 RelationGetDescr(rel->rel),
@@ -1061,7 +1061,7 @@ process_remote_update(StringInfo s)
 		 * Use conflict triggers and/or last-update-wins to decide which tuple
 		 * to retain.
 		 */
-		check_apply_update(BdrConflictType_UpdateUpdate,
+		check_apply_update(pgactiveConflictType_UpdateUpdate,
 						   local_node_id, local_ts, rel,
 						   TTS_TUP(oldslot), TTS_TUP(newslot),
 						   &user_tuple, &apply_update,
@@ -1072,14 +1072,14 @@ process_remote_update(StringInfo s)
 		 */
 		if (log_update)
 		{
-			apply_conflict = bdr_make_apply_conflict(
-													 BdrConflictType_UpdateUpdate, resolution,
+			apply_conflict = pgactive_make_apply_conflict(
+													 pgactiveConflictType_UpdateUpdate, resolution,
 													 replication_origin_xid, rel, oldslot, local_node_id,
 													 newslot, local_ts, NULL /* no error */ );
 
-			bdr_conflict_log_serverlog(apply_conflict);
+			pgactive_conflict_log_serverlog(apply_conflict);
 
-			bdr_count_update_conflict();
+			pgactive_count_update_conflict();
 		}
 
 		if (apply_update)
@@ -1092,7 +1092,7 @@ process_remote_update(StringInfo s)
 
 			/*
 			 * User specified conflict handler provided a new tuple; form it
-			 * to a bdr tuple.
+			 * to a pgactive tuple.
 			 */
 			if (user_tuple)
 			{
@@ -1122,14 +1122,14 @@ process_remote_update(StringInfo s)
 			simple_heap_update(rel->rel, &(TTS_TUP(oldslot)->t_self), TTS_TUP(newslot));
 #endif
 			UserTableUpdateIndexes(estate, newslot, relinfo);
-			bdr_count_update();
+			pgactive_count_update();
 		}
 
 		/* Log conflict to table */
 		if (log_update)
 		{
-			bdr_conflict_log_table(apply_conflict);
-			bdr_conflict_logging_cleanup();
+			pgactive_conflict_log_table(apply_conflict);
+			pgactive_conflict_logging_cleanup();
 		}
 	}
 	else
@@ -1141,8 +1141,8 @@ process_remote_update(StringInfo s)
 		 */
 
 		bool		skip = false;
-		BdrApplyConflict *apply_conflict;
-		BdrConflictResolution resolution;
+		pgactiveApplyConflict *apply_conflict;
+		pgactiveConflictResolution resolution;
 
 		remote_tuple = heap_form_tuple(RelationGetDescr(rel->rel),
 									   new_tuple.values,
@@ -1150,32 +1150,32 @@ process_remote_update(StringInfo s)
 
 		ExecStoreHeapTuple(remote_tuple, newslot, true);
 
-		user_tuple = bdr_conflict_handlers_resolve(rel, NULL,
+		user_tuple = pgactive_conflict_handlers_resolve(rel, NULL,
 												   remote_tuple, "UPDATE",
-												   BdrConflictType_UpdateDelete,
+												   pgactiveConflictType_UpdateDelete,
 												   0, &skip);
 
-		bdr_count_update_conflict();
+		pgactive_count_update_conflict();
 
 		if (skip)
-			resolution = BdrConflictResolution_ConflictTriggerSkipChange;
+			resolution = pgactiveConflictResolution_ConflictTriggerSkipChange;
 		else if (user_tuple)
-			resolution = BdrConflictResolution_ConflictTriggerReturnedTuple;
+			resolution = pgactiveConflictResolution_ConflictTriggerReturnedTuple;
 		else
-			resolution = BdrConflictResolution_DefaultSkipChange;
+			resolution = pgactiveConflictResolution_DefaultSkipChange;
 
 
-		apply_conflict = bdr_make_apply_conflict(
-												 BdrConflictType_UpdateDelete, resolution, replication_origin_xid,
+		apply_conflict = pgactive_make_apply_conflict(
+												 pgactiveConflictType_UpdateDelete, resolution, replication_origin_xid,
 												 rel, NULL, InvalidRepOriginId, newslot, 0, NULL /* no error */ );
 
-		bdr_conflict_log_serverlog(apply_conflict);
+		pgactive_conflict_log_serverlog(apply_conflict);
 
 		/*
 		 * If the user specified conflict handler returned tuple, we insert it
 		 * since there is nothing to update.
 		 */
-		if (resolution == BdrConflictResolution_ConflictTriggerReturnedTuple)
+		if (resolution == pgactiveConflictResolution_ConflictTriggerReturnedTuple)
 		{
 #ifdef VERBOSE_UPDATE
 			log_tuple("USER tuple:%s", RelationGetDescr(rel->rel), user_tuple);
@@ -1190,17 +1190,17 @@ process_remote_update(StringInfo s)
 			UserTableUpdateOpenIndexes(estate, newslot, relinfo, false);
 		}
 
-		bdr_conflict_log_table(apply_conflict);
-		bdr_conflict_logging_cleanup();
+		pgactive_conflict_log_table(apply_conflict);
+		pgactive_conflict_logging_cleanup();
 	}
 
 	PopActiveSnapshot();
 
-	check_bdr_wakeups(rel);
+	check_pgactive_wakeups(rel);
 
 	/* release locks upon commit */
 	index_close(idxrel, NoLock);
-	bdr_table_close(rel, NoLock);
+	pgactive_table_close(rel, NoLock);
 
 	ExecResetTupleTable(estate->es_tupleTable, true);
 	FreeExecutorState(estate);
@@ -1216,10 +1216,10 @@ process_remote_delete(StringInfo s)
 {
 	char		action;
 	EState	   *estate;
-	BDRTupleData oldtup;
+	pgactiveTupleData oldtup;
 	TupleTableSlot *oldslot;
 	Oid			idxoid;
-	BDRRelation *rel;
+	pgactiveRelation *rel;
 	Relation	idxrel;
 	ScanKeyData skey[INDEX_MAX_KEYS];
 	bool		found_old;
@@ -1227,7 +1227,7 @@ process_remote_delete(StringInfo s)
 	struct ActionErrCallbackArg cbarg;
 	ResultRelInfo *relinfo = makeNode(ResultRelInfo);
 
-	Assert(bdr_apply_worker != NULL);
+	Assert(pgactive_apply_worker != NULL);
 
 	xact_action_counter++;
 	memset(&cbarg, 0, sizeof(struct ActionErrCallbackArg));
@@ -1237,11 +1237,11 @@ process_remote_delete(StringInfo s)
 	errcallback.previous = error_context_stack;
 	error_context_stack = &errcallback;
 
-	bdr_performing_work();
+	pgactive_performing_work();
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -1262,15 +1262,15 @@ process_remote_delete(StringInfo s)
 	if (action == 'E')
 	{
 		elog(WARNING, "got delete without pkey");
-		bdr_table_close(rel, NoLock);
+		pgactive_table_close(rel, NoLock);
 		return;
 	}
 
-	estate = bdr_create_rel_estate(rel->rel, relinfo);
+	estate = pgactive_create_rel_estate(rel->rel, relinfo);
 #if PG_VERSION_NUM >= 120000
 	oldslot = table_slot_create(rel->rel, &estate->es_tupleTable);
 #else
-	oldslot = ExecInitExtraTupleSlotBdr(estate, NULL);
+	oldslot = ExecInitExtraTupleSlotpgactive(estate, NULL);
 	ExecSetSlotDescriptor(oldslot, RelationGetDescr(rel->rel));
 #endif
 
@@ -1312,7 +1312,7 @@ process_remote_delete(StringInfo s)
 	if (found_old)
 	{
 		simple_heap_delete(rel->rel, &(TTS_TUP(oldslot)->t_self));
-		bdr_count_delete();
+		pgactive_count_delete();
 	}
 	else
 	{
@@ -1333,9 +1333,9 @@ process_remote_delete(StringInfo s)
 		bool		skip = false;
 		HeapTuple	remote_tuple,
 					user_tuple = NULL;
-		BdrApplyConflict *apply_conflict;
+		pgactiveApplyConflict *apply_conflict;
 
-		bdr_count_delete_conflict();
+		pgactive_count_delete_conflict();
 
 		/* Since the local tuple is missing, fill slot from the received data. */
 		remote_tuple = heap_form_tuple(RelationGetDescr(rel->rel),
@@ -1361,9 +1361,9 @@ process_remote_delete(StringInfo s)
 		 * react accordingly. Unlike other conflict types we don't allow the
 		 * trigger to return new tuple here (it's DELETE vs DELETE after all).
 		 */
-		user_tuple = bdr_conflict_handlers_resolve(rel, NULL,
+		user_tuple = pgactive_conflict_handlers_resolve(rel, NULL,
 												   remote_tuple, "DELETE",
-												   BdrConflictType_DeleteDelete,
+												   pgactiveConflictType_DeleteDelete,
 												   0, &skip);
 
 		/* DELETE vs DELETE can't return new tuple. */
@@ -1371,24 +1371,24 @@ process_remote_delete(StringInfo s)
 			ereport(ERROR,
 					(errmsg("DELETE vs DELETE handler returned a row which isn't allowed")));
 
-		apply_conflict = bdr_make_apply_conflict(
-												 BdrConflictType_DeleteDelete,
-												 skip ? BdrConflictResolution_ConflictTriggerSkipChange :
-												 BdrConflictResolution_DefaultSkipChange,
+		apply_conflict = pgactive_make_apply_conflict(
+												 pgactiveConflictType_DeleteDelete,
+												 skip ? pgactiveConflictResolution_ConflictTriggerSkipChange :
+												 pgactiveConflictResolution_DefaultSkipChange,
 												 replication_origin_xid, rel, NULL, InvalidRepOriginId,
 												 oldslot, 0, NULL /* no error */ );
 
-		bdr_conflict_log_serverlog(apply_conflict);
-		bdr_conflict_log_table(apply_conflict);
-		bdr_conflict_logging_cleanup();
+		pgactive_conflict_log_serverlog(apply_conflict);
+		pgactive_conflict_log_table(apply_conflict);
+		pgactive_conflict_logging_cleanup();
 	}
 
 	PopActiveSnapshot();
 
-	check_bdr_wakeups(rel);
+	check_pgactive_wakeups(rel);
 
 	index_close(idxrel, NoLock);
-	bdr_table_close(rel, NoLock);
+	pgactive_table_close(rel, NoLock);
 
 	ExecResetTupleTable(estate->es_tupleTable, true);
 	FreeExecutorState(estate);
@@ -1419,12 +1419,12 @@ get_local_tuple_origin(HeapTuple tuple, TimestampTz *commit_ts, RepOriginId *nod
  * Last update wins conflict handling.
  */
 static void
-bdr_conflict_last_update_wins(RepOriginId local_node_id,
+pgactive_conflict_last_update_wins(RepOriginId local_node_id,
 							  RepOriginId remote_node_id,
 							  TimestampTz local_ts,
 							  TimestampTz remote_ts,
 							  bool *perform_update, bool *log_update,
-							  BdrConflictResolution * resolution)
+							  pgactiveConflictResolution * resolution)
 {
 	int			cmp;
 
@@ -1433,7 +1433,7 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 	{
 		/* The most recent update is the remote one; apply it */
 		*perform_update = true;
-		*resolution = BdrConflictResolution_LastUpdateWins_KeepRemote;
+		*resolution = pgactiveConflictResolution_LastUpdateWins_KeepRemote;
 		return;
 	}
 	else if (cmp < 0)
@@ -1441,7 +1441,7 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 		/* The most recent update is the local one; retain it */
 		*log_update = true;
 		*perform_update = false;
-		*resolution = BdrConflictResolution_LastUpdateWins_KeepLocal;
+		*resolution = pgactiveConflictResolution_LastUpdateWins_KeepLocal;
 		return;
 	}
 	else
@@ -1458,8 +1458,8 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 		 * XXX: We might need a better, more sophisticated and
 		 * user-controllable mechanism here to break the ties.
 		 */
-		local_node_seq_id = bdr_local_node_seq_id();
-		remote_node_seq_id = bdr_remote_node_seq_id();
+		local_node_seq_id = pgactive_local_node_seq_id();
+		remote_node_seq_id = pgactive_remote_node_seq_id();
 
 		if (local_node_seq_id <= 0)
 			elog(ERROR, "invalid node_seq_id on local node");
@@ -1478,15 +1478,15 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
 		/*
 		 * We don't log node_seq_id used to decide which tuple to retain. The
 		 * node with lesser node_seq_id always wins, so one can look at the
-		 * bdr.bdr_nodes table to reconstruct the decision.
+		 * pgactive.pgactive_nodes table to reconstruct the decision.
 		 */
 		if (*perform_update)
 		{
-			*resolution = BdrConflictResolution_LastUpdateWins_KeepRemote;
+			*resolution = pgactiveConflictResolution_LastUpdateWins_KeepRemote;
 		}
 		else
 		{
-			*resolution = BdrConflictResolution_LastUpdateWins_KeepLocal;
+			*resolution = pgactiveConflictResolution_LastUpdateWins_KeepLocal;
 			*log_update = true;
 		}
 	}
@@ -1505,12 +1505,12 @@ bdr_conflict_last_update_wins(RepOriginId local_node_id,
  * is true. Its value is undefined if log_update is false.
  */
 static void
-check_apply_update(BdrConflictType conflict_type,
+check_apply_update(pgactiveConflictType conflict_type,
 				   RepOriginId local_node_id, TimestampTz local_ts,
-				   BDRRelation * rel, HeapTuple local_tuple,
+				   pgactiveRelation * rel, HeapTuple local_tuple,
 				   HeapTuple remote_tuple, HeapTuple *new_tuple,
 				   bool *perform_update, bool *log_update,
-				   BdrConflictResolution * resolution)
+				   pgactiveConflictResolution * resolution)
 {
 	int			microsecs;
 	long		secs;
@@ -1558,8 +1558,8 @@ check_apply_update(BdrConflictType conflict_type,
 		abs_timestamp_difference(replorigin_session_origin_timestamp, local_ts,
 								 &secs, &microsecs);
 
-		*new_tuple = bdr_conflict_handlers_resolve(rel, local_tuple, remote_tuple,
-												   conflict_type == BdrConflictType_InsertInsert ?
+		*new_tuple = pgactive_conflict_handlers_resolve(rel, local_tuple, remote_tuple,
+												   conflict_type == pgactiveConflictType_InsertInsert ?
 												   "INSERT" : "UPDATE",
 												   conflict_type,
 												   labs(secs) * 1000000 + labs(microsecs),
@@ -1569,7 +1569,7 @@ check_apply_update(BdrConflictType conflict_type,
 		{
 			*log_update = true;
 			*perform_update = false;
-			*resolution = BdrConflictResolution_ConflictTriggerSkipChange;
+			*resolution = pgactiveConflictResolution_ConflictTriggerSkipChange;
 			return;
 		}
 		else if (*new_tuple)
@@ -1577,7 +1577,7 @@ check_apply_update(BdrConflictType conflict_type,
 			/* Custom conflict handler returned tuple, log it. */
 			*log_update = true;
 			*perform_update = true;
-			*resolution = BdrConflictResolution_ConflictTriggerReturnedTuple;
+			*resolution = pgactiveConflictResolution_ConflictTriggerReturnedTuple;
 			return;
 		}
 
@@ -1588,7 +1588,7 @@ check_apply_update(BdrConflictType conflict_type,
 	}
 
 	/* Use last update wins conflict handling. */
-	bdr_conflict_last_update_wins(local_node_id,
+	pgactive_conflict_last_update_wins(local_node_id,
 								  replorigin_session_origin,
 								  local_ts,
 								  replorigin_session_origin_timestamp,
@@ -1603,7 +1603,7 @@ queued_command_error_callback(void *arg)
 }
 
 void
-bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
+pgactive_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 						bool tx_just_started)
 {
 	List	   *commands;
@@ -1666,7 +1666,7 @@ bdr_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 
 		PopActiveSnapshot();
 
-		portal = CreatePortal("bdr", true, true);
+		portal = CreatePortal("pgactive", true, true);
 		PortalDefineQuery(portal, NULL,
 						  cmdstr, commandTag,
 						  plantree_list, NULL);
@@ -1755,7 +1755,7 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 	if (isnull)
 	{
 		/*
-		 * Older BDR versions didn't have search_path and we can't UPDATE old
+		 * Older pgactive versions didn't have search_path and we can't UPDATE old
 		 * rows, so there will be nulls. Those prior versions also forced
 		 * search_path to '' so we can safely assume as much.
 		 */
@@ -1769,13 +1769,13 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 
 	MemoryContextSwitchTo(oldcontext);
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		elog(LOG, "TRACE: QUEUED_DDL: [%s] with search_path [%s]",
 			 cmdstr, search_path);
 	}
 
-	bdr_execute_ddl_command(cmdstr, perpetrator, search_path, tx_just_started);
+	pgactive_execute_ddl_command(cmdstr, perpetrator, search_path, tx_just_started);
 }
 
 
@@ -2053,7 +2053,7 @@ process_queued_drop(HeapTuple cmdtup)
 		add_exact_object_address(&addr, addresses);
 	}
 
-	if (bdr_debug_trace_replay)
+	if (pgactive_debug_trace_replay)
 	{
 		StringInfoData si;
 
@@ -2082,7 +2082,7 @@ process_queued_drop(HeapTuple cmdtup)
 }
 
 static bool
-bdr_performing_work(void)
+pgactive_performing_work(void)
 {
 	if (started_transaction)
 	{
@@ -2098,37 +2098,37 @@ bdr_performing_work(void)
 }
 
 static void
-check_bdr_wakeups(BDRRelation * rel)
+check_pgactive_wakeups(pgactiveRelation * rel)
 {
 	Oid			schemaoid = RelationGetNamespace(rel->rel);
 	Oid			reloid = RelationGetRelid(rel->rel);
 
-	if (schemaoid != BdrSchemaOid)
+	if (schemaoid != pgactiveSchemaOid)
 		return;
 
 	/* has the node/connection state been changed on another system? */
-	if (reloid == BdrNodesRelid || reloid == BdrConnectionsRelid)
-		bdr_connections_changed(NULL);
+	if (reloid == pgactiveNodesRelid || reloid == pgactiveConnectionsRelid)
+		pgactive_connections_changed(NULL);
 }
 
 static void
-read_tuple_parts_error_badatts(BDRRelation * rel, TupleDesc desc, int rnatts)
+read_tuple_parts_error_badatts(pgactiveRelation * rel, TupleDesc desc, int rnatts)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 			 errmsg("remote tuple has different column count to local table and mismatched columns were not null/dropped"),
-			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " BDR_NODEID_FORMAT_WITHNAME " vs %u on remote node " BDR_NODEID_FORMAT_WITHNAME ".",
+			 errdetail("Table \"%s\".\"%s\" (%u) has %u columns on local node " pgactive_NODEID_FORMAT_WITHNAME " vs %u on remote node " pgactive_NODEID_FORMAT_WITHNAME ".",
 					   get_namespace_name(RelationGetNamespace(rel->rel)), RelationGetRelationName(rel->rel),
 					   RelationGetRelid(rel->rel),
 					   desc->natts,
-					   BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+					   pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
 					   rnatts,
-					   BDR_NODEID_FORMAT_WITHNAME_ARGS(origin)),
-			 errhint("This error arises if the number of columns on two nodes differ and BDR cannot right-pad with nulls or ignore extra right-hand nulls. This is most commonly caused by unsafe use of the bdr.skip_ddl_replication and/or bdr.skip_ddl_locking settings.")));
+					   pgactive_NODEID_FORMAT_WITHNAME_ARGS(origin)),
+			 errhint("This error arises if the number of columns on two nodes differ and pgactive cannot right-pad with nulls or ignore extra right-hand nulls. This is most commonly caused by unsafe use of the pgactive.skip_ddl_replication and/or pgactive.skip_ddl_locking settings.")));
 }
 
 static void
-read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
+read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 {
 	TupleDesc	desc = RelationGetDescr(rel->rel);
 	int			i;
@@ -2252,7 +2252,7 @@ read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
 		{
 			/*
 			 * Theoretically we could fill DEFAULTs for NOT NULL local columns
-			 * here too, at least with bdr.ignore_mismatched_rows enabled. See
+			 * here too, at least with pgactive.ignore_mismatched_rows enabled. See
 			 * pglogical's `fill_missing_defaults` for how. But it's not meant
 			 * to be necessary anyway, so we don't. The user can recover by
 			 * ALTERing the table to be NULLable with a non-replicated DDL.
@@ -2288,7 +2288,7 @@ read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
 		char		kind;
 
 		kind = pq_getmsgbyte(s);
-		if (kind != 'n' && bdr_discard_mismatched_row_attributes)
+		if (kind != 'n' && pgactive_discard_mismatched_row_attributes)
 		{
 			/*
 			 * User has overridden behaviour and forced discarding of row
@@ -2301,7 +2301,7 @@ read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
 			 * shouldn't be used anyway, and we really want to be able to
 			 * diagnose it.
 			 */
-			elog(LOG, "WARNING: discarding non-null remote value for attribute %u on relation \"%s\".\"%s\" (%u) due to bdr.discard_mismatched_row_attributes setting. Remote natts = %u, local natts = %u",
+			elog(LOG, "WARNING: discarding non-null remote value for attribute %u on relation \"%s\".\"%s\" (%u) due to pgactive.discard_mismatched_row_attributes setting. Remote natts = %u, local natts = %u",
 				 i, get_namespace_name(RelationGetNamespace(rel->rel)),
 				 RelationGetRelationName(rel->rel), RelationGetRelid(rel->rel),
 				 rnatts, desc->natts);
@@ -2317,7 +2317,7 @@ read_tuple_parts(StringInfo s, BDRRelation * rel, BDRTupleData * tup)
 	/* Don't test pq_getmsgend, there might be another message chunk */
 }
 
-static BDRRelation *
+static pgactiveRelation *
 read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 {
 	int			relnamelen;
@@ -2337,7 +2337,7 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
 
 	relid = RangeVarGetRelidExtended(rv, mode, 0, NULL, NULL);
 
-	return bdr_table_open(relid, NoLock);
+	return pgactive_table_open(relid, NoLock);
 }
 
 /*
@@ -2346,7 +2346,7 @@ read_rel(StringInfo s, LOCKMODE mode, struct ActionErrCallbackArg *cbarg)
  * May set ProcDiePending to stop processing before next record.
  */
 static void
-bdr_process_remote_action(StringInfo s)
+pgactive_process_remote_action(StringInfo s)
 {
 	char		action = pq_getmsgbyte(s);
 
@@ -2374,7 +2374,7 @@ bdr_process_remote_action(StringInfo s)
 			process_remote_delete(s);
 			break;
 		case 'M':
-			bdr_process_remote_message(s);
+			pgactive_process_remote_message(s);
 			break;
 		default:
 			elog(ERROR, "unknown action of type %c", action);
@@ -2407,7 +2407,7 @@ bdr_process_remote_action(StringInfo s)
  * flushed.
  */
 static bool
-bdr_get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
+pgactive_get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
 {
 	dlist_mutable_iter iter;
 	XLogRecPtr	local_flush = GetFlushRecPtr();
@@ -2415,10 +2415,10 @@ bdr_get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
 	*write = InvalidXLogRecPtr;
 	*flush = InvalidXLogRecPtr;
 
-	dlist_foreach_modify(iter, &bdr_lsn_association)
+	dlist_foreach_modify(iter, &pgactive_lsn_association)
 	{
-		BdrFlushPosition *pos =
-			dlist_container(BdrFlushPosition, node, iter.cur);
+		pgactiveFlushPosition *pos =
+			dlist_container(pgactiveFlushPosition, node, iter.cur);
 
 		*write = pos->remote_end;
 
@@ -2435,14 +2435,14 @@ bdr_get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
 			 * could potentially be long. Instead get the last element and
 			 * grab the write position from there.
 			 */
-			pos = dlist_tail_element(BdrFlushPosition, node,
-									 &bdr_lsn_association);
+			pos = dlist_tail_element(pgactiveFlushPosition, node,
+									 &pgactive_lsn_association);
 			*write = pos->remote_end;
 			return false;
 		}
 	}
 
-	return dlist_is_empty(&bdr_lsn_association);
+	return dlist_is_empty(&pgactive_lsn_association);
 }
 
 /*
@@ -2452,7 +2452,7 @@ bdr_get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
  * to send a response to avoid timeouts.
  */
 static bool
-bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
+pgactive_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 {
 	char		replybuf[1 + 8 + 8 + 8 + 8 + 1];
 	int			len = 0;
@@ -2468,7 +2468,7 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 	if (recvpos < last_recvpos)
 		recvpos = last_recvpos;
 
-	if (bdr_get_flush_position(&writepos, &flushpos))
+	if (pgactive_get_flush_position(&writepos, &flushpos))
 	{
 		/*
 		 * No outstanding transactions to flush, we can report the latest
@@ -2491,13 +2491,13 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 
 	replybuf[len] = 'r';
 	len += 1;
-	bdr_sendint64(recvpos, &replybuf[len]); /* write */
+	pgactive_sendint64(recvpos, &replybuf[len]); /* write */
 	len += 8;
-	bdr_sendint64(flushpos, &replybuf[len]);	/* flush */
+	pgactive_sendint64(flushpos, &replybuf[len]);	/* flush */
 	len += 8;
-	bdr_sendint64(writepos, &replybuf[len]);	/* apply */
+	pgactive_sendint64(writepos, &replybuf[len]);	/* apply */
 	len += 8;
-	bdr_sendint64(now, &replybuf[len]); /* sendTime */
+	pgactive_sendint64(now, &replybuf[len]); /* sendTime */
 	len += 8;
 	replybuf[len] = false;		/* replyRequested */
 	len += 1;
@@ -2534,7 +2534,7 @@ bdr_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
  *
  * If either input is not finite, we return zeroes.
  *
- * BDR version of TimestampDifference() with absolute difference.
+ * pgactive version of TimestampDifference() with absolute difference.
  */
 static void
 abs_timestamp_difference(TimestampTz start_time, TimestampTz stop_time,
@@ -2577,50 +2577,50 @@ log_tuple(const char *format, TupleDesc desc, HeapTuple tup)
  * since we'd have to reconnect to apply most kinds of change anyway.
  */
 static void
-bdr_apply_reload_config()
+pgactive_apply_reload_config()
 {
-	BdrConnectionConfig *new_apply_config;
+	pgactiveConnectionConfig *new_apply_config;
 
 	/* Fetch our config from the DB */
-	new_apply_config = bdr_get_connection_config(
-												 &bdr_apply_worker->remote_node,
+	new_apply_config = pgactive_get_connection_config(
+												 &pgactive_apply_worker->remote_node,
 												 false);
 
-	Assert(bdr_nodeid_eq(&new_apply_config->remote_node, &bdr_apply_worker->remote_node));
+	Assert(pgactive_nodeid_eq(&new_apply_config->remote_node, &pgactive_apply_worker->remote_node));
 
 	/*
 	 * Got default remote connection info, read also local defaults. Otherwise
 	 * we would be using replication sets and apply delay from the remote node
 	 * instead of the local one.
 	 *
-	 * Note: this is slightly hacky and we should probably use the bdr_nodes
+	 * Note: this is slightly hacky and we should probably use the pgactive_nodes
 	 * for this instead.
 	 */
 	if (!new_apply_config->origin_is_my_id)
 	{
-		BdrConnectionConfig *cfg = bdr_get_my_connection_config(false);
+		pgactiveConnectionConfig *cfg = pgactive_get_my_connection_config(false);
 
 		new_apply_config->apply_delay = cfg->apply_delay;
 		pfree(new_apply_config->replication_sets);
 		new_apply_config->replication_sets = pstrdup(cfg->replication_sets);
-		bdr_free_connection_config(cfg);
+		pgactive_free_connection_config(cfg);
 	}
 
-	if (bdr_apply_config == NULL)
+	if (pgactive_apply_config == NULL)
 	{
 		/* First run, carry on loading */
-		bdr_apply_config = new_apply_config;
+		pgactive_apply_config = new_apply_config;
 	}
 	else
 	{
 		/* If the DSN or replication sets changed we must restart */
-		if (strcmp(bdr_apply_config->dsn, new_apply_config->dsn) != 0)
+		if (strcmp(pgactive_apply_config->dsn, new_apply_config->dsn) != 0)
 		{
 			elog(LOG, "apply worker exiting to apply new DSN configuration");
 			proc_exit(1);
 		}
 
-		if (strcmp(bdr_apply_config->replication_sets, new_apply_config->replication_sets) != 0)
+		if (strcmp(pgactive_apply_config->replication_sets, new_apply_config->replication_sets) != 0)
 		{
 			elog(LOG, "apply worker exiting to apply new replication set configuration");
 			proc_exit(1);
@@ -2630,10 +2630,10 @@ bdr_apply_reload_config()
 }
 
 /*
- * The actual main loop of a BDR apply worker.
+ * The actual main loop of a pgactive apply worker.
  */
 static void
-bdr_apply_work(PGconn *streamConn)
+pgactive_apply_work(PGconn *streamConn)
 {
 	int			fd;
 	char	   *copybuf = NULL;
@@ -2660,7 +2660,7 @@ bdr_apply_work(PGconn *streamConn)
 			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+			SetConfigOption("log_min_messages", pgactive_error_severity(pgactive_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
@@ -2670,7 +2670,7 @@ bdr_apply_work(PGconn *streamConn)
 		 * necessary, but is awakened if postmaster dies.  That way the
 		 * background process goes away immediately in an emergency.
 		 */
-		rc = BDRWaitLatchOrSocket(&MyProc->procLatch,
+		rc = pgactiveWaitLatchOrSocket(&MyProc->procLatch,
 								  WL_SOCKET_READABLE | WL_LATCH_SET |
 								  WL_TIMEOUT | WL_POSTMASTER_DEATH,
 								  fd, 1000L, PG_WAIT_EXTENSION);
@@ -2682,7 +2682,7 @@ bdr_apply_work(PGconn *streamConn)
 
 		if (PQstatus(streamConn) == CONNECTION_BAD)
 		{
-			bdr_count_disconnect();
+			pgactive_count_disconnect();
 			elog(ERROR, "connection to other side has died");
 		}
 
@@ -2694,7 +2694,7 @@ bdr_apply_work(PGconn *streamConn)
 			 * request to reload our config. It's safe to reload, so just do
 			 * so.
 			 */
-			bdr_apply_reload_config();
+			pgactive_apply_reload_config();
 		}
 
 		if (rc & WL_SOCKET_READABLE)
@@ -2751,7 +2751,7 @@ bdr_apply_work(PGconn *streamConn)
 					if (last_received < end_lsn)
 						last_received = end_lsn;
 
-					bdr_process_remote_action(&s);
+					pgactive_process_remote_action(&s);
 				}
 				else if (c == 'k')
 				{
@@ -2783,7 +2783,7 @@ bdr_apply_work(PGconn *streamConn)
 					 /* timestamp = */ pq_getmsgint64(&s);
 					reply_requested = pq_getmsgbyte(&s);
 
-					bdr_send_feedback(streamConn, endpos,
+					pgactive_send_feedback(streamConn, endpos,
 									  GetCurrentTimestamp(),
 									  reply_requested);
 				}
@@ -2793,12 +2793,12 @@ bdr_apply_work(PGconn *streamConn)
 		}
 
 		/* confirm all writes at once */
-		bdr_send_feedback(streamConn, last_received,
+		pgactive_send_feedback(streamConn, last_received,
 						  GetCurrentTimestamp(), false);
 
 		/*
-		 * If the user has paused replication with bdr_apply_pause(), we wait
-		 * on our procLatch until pg_bdr_apply_resume() unsets the flag in
+		 * If the user has paused replication with pgactive_apply_pause(), we wait
+		 * on our procLatch until pg_pgactive_apply_resume() unsets the flag in
 		 * shmem. We don't pause until the end of the current transaction, to
 		 * avoid sleeping with locks held.
 		 *
@@ -2806,9 +2806,9 @@ bdr_apply_work(PGconn *streamConn)
 		 * since we set the proc latch on resume, but it doesn't hurt to be
 		 * careful.
 		 */
-		while (BdrWorkerCtl->pause_apply && !IsTransactionState())
+		while (pgactiveWorkerCtl->pause_apply && !IsTransactionState())
 		{
-			rc = BDRWaitLatch(&MyProc->procLatch,
+			rc = pgactiveWaitLatch(&MyProc->procLatch,
 							  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 							  300000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
@@ -2820,7 +2820,7 @@ bdr_apply_work(PGconn *streamConn)
 				 * state, but it could also be an attempt to reload the
 				 * worker's configuration. Check whether anything has changed.
 				 */
-				bdr_apply_reload_config();
+				pgactive_apply_reload_config();
 			}
 
 			CHECK_FOR_INTERRUPTS();
@@ -2832,13 +2832,13 @@ bdr_apply_work(PGconn *streamConn)
 
 
 /*
- * Entry point for a BDR apply worker.
+ * Entry point for a pgactive apply worker.
  *
  * Responsible for establishing a replication connection, creating slots
  * and starting the reply loop.
  */
 void
-bdr_apply_main(Datum main_arg)
+pgactive_apply_main(Datum main_arg)
 {
 	PGconn	   *streamConn;
 	PGresult   *res;
@@ -2849,13 +2849,13 @@ bdr_apply_main(Datum main_arg)
 	NameData	slot_name;
 	char		status;
 
-	bdr_bgworker_init(DatumGetInt32(main_arg), BDR_WORKER_APPLY);
+	pgactive_bgworker_init(DatumGetInt32(main_arg), pgactive_WORKER_APPLY);
 
-	bdr_apply_worker = &bdr_worker_slot->data.apply;
+	pgactive_apply_worker = &pgactive_worker_slot->data.apply;
 
 	initStringInfo(&query);
 
-	Assert(MyDatabaseId == bdr_apply_worker->dboid);
+	Assert(MyDatabaseId == pgactive_apply_worker->dboid);
 
 	/*
 	 * Store our proclatch in our shmem segment.
@@ -2863,14 +2863,14 @@ bdr_apply_main(Datum main_arg)
 	 * This must be protected by a lock so that nobody tries to set our latch
 	 * field while we're writing to it.
 	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	if (BdrWorkerCtl->worker_management_paused)
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	if (pgactiveWorkerCtl->worker_management_paused)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
-		elog(ERROR, "BDR worker management is currently paused, apply worker exiting, retry later");
+		LWLockRelease(pgactiveWorkerCtl->lock);
+		elog(ERROR, "pgactive worker management is currently paused, apply worker exiting, retry later");
 	}
-	bdr_apply_worker->proclatch = &MyProc->procLatch;
-	LWLockRelease(BdrWorkerCtl->lock);
+	pgactive_apply_worker->proclatch = &MyProc->procLatch;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	/*
 	 * Check if we decided to kill off this connection
@@ -2878,38 +2878,38 @@ bdr_apply_main(Datum main_arg)
 	StartTransactionCommand();
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
-	status = bdr_nodes_get_local_status(&bdr_apply_worker->remote_node, false);
+	status = pgactive_nodes_get_local_status(&pgactive_apply_worker->remote_node, false);
 	SPI_finish();
 	PopActiveSnapshot();
 	CommitTransactionCommand();
-	if (status == BDR_NODE_STATUS_KILLED)
+	if (status == pgactive_NODE_STATUS_KILLED)
 	{
-		elog(LOG, "unregistering apply worker due to remote node " BDR_NODEID_FORMAT " detach",
-			 BDR_NODEID_FORMAT_ARGS(bdr_apply_worker->remote_node));
-		bdr_worker_shmem_free(bdr_worker_slot, NULL);
-		bdr_worker_slot = NULL;
+		elog(LOG, "unregistering apply worker due to remote node " pgactive_NODEID_FORMAT " detach",
+			 pgactive_NODEID_FORMAT_ARGS(pgactive_apply_worker->remote_node));
+		pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
+		pgactive_worker_slot = NULL;
 		proc_exit(0);			/* unregister */
 	}
 
 	/* Read our connection configuration from the database */
-	bdr_apply_reload_config();
+	pgactive_apply_reload_config();
 
 	/*
 	 * Set our local application_name for our SPI connections. We want to see
 	 * the remote name in pg_stat_activity here.
 	 */
-	appendStringInfo(&query, "%s:%s", bdr_apply_config->node_name, "apply");
-	if (bdr_apply_worker->forward_changesets)
+	appendStringInfo(&query, "%s:%s", pgactive_apply_config->node_name, "apply");
+	if (pgactive_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");
 
-	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
+	if (pgactive_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn));
+						 LSN_FORMAT_ARGS(pgactive_apply_worker->replay_stop_lsn));
 
 	SetConfigOption("application_name", query.data, PGC_USERSET, PGC_S_SESSION);
 
-	CurrentResourceOwner = ResourceOwnerCreate(NULL, "bdr apply top-level resource owner");
-	bdr_saved_resowner = CurrentResourceOwner;
+	CurrentResourceOwner = ResourceOwnerCreate(NULL, "pgactive apply top-level resource owner");
+	pgactive_saved_resowner = CurrentResourceOwner;
 
 	/*
 	 * Form an application_name string to send to the remote end. From the
@@ -2918,20 +2918,20 @@ bdr_apply_main(Datum main_arg)
 	resetStringInfo(&query);
 	appendStringInfoString(&query, "send");
 
-	if (bdr_apply_worker->forward_changesets)
+	if (pgactive_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");
 
-	if (bdr_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
+	if (pgactive_apply_worker->replay_stop_lsn != InvalidXLogRecPtr)
 		appendStringInfo(&query, " up to %X/%X",
-						 LSN_FORMAT_ARGS(bdr_apply_worker->replay_stop_lsn));
+						 LSN_FORMAT_ARGS(pgactive_apply_worker->replay_stop_lsn));
 
 	/* Make the replication connection to the remote end */
-	streamConn = bdr_establish_connection_and_slot(bdr_apply_config->dsn,
+	streamConn = pgactive_establish_connection_and_slot(pgactive_apply_config->dsn,
 												   query.data, &slot_name, &origin, &replication_identifier, NULL);
 
 
 	/* initialize stat subsystem, our id won't change further */
-	bdr_count_set_current_node(replication_identifier);
+	pgactive_count_set_current_node(replication_identifier);
 
 	/*
 	 * tell replication_identifier.c about our identifier so it can cache the
@@ -2958,25 +2958,25 @@ bdr_apply_main(Datum main_arg)
 
 	resetStringInfo(&query);
 	appendStringInfo(&query, "START_REPLICATION SLOT \"%s\" LOGICAL %X/%X ("
-					 "pg_version '%u', pg_catversion '%u', bdr_version '%u',"
-					 "bdr_variant '%s', min_bdr_version '%u', sizeof_int '%zu',"
+					 "pg_version '%u', pg_catversion '%u', pgactive_version '%u',"
+					 "pgactive_variant '%s', min_pgactive_version '%u', sizeof_int '%zu',"
 					 "sizeof_long '%zu', sizeof_datum '%zu', maxalign '%d',"
 					 "float4_byval '%d', float8_byval '%d', integer_datetimes '%d',"
 					 "bigendian '%d', db_encoding '%s'",
 					 NameStr(slot_name), LSN_FORMAT_ARGS(start_from),
-					 PG_VERSION_NUM, CATALOG_VERSION_NO, BDR_VERSION_NUM,
-					 BDR_VARIANT, BDR_MIN_REMOTE_VERSION_NUM, sizeof(int),
+					 PG_VERSION_NUM, CATALOG_VERSION_NO, pgactive_VERSION_NUM,
+					 pgactive_VARIANT, pgactive_MIN_REMOTE_VERSION_NUM, sizeof(int),
 					 sizeof(long), sizeof(Datum), MAXIMUM_ALIGNOF,
-					 bdr_get_float4byval(), bdr_get_float8byval(),
-					 bdr_get_integer_timestamps(), bdr_get_bigendian(),
+					 pgactive_get_float4byval(), pgactive_get_float8byval(),
+					 pgactive_get_integer_timestamps(), pgactive_get_bigendian(),
 					 GetDatabaseEncodingName());
 
-	if (bdr_apply_config->replication_sets != NULL &&
-		bdr_apply_config->replication_sets[0] != 0)
+	if (pgactive_apply_config->replication_sets != NULL &&
+		pgactive_apply_config->replication_sets[0] != 0)
 		appendStringInfo(&query, ", replication_sets '%s'",
-						 bdr_apply_config->replication_sets);
+						 pgactive_apply_config->replication_sets);
 
-	if (bdr_apply_worker->forward_changesets)
+	if (pgactive_apply_worker->forward_changesets)
 		appendStringInfo(&query, ", forward_changesets 't'");
 
 	appendStringInfoChar(&query, ')');
@@ -2996,16 +2996,16 @@ bdr_apply_main(Datum main_arg)
 
 	replorigin_session_origin = replication_identifier;
 
-	bdr_conflict_logging_startup();
+	pgactive_conflict_logging_startup();
 
 	PG_TRY();
 	{
-		bdr_apply_work(streamConn);
+		pgactive_apply_work(streamConn);
 	}
 	PG_CATCH();
 	{
 		if (IsTransactionState())
-			bdr_count_rollback();
+			pgactive_count_rollback();
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
@@ -3018,13 +3018,13 @@ bdr_apply_main(Datum main_arg)
 }
 
 bool
-IsBdrApplyWorker(void)
+IspgactiveApplyWorker(void)
 {
-	return bdr_apply_worker != NULL;
+	return pgactive_apply_worker != NULL;
 }
 
-BdrApplyWorker *
-GetBdrApplyWorkerShmemPtr(void)
+pgactiveApplyWorker *
+GetpgactiveApplyWorkerShmemPtr(void)
 {
-	return bdr_apply_worker;
+	return pgactive_apply_worker;
 }

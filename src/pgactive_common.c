@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_common.c
+ * pgactive_common.c
  *		Utility functions
  *
  * Functions which can be shared between extension and cli
@@ -9,7 +9,7 @@
  * Copyright (c) 2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_common.c
+ *		pgactive_common.c
  *
  * -------------------------------------------------------------------------
  */
@@ -22,7 +22,7 @@
 #include "access/xlogdefs.h"
 #include "nodes/pg_list.h"
 
-#include "bdr_internal.h"
+#include "pgactive_internal.h"
 
 /*
  * Functions taken from src/common/exec.c
@@ -42,9 +42,9 @@ static char *pipe_read_line(char *cmd, char *line, int maxsize);
  * Format slot name string from node identifiers.
  */
 void
-bdr_slot_name(Name slot_name, const BDRNodeId * const remote_node, Oid local_dboid)
+pgactive_slot_name(Name slot_name, const pgactiveNodeId * const remote_node, Oid local_dboid)
 {
-	snprintf(NameStr(*slot_name), NAMEDATALEN, BDR_SLOT_NAME_FORMAT,
+	snprintf(NameStr(*slot_name), NAMEDATALEN, pgactive_SLOT_NAME_FORMAT,
 			 local_dboid, remote_node->sysid, remote_node->timeline, remote_node->dboid,
 			 EMPTY_REPLICATION_NAME);
 }
@@ -276,11 +276,11 @@ pipe_read_line(char *cmd, char *line, int maxsize)
  * Find another program in our binary's directory,
  * then make sure it is the proper version.
  *
- * BDR modified version of core's find_other_exec() - returns computed major
+ * pgactive modified version of core's find_other_exec() - returns computed major
  * version number.
  */
 int
-bdr_find_other_exec(const char *argv0, const char *target,
+pgactive_find_other_exec(const char *argv0, const char *target,
 					uint32 *version, char *retpath)
 {
 	char		cmd[MAXPGPATH];

@@ -1,19 +1,19 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_ddlrep.c
+ * pgactive_ddlrep.c
  *      DDL replication
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *      bdr_ddlrep.c
+ *      pgactive_ddlrep.c
  *
  * -------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "access/xlog.h"
 
@@ -34,19 +34,19 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 
-bool		in_bdr_replicate_ddl_command = false;
+bool		in_pgactive_replicate_ddl_command = false;
 
-PGDLLEXPORT Datum bdr_replicate_ddl_command(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_replicate_ddl_command(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_replicate_ddl_command);
+PG_FUNCTION_INFO_V1(pgactive_replicate_ddl_command);
 
 /*
- * bdr_queue_ddl_command
+ * pgactive_queue_ddl_command
  *
- * Insert DDL command into the bdr.bdr_queued_commands table.
+ * Insert DDL command into the pgactive.pgactive_queued_commands table.
  */
 void
-bdr_queue_ddl_command(const char *command_tag, const char *command, const char *search_path)
+pgactive_queue_ddl_command(const char *command_tag, const char *command, const char *search_path)
 {
 	EState	   *estate;
 	TupleTableSlot *slot;
@@ -59,17 +59,17 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 
 	elog(DEBUG2, "node %s enqueuing DDL command \"%s\" "
 		 "with search_path \"%s\"",
-		 bdr_local_node_name(false), command,
+		 pgactive_local_node_name(false), command,
 		 search_path == NULL ? "" : search_path);
 
 	if (search_path == NULL)
 		search_path = "";
 
-	/* prepare bdr.bdr_queued_commands for insert */
-	rv = makeRangeVar("bdr", "bdr_queued_commands", -1);
+	/* prepare pgactive.pgactive_queued_commands for insert */
+	rv = makeRangeVar("pgactive", "pgactive_queued_commands", -1);
 	queuedcmds = table_openrv(rv, RowExclusiveLock);
 	slot = MakeSingleTupleTableSlot(RelationGetDescr(queuedcmds));
-	estate = bdr_create_rel_estate(queuedcmds, relinfo);
+	estate = pgactive_create_rel_estate(queuedcmds, relinfo);
 #if PG_VERSION_NUM < 140000
 	relinfo = estate->es_result_relation_info;
 #endif
@@ -96,28 +96,28 @@ bdr_queue_ddl_command(const char *command_tag, const char *command, const char *
 }
 
 /*
- * bdr_replicate_ddl_command
+ * pgactive_replicate_ddl_command
  *
  * Queues the input SQL for replication.
  *
  * Note that we don't allow CONCURRENTLY commands here, this is mainly because
  * we queue command before we actually execute it, which we currently need
- * to make the bdr_truncate_trigger_add work correctly. As written there
- * the in_bdr_replicate_ddl_command concept is ugly.
+ * to make the pgactive_truncate_trigger_add work correctly. As written there
+ * the in_pgactive_replicate_ddl_command concept is ugly.
  */
 Datum
-bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
+pgactive_replicate_ddl_command(PG_FUNCTION_ARGS)
 {
 	text	   *command = PG_GETARG_TEXT_PP(0);
 	char	   *query = text_to_cstring(command);
 	int			nestlevel = -1;
 
-	if (bdr_skip_ddl_replication)
+	if (pgactive_skip_ddl_replication)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("bdr_replicate_ddl_command execution attempt rejected by configuration"),
-				 errdetail("bdr.skip_ddl_replication is true."),
+				 errmsg("pgactive_replicate_ddl_command execution attempt rejected by configuration"),
+				 errdetail("pgactive.skip_ddl_replication is true."),
 				 errhint("See the 'DDL replication' chapter of the documentation.")));
 	}
 
@@ -129,33 +129,33 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
 							 GUC_ACTION_SAVE, true, 0, false);
 
 	/* Execute the query locally. */
-	in_bdr_replicate_ddl_command = true;
+	in_pgactive_replicate_ddl_command = true;
 
 	PG_TRY();
 	{
 		/* Queue the query for replication. */
-		bdr_queue_ddl_command("SQL", query, NULL);
+		pgactive_queue_ddl_command("SQL", query, NULL);
 
 		/* Execute the query locally. */
-		bdr_execute_ddl_command(query, GetUserNameFromId(GetUserId(), false), "" /* search_path */ , false);
+		pgactive_execute_ddl_command(query, GetUserNameFromId(GetUserId(), false), "" /* search_path */ , false);
 	}
 	PG_CATCH();
 	{
 		if (nestlevel > 0)
 			AtEOXact_GUC(true, nestlevel);
-		in_bdr_replicate_ddl_command = false;
+		in_pgactive_replicate_ddl_command = false;
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
 
 	if (nestlevel > 0)
 		AtEOXact_GUC(true, nestlevel);
-	in_bdr_replicate_ddl_command = false;
+	in_pgactive_replicate_ddl_command = false;
 	PG_RETURN_VOID();
 }
 
 /* -------------------------------------------------------------------------
- * bdr_capture_ddl: remodeled DDL replication for BDR on PostgreSQL 9.6. this
+ * pgactive_capture_ddl: remodeled DDL replication for pgactive on PostgreSQL 9.6. this
  * approach eschews use of DDL deparse, instead capturing raw SQL at
  * ProcessUtility_hook and the associated search_path. It's called from the
  * command filter.
@@ -174,7 +174,7 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
  * Similarly, an ALTER TABLE or DROP TABLE can go to the wrong place if the
  * table exists in an earlier schema on the downstream than in the upstream.
  *
- * In BDR none of these situations should arise in the first place, since we
+ * In pgactive none of these situations should arise in the first place, since we
  * expect the schema to be consistent across nodes. If they do, it's a mess.
  * But deparse has proved to be less robust than originally expected too, and
  * it's hard to support in 9.6, so this will do.
@@ -193,7 +193,7 @@ bdr_replicate_ddl_command(PG_FUNCTION_ARGS)
  * -------------------------------------------------------------------------
  */
 void
-bdr_capture_ddl(Node *parsetree, const char *queryString,
+pgactive_capture_ddl(Node *parsetree, const char *queryString,
 				ProcessUtilityContext context, ParamListInfo params,
 				DestReceiver *dest, CommandTag completionTag)
 {
@@ -206,10 +206,10 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 	initStringInfo(&si);
 
 	/*
-	 * If the call comes from DDL executed by bdr_replicate_ddl_command, don't
+	 * If the call comes from DDL executed by pgactive_replicate_ddl_command, don't
 	 * queue it as it would insert duplicate commands into the queue.
 	 */
-	if (in_bdr_replicate_ddl_command)
+	if (in_pgactive_replicate_ddl_command)
 		return;
 
 	/*
@@ -224,7 +224,7 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 	 * mostly used when pg_restore brings a remote node state, so all objects
 	 * will be copied over in the dump anyway.
 	 */
-	if (bdr_skip_ddl_replication)
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	/*
@@ -257,7 +257,7 @@ bdr_capture_ddl(Node *parsetree, const char *queryString,
 	if (!IsKnownTag(tag))
 		tag = CreateCommandTag(parsetree);
 
-	bdr_queue_ddl_command(GetCommandTagName(tag), queryString, si.data);
+	pgactive_queue_ddl_command(GetCommandTagName(tag), queryString, si.data);
 
 	resetStringInfo(&si);
 }

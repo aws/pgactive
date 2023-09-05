@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_init_copy.c
- *		Initialize a new bdr node from a physical base backup
+ * pgactive_init_copy.c
+ *		Initialize a new pgactive node from a physical base backup
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_init_copy.c
+ *		pgactive_init_copy.c
  *
  * -------------------------------------------------------------------------
  */
@@ -53,7 +53,7 @@
 #include "common/logging.h"
 #endif
 
-#include "bdr_internal.h"
+#include "pgactive_internal.h"
 
 /* Postgres commit 3c6f8c011f85 introduced this macro in version 15. */
 #if PG_VERSION_NUM < 150000
@@ -98,7 +98,7 @@ static char *data_dir = NULL;
 static char pid_file[MAXPGPATH];
 static time_t start_time;
 static VerbosityLevelEnum verbosity = VERBOSITY_NORMAL;
-static char *log_file_name = "bdr_init_copy_postgres.log";
+static char *log_file_name = "pgactive_init_copy_postgres.log";
 
 /* defined as static so that die() can close them */
 static PGconn *local_conn = NULL;
@@ -141,7 +141,7 @@ static void initialize_replication_identifier(PGconn *conn,
 											  uint64 nid);
 
 static char *create_restore_point(PGconn *conn, char *restore_point_name);
-static void create_bdr_nid_getter_function(PGconn *conn,
+static void create_pgactive_nid_getter_function(PGconn *conn,
 										   char *dbname,
 										   uint64 nid);
 
@@ -152,7 +152,7 @@ static void initialize_replication_slot(PGconn *conn,
 
 static bool extension_exists(PGconn *conn, const char *extname);
 
-static void bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
+static void pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 						   char *local_connstr, char *replication_sets,
 						   int apply_delay, char *dbname, uint64 nid);
 static RemoteInfo * get_remote_info(char *connstr);
@@ -421,9 +421,9 @@ main(int argc, char **argv)
 			  _("Getting remote server identification ...\n"));
 	remote_info = get_remote_info(remote_connstr);
 
-	/* If there are no BDR enabled dbs, just bail. */
+	/* If there are no pgactive enabled dbs, just bail. */
 	if (remote_info->numdbs < 1)
-		die(_("Remote node does not have any BDR enabled databases.\n"));
+		die(_("Remote node does not have any pgactive enabled databases.\n"));
 
 	/*
 	 * Check if we either detected symmetric rep sets on the remote node or
@@ -439,7 +439,7 @@ main(int argc, char **argv)
 		die(_("Local data directory is not basebackup of remote node.\n"));
 
 	print_msg(VERBOSITY_NORMAL,
-			  _("Detected %d BDR database(s) on remote server\n"),
+			  _("Detected %d pgactive database(s) on remote server\n"),
 			  remote_info->numdbs);
 
 	/*
@@ -451,14 +451,14 @@ main(int argc, char **argv)
 	node_info.local_tlid = remote_info->tlid;
 
 	print_msg(VERBOSITY_NORMAL,
-			  _("Updating BDR configuration on the remote node:\n"));
+			  _("Updating pgactive configuration on the remote node:\n"));
 
 	node_info.nids = (uint64 *) pg_malloc0(remote_info->numdbs * sizeof(uint64));
 
 	/*
 	 * Initialize remote node.
 	 *
-	 * The remote might have multiple BDR-enabled DBs, so we need to perform
+	 * The remote might have multiple pgactive-enabled DBs, so we need to perform
 	 * setup for each one.
 	 */
 	for (i = 0; i < remote_info->numdbs; i++)
@@ -469,10 +469,10 @@ main(int argc, char **argv)
 		char	   *db_remote_connstr = get_connstr(remote_connstr, dbname,
 													NULL, NULL, NULL);
 
-		/* Generate new identifier for local node i.e. BDR-enabled database. */
+		/* Generate new identifier for local node i.e. pgactive-enabled database. */
 		node_info.nids[i] = GenerateNodeIdentifier();
 		print_msg(VERBOSITY_NORMAL,
-				  _("Generated new BDR node identifier " UINT64_FORMAT " for database %s\n"),
+				  _("Generated new pgactive node identifier " UINT64_FORMAT " for database %s\n"),
 				  node_info.nids[i],
 				  dbname);
 
@@ -516,7 +516,7 @@ main(int argc, char **argv)
 	print_msg(VERBOSITY_NORMAL, _("Creating restore point on remote node ...\n"));
 
 	snprintf(restore_point_name, NAMEDATALEN,
-			 "bdr_" UINT64_FORMAT, GenerateNodeIdentifier());
+			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
 	remote_lsn = create_restore_point(remote_conn, restore_point_name);
 
 	PQfinish(remote_conn);
@@ -549,7 +549,7 @@ main(int argc, char **argv)
 	WriteConfFile(recoveryconfcontents);
 
 	/*
-	 * Start local node with BDR disabled, and wait until it starts accepting
+	 * Start local node with pgactive disabled, and wait until it starts accepting
 	 * connections which means it has caught up to the restore point.
 	 *
 	 * Note that pg_ctl won't return nonzero if postmaster starts then
@@ -589,35 +589,35 @@ main(int argc, char **argv)
 		remove_unwanted_data(local_conn);
 
 		/*
-		 * Local node should have got the BDR extension created as part its
+		 * Local node should have got the pgactive extension created as part its
 		 * catchup via physical replication with remote node above.
 		 */
-		if (!extension_exists(local_conn, "bdr"))
-			die(_("Could not find BDR extension created on local node\n"));
+		if (!extension_exists(local_conn, "pgactive"))
+			die(_("Could not find pgactive extension created on local node\n"));
 
 		PQfinish(local_conn);
 		local_conn = NULL;
 	}
 
-	/* Stop Postgres so we can reset system id and start it with BDR loaded. */
+	/* Stop Postgres so we can reset system id and start it with pgactive loaded. */
 	pg_ctl_ret = run_pg_ctl("stop");
 	if (pg_ctl_ret != 0)
 		die(_("postgres stop after restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 	wait_postmaster_shutdown();
 
 	/*
-	 * Start the node again, now with BDR active so that we can join the node
-	 * to the BDR cluster. This is final start, so don't log to to special log
+	 * Start the node again, now with pgactive active so that we can join the node
+	 * to the pgactive cluster. This is final start, so don't log to to special log
 	 * file anymore.
 	 */
 	print_msg(VERBOSITY_NORMAL,
-			  _("Initializing BDR on the local node:\n"));
+			  _("Initializing pgactive on the local node:\n"));
 
 	snprintf(&pg_ctl_cmd_buf[0], PG_CTL_CMD_BUF_SIZE,
 			 "start -l '%s'", log_file_name);
 	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
 	if (pg_ctl_ret != 0)
-		die(_("postgres restart with BDR enabled failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
+		die(_("postgres restart with pgactive enabled failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 	wait_postmaster_connection(local_connstr);
 
 	for (i = 0; i < remote_info->numdbs; i++)
@@ -647,10 +647,10 @@ main(int argc, char **argv)
 		 * And finally add the node to the cluster.
 		 */
 		print_msg(VERBOSITY_NORMAL,
-				  _(" %s: adding the database to BDR cluster ...\n"), dbname);
+				  _(" %s: adding the database to pgactive cluster ...\n"), dbname);
 		print_msg(VERBOSITY_VERBOSE,
 				  _(" %s: replication sets: %s\n"), dbname, replication_sets);
-		bdr_node_start(local_conn, node_name, db_remote_connstr,
+		pgactive_node_start(local_conn, node_name, db_remote_connstr,
 					   db_local_connstr, replication_sets, apply_delay,
 					   dbname, node_info.nids[i]);
 
@@ -680,7 +680,7 @@ main(int argc, char **argv)
 static void
 usage(void)
 {
-	printf(_("%s initializes new BDR node from existing BDR instance.\n\n"), progname);
+	printf(_("%s initializes new pgactive node from existing pgactive instance.\n\n"), progname);
 	printf(_("Usage:\n"));
 	printf(_("  %s [OPTION]...\n"), progname);
 	printf(_("\nGeneral options:\n"));
@@ -688,7 +688,7 @@ usage(void)
 	printf(_("                          can be either empty/non-existing directory,\n"));
 	printf(_("                          or directory populated using pg_basebackup -X stream\n"));
 	printf(_("                          command\n"));
-	printf(_("  -l, --log-file          log file name, default bdr_init_copy_postgres.log\n"));
+	printf(_("  -l, --log-file          log file name, default pgactive_init_copy_postgres.log\n"));
 	printf(_("  -n, --node-name=NAME    name of the newly created node\n"));
 	printf(_("  --replication-sets=SETS comma separated list of replication set names to use\n"));
 	printf(_("  -s, --stop              stop the server once the initialization is done\n"));
@@ -916,7 +916,7 @@ check_data_dir(char *data_dir, RemoteInfo * remoteinfo)
 /*
  * Initialize replication slots
  *
- * Get connection configs from bdr and use the info
+ * Get connection configs from pgactive and use the info
  * to register replication slots for future use.
  */
 static void
@@ -925,15 +925,15 @@ initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid, uint64 nid)
 	NameData	slotname;
 	PQExpBuffer query = createPQExpBuffer();
 	PGresult   *res;
-	BDRNodeId	node;
+	pgactiveNodeId	node;
 
 	/* dboids are the same, because we just cloned... */
 	node.sysid = nid;
 	node.timeline = ni->local_tlid;
 	node.dboid = dboid;
-	bdr_slot_name(&slotname, &node, dboid);
+	pgactive_slot_name(&slotname, &node, dboid);
 	appendPQExpBuffer(query, "SELECT pg_create_logical_replication_slot(%s, '%s');",
-					  PQescapeLiteral(conn, NameStr(slotname), NAMEDATALEN), "bdr");
+					  PQescapeLiteral(conn, NameStr(slotname), NAMEDATALEN), "pgactive");
 
 	res = PQexec(conn, query->data);
 
@@ -980,7 +980,7 @@ get_remote_info(char *remote_connstr)
 
 	if (ri->version / 100 != PG_VERSION_NUM / 100)
 	{
-		die(_("Target server is version %s but we are version %s. bdr_init_copy can only be used when the join target is the same major version. See bdr.bdr_join_group()."),
+		die(_("Target server is version %s but we are version %s. pgactive_init_copy can only be used when the join target is the same major version. See pgactive.pgactive_join_group()."),
 			PQparameterStatus(remote_conn, "server_version"), PG_VERSION);
 	}
 
@@ -1011,10 +1011,10 @@ get_remote_info(char *remote_connstr)
 	if (sscanf(remote_tlid, "%u", &ri->tlid) != 1)
 		die(_("Could not parse remote tlid %s\n"), remote_tlid);
 
-	ri->tlid = BDRThisTimeLineID;
+	ri->tlid = pgactiveThisTimeLineID;
 
 	/*
-	 * Fetch list of BDR enabled databases via standard SQL connection.
+	 * Fetch list of pgactive enabled databases via standard SQL connection.
 	 */
 	remote_conn = PQconnectdb(remote_connstr);
 	if (PQstatus(remote_conn) != CONNECTION_OK)
@@ -1024,7 +1024,7 @@ get_remote_info(char *remote_connstr)
 
 	res = PQexec(remote_conn, "SELECT d.oid, d.datname "
 				 "FROM pg_catalog.pg_database d, pg_catalog.pg_shseclabel l "
-				 "WHERE l.provider = 'bdr' "
+				 "WHERE l.provider = 'pgactive' "
 				 "  AND l.classoid = 'pg_database'::regclass "
 				 "  AND d.oid = l.objoid;");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -1066,11 +1066,11 @@ get_remote_info(char *remote_connstr)
 		remote_conn = connectdb(db_connstr);
 
 		res = PQexec(remote_conn, "SELECT array_to_string(conn_replication_sets, ',')\n"
-					 "FROM bdr.bdr_connections c, bdr.bdr_nodes n\n"
+					 "FROM pgactive.pgactive_connections c, pgactive.pgactive_nodes n\n"
 					 "WHERE c.conn_sysid = n.node_sysid AND\n"
 					 "      c.conn_timeline = n.node_timeline AND\n"
 					 "      c.conn_dboid = n.node_dboid AND\n"
-					 "      n.node_status = " BDR_NODE_STATUS_READY_S "\n"
+					 "      n.node_status = " pgactive_NODE_STATUS_READY_S "\n"
 					 "GROUP BY conn_replication_sets");
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 			die(_("Could fetch replication set info from database %s: %s"),
@@ -1078,7 +1078,7 @@ get_remote_info(char *remote_connstr)
 
 		/* No nodes found? */
 		if (PQntuples(res) == 0)
-			die(_("The remote node is not configured as a BDR node.\n"));
+			die(_("The remote node is not configured as a pgactive node.\n"));
 
 		/*
 		 * Node has different replication sets on different nodes, we can't
@@ -1099,20 +1099,20 @@ get_remote_info(char *remote_connstr)
 
 		PQclear(res);
 
-		/* Fetch BDR node identifier via standard SQL connection. */
+		/* Fetch pgactive node identifier via standard SQL connection. */
 		res = PQexec(remote_conn,
-					 "SELECT bdr.bdr_get_node_identifier() AS node_id;");
+					 "SELECT pgactive.pgactive_get_node_identifier() AS node_id;");
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
 			PQclear(res);
-			die(_("Could not fetch BDR node identifier: %s\n"),
+			die(_("Could not fetch pgactive node identifier: %s\n"),
 				PQerrorMessage(remote_conn));
 		}
 
 		if (PQntuples(res) != 1 || PQnfields(res) != 1)
 		{
 			PQclear(res);
-			die(_("Could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
+			die(_("Could not fetch pgactive node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
 				PQntuples(res), PQnfields(res));
 		}
 
@@ -1159,7 +1159,7 @@ extension_exists(PGconn *conn, const char *extname)
  * Validates input of the replication sets and returns normalized data.
  *
  * The rules enforced here should be same as the ones in
- * bdr_validate_replication_set_name.
+ * pgactive_validate_replication_set_name.
  */
 static char *
 validate_replication_set_input(char *replication_sets)
@@ -1211,7 +1211,7 @@ validate_replication_set_input(char *replication_sets)
 }
 
 /*
- * Insert node entry for local node to the remote's bdr_nodes.
+ * Insert node entry for local node to the remote's pgactive_nodes.
  */
 void
 initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
@@ -1223,7 +1223,7 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 	/*
 	 * There's no need to protect against join concurrency here by taking the
 	 * global DDL lock. The only check we need is done later, when we assign
-	 * node_seq_id and mark the node ready - and that's done by bdr_init_copy
+	 * node_seq_id and mark the node ready - and that's done by pgactive_init_copy
 	 * after the node is started up.
 	 *
 	 * There's no risk of loss of transactions if a peer node is down at this
@@ -1232,11 +1232,11 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 	 * starts replaying from the join target. So we'll get stuck there until
 	 * the peer comes back.
 	 */
-	printfPQExpBuffer(query, "INSERT INTO bdr.bdr_nodes"
+	printfPQExpBuffer(query, "INSERT INTO pgactive.pgactive_nodes"
 					  " (node_status, node_sysid, node_timeline,"
 					  "	node_dboid, node_name, node_init_from_dsn,"
 					  "  node_local_dsn)"
-					  " VALUES (" BDR_NODE_STATUS_CATCHUP_S ", '" UINT64_FORMAT "', %u, %u, %s, %s, %s);",
+					  " VALUES (" pgactive_NODE_STATUS_CATCHUP_S ", '" UINT64_FORMAT "', %u, %u, %s, %s, %s);",
 					  nid, ni->local_tlid, dboid,
 					  PQescapeLiteral(*conn, node_name, strlen(node_name)),
 					  PQescapeLiteral(*conn, remote_connstr, strlen(remote_connstr)),
@@ -1245,7 +1245,7 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
-		die(_("Failed to insert row into bdr.bdr_nodes: %s\n"),
+		die(_("Failed to insert row into pgactive.pgactive_nodes: %s\n"),
 			PQerrorMessage(*conn));
 	}
 
@@ -1262,8 +1262,8 @@ remove_unwanted_data(PGconn *conn)
 {
 	PGresult   *res;
 
-	/* Remove any BDR security labels. */
-	res = PQexec(conn, "DELETE FROM pg_catalog.pg_shseclabel WHERE provider = 'bdr';");
+	/* Remove any pgactive security labels. */
+	res = PQexec(conn, "DELETE FROM pg_catalog.pg_shseclabel WHERE provider = 'pgactive';");
 
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
@@ -1294,7 +1294,7 @@ initialize_replication_identifier(PGconn *conn, NodeInfo * ni, Oid dboid,
 	char		remote_ident[256];
 	PQExpBuffer query = createPQExpBuffer();
 
-	snprintf(remote_ident, sizeof(remote_ident), BDR_REPORIGIN_ID_FORMAT,
+	snprintf(remote_ident, sizeof(remote_ident), pgactive_REPORIGIN_ID_FORMAT,
 			 nid, ni->remote_tlid, dboid, dboid,
 			 EMPTY_REPLICATION_NAME);
 
@@ -1358,29 +1358,29 @@ create_restore_point(PGconn *conn, char *restore_point_name)
 }
 
 /*
- * Create BDR node identifier getter function on local node.
+ * Create pgactive node identifier getter function on local node.
  */
 static void
-create_bdr_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
+create_pgactive_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 {
 	PQExpBuffer query = createPQExpBuffer();
 	PGresult   *res;
 	char		buf[256];
 	const char *const setup_query =
 		"BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;\n"
-		"SET LOCAL bdr.permit_node_identifier_getter_function_creation = true;\n";
+		"SET LOCAL pgactive.permit_node_identifier_getter_function_creation = true;\n";
 
 	print_msg(VERBOSITY_NORMAL,
-			  _("Creating BDR node identifier getter function for database %s ...\n"),
+			  _("Creating pgactive node identifier getter function for database %s ...\n"),
 			  dbname);
 
 	/*
-	 * Setup the environment. We need to tell BDR via GUC to allow us create
+	 * Setup the environment. We need to tell pgactive via GUC to allow us create
 	 * getter function.
 	 */
 	res = PQexec(conn, setup_query);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		die(_("Could not begin transaction to create of BDR node identifier getter function for database %s %s: %s\n"),
+		die(_("Could not begin transaction to create of pgactive node identifier getter function for database %s %s: %s\n"),
 			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	PQclear(res);
 
@@ -1390,20 +1390,20 @@ create_bdr_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 	 * We use CREATE OR REPLACE here so that the getter function this local
 	 * node got from remote node (via physical backup) is replaced.
 	 */
-	printfPQExpBuffer(query, "CREATE OR REPLACE FUNCTION bdr.%s() RETURNS numeric AS $$ "
+	printfPQExpBuffer(query, "CREATE OR REPLACE FUNCTION pgactive.%s() RETURNS numeric AS $$ "
 					  "SELECT %s::numeric $$ LANGUAGE SQL;",
-					  BDR_NID_GETTER_FUNC_NAME, buf);
+					  pgactive_NID_GETTER_FUNC_NAME, buf);
 
 	res = PQexec(conn, query->data);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		die(_("Could not create BDR node identifier getter function for database %s %s: %s\n"),
+		die(_("Could not create pgactive node identifier getter function for database %s %s: %s\n"),
 			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	PQclear(res);
 
 	/* Save changes. */
 	res = PQexec(conn, "COMMIT");
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		die(_("Could not commit transaction to create of BDR node identifier getter function for database %s %s: %s\n"),
+		die(_("Could not commit transaction to create of pgactive node identifier getter function for database %s %s: %s\n"),
 			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	PQclear(res);
 
@@ -1411,7 +1411,7 @@ create_bdr_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 }
 
 static void
-bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
+pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 			   char *local_connstr, char *replication_sets, int apply_delay,
 			   char *dbname, uint64 nid)
 {
@@ -1419,8 +1419,8 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	PQExpBuffer repsets = createPQExpBuffer();
 	PGresult   *res;
 
-	/* Ceate BDR node identifier getter function on node. */
-	create_bdr_nid_getter_function(conn, dbname, nid);
+	/* Ceate pgactive node identifier getter function on node. */
+	create_pgactive_nid_getter_function(conn, dbname, nid);
 
 	/*
 	 * replication_sets is comma separated list of strings so all we need to
@@ -1429,10 +1429,10 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	printfPQExpBuffer(repsets, "{%s}", replication_sets);
 
 	/*
-	 * Add the node to the cluster. We already created BDR node identifier
+	 * Add the node to the cluster. We already created pgactive node identifier
 	 * getter function on the node above, so skip it.
 	 */
-	printfPQExpBuffer(query, "SELECT bdr.bdr_join_group(%s, %s, %s, "
+	printfPQExpBuffer(query, "SELECT pgactive.pgactive_join_group(%s, %s, %s, "
 					  "replication_sets := %s, apply_delay := %d, "
 					  "bypass_node_identifier_creation := true, "
 					  "bypass_user_tables_check := true)",
@@ -1963,7 +1963,7 @@ find_other_exec_or_die(const char *argv0, const char *target)
 	/* Caller will have to free this memory */
 	found_path = pg_malloc(MAXPGPATH);
 
-	ret = bdr_find_other_exec(argv0, target, &bin_version, found_path);
+	ret = pgactive_find_other_exec(argv0, target, &bin_version, found_path);
 
 	if (ret < 0)
 		goto err;

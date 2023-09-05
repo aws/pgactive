@@ -1,20 +1,20 @@
 
 /* -------------------------------------------------------------------------
  *
- * bdr_remotecalls.c
- *     Make libpq requests to a remote BDR instance
+ * pgactive_remotecalls.c
+ *     Make libpq requests to a remote pgactive instance
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_remotecalls.c
+ *		pgactive_remotecalls.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
-#include "bdr_internal.h"
+#include "pgactive.h"
+#include "pgactive_internal.h"
 
 #include "fmgr.h"
 #include "funcapi.h"
@@ -44,19 +44,19 @@
 #include "utils/builtins.h"
 #include "utils/pg_lsn.h"
 
-PGDLLEXPORT Datum bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_test_replication_connection(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_test_remote_connectback(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_test_replication_connection(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_test_remote_connectback(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_get_remote_nodeinfo);
-PG_FUNCTION_INFO_V1(bdr_test_replication_connection);
-PG_FUNCTION_INFO_V1(bdr_test_remote_connectback);
+PG_FUNCTION_INFO_V1(pgactive_get_remote_nodeinfo);
+PG_FUNCTION_INFO_V1(pgactive_test_replication_connection);
+PG_FUNCTION_INFO_V1(pgactive_test_remote_connectback);
 
 /*
  * Make standard postgres connection, ERROR on failure.
  */
 PGconn *
-bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool report_fatal)
+pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool report_fatal)
 {
 	PGconn	   *nonrepl_conn;
 	StringInfoData dsn;
@@ -66,13 +66,13 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool repo
 
 	initStringInfo(&dsn);
 	appendStringInfo(&dsn, "%s %s %s application_name='%s:%s'",
-					 bdr_default_apply_connection_options,
-					 bdr_extra_apply_connection_options,
+					 pgactive_default_apply_connection_options,
+					 pgactive_extra_apply_connection_options,
 					 (servername == NULL ? connstring : servername),
-					 bdr_get_my_cached_node_name(), appnamesuffix);
+					 pgactive_get_my_cached_node_name(), appnamesuffix);
 
 	/*
-	 * Test to see if there's an entry in the remote's bdr.bdr_nodes for our
+	 * Test to see if there's an entry in the remote's pgactive.pgactive_nodes for our
 	 * system identifier. If there is, that'll tell us what stage of startup
 	 * we are up to and let us resume an incomplete start.
 	 */
@@ -93,7 +93,7 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool repo
  * presumed not inited or already closed and is ignored.
  */
 void
-bdr_cleanup_conn_close(int code, Datum connptr)
+pgactive_cleanup_conn_close(int code, Datum connptr)
 {
 	PGconn	  **conn_p;
 	PGconn	   *conn;
@@ -132,7 +132,7 @@ free_remote_node_info(remote_node_info * ri)
  * and feed the results to a COPY ... FROM stdin on the other connection
  * for the purpose of copying a set of rows between two nodes.
  *
- * It copies bdr_connections entries from the remote table to the
+ * It copies pgactive_connections entries from the remote table to the
  * local table of the same name, optionally with a filtering query.
  *
  * "from" here is from the client perspective, i.e. to copy from
@@ -146,7 +146,7 @@ free_remote_node_info(remote_node_info * ri)
  * table name. Be careful of SQL injection opportunities.
  */
 void
-bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
+pgactive_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 			  const char *copyfrom_query, const char *copyto_query)
 {
 	PGresult   *copyfrom_result;
@@ -204,43 +204,43 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 }
 
 /*
- * The implementation guts of bdr_get_remote_nodeinfo, callable with
+ * The implementation guts of pgactive_get_remote_nodeinfo, callable with
  * a pre-existing connection.
  */
 void
-bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
+pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 {
 	PGresult   *res;
 	int			i;
-	char	   *remote_bdr_version_str;
+	char	   *remote_pgactive_version_str;
 	int			parsed_version_num;
 
-	/* Make sure BDR is actually present and active on the remote */
-	bdr_ensure_ext_installed(conn);
+	/* Make sure pgactive is actually present and active on the remote */
+	pgactive_ensure_ext_installed(conn);
 
 	/*
 	 * Acquire remote node information. With this, we can also safely find out
 	 * if we're superuser at this point.
 	 */
-	res = PQexec(conn, "SELECT bdr.bdr_version(), bdr.bdr_version_num(), "
-				 "bdr.bdr_variant(), bdr.bdr_min_remote_version_num(), "
+	res = PQexec(conn, "SELECT pgactive.pgactive_version(), pgactive.pgactive_version_num(), "
+				 "pgactive.pgactive_variant(), pgactive.pgactive_min_remote_version_num(), "
 				 "current_setting('is_superuser') AS issuper, "
-				 "bdr.bdr_get_local_node_name() AS node_name, "
+				 "pgactive.pgactive_get_local_node_name() AS node_name, "
 				 "current_database()::text AS dbname, "
 				 "pg_database_size(current_database()) AS dbsize, "
-				 "current_setting('bdr.max_nodes') AS max_nodes, "
-				 "current_setting('bdr.skip_ddl_replication') AS skip_ddl_replication, "
-				 "count(1) FROM bdr.bdr_nodes WHERE node_status NOT IN (bdr.bdr_node_status_to_char('BDR_NODE_STATUS_KILLED'));");
+				 "current_setting('pgactive.max_nodes') AS max_nodes, "
+				 "current_setting('pgactive.skip_ddl_replication') AS skip_ddl_replication, "
+				 "count(1) FROM pgactive.pgactive_nodes WHERE node_status NOT IN (pgactive.pgactive_node_status_to_char('pgactive_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
-				(errmsg("unable to get BDR information from remote node"),
+				(errmsg("unable to get pgactive information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
 	Assert(PQnfields(res) == 11);
 	Assert(PQntuples(res) == 1);
-	remote_bdr_version_str = PQgetvalue(res, 0, 0);
-	ri->version = pstrdup(remote_bdr_version_str);
+	remote_pgactive_version_str = PQgetvalue(res, 0, 0);
+	ri->version = pstrdup(remote_pgactive_version_str);
 	ri->version_num = atoi(PQgetvalue(res, 0, 1));
 	ri->variant = pstrdup(PQgetvalue(res, 0, 2));
 	ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 3));
@@ -259,17 +259,17 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	PQclear(res);
 
 	/*
-	 * Even though we should be able to get it from bdr_version_num, always
-	 * parse the BDR version so that the parse code gets sanity checked, and
+	 * Even though we should be able to get it from pgactive_version_num, always
+	 * parse the pgactive version so that the parse code gets sanity checked, and
 	 * so that we notice if the remote version is too old to have
-	 * bdr_version_num.
+	 * pgactive_version_num.
 	 */
-	parsed_version_num = bdr_parse_version(ri->version, NULL, NULL,
+	parsed_version_num = pgactive_parse_version(ri->version, NULL, NULL,
 										   NULL, NULL);
 
 	if (ri->version_num != parsed_version_num)
-		elog(WARNING, "parsed BDR version %d from string %s != returned BDR version %d",
-			 parsed_version_num, remote_bdr_version_str, ri->version_num);
+		elog(WARNING, "parsed pgactive version %d from string %s != returned pgactive version %d",
+			 parsed_version_num, remote_pgactive_version_str, ri->version_num);
 
 	res = PQexec(conn, "SELECT datcollate, datctype FROM pg_database "
 				 "WHERE datname = current_database();");
@@ -289,7 +289,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	/* Get the remote node identity */
 	res = PQexec(conn, "SELECT sysid, timeline, dboid "
-				 "FROM bdr.bdr_get_local_nodeid();");
+				 "FROM pgactive.pgactive_get_local_nodeid();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -316,8 +316,8 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	PQclear(res);
 
 	/* Get the remote node status */
-	res = PQexec(conn, "SELECT node_status FROM bdr.bdr_nodes WHERE "
-				 "(node_sysid, node_timeline, node_dboid) = bdr.bdr_get_local_nodeid();");
+	res = PQexec(conn, "SELECT node_status FROM pgactive.pgactive_nodes WHERE "
+				 "(node_sysid, node_timeline, node_dboid) = pgactive.pgactive_get_local_nodeid();");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		ereport(ERROR,
@@ -328,18 +328,18 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 
 	if (PQntuples(res) == 0)
 	{
-		/* This happens when creating first node in BDR group */
+		/* This happens when creating first node in pgactive group */
 		ri->node_status = '\0';
 	}
 	else if (PQntuples(res) == 1)
 	{
 		if (PQgetisnull(res, 0, 0))
-			elog(ERROR, "unexpectedly null field node_status in bdr.bdr_nodes");
+			elog(ERROR, "unexpectedly null field node_status in pgactive.pgactive_nodes");
 
 		ri->node_status = PQgetvalue(res, 0, 0)[0];
 	}
 	else
-		elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
+		elog(ERROR, "got more than one pgactive.pgactive_nodes row matching local nodeid");	/* shouldn't happen */
 
 	PQclear(res);
 
@@ -347,7 +347,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	res = PQexec(conn, "SELECT sum(pg_indexes_size(r.oid)) AS indexessize "
 				 "FROM pg_class r JOIN pg_namespace n "
 				 "ON relnamespace = n.oid WHERE n.nspname NOT IN "
-				 "('pg_catalog', 'bdr', 'information_schema') "
+				 "('pg_catalog', 'pgactive', 'information_schema') "
 				 "AND relkind = 'r' AND relpersistence = 'p';");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -368,7 +368,7 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 }
 
 Datum
-bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
+pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Datum		values[18];
@@ -380,18 +380,18 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrnodeinfo", true);
+	conn = pgactive_connect_nonrepl(remote_node_dsn, "pgactivenodeinfo", true);
 
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
 	{
 		struct remote_node_info ri;
 
 		memset(&ri, 0, sizeof(ri));
-		bdr_get_remote_nodeinfo_internal(conn, &ri);
+		pgactive_get_remote_nodeinfo_internal(conn, &ri);
 
 		Assert(ri.sysid_str != NULL);
 		values[0] = CStringGetTextDatum(ri.sysid_str);
@@ -429,7 +429,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 
 		free_remote_node_info(&ri);
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 								PointerGetDatum(&conn));
 
 	PQfinish(conn);
@@ -445,7 +445,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
  * that the local node ID differ from the identity on the other end.
  */
 Datum
-bdr_test_replication_connection(PG_FUNCTION_ARGS)
+pgactive_test_replication_connection(PG_FUNCTION_ARGS)
 {
 	const char *conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
 	char	   *servername;
@@ -453,7 +453,7 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
 	NameData	appname;
-	BDRNodeId	remote;
+	pgactiveNodeId	remote;
 	Datum		values[3];
 	bool		isnull[3];
 	char		sysid_str[33];
@@ -464,9 +464,9 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	snprintf(NameStr(appname), NAMEDATALEN, "BDR test connection");
+	snprintf(NameStr(appname), NAMEDATALEN, "pgactive test connection");
 	servername = get_connect_string(conninfo);
-	conn = bdr_connect((servername == NULL ? conninfo : servername), &appname, &remote);
+	conn = pgactive_connect((servername == NULL ? conninfo : servername), &appname, &remote);
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, remote.sysid);
 
 	values[0] = CStringGetTextDatum(sysid_str);
@@ -481,7 +481,7 @@ bdr_test_replication_connection(PG_FUNCTION_ARGS)
 }
 
 void
-bdr_test_remote_connectback_internal(PGconn *conn,
+pgactive_test_remote_connectback_internal(PGconn *conn,
 									 struct remote_node_info *ri, const char *my_dsn)
 {
 	PGresult   *res;
@@ -490,15 +490,15 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 
 	mydsn_values[0] = my_dsn;
 
-	/* Make sure BDR is actually present and active on the remote */
-	bdr_ensure_ext_installed(conn);
+	/* Make sure pgactive is actually present and active on the remote */
+	pgactive_ensure_ext_installed(conn);
 
 	/*
 	 * Ask the remote to connect back to us in replication mode, then discard
 	 * the results.
 	 */
 	res = PQexecParams(conn, "SELECT sysid, timeline, dboid "
-					   "FROM bdr.bdr_test_replication_connection($1)",
+					   "FROM pgactive.pgactive_test_replication_connection($1)",
 					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -512,12 +512,12 @@ bdr_test_remote_connectback_internal(PGconn *conn,
 	PQclear(res);
 
 	/*
-	 * Acquire bdr_get_remote_nodeinfo's results from running it on the remote
+	 * Acquire pgactive_get_remote_nodeinfo's results from running it on the remote
 	 * node to connect back to us.
 	 */
 	res = PQexecParams(conn, "SELECT sysid, timeline, dboid, variant, version, "
 					   "       version_num, min_remote_version_num, is_superuser "
-					   "FROM bdr.bdr_get_remote_nodeinfo($1)",
+					   "FROM pgactive.pgactive_get_remote_nodeinfo($1)",
 					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -589,11 +589,11 @@ bdr_test_remote_connectback_internal(PGconn *conn,
  *
  * This is used during setup to make sure the local node is useable.
  *
- * Reports the same data as bdr_get_remote_nodeinfo, but it's reported
+ * Reports the same data as pgactive_get_remote_nodeinfo, but it's reported
  * about the local node via the remote node.
  */
 Datum
-bdr_test_remote_connectback(PG_FUNCTION_ARGS)
+pgactive_test_remote_connectback(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn;
 	const char *my_dsn;
@@ -615,16 +615,16 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	remote_servername = get_connect_string(remote_node_dsn);
-	conn = bdr_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "bdrconnectback", true);
+	conn = pgactive_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "pgactiveconnectback", true);
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
 	{
 		struct remote_node_info ri;
 
 		memset(&ri, 0, sizeof(ri));
 		servername = get_connect_string(my_dsn);
-		bdr_test_remote_connectback_internal(conn, &ri, (servername == NULL ? my_dsn : servername));
+		pgactive_test_remote_connectback_internal(conn, &ri, (servername == NULL ? my_dsn : servername));
 
 		if (ri.sysid_str != NULL)
 			values[0] = CStringGetTextDatum(ri.sysid_str);
@@ -664,7 +664,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 
 		free_remote_node_info(&ri);
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 								PointerGetDatum(&conn));
 
 	PQfinish(conn);

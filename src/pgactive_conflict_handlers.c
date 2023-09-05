@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_conflict_handlers.c
+ * pgactive_conflict_handlers.c
  *		Conflict handler handling
  *
  * User defined handlers for replication conflicts
@@ -8,7 +8,7 @@
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_conflict_handlers.c
+ *		pgactive_conflict_handlers.c
  *
  * -------------------------------------------------------------------------
  */
@@ -17,7 +17,7 @@
 #include "access/heapam.h"
 #include "access/xact.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
@@ -45,69 +45,69 @@
 #include "catalog/pg_enum.h"
 #include "utils/acl.h"
 
-PG_FUNCTION_INFO_V1(bdr_create_conflict_handler);
-PG_FUNCTION_INFO_V1(bdr_drop_conflict_handler);
+PG_FUNCTION_INFO_V1(pgactive_create_conflict_handler);
+PG_FUNCTION_INFO_V1(pgactive_drop_conflict_handler);
 
 const char *create_handler_sql =
-"INSERT INTO bdr.bdr_conflict_handlers " \
+"INSERT INTO pgactive.pgactive_conflict_handlers " \
 "   (ch_reloid, ch_name, ch_fun, ch_type, ch_timeframe)\n" \
 "   VALUES ($1, $2, $3, $4, $5)";
 
 const char *drop_handler_sql =
-"DELETE FROM bdr.bdr_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
+"DELETE FROM pgactive.pgactive_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
 const char *conflict_handlers_get_tbl_oid_sql =
-"SELECT oid FROM bdr.bdr_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
+"SELECT oid FROM pgactive.pgactive_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
 const char *get_conflict_handlers_for_table_sql =
-"SELECT ch_fun::regprocedure, ch_type::text ch_type, ch_timeframe FROM bdr.bdr_conflict_handlers" \
+"SELECT ch_fun::regprocedure, ch_type::text ch_type, ch_timeframe FROM pgactive.pgactive_conflict_handlers" \
 "   WHERE ch_reloid = $1 ORDER BY ch_type, ch_name";
 
-static void bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid);
-static void bdr_conflict_handlers_check_access(Oid reloid);
-static const char *bdr_conflict_handlers_event_type_name(BdrConflictType event_type);
+static void pgactive_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid);
+static void pgactive_conflict_handlers_check_access(Oid reloid);
+static const char *pgactive_conflict_handlers_event_type_name(pgactiveConflictType event_type);
 
-static Oid	bdr_conflict_handler_table_oid = InvalidOid;
-static Oid	bdr_conflict_handler_type_oid = InvalidOid;
-static Oid	bdr_conflict_handler_action_oid = InvalidOid;
-static Oid	bdr_conflict_handler_action_ignore_oid = InvalidOid;
-static Oid	bdr_conflict_handler_action_row_oid = InvalidOid;
-static Oid	bdr_conflict_handler_action_skip_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_table_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_type_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_action_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_action_ignore_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_action_row_oid = InvalidOid;
+static Oid	pgactive_conflict_handler_action_skip_oid = InvalidOid;
 
 void
-bdr_conflict_handlers_init(void)
+pgactive_conflict_handlers_init(void)
 {
-	Oid			schema_oid = get_namespace_oid("bdr", false);
+	Oid			schema_oid = get_namespace_oid("pgactive", false);
 
-	bdr_conflict_handler_table_oid = get_relname_relid("bdr_conflict_handlers",
+	pgactive_conflict_handler_table_oid = get_relname_relid("pgactive_conflict_handlers",
 													   schema_oid);
 
-	if (bdr_conflict_handler_table_oid == InvalidOid)
-		elog(ERROR, "cache lookup failed for relation bdr.bdr_conflict_handlers");
+	if (pgactive_conflict_handler_table_oid == InvalidOid)
+		elog(ERROR, "cache lookup failed for relation pgactive.pgactive_conflict_handlers");
 
-	bdr_conflict_handler_type_oid =
-		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								PointerGetDatum("bdr_conflict_type"),
+	pgactive_conflict_handler_type_oid =
+		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								PointerGetDatum("pgactive_conflict_type"),
 								ObjectIdGetDatum(schema_oid));
 
-	bdr_conflict_handler_action_oid =
-		BdrGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								PointerGetDatum("bdr_conflict_handler_action"),
+	pgactive_conflict_handler_action_oid =
+		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
+								PointerGetDatum("pgactive_conflict_handler_action"),
 								ObjectIdGetDatum(schema_oid));
 
-	bdr_conflict_handler_action_ignore_oid =
-		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								bdr_conflict_handler_action_oid,
+	pgactive_conflict_handler_action_ignore_oid =
+		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								pgactive_conflict_handler_action_oid,
 								CStringGetDatum("IGNORE"));
 
-	bdr_conflict_handler_action_row_oid =
-		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								bdr_conflict_handler_action_oid,
+	pgactive_conflict_handler_action_row_oid =
+		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								pgactive_conflict_handler_action_oid,
 								CStringGetDatum("ROW"));
 
-	bdr_conflict_handler_action_skip_oid =
-		BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								bdr_conflict_handler_action_oid,
+	pgactive_conflict_handler_action_skip_oid =
+		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
+								pgactive_conflict_handler_action_oid,
 								CStringGetDatum("SKIP"));
 }
 
@@ -118,7 +118,7 @@ bdr_conflict_handlers_init(void)
  * Also raise an error if the relation is a system catalog.
  */
 static void
-bdr_conflict_handlers_check_access(Oid reloid)
+pgactive_conflict_handlers_check_access(Oid reloid)
 {
 	HeapTuple	tuple;
 	Form_pg_class classform;
@@ -145,10 +145,10 @@ bdr_conflict_handlers_check_access(Oid reloid)
 
 /*
  * Creates a new conflict handler. This replicates by inserting to
- * bdr.bdr_queued_commands.
+ * pgactive.pgactive_queued_commands.
  */
 Datum
-bdr_create_conflict_handler(PG_FUNCTION_ARGS)
+pgactive_create_conflict_handler(PG_FUNCTION_ARGS)
 {
 	Oid			proc_oid,
 				reloid,
@@ -174,8 +174,8 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) || PG_ARGISNULL(3))
 		elog(ERROR, "relation, handler name, handler procedure, and handler type must be non-null");
 
-	if (bdr_conflict_handler_table_oid == InvalidOid)
-		bdr_conflict_handlers_init();
+	if (pgactive_conflict_handler_table_oid == InvalidOid)
+		pgactive_conflict_handlers_init();
 
 	guc_nestlevel = NewGUCNestLevel();
 
@@ -191,7 +191,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	ch_name = PG_GETARG_NAME(1);
 	proc_oid = PG_GETARG_OID(2);
 
-	bdr_conflict_handlers_check_access(reloid);
+	pgactive_conflict_handlers_check_access(reloid);
 
 	/*
 	 * We lock the relation we're referring to avoid race conditions with
@@ -202,10 +202,10 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	rel = table_open(reloid, ShareUpdateExclusiveLock);
 
 	/* ensure that handler function is good */
-	bdr_conflict_handlers_check_handler_fun(rel, proc_oid);
+	pgactive_conflict_handlers_check_handler_fun(rel, proc_oid);
 
 	/*
-	 * build up arguments for the INSERT INTO bdr.bdr_conflict_handlers
+	 * build up arguments for the INSERT INTO pgactive.pgactive_conflict_handlers
 	 */
 
 	argtypes[0] = REGCLASSOID;
@@ -218,7 +218,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	values[2] =
 		CStringGetTextDatum(format_procedure_qualified(PG_GETARG_OID(2)));
 
-	argtypes[3] = bdr_conflict_handler_type_oid;
+	argtypes[3] = pgactive_conflict_handler_type_oid;
 	values[3] = PG_GETARG_DATUM(3);
 
 	argtypes[4] = INTERVALOID;
@@ -234,7 +234,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * execute INSERT INTO bdr.bdr_conflict_handlers
+	 * execute INSERT INTO pgactive.pgactive_conflict_handlers
 	 */
 
 	if (SPI_connect() != SPI_OK_CONNECT)
@@ -272,7 +272,7 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 	dat = SPI_getbinval(spi_rslt, spi_rslt_desc, col_oid, &isnull);
 	rowoid = DatumGetObjectId(dat);
 
-	myself.classId = bdr_conflict_handler_table_oid;
+	myself.classId = pgactive_conflict_handler_table_oid;
 	myself.objectId = rowoid;
 	myself.objectSubId = 0;
 
@@ -297,9 +297,9 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 		 * stringification etc.
 		 */
 		const char *const insert_query =
-			"INSERT INTO bdr.bdr_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
+			"INSERT INTO pgactive.pgactive_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
 			"   VALUES (pg_current_wal_lsn(), NOW(), CURRENT_USER, 'SELECT',\n"
-			"           format('SELECT bdr.bdr_create_conflict_handler(%L, %L, %L, %L, %L)', $1, $2, $3, $4, $5));";
+			"           format('SELECT pgactive.pgactive_create_conflict_handler(%L, %L, %L, %L, %L)', $1, $2, $3, $4, $5));";
 
 		ret = SPI_execute_with_args(insert_query, 5, argtypes,
 									values, nulls, false, 0);
@@ -324,10 +324,10 @@ bdr_create_conflict_handler(PG_FUNCTION_ARGS)
 /*
  * Drops a conflict handler by removing it from the table and removing the
  * correspondig dependency row. This replicates by inserting to
- * bdr.bdr_queued_commands.
+ * pgactive.pgactive_queued_commands.
  */
 Datum
-bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
+pgactive_drop_conflict_handler(PG_FUNCTION_ARGS)
 {
 	Oid			rowoid;
 	int			ret;
@@ -349,8 +349,8 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 
 	Relation	rel;
 
-	if (bdr_conflict_handler_table_oid == InvalidOid)
-		bdr_conflict_handlers_init();
+	if (pgactive_conflict_handler_table_oid == InvalidOid)
+		pgactive_conflict_handlers_init();
 	guc_nestlevel = NewGUCNestLevel();
 
 	/*
@@ -369,7 +369,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	values[1] = PG_GETARG_DATUM(1);
 	nulls[1] = 0;
 
-	bdr_conflict_handlers_check_access(ch_relid);
+	pgactive_conflict_handlers_check_access(ch_relid);
 
 	rel = table_open(ch_relid, ShareUpdateExclusiveLock);
 
@@ -378,7 +378,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	PushActiveSnapshot(GetTransactionSnapshot());
 
 	/*
-	 * get the bdr.bdr_conflict_handlers row oid to remove the dependency
+	 * get the pgactive.pgactive_conflict_handlers row oid to remove the dependency
 	 */
 	ret = SPI_execute_with_args(conflict_handlers_get_tbl_oid_sql, 2, argtypes,
 								values, nulls, false, 0);
@@ -398,7 +398,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	rowoid = DatumGetObjectId(dat);
 
 	/*
-	 * delete the handler row from bdr_conflict_handlers
+	 * delete the handler row from pgactive_conflict_handlers
 	 */
 	ret = SPI_execute_with_args(drop_handler_sql, 2, argtypes,
 								values, nulls, false, 0);
@@ -409,7 +409,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	/*
 	 * remove the dependency
 	 */
-	deleteDependencyRecordsForClass(bdr_conflict_handler_table_oid, rowoid,
+	deleteDependencyRecordsForClass(pgactive_conflict_handler_table_oid, rowoid,
 									RelationRelationId, DEPENDENCY_INTERNAL);
 	CommandCounterIncrement();
 
@@ -422,9 +422,9 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
 	{
 
 		const char *const query =
-			"INSERT INTO bdr.bdr_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
+			"INSERT INTO pgactive.pgactive_queued_commands (lsn, queued_at, perpetrator, command_tag, command)\n"
 			"   VALUES (pg_current_wal_lsn(), NOW(), CURRENT_USER, 'SELECT', "
-			"           format('SELECT bdr.bdr_drop_conflict_handler(%L, %L)', $1, $2));";
+			"           format('SELECT pgactive.pgactive_drop_conflict_handler(%L, %L)', $1, $2));";
 
 		ret = SPI_execute_with_args(query, 2, argtypes,
 									values, nulls, false, 0);
@@ -448,7 +448,7 @@ bdr_drop_conflict_handler(PG_FUNCTION_ARGS)
  * Check that the handler function signature is what we expect; error out if not
  */
 static void
-bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
+pgactive_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 {
 	HeapTuple	tuple;
 	Form_pg_proc proc;
@@ -493,7 +493,7 @@ bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 		}
 
 		if (retdesc->attrs[0].atttypid != rel->rd_rel->reltype ||
-			retdesc->attrs[1].atttypid != bdr_conflict_handler_action_oid)
+			retdesc->attrs[1].atttypid != pgactive_conflict_handler_action_oid)
 		{
 			hint = "OUT argument are not of the expected types.";
 			break;
@@ -501,10 +501,10 @@ bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 
 		if (argtypes[2] != TEXTOID ||
 			argtypes[3] != REGCLASSOID ||
-			argtypes[4] != bdr_conflict_handler_type_oid)
+			argtypes[4] != pgactive_conflict_handler_type_oid)
 		{
 			/* XXX ugh */
-			hint = "Three last input arguments are not (text, regclass, bdr.bdr_conflict_type).";
+			hint = "Three last input arguments are not (text, regclass, pgactive.pgactive_conflict_type).";
 			break;
 		}
 
@@ -541,7 +541,7 @@ bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 
 	ereport(ERROR,
 			(errmsg("conflict handler function signature must be %s",
-					"(IN tablerow, IN tablerow, IN text, IN regclass, IN bdr.bdr_conflict_type, OUT tablerow, OUT bdr.bdr_conflict_handler_action)"),
+					"(IN tablerow, IN tablerow, IN text, IN regclass, IN pgactive.pgactive_conflict_type, OUT tablerow, OUT pgactive.pgactive_conflict_handler_action)"),
 			 hint ? errhint("%s", hint) : 0));
 }
 
@@ -551,7 +551,7 @@ bdr_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
  * specified handler type are returned.
  */
 static void
-bdr_get_conflict_handlers(BDRRelation * rel)
+pgactive_get_conflict_handlers(pgactiveRelation * rel)
 {
 	Oid			argtypes[1];
 	Datum		values[1],
@@ -592,7 +592,7 @@ bdr_get_conflict_handlers(BDRRelation * rel)
 		rel->conflict_handlers_len = SPI_processed;
 		rel->conflict_handlers =
 			MemoryContextAlloc(CacheMemoryContext,
-							   SPI_processed * sizeof(BDRConflictHandler));
+							   SPI_processed * sizeof(pgactiveConflictHandler));
 
 		fun_col_no = SPI_fnumber(SPI_tuptable->tupdesc, "ch_fun");
 		type_col_no = SPI_fnumber(SPI_tuptable->tupdesc, "ch_type");
@@ -627,15 +627,15 @@ bdr_get_conflict_handlers(BDRRelation * rel)
 			htype = TextDatumGetCString(dat);
 
 			if (strcmp(htype, "update_update") == 0)
-				rel->conflict_handlers[i].handler_type = BdrConflictType_UpdateUpdate;
+				rel->conflict_handlers[i].handler_type = pgactiveConflictType_UpdateUpdate;
 			else if (strcmp(htype, "update_delete") == 0)
-				rel->conflict_handlers[i].handler_type = BdrConflictType_UpdateDelete;
+				rel->conflict_handlers[i].handler_type = pgactiveConflictType_UpdateDelete;
 			else if (strcmp(htype, "delete_delete") == 0)
-				rel->conflict_handlers[i].handler_type = BdrConflictType_DeleteDelete;
+				rel->conflict_handlers[i].handler_type = pgactiveConflictType_DeleteDelete;
 			else if (strcmp(htype, "insert_insert") == 0)
-				rel->conflict_handlers[i].handler_type = BdrConflictType_InsertInsert;
+				rel->conflict_handlers[i].handler_type = pgactiveConflictType_InsertInsert;
 			else if (strcmp(htype, "insert_update") == 0)
-				rel->conflict_handlers[i].handler_type = BdrConflictType_InsertUpdate;
+				rel->conflict_handlers[i].handler_type = pgactiveConflictType_InsertUpdate;
 			else
 				elog(ERROR, "unknown handler type: %s", htype);
 
@@ -662,21 +662,21 @@ bdr_get_conflict_handlers(BDRRelation * rel)
 }
 
 static const char *
-bdr_conflict_handlers_event_type_name(BdrConflictType event_type)
+pgactive_conflict_handlers_event_type_name(pgactiveConflictType event_type)
 {
 	switch (event_type)
 	{
-		case BdrConflictType_InsertInsert:
+		case pgactiveConflictType_InsertInsert:
 			return "insert_insert";
-		case BdrConflictType_InsertUpdate:
+		case pgactiveConflictType_InsertUpdate:
 			return "insert_update";
-		case BdrConflictType_UpdateUpdate:
+		case pgactiveConflictType_UpdateUpdate:
 			return "update_update";
-		case BdrConflictType_UpdateDelete:
+		case pgactiveConflictType_UpdateDelete:
 			return "update_delete";
-		case BdrConflictType_DeleteDelete:
+		case pgactiveConflictType_DeleteDelete:
 			return "delete_delete";
-		case BdrConflictType_UnhandledTxAbort:
+		case pgactiveConflictType_UnhandledTxAbort:
 			return "unhandled_tx_abort";
 
 		default:
@@ -693,9 +693,9 @@ bdr_conflict_handlers_event_type_name(BdrConflictType event_type)
  * return value. Return NULL if no handler returns a non-NULL value.
  */
 HeapTuple
-bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
+pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local,
 							  const HeapTuple remote, const char *command_tag,
-							  BdrConflictType event_type,
+							  pgactiveConflictType event_type,
 							  uint64 timeframe, bool *skip)
 {
 	size_t		i;
@@ -713,14 +713,14 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 	Datum		val;
 	bool		isnull;
 	Oid			event_oid;
-	const char *event = bdr_conflict_handlers_event_type_name(event_type);
+	const char *event = pgactive_conflict_handlers_event_type_name(event_type);
 
 	*skip = false;
 
-	bdr_get_conflict_handlers(rel);
+	pgactive_get_conflict_handlers(rel);
 
-	event_oid = BdrGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
-										bdr_conflict_handler_type_oid,
+	event_oid = pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
+										pgactive_conflict_handler_type_oid,
 										CStringGetDatum(event));
 
 	for (i = 0; i < rel->conflict_handlers_len; ++i)
@@ -821,7 +821,7 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 		if (isnull)
 			elog(ERROR, "handler action cannot be NULL");
 
-		if (DatumGetObjectId(val) == bdr_conflict_handler_action_row_oid)
+		if (DatumGetObjectId(val) == pgactive_conflict_handler_action_row_oid)
 		{
 			HeapTuple	tup = palloc(sizeof(*tup));
 
@@ -844,12 +844,12 @@ bdr_conflict_handlers_resolve(BDRRelation * rel, const HeapTuple local,
 
 			return tup;
 		}
-		else if (DatumGetObjectId(val) == bdr_conflict_handler_action_skip_oid)
+		else if (DatumGetObjectId(val) == pgactive_conflict_handler_action_skip_oid)
 		{
 			*skip = true;
 			return NULL;
 		}
-		else if (DatumGetObjectId(val) == bdr_conflict_handler_action_ignore_oid)
+		else if (DatumGetObjectId(val) == pgactive_conflict_handler_action_ignore_oid)
 			continue;
 	}
 

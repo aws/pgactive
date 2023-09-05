@@ -26,10 +26,10 @@ win32ver.rc
 lib*dll.def
 lib*.pc
 
-# bdr specific
-/bdr_init_copy
-/bdr_dump
-/include/bdr_version.h
+# pgactive specific
+/pgactive_init_copy
+/pgactive_dump
+/include/pgactive_version.h
 /test/log/
 /test/results/
 /test/tmp_check/
@@ -37,13 +37,13 @@ lib*.pc
 /tmp_test_*
 /home
 *~
-/bdr-*.tar.bz2
+/pgactive-*.tar.bz2
 /.distgitrev
 /.distgittag
-/bdr_init_copy_postgres.log
+/pgactive_init_copy_postgres.log
 # autoconf output
 /autom4te.cache/
-/include/bdr_config_generated.h
+/include/pgactive_config_generated.h
 # configure output
 /Makefile
 /test/run_tests
@@ -51,8 +51,8 @@ lib*.pc
 /config.status
 /Makefile.global
 /doc/Makefile
-/bdr.conf.sample
+/pgactive.conf.sample
 # Packages
-bdr-*.asc
-bdr-*.md5
+pgactive-*.asc
+pgactive-*.md5
 /.pg_version

@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_seq.c
+ * pgactive_seq.c
  *		An implementation of global sequences.
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_seq.c
+ *		pgactive_seq.c
  *
  * -------------------------------------------------------------------------
  */
@@ -21,7 +21,7 @@
 
 #include "miscadmin.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #define TIMESTAMP_BITS	40
 #define SEQUENCE_BITS	14
@@ -35,9 +35,9 @@ static Oid	seq_nodeid_dboid = InvalidOid;
 
 static int16 global_seq_get_nodeid(void);
 
-Datum		bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS);
+Datum		pgactive_snowflake_id_nextval_oid(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_snowflake_id_nextval_oid);
+PG_FUNCTION_INFO_V1(pgactive_snowflake_id_nextval_oid);
 
 /*
  * We generate sequence number from postgres epoch in ms (40 bits),
@@ -55,7 +55,7 @@ PG_FUNCTION_INFO_V1(bdr_snowflake_id_nextval_oid);
  * if users have different needs.
  */
 Datum
-bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
+pgactive_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 {
 	Oid			seqoid = PG_GETARG_OID(0);
 	Datum		sequenced;
@@ -101,7 +101,7 @@ bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("sequence produced negative value"),
-				 errdetail("Sequence \"%s\" produced a negative result. Sequences used as inputs to BDR global sequence functions must produce positive outputs.",
+				 errdetail("Sequence \"%s\" produced a negative result. Sequences used as inputs to pgactive global sequence functions must produce positive outputs.",
 						   get_rel_name(seqoid))));
 
 	Assert(sequence >= 0 && sequence < MAX_SEQ_ID);
@@ -124,13 +124,13 @@ bdr_snowflake_id_nextval_oid(PG_FUNCTION_ARGS)
 static int16
 global_seq_read_nodeid(void)
 {
-	int			seq_id = bdr_local_node_seq_id();
+	int			seq_id = pgactive_local_node_seq_id();
 
 	if (seq_id == -1)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("node sequence ID not allocated"),
-				 errdetail("No node_seq_id in bdr.bdr_nodes for this node."),
+				 errdetail("No node_seq_id in pgactive.pgactive_nodes for this node."),
 				 errhint("Check the node status to ensure it's fully ready.")));
 
 	if (seq_id < 0 || seq_id > MAX_NODE_ID)

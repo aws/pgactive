@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_count.c
+ * pgactive_count.c
  *		Replication replication stats
  *
  * Copyright (C) 2013-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_count.c
+ *		pgactive_count.c
  *
  * -------------------------------------------------------------------------
  */
@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "fmgr.h"
 #include "funcapi.h"
@@ -34,10 +34,10 @@
 /*
  * Statistics about logical replication
  *
- * whenever this struct is changed, bdr_count_version needs to be increased so
+ * whenever this struct is changed, pgactive_count_version needs to be increased so
  * on-disk values aren't reused
  */
-typedef struct BdrCountSlot
+typedef struct pgactiveCountSlot
 {
 	RepOriginId node_id;
 
@@ -53,71 +53,71 @@ typedef struct BdrCountSlot
 	int64		nr_delete_conflict;
 
 	int64		nr_disconnect;
-}			BdrCountSlot;
+}			pgactiveCountSlot;
 
 /*
  * Shared memory header for the stats module.
  */
-typedef struct BdrCountControl
+typedef struct pgactiveCountControl
 {
 	LWLockId	lock;
-	BdrCountSlot slots[FLEXIBLE_ARRAY_MEMBER];
-}			BdrCountControl;
+	pgactiveCountSlot slots[FLEXIBLE_ARRAY_MEMBER];
+}			pgactiveCountControl;
 
 /*
  * Header of a stats disk serialization, used to detect old files, changed
  * parameters and such.
  */
-typedef struct BdrCountSerialize
+typedef struct pgactiveCountSerialize
 {
 	uint32		magic;
 	uint32		version;
 	uint32		nr_slots;
-}			BdrCountSerialize;
+}			pgactiveCountSerialize;
 
 /* magic number of the stats file, don't change */
-static const uint32 bdr_count_magic = 0x5e51A7;
+static const uint32 pgactive_count_magic = 0x5e51A7;
 
 /* everytime the stored data format changes, increase */
-static const uint32 bdr_count_version = 2;
+static const uint32 pgactive_count_version = 2;
 
-/* shortcut for the finding BdrCountControl in memory */
-static BdrCountControl * BdrCountCtl = NULL;
+/* shortcut for the finding pgactiveCountControl in memory */
+static pgactiveCountControl * pgactiveCountCtl = NULL;
 
 /* how many nodes have we built shmem for */
-static Size bdr_count_nnodes = 0;
+static Size pgactive_count_nnodes = 0;
 
-/* offset in the BdrCountControl->slots "our" backend is in */
+/* offset in the pgactiveCountControl->slots "our" backend is in */
 static int	MyCountOffsetIdx = -1;
 
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 
-static void bdr_count_shmem_startup(void);
-static void bdr_count_shmem_shutdown(int code, Datum arg);
-static Size bdr_count_shmem_size(void);
+static void pgactive_count_shmem_startup(void);
+static void pgactive_count_shmem_shutdown(int code, Datum arg);
+static Size pgactive_count_shmem_size(void);
 
-static void bdr_count_serialize(void);
-static void bdr_count_unserialize(void);
+static void pgactive_count_serialize(void);
+static void pgactive_count_unserialize(void);
 
-#define BDR_COUNT_STAT_COLS 12
+#define pgactive_COUNT_STAT_COLS 12
 
-PGDLLEXPORT Datum bdr_get_stats(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_stats(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_get_stats);
+PG_FUNCTION_INFO_V1(pgactive_get_stats);
 
 static Size
-bdr_count_shmem_size(void)
+pgactive_count_shmem_size(void)
 {
 	Size		size = 0;
 
-	size = add_size(size, sizeof(BdrCountControl));
-	size = add_size(size, mul_size(bdr_count_nnodes, sizeof(BdrCountSlot)));
+	size = add_size(size, sizeof(pgactiveCountControl));
+	size = add_size(size, mul_size(pgactive_count_nnodes, sizeof(pgactiveCountSlot)));
 
 	return size;
 }
 
 void
-bdr_count_shmem_init(int nnodes)
+pgactive_count_shmem_init(int nnodes)
 {
 #if PG_VERSION_NUM >= 150000
 	Assert(process_shmem_requests_in_progress);
@@ -126,18 +126,18 @@ bdr_count_shmem_init(int nnodes)
 #endif
 
 	Assert(nnodes >= 0);
-	bdr_count_nnodes = (Size) nnodes;
+	pgactive_count_nnodes = (Size) nnodes;
 
-	RequestAddinShmemSpace(bdr_count_shmem_size());
+	RequestAddinShmemSpace(pgactive_count_shmem_size());
 	/* lock for slot acquiration */
-	RequestNamedLWLockTranche("bdr_count", 1);
+	RequestNamedLWLockTranche("pgactive_count", 1);
 
 	prev_shmem_startup_hook = shmem_startup_hook;
-	shmem_startup_hook = bdr_count_shmem_startup;
+	shmem_startup_hook = pgactive_count_shmem_startup;
 }
 
 static void
-bdr_count_shmem_startup(void)
+pgactive_count_shmem_startup(void)
 {
 	bool		found;
 
@@ -145,15 +145,15 @@ bdr_count_shmem_startup(void)
 		prev_shmem_startup_hook();
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
-	BdrCountCtl = ShmemInitStruct("bdr_count",
-								  bdr_count_shmem_size(),
+	pgactiveCountCtl = ShmemInitStruct("pgactive_count",
+								  pgactive_count_shmem_size(),
 								  &found);
 	if (!found)
 	{
 		/* initialize */
-		memset(BdrCountCtl, 0, bdr_count_shmem_size());
-		BdrCountCtl->lock = &(GetNamedLWLockTranche("bdr_count"))->lock;
-		bdr_count_unserialize();
+		memset(pgactiveCountCtl, 0, pgactive_count_shmem_size());
+		pgactiveCountCtl->lock = &(GetNamedLWLockTranche("pgactive_count"))->lock;
+		pgactive_count_unserialize();
 	}
 	LWLockRelease(AddinShmemInitLock);
 
@@ -162,11 +162,11 @@ bdr_count_shmem_startup(void)
 	 * exit hook to dump the statistics to disk.
 	 */
 	if (!IsUnderPostmaster)
-		on_shmem_exit(bdr_count_shmem_shutdown, (Datum) 0);
+		on_shmem_exit(pgactive_count_shmem_shutdown, (Datum) 0);
 }
 
 static void
-bdr_count_shmem_shutdown(int code, Datum arg)
+pgactive_count_shmem_shutdown(int code, Datum arg)
 {
 	/*
 	 * To avoid doing the same everywhere, we only write in postmaster itself
@@ -176,7 +176,7 @@ bdr_count_shmem_shutdown(int code, Datum arg)
 		return;
 
 	/* persist the file */
-	bdr_count_serialize();
+	pgactive_count_serialize();
 }
 
 /*
@@ -185,18 +185,18 @@ bdr_count_shmem_shutdown(int code, Datum arg)
  * manipulation.
  */
 void
-bdr_count_set_current_node(RepOriginId node_id)
+pgactive_count_set_current_node(RepOriginId node_id)
 {
 	size_t		i;
 
 	MyCountOffsetIdx = -1;
 
-	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveCountCtl->lock, LW_EXCLUSIVE);
 
 	/* check whether stats already are counted for this node */
-	for (i = 0; i < bdr_count_nnodes; i++)
+	for (i = 0; i < pgactive_count_nnodes; i++)
 	{
-		if (BdrCountCtl->slots[i].node_id == node_id)
+		if (pgactiveCountCtl->slots[i].node_id == node_id)
 		{
 			MyCountOffsetIdx = i;
 			break;
@@ -207,20 +207,20 @@ bdr_count_set_current_node(RepOriginId node_id)
 		goto out;
 
 	/* ok, get a new slot */
-	for (i = 0; i < bdr_count_nnodes; i++)
+	for (i = 0; i < pgactive_count_nnodes; i++)
 	{
-		if (BdrCountCtl->slots[i].node_id == InvalidRepOriginId)
+		if (pgactiveCountCtl->slots[i].node_id == InvalidRepOriginId)
 		{
 			MyCountOffsetIdx = i;
-			BdrCountCtl->slots[i].node_id = node_id;
+			pgactiveCountCtl->slots[i].node_id = node_id;
 			break;
 		}
 	}
 
 	if (MyCountOffsetIdx == -1)
-		elog(PANIC, "could not find a BDR count slot for %u", node_id);
+		elog(PANIC, "could not find a pgactive count slot for %u", node_id);
 out:
-	LWLockRelease(BdrCountCtl->lock);
+	LWLockRelease(pgactiveCountCtl->lock);
 }
 
 /*
@@ -230,70 +230,70 @@ out:
  * backend will do writing there.
  */
 void
-bdr_count_commit(void)
+pgactive_count_commit(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_commit++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_commit++;
 }
 
 void
-bdr_count_rollback(void)
+pgactive_count_rollback(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_rollback++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_rollback++;
 }
 
 void
-bdr_count_insert(void)
+pgactive_count_insert(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_insert++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_insert++;
 }
 
 void
-bdr_count_insert_conflict(void)
+pgactive_count_insert_conflict(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_insert_conflict++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_insert_conflict++;
 }
 
 void
-bdr_count_update(void)
+pgactive_count_update(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_update++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_update++;
 }
 
 void
-bdr_count_update_conflict(void)
+pgactive_count_update_conflict(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_update_conflict++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_update_conflict++;
 }
 
 void
-bdr_count_delete(void)
+pgactive_count_delete(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_delete++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_delete++;
 }
 
 void
-bdr_count_delete_conflict(void)
+pgactive_count_delete_conflict(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_delete_conflict++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_delete_conflict++;
 }
 
 void
-bdr_count_disconnect(void)
+pgactive_count_disconnect(void)
 {
 	Assert(MyCountOffsetIdx != -1);
-	BdrCountCtl->slots[MyCountOffsetIdx].nr_disconnect++;
+	pgactiveCountCtl->slots[MyCountOffsetIdx].nr_disconnect++;
 }
 
 Datum
-bdr_get_stats(PG_FUNCTION_ARGS)
+pgactive_get_stats(PG_FUNCTION_ARGS)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	size_t		current_offset;
@@ -301,23 +301,23 @@ bdr_get_stats(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("access to bdr_get_stats() denied as non-superuser")));
+				 errmsg("access to pgactive_get_stats() denied as non-superuser")));
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
 
 	/* don't let a node get created/vanish below us */
-	LWLockAcquire(BdrCountCtl->lock, LW_SHARED);
+	LWLockAcquire(pgactiveCountCtl->lock, LW_SHARED);
 
-	for (current_offset = 0; current_offset < bdr_count_nnodes;
+	for (current_offset = 0; current_offset < pgactive_count_nnodes;
 		 current_offset++)
 	{
-		BdrCountSlot *slot;
+		pgactiveCountSlot *slot;
 		char	   *riname;
-		Datum		values[BDR_COUNT_STAT_COLS];
-		bool		nulls[BDR_COUNT_STAT_COLS];
+		Datum		values[pgactive_COUNT_STAT_COLS];
+		bool		nulls[pgactive_COUNT_STAT_COLS];
 
-		slot = &BdrCountCtl->slots[current_offset];
+		slot = &pgactiveCountCtl->slots[current_offset];
 
 		/* no stats here */
 		if (slot->node_id == InvalidRepOriginId)
@@ -344,28 +344,28 @@ bdr_get_stats(PG_FUNCTION_ARGS)
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);
 	}
-	LWLockRelease(BdrCountCtl->lock);
+	LWLockRelease(pgactiveCountCtl->lock);
 
 	PG_RETURN_VOID();
 }
 
 /*
- * Write the BDR stats from shared memory to a file
+ * Write the pgactive stats from shared memory to a file
  */
 static void
-bdr_count_serialize(void)
+pgactive_count_serialize(void)
 {
 	int			fd;
-	const char *tpath = "global/bdr.stat.tmp";
-	const char *path = "global/bdr.stat";
-	BdrCountSerialize serial;
+	const char *tpath = "global/pgactive.stat.tmp";
+	const char *path = "global/pgactive.stat";
+	pgactiveCountSerialize serial;
 	Size		write_size;
 
-	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveCountCtl->lock, LW_EXCLUSIVE);
 
 	if (unlink(tpath) < 0 && errno != ENOENT)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not unlink \"%s\": %m", tpath)));
@@ -376,35 +376,35 @@ bdr_count_serialize(void)
 							   S_IRUSR | S_IWUSR);
 	if (fd < 0)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open \"%s\": %m", tpath)));
 	}
 
-	serial.magic = bdr_count_magic;
-	serial.version = bdr_count_version;
-	serial.nr_slots = bdr_count_nnodes;
+	serial.magic = pgactive_count_magic;
+	serial.version = pgactive_count_version;
+	serial.nr_slots = pgactive_count_nnodes;
 
 	/* write header */
 	write_size = sizeof(serial);
 	if ((write(fd, &serial, write_size)) != write_size)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not write BDR stat file data \"%s\": %m",
+				 errmsg("could not write pgactive stat file data \"%s\": %m",
 						tpath)));
 	}
 
 	/* write data */
-	write_size = sizeof(BdrCountSlot) * bdr_count_nnodes;
-	if ((write(fd, &BdrCountCtl->slots, write_size)) != write_size)
+	write_size = sizeof(pgactiveCountSlot) * pgactive_count_nnodes;
+	if ((write(fd, &pgactiveCountCtl->slots, write_size)) != write_size)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not write BDR stat file data \"%s\": %m",
+				 errmsg("could not write pgactive stat file data \"%s\": %m",
 						tpath)));
 	}
 
@@ -413,30 +413,30 @@ bdr_count_serialize(void)
 	/* rename into place */
 	if (rename(tpath, path) != 0)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not rename BDR stat file \"%s\" to \"%s\": %m",
+				 errmsg("could not rename pgactive stat file \"%s\" to \"%s\": %m",
 						tpath, path)));
 	}
-	LWLockRelease(BdrCountCtl->lock);
+	LWLockRelease(pgactiveCountCtl->lock);
 }
 
 /*
- * Load BDR stats from file into shared memory
+ * Load pgactive stats from file into shared memory
  */
 static void
-bdr_count_unserialize(void)
+pgactive_count_unserialize(void)
 {
 	int			fd;
-	const char *path = "global/bdr.stat";
-	BdrCountSerialize serial;
+	const char *path = "global/pgactive.stat";
+	pgactiveCountSerialize serial;
 	ssize_t		read_size;
 
-	if (BdrCountCtl == NULL)
-		elog(ERROR, "cannot use BDR statistics function without loading bdr");
+	if (pgactiveCountCtl == NULL)
+		elog(ERROR, "cannot use pgactive statistics function without loading pgactive");
 
-	LWLockAcquire(BdrCountCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveCountCtl->lock, LW_EXCLUSIVE);
 
 	fd = OpenTransientFilePerm((char *) path,
 							   O_RDONLY | PG_BINARY, 0);
@@ -445,63 +445,63 @@ bdr_count_unserialize(void)
 
 	if (fd < 0)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not open BDR stat file \"%s\": %m", path)));
+				 errmsg("could not open pgactive stat file \"%s\": %m", path)));
 	}
 
 	read_size = sizeof(serial);
 	if (read(fd, &serial, read_size) != read_size)
 		ereport(PANIC,
 				(errcode_for_file_access(),
-				 errmsg("could not read BDR stat file data \"%s\": %m",
+				 errmsg("could not read pgactive stat file data \"%s\": %m",
 						path)));
 
-	if (serial.magic != bdr_count_magic)
+	if (serial.magic != pgactive_count_magic)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		elog(ERROR, "expected magic %u doesn't match read magic %u",
-			 bdr_count_magic, serial.magic);
+			 pgactive_count_magic, serial.magic);
 	}
 
-	if (serial.version != bdr_count_version)
+	if (serial.version != pgactive_count_version)
 	{
 		elog(WARNING, "version of stat file changed (file %u, current %u), zeroing",
-			 serial.version, bdr_count_version);
+			 serial.version, pgactive_count_version);
 		goto zero_file;
 	}
 
-	if (serial.nr_slots > bdr_count_nnodes)
+	if (serial.nr_slots > pgactive_count_nnodes)
 	{
 		elog(WARNING, "stat file has more stats than we need, zeroing");
 		goto zero_file;
 	}
 
 	/* read actual data, directly into shmem */
-	read_size = sizeof(BdrCountSlot) * serial.nr_slots;
-	if (read(fd, &BdrCountCtl->slots, read_size) != read_size)
+	read_size = sizeof(pgactiveCountSlot) * serial.nr_slots;
+	if (read(fd, &pgactiveCountCtl->slots, read_size) != read_size)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not read BDR stat file data \"%s\": %m",
+				 errmsg("could not read pgactive stat file data \"%s\": %m",
 						path)));
 	}
 
 out:
 	if (fd >= 0)
 		CloseTransientFile(fd);
-	LWLockRelease(BdrCountCtl->lock);
+	LWLockRelease(pgactiveCountCtl->lock);
 	return;
 
 zero_file:
 	CloseTransientFile(fd);
-	LWLockRelease(BdrCountCtl->lock);
+	LWLockRelease(pgactiveCountCtl->lock);
 
 	/*
 	 * Overwrite the existing file.  Note our struct was zeroed in
-	 * bdr_count_shmem_startup, so we're writing empty data.
+	 * pgactive_count_shmem_startup, so we're writing empty data.
 	 */
-	bdr_count_serialize();
+	pgactive_count_serialize();
 }

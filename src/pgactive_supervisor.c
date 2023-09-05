@@ -1,18 +1,18 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_supervisor.c
+ * pgactive_supervisor.c
  *		Cluster wide supervisor worker.
  *
  * Copyright (C) 2014-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_supervisor.c
+ *		pgactive_supervisor.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -51,26 +51,26 @@ static bool destroy_temp_dump_dirs_callback_registered = false;
  * the first connection is added for a database.
  */
 static void
-bdr_register_perdb_worker(Oid dboid)
+pgactive_register_perdb_worker(Oid dboid)
 {
 	BackgroundWorkerHandle *bgw_handle;
 	BackgroundWorker bgw = {0};
 	BgwHandleStatus status;
 	pid_t		pid;
-	BdrWorker  *worker;
-	BdrPerdbWorker *perdb;
+	pgactiveWorker  *worker;
+	pgactivePerdbWorker *perdb;
 	unsigned int worker_slot_number;
 	uint32		worker_arg;
 	char	   *dbname;
 
-	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
+	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 	dbname = get_database_name(dboid);
 
 	elog(DEBUG2, "registering per-db worker for database \"%s\" with OID %u",
 		 dbname, dboid);
 
-	worker = bdr_worker_shmem_alloc(
-									BDR_WORKER_PERDB,
+	worker = pgactive_worker_shmem_alloc(
+									pgactive_WORKER_PERDB,
 									&worker_slot_number
 		);
 
@@ -87,10 +87,10 @@ bdr_register_perdb_worker(Oid dboid)
 	/* Configure per-db worker */
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
-	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
-	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_perdb_worker_main");
-	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr per-db worker for %s", dbname);
-	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr per-db worker");
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, pgactive_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "pgactive_perdb_worker_main");
+	snprintf(bgw.bgw_name, BGW_MAXLEN, "pgactive per-db worker for %s", dbname);
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "pgactive per-db worker");
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
 	bgw.bgw_restart_time = 5;
 
@@ -99,20 +99,20 @@ bdr_register_perdb_worker(Oid dboid)
 
 	/*
 	 * The main arg is composed of two uint16 parts - the worker generation
-	 * number (see bdr_worker_shmem_startup) and the index into
-	 * BdrWorkerCtl->slots in shared memory.
+	 * number (see pgactive_worker_shmem_startup) and the index into
+	 * pgactiveWorkerCtl->slots in shared memory.
 	 */
 	Assert(worker_slot_number <= UINT16_MAX);
-	worker_arg = (((uint32) BdrWorkerCtl->worker_generation) << 16) | (uint32) worker_slot_number;
+	worker_arg = (((uint32) pgactiveWorkerCtl->worker_generation) << 16) | (uint32) worker_slot_number;
 	bgw.bgw_main_arg = Int32GetDatum(worker_arg);
 
 	if (!RegisterDynamicBackgroundWorker(&bgw, &bgw_handle))
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("registering BDR per-db dynamic background worker failed"),
+				 errmsg("registering pgactive per-db dynamic background worker failed"),
 				 errhint("Consider increasing configuration parameter \"max_worker_processes\".")));
 
-	elog(DEBUG2, "successfully registered BDR per-db worker for database \"%s\"", dbname);
+	elog(DEBUG2, "successfully registered pgactive per-db worker for database \"%s\"", dbname);
 
 	/*
 	 * Here, supervisor must ensure the per-db worker registered above is
@@ -121,31 +121,31 @@ bdr_register_perdb_worker(Oid dboid)
 	 *
 	 * Steps that can otherwise lead to the race condition are:
 	 *
-	 * 1. Supervisor registers per-db worker while holding BdrWorkerCtl->lock
-	 * in bdr_supervisor_rescan_dbs().
+	 * 1. Supervisor registers per-db worker while holding pgactiveWorkerCtl->lock
+	 * in pgactive_supervisor_rescan_dbs().
 	 *
-	 * 2. Started per-db worker needs BdrWorkerCtl->lock to update database
+	 * 2. Started per-db worker needs pgactiveWorkerCtl->lock to update database
 	 * oid in its shared memory slot and thus adds itself to lock's wait
 	 * queue. Unless per-db worker updates database oid, supervisor cannot
 	 * consider it started in find_perdb_worker_slot().
 	 *
 	 * 3. Supervisor releases the lock, but a waiter other than per-db worker
 	 * acquires the lock. Meanwhile, the supervisor adds itself to the lock's
-	 * wait queue, thanks to SetLatch() in bdr_perdb_xact_callback().
+	 * wait queue, thanks to SetLatch() in pgactive_perdb_xact_callback().
 	 *
 	 * 4. Supervisor acquires the lock again before the first per-db worker
 	 * and fails to find the first per-db worker in find_perdb_worker_slot()
 	 * as it hasn't yet got a chance to update database oid in the shared
 	 * memory slot. This makes supervisor register another per-db worker for
-	 * the same BDR-enabled database causing multiple per-db workers (and so
+	 * the same pgactive-enabled database causing multiple per-db workers (and so
 	 * multiple apply workers - each per-db worker starts an apply worker) to
-	 * coexist. These multiple per-db workers don't let nodes joining the BDR
+	 * coexist. These multiple per-db workers don't let nodes joining the pgactive
 	 * group to come out from catchup state to ready state.
 	 *
 	 * We fix this race condition by making supervisor register per-db worker,
 	 * wait until postmaster starts it, give it a chance to update database
 	 * oid in its shared memory slot and continue to scan for other
-	 * BDR-enabled databases. An assert-enabled function
+	 * pgactive-enabled databases. An assert-enabled function
 	 * check_for_multiple_perdb_workers() helps to validate the fix.
 	 */
 	status = WaitForBackgroundWorkerStartup(bgw_handle, &pid);
@@ -161,9 +161,9 @@ bdr_register_perdb_worker(Oid dboid)
 	 */
 	for (;;)
 	{
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 
-		(void) BDRWaitLatch(&MyProc->procLatch,
+		(void) pgactiveWaitLatch(&MyProc->procLatch,
 							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 							100L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
@@ -174,61 +174,61 @@ bdr_register_perdb_worker(Oid dboid)
 			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+			SetConfigOption("log_min_messages", pgactive_error_severity(pgactive_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
-		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 		if (perdb->proclatch != NULL && perdb->p_dboid == dboid)
 		{
-			LWLockRelease(BdrWorkerCtl->lock);
+			LWLockRelease(pgactiveWorkerCtl->lock);
 			break;
 		}
 	}
 
-	Assert(!LWLockHeldByMe(BdrWorkerCtl->lock));
+	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 	Assert(perdb->c_dboid == perdb->p_dboid);
-	elog(DEBUG2, "successfully started BDR per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
+	elog(DEBUG2, "successfully started pgactive per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
 		 dbname, perdb->proclatch, perdb->p_dboid);
 	pfree(dbname);
 }
 
 /*
- * Check for BDR-enabled DBs and start per-db workers for any that currently
+ * Check for pgactive-enabled DBs and start per-db workers for any that currently
  * lack them.
  *
- * TODO DYNCONF: Handle removal of BDR from DBs
+ * TODO DYNCONF: Handle removal of pgactive from DBs
  */
 static void
-bdr_supervisor_rescan_dbs()
+pgactive_supervisor_rescan_dbs()
 {
 	Relation	secrel;
 	ScanKeyData skey[2];
 	SysScanDesc scan;
 	HeapTuple	secTuple;
 	int			n_new_workers = 0,
-				bdr_dbs = 0;
+				pgactive_dbs = 0;
 
-	elog(DEBUG1, "supervisor scanning for BDR-enabled databases");
+	elog(DEBUG1, "supervisor scanning for pgactive-enabled databases");
 
 	pgstat_report_activity(STATE_RUNNING, "scanning backends");
 
 	StartTransactionCommand();
 
 	/*
-	 * Scan pg_shseclabel looking for entries for pg_database with the bdr
-	 * label provider. We'll find all labels for the BDR provider,
+	 * Scan pg_shseclabel looking for entries for pg_database with the pgactive
+	 * label provider. We'll find all labels for the pgactive provider,
 	 * irrespective of value.
 	 *
 	 * The only index present isn't much use for this scan and using it makes
 	 * us set up more keys, so do a heap scan.
 	 *
 	 * The lock taken on pg_shseclabel must be strong enough to conflict with
-	 * the lock taken be bdr.bdr_connection_add(...) to ensure that any
+	 * the lock taken be pgactive.pgactive_connection_add(...) to ensure that any
 	 * transactions adding new labels have committed and cleaned up before we
 	 * read it. Otherwise a race between the supervisor latch being set in a
 	 * commit hook and the tuples actually becoming visible is possible.
@@ -243,18 +243,18 @@ bdr_supervisor_rescan_dbs()
 	ScanKeyInit(&skey[1],
 				Anum_pg_shseclabel_provider,
 				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(BDR_SECLABEL_PROVIDER));
+				CStringGetTextDatum(pgactive_SECLABEL_PROVIDER));
 
 	scan = systable_beginscan(secrel, InvalidOid, false, NULL, 2, &skey[0]);
 
 	/*
-	 * We need to scan the shmem segment that tracks BDR workers and possibly
+	 * We need to scan the shmem segment that tracks pgactive workers and possibly
 	 * modify it, so lock it.
 	 *
 	 * We have to take an exclusive lock in case we need to modify it,
 	 * otherwise we'd be faced with a lock upgrade.
 	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 	/*
 	 * Now examine each label and if there's no worker for the labled DB
@@ -266,7 +266,7 @@ bdr_supervisor_rescan_dbs()
 
 		sec = (FormData_pg_shseclabel *) GETSTRUCT(secTuple);
 
-		if (!bdr_is_bdr_activated_db(sec->objoid))
+		if (!pgactive_is_pgactive_activated_db(sec->objoid))
 			continue;
 
 		/*
@@ -275,15 +275,15 @@ bdr_supervisor_rescan_dbs()
 		 * every bg worker is mapped with database OID, not with database
 		 * name), and database renaming doesn't change the OID.
 		 */
-		elog(DEBUG1, "found BDR-enabled database with OID %u", sec->objoid);
+		elog(DEBUG1, "found pgactive-enabled database with OID %u", sec->objoid);
 
-		bdr_dbs++;
+		pgactive_dbs++;
 
 		/*
 		 * Check if we have a per-db worker for this db oid already and if we
 		 * don't, start one.
 		 *
-		 * This is O(n^2) for n BDR-enabled DBs; to be more scalable we could
+		 * This is O(n^2) for n pgactive-enabled DBs; to be more scalable we could
 		 * accumulate and sort the oids, then do a single scan of the shmem
 		 * segment. But really, if you have that many DBs this cost is
 		 * nothing.
@@ -291,8 +291,8 @@ bdr_supervisor_rescan_dbs()
 		if (find_perdb_worker_slot(sec->objoid, NULL) == -1)
 		{
 			/* No perdb worker exists for this DB, make one */
-			bdr_register_perdb_worker(sec->objoid);
-			Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
+			pgactive_register_perdb_worker(sec->objoid);
+			Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 			n_new_workers++;
 		}
 		else
@@ -300,17 +300,17 @@ bdr_supervisor_rescan_dbs()
 				 sec->objoid);
 	}
 
-	elog(DEBUG2, "found %i BDR-labeled DBs; registered %i new per-db workers",
-		 bdr_dbs, n_new_workers);
+	elog(DEBUG2, "found %i pgactive-labeled DBs; registered %i new per-db workers",
+		 pgactive_dbs, n_new_workers);
 
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	systable_endscan(scan);
 	table_close(secrel, RowShareLock);
 
 	CommitTransactionCommand();
 
-	elog(DEBUG2, "finished scanning for BDR-enabled databases");
+	elog(DEBUG2, "finished scanning for pgactive-enabled databases");
 
 	pgstat_report_activity(STATE_IDLE, NULL);
 }
@@ -320,10 +320,10 @@ bdr_supervisor_rescan_dbs()
  * to, a DB with no user connections permitted.
  *
  * This is a workaorund for the inability to use pg_shseclabel
- * without a DB connection; see comments in bdr_supervisor_main
+ * without a DB connection; see comments in pgactive_supervisor_main
  */
 static void
-bdr_supervisor_createdb()
+pgactive_supervisor_createdb()
 {
 	Oid			dboid;
 	ParseState *pstate;
@@ -331,7 +331,7 @@ bdr_supervisor_createdb()
 	StartTransactionCommand();
 
 	/* If the DB already exists, no need to create it */
-	dboid = get_database_oid(BDR_SUPERVISOR_DBNAME, true);
+	dboid = get_database_oid(pgactive_SUPERVISOR_DBNAME, true);
 
 	if (dboid == InvalidOid)
 	{
@@ -347,7 +347,7 @@ bdr_supervisor_createdb()
 		de_template.type = T_Integer;
 		de_connlimit.arg = (Node *) makeInteger(1);
 
-		stmt.dbname = BDR_SUPERVISOR_DBNAME;
+		stmt.dbname = pgactive_SUPERVISOR_DBNAME;
 		stmt.options = list_make2(&de_template, &de_connlimit);
 
 		pstate = make_parsestate(NULL);
@@ -355,15 +355,15 @@ bdr_supervisor_createdb()
 		dboid = createdb(pstate, &stmt);
 
 		if (dboid == InvalidOid)
-			elog(ERROR, "failed to create " BDR_SUPERVISOR_DBNAME " DB");
+			elog(ERROR, "failed to create " pgactive_SUPERVISOR_DBNAME " DB");
 
 		/* TODO DYNCONF: Add a comment to the db, and/or a dummy table */
 
-		elog(LOG, "created database " BDR_SUPERVISOR_DBNAME " (oid=%i) during BDR startup", dboid);
+		elog(LOG, "created database " pgactive_SUPERVISOR_DBNAME " (oid=%i) during pgactive startup", dboid);
 	}
 	else
 	{
-		elog(DEBUG3, "database " BDR_SUPERVISOR_DBNAME " (oid=%i) already exists, not creating", dboid);
+		elog(DEBUG3, "database " pgactive_SUPERVISOR_DBNAME " (oid=%i) already exists, not creating", dboid);
 	}
 
 	CommitTransactionCommand();
@@ -372,11 +372,11 @@ bdr_supervisor_createdb()
 }
 
 Oid
-bdr_get_supervisordb_oid(bool missingok)
+pgactive_get_supervisordb_oid(bool missingok)
 {
 	Oid			dboid;
 
-	dboid = get_database_oid(BDR_SUPERVISOR_DBNAME, true);
+	dboid = get_database_oid(pgactive_SUPERVISOR_DBNAME, true);
 
 	if (dboid == InvalidOid && !missingok)
 	{
@@ -384,7 +384,7 @@ bdr_get_supervisordb_oid(bool missingok)
 		 * We'll get relaunched soon, so just die rather than having a
 		 * wait-and-test loop here
 		 */
-		elog(LOG, "exiting because BDR supervisor database " BDR_SUPERVISOR_DBNAME " does not yet exist");
+		elog(LOG, "exiting because pgactive supervisor database " pgactive_SUPERVISOR_DBNAME " does not yet exist");
 		proc_exit(1);
 	}
 
@@ -393,9 +393,9 @@ bdr_get_supervisordb_oid(bool missingok)
 
 #ifdef USE_ASSERT_CHECKING
 /*
- * Verify that each BDR-enabled database has exactly one per-db worker.
+ * Verify that each pgactive-enabled database has exactly one per-db worker.
  * Presence of more than one per-db worker is indicative of a race condition we
- * try to prevent in bdr_register_perdb_worker().
+ * try to prevent in pgactive_register_perdb_worker().
  */
 static void
 check_for_multiple_perdb_workers(void)
@@ -404,23 +404,23 @@ check_for_multiple_perdb_workers(void)
 	bool		exists = false;
 	List	   *perdb_w = NIL;
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
-	for (i = 0; i < bdr_max_workers; i++)
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
 
 		/* unused slot */
-		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
 			continue;
 
 		/* unconnected slot */
 		if (w->worker_proc == NULL)
 			continue;
 
-		if (w->worker_type == BDR_WORKER_PERDB)
+		if (w->worker_type == pgactive_WORKER_PERDB)
 		{
-			BdrPerdbWorker *pw = &w->data.perdb;
+			pgactivePerdbWorker *pw = &w->data.perdb;
 			Oid			dboid = pw->p_dboid;
 
 			if (!OidIsValid(dboid))
@@ -440,29 +440,29 @@ check_for_multiple_perdb_workers(void)
 		}
 	}
 
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	if (exists)
-		elog(PANIC, "cannot have more than one per-db worker for a single BDR-enabled database");
+		elog(PANIC, "cannot have more than one per-db worker for a single pgactive-enabled database");
 
 	list_free(perdb_w);
 }
 #endif
 
 /*
- * The BDR supervisor is a static bgworker that serves as the supervisor
- * for all BDR workers. It exists so that BDR can be enabled and disabled
+ * The pgactive supervisor is a static bgworker that serves as the supervisor
+ * for all pgactive workers. It exists so that pgactive can be enabled and disabled
  * dynamically for databases.
  *
- * It is responsible for identifying BDR-enabled databases at startup and
+ * It is responsible for identifying pgactive-enabled databases at startup and
  * launching their dynamic per-db workers. It should do as little else as
- * possible, as it'll run when BDR is in shared_preload_libraries whether
+ * possible, as it'll run when pgactive is in shared_preload_libraries whether
  * or not it's otherwise actually in use.
  *
  * The supervisor worker has no access to any database.
  */
 void
-bdr_supervisor_worker_main(Datum main_arg)
+pgactive_supervisor_worker_main(Datum main_arg)
 {
 	Assert(DatumGetInt32(main_arg) == 0);
 	Assert(IsBackgroundWorker);
@@ -478,7 +478,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 	 */
 	if (RecoveryInProgress())
 	{
-		elog(INFO, "bdr refusing to start during recovery");
+		elog(INFO, "pgactive refusing to start during recovery");
 		proc_exit(0);
 	}
 
@@ -498,12 +498,12 @@ bdr_supervisor_worker_main(Datum main_arg)
 
 	/*
 	 * Unfortunately we currently can't access shared catalogs like
-	 * pg_shseclabel (where we store information about which database use bdr)
+	 * pg_shseclabel (where we store information about which database use pgactive)
 	 * without being connected to a database. Only shared & nailed catalogs
 	 * can be accessed before being connected to a database - and
 	 * pg_shseclabel is not one of those.
 	 *
-	 * Instead we have a database BDR_SUPERVISOR_DBNAME that's supposed to be
+	 * Instead we have a database pgactive_SUPERVISOR_DBNAME that's supposed to be
 	 * empty which we just use to read pg_shseclabel. Not pretty, but it
 	 * works. (The need for this goes away in 9.5 with the new oid-based
 	 * alternative bgworker api).
@@ -516,35 +516,35 @@ bdr_supervisor_worker_main(Datum main_arg)
 	 * Once created we set a shmem flag and restart so we know we can connect
 	 * to the newly created database.
 	 */
-	if (!BdrWorkerCtl->is_supervisor_restart)
+	if (!pgactiveWorkerCtl->is_supervisor_restart)
 	{
 		BackgroundWorkerInitializeConnection("template1", NULL, 0);
-		bdr_supervisor_createdb();
+		pgactive_supervisor_createdb();
 
-		BdrWorkerCtl->is_supervisor_restart = true;
+		pgactiveWorkerCtl->is_supervisor_restart = true;
 
-		elog(LOG, "BDR supervisor restarting to connect to '%s' DB for shared catalog access",
-			 BDR_SUPERVISOR_DBNAME);
+		elog(LOG, "pgactive supervisor restarting to connect to '%s' DB for shared catalog access",
+			 pgactive_SUPERVISOR_DBNAME);
 		proc_exit(1);
 	}
 
-	BackgroundWorkerInitializeConnection(BDR_SUPERVISOR_DBNAME, NULL, 0);
+	BackgroundWorkerInitializeConnection(pgactive_SUPERVISOR_DBNAME, NULL, 0);
 	Assert(ThisTimeLineID > 0);
 
-	MyProcPort->database_name = BDR_SUPERVISOR_DBNAME;
+	MyProcPort->database_name = pgactive_SUPERVISOR_DBNAME;
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	BdrWorkerCtl->supervisor_latch = &MyProc->procLatch;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactiveWorkerCtl->supervisor_latch = &MyProc->procLatch;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
-	elog(LOG, "BDR supervisor restarted and connected to DB " BDR_SUPERVISOR_DBNAME);
+	elog(LOG, "pgactive supervisor restarted and connected to DB " pgactive_SUPERVISOR_DBNAME);
 
-	SetConfigOption("application_name", "bdr supervisor", PGC_USERSET, PGC_S_SESSION);
+	SetConfigOption("application_name", "pgactive supervisor", PGC_USERSET, PGC_S_SESSION);
 
 	/* mark as idle, before starting to loop */
 	pgstat_report_activity(STATE_IDLE, NULL);
 
-	bdr_supervisor_rescan_dbs();
+	pgactive_supervisor_rescan_dbs();
 
 	while (!ProcDiePending)
 	{
@@ -556,7 +556,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+			SetConfigOption("log_min_messages", pgactive_error_severity(pgactive_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
@@ -576,7 +576,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 		 * running startup, but we're expecting to need it to do other things
 		 * down the track, so might as well keep it alive...
 		 */
-		rc = BDRWaitLatch(&MyProc->procLatch,
+		rc = pgactiveWaitLatch(&MyProc->procLatch,
 						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 						  timeout, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
@@ -588,7 +588,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 			 * We've been asked to launch new perdb workers if there are any
 			 * changes to security labels.
 			 */
-			bdr_supervisor_rescan_dbs();
+			pgactive_supervisor_rescan_dbs();
 		}
 
 #ifdef USE_ASSERT_CHECKING
@@ -600,7 +600,7 @@ bdr_supervisor_worker_main(Datum main_arg)
 }
 
 /*
- * Register the BDR supervisor bgworker, which will start all the
+ * Register the pgactive supervisor bgworker, which will start all the
  * per-db workers.
  *
  * Called in postmaster context from _PG_init.
@@ -612,7 +612,7 @@ bdr_supervisor_worker_main(Datum main_arg)
  * init callback later.
  */
 void
-bdr_supervisor_register()
+pgactive_supervisor_register()
 {
 	BackgroundWorker bgw = {0};
 
@@ -626,10 +626,10 @@ bdr_supervisor_register()
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
-	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_supervisor_worker_main");
-	snprintf(bgw.bgw_name, BGW_MAXLEN, "bdr supervisor");
-	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr supervisor");
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, pgactive_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "pgactive_supervisor_worker_main");
+	snprintf(bgw.bgw_name, BGW_MAXLEN, "pgactive supervisor");
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "pgactive supervisor");
 	bgw.bgw_restart_time = 1;
 
 	RegisterBackgroundWorker(&bgw);

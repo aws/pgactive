@@ -1,9 +1,9 @@
-#ifndef PG_BDR_COMPAT_H
-#define PG_BDR_COMPAT_H
+#ifndef PG_pgactive_COMPAT_H
+#define PG_pgactive_COMPAT_H
 
 #include "utils/syscache.h"
 
-#define ExecInitExtraTupleSlotBdr(estate, a) \
+#define ExecInitExtraTupleSlotpgactive(estate, a) \
 	ExecInitExtraTupleSlot(estate, a)
 
 #define pg_analyze_and_rewrite(parsetree, query_string, paramTypes, numParams) \
@@ -13,15 +13,15 @@
 
 #define GetCommandTagName(tag) tag
 
-#define transformAlterTableStmtBdr(relid, astmt, queryString) \
+#define transformAlterTableStmtpgactive(relid, astmt, queryString) \
 	transformAlterTableStmt(relid, astmt, queryString)
 
 #define TTS_TUP(slot) (slot->tts_tuple)
 
-#define BdrGetSysCacheOid1(cacheId, oidcol, key1) \
+#define pgactiveGetSysCacheOid1(cacheId, oidcol, key1) \
 	GetSysCacheOid1(cacheId, key1)
 
-#define BdrGetSysCacheOid2(cacheId, oidcol, key1, key2) \
+#define pgactiveGetSysCacheOid2(cacheId, oidcol, key1, key2) \
 	GetSysCacheOid2(cacheId, key1, key2)
 
 /* GetSysCacheOid2 equivalent that errors out if nothing is found */
@@ -38,7 +38,7 @@ GetSysCacheOid2Error(int cacheId, Datum key1, Datum key2)
 	return result;
 }
 
-#define BdrGetSysCacheOid2Error(cacheId, oidcol, key1, key2) \
+#define pgactiveGetSysCacheOid2Error(cacheId, oidcol, key1, key2) \
 	GetSysCacheOid2Error(cacheId, key1, key2)
 
 /* deprecated in PG12, removed in PG13 */

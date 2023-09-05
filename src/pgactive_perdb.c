@@ -1,19 +1,19 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_perdb.c
+ * pgactive_perdb.c
  *		Per database supervisor worker.
  *
  * Copyright (C) 2014-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_perdb.c
+ *		pgactive_perdb.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
-#include "bdr_locks.h"
+#include "pgactive.h"
+#include "pgactive_locks.h"
 
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -46,7 +46,7 @@
 #include "utils/snapmgr.h"
 #include "utils/regproc.h"
 
-PG_FUNCTION_INFO_V1(bdr_connections_changed);
+PG_FUNCTION_INFO_V1(pgactive_connections_changed);
 
 /* In the commit hook, should we attempt to start a per-db worker? */
 static bool xacthook_registered = false;
@@ -57,7 +57,7 @@ static bool is_perdb_worker = true;
 static void check_params_are_same(void);
 
 bool
-IsBdrPerdbWorker(void)
+IspgactivePerdbWorker(void)
 {
 	return is_perdb_worker;
 }
@@ -73,20 +73,20 @@ IsBdrPerdbWorker(void)
  * started up.
  */
 int
-find_perdb_worker_slot(Oid dboid, BdrWorker * *worker_found)
+find_perdb_worker_slot(Oid dboid, pgactiveWorker * *worker_found)
 {
 	int			i,
 				found = -1;
 
-	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
+	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
-	for (i = 0; i < bdr_max_workers; i++)
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
 
-		if (w->worker_type == BDR_WORKER_PERDB)
+		if (w->worker_type == pgactive_WORKER_PERDB)
 		{
-			BdrPerdbWorker *pw = &w->data.perdb;
+			pgactivePerdbWorker *pw = &w->data.perdb;
 
 			if (pw->p_dboid == dboid)
 			{
@@ -111,23 +111,23 @@ find_perdb_worker_slot(Oid dboid, BdrWorker * *worker_found)
  * Note that there's no guarantee that the worker is actually started up.
  */
 int
-find_apply_worker_slot(const BDRNodeId * const remote, BdrWorker * *worker_found)
+find_apply_worker_slot(const pgactiveNodeId * const remote, pgactiveWorker * *worker_found)
 {
 	int			i,
 				found = -1;
 
-	Assert(LWLockHeldByMe(BdrWorkerCtl->lock));
+	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
-	for (i = 0; i < bdr_max_workers; i++)
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
 
-		if (w->worker_type == BDR_WORKER_APPLY)
+		if (w->worker_type == pgactive_WORKER_APPLY)
 		{
-			BdrApplyWorker *aw = &w->data.apply;
+			pgactiveApplyWorker *aw = &w->data.apply;
 
 			if (aw->dboid == MyDatabaseId &&
-				bdr_nodeid_eq(&aw->remote_node, remote))
+				pgactive_nodeid_eq(&aw->remote_node, remote))
 			{
 				found = i;
 				if (worker_found != NULL)
@@ -141,7 +141,7 @@ find_apply_worker_slot(const BDRNodeId * const remote, BdrWorker * *worker_found
 }
 
 static void
-bdr_perdb_xact_callback(XactEvent event, void *arg)
+pgactive_perdb_xact_callback(XactEvent event, void *arg)
 {
 	switch (event)
 	{
@@ -149,11 +149,11 @@ bdr_perdb_xact_callback(XactEvent event, void *arg)
 			if (xacthook_connections_changed)
 			{
 				int			slotno;
-				BdrWorker  *w;
+				pgactiveWorker  *w;
 
 				xacthook_connections_changed = false;
 
-				LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+				LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 				/*
 				 * If a perdb worker already exists, wake it and tell it to
@@ -182,11 +182,11 @@ bdr_perdb_xact_callback(XactEvent event, void *arg)
 					 * check for changes and register new per-db workers for
 					 * labeled databases.
 					 */
-					if (BdrWorkerCtl->supervisor_latch)
-						SetLatch(BdrWorkerCtl->supervisor_latch);
+					if (pgactiveWorkerCtl->supervisor_latch)
+						SetLatch(pgactiveWorkerCtl->supervisor_latch);
 				}
 
-				LWLockRelease(BdrWorkerCtl->lock);
+				LWLockRelease(pgactiveWorkerCtl->lock);
 			}
 			break;
 		default:
@@ -204,11 +204,11 @@ bdr_perdb_xact_callback(XactEvent event, void *arg)
  * connections.
  */
 Datum
-bdr_connections_changed(PG_FUNCTION_ARGS)
+pgactive_connections_changed(PG_FUNCTION_ARGS)
 {
 	if (!xacthook_registered)
 	{
-		RegisterXactCallback(bdr_perdb_xact_callback, NULL);
+		RegisterXactCallback(pgactive_perdb_xact_callback, NULL);
 		xacthook_registered = true;
 	}
 	xacthook_connections_changed = true;
@@ -222,31 +222,31 @@ getattno(const char *colname)
 
 	attno = SPI_fnumber(SPI_tuptable->tupdesc, colname);
 	if (attno == SPI_ERROR_NOATTRIBUTE)
-		elog(ERROR, "SPI error while reading %s from bdr.bdr_connections", colname);
+		elog(ERROR, "SPI error while reading %s from pgactive.pgactive_connections", colname);
 
 	return attno;
 }
 
 /*
- * Launch a dynamic bgworker to run bdr_apply_main for each bdr connection on
+ * Launch a dynamic bgworker to run pgactive_apply_main for each pgactive connection on
  * the database identified by dbname.
  *
- * Scans the bdr.bdr_connections table for workers and launch a worker for any
+ * Scans the pgactive.pgactive_connections table for workers and launch a worker for any
  * connection that doesn't already have one.
  */
 void
-bdr_maintain_db_workers(void)
+pgactive_maintain_db_workers(void)
 {
 	BackgroundWorker bgw = {0};
 	int			i,
 				ret;
 	int			nnodes = 0;
-#define BDR_CON_Q_NARGS 3
-	Oid			argtypes[BDR_CON_Q_NARGS] = {TEXTOID, OIDOID, OIDOID};
-	Datum		values[BDR_CON_Q_NARGS];
+#define pgactive_CON_Q_NARGS 3
+	Oid			argtypes[pgactive_CON_Q_NARGS] = {TEXTOID, OIDOID, OIDOID};
+	Datum		values[pgactive_CON_Q_NARGS];
 	char		sysid_str[33];
 	char		our_status;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 	List	   *detached_nodes = NIL;
 	List	   *nodes_to_forget = NIL;
 	List	   *rep_origin_to_remove = NIL;
@@ -255,15 +255,15 @@ bdr_maintain_db_workers(void)
 	ListCell   *lcroname;
 	bool		at_least_one_worker_terminated = false;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
 	/* Should be called from the perdb worker */
 	Assert(IsBackgroundWorker);
-	Assert(bdr_worker_type == BDR_WORKER_PERDB);
+	Assert(pgactive_worker_type == pgactive_WORKER_PERDB);
 
-	Assert(!LWLockHeldByMe(BdrWorkerCtl->lock));
+	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
-	if (BdrWorkerCtl->worker_management_paused)
+	if (pgactiveWorkerCtl->worker_management_paused)
 	{
 		/*
 		 * We're going to ignore this worker update check by request (used
@@ -287,16 +287,16 @@ bdr_maintain_db_workers(void)
 	bgw.bgw_flags = BGWORKER_SHMEM_ACCESS |
 		BGWORKER_BACKEND_DATABASE_CONNECTION;
 	bgw.bgw_start_time = BgWorkerStart_RecoveryFinished;
-	snprintf(bgw.bgw_library_name, BGW_MAXLEN, BDR_LIBRARY_NAME);
-	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "bdr_apply_main");
-	snprintf(bgw.bgw_type, BGW_MAXLEN, "bdr apply worker");
+	snprintf(bgw.bgw_library_name, BGW_MAXLEN, pgactive_LIBRARY_NAME);
+	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "pgactive_apply_main");
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "pgactive apply worker");
 	bgw.bgw_restart_time = 5;
 
 	StartTransactionCommand();
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	our_status = bdr_nodes_get_local_status(&myid, false);
+	our_status = pgactive_nodes_get_local_status(&myid, false);
 
 	/*
 	 * First check whether any existing processes to/from this database need
@@ -307,12 +307,12 @@ bdr_maintain_db_workers(void)
 	 */
 	ret = SPI_execute(
 					  "SELECT node_sysid, node_timeline, node_dboid\n"
-					  "FROM bdr.bdr_nodes\n"
-					  "WHERE bdr_nodes.node_status = " BDR_NODE_STATUS_KILLED_S,
+					  "FROM pgactive.pgactive_nodes\n"
+					  "WHERE pgactive_nodes.node_status = " pgactive_NODE_STATUS_KILLED_S,
 					  false, 0);
 
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
+		elog(ERROR, "SPI error while querying pgactive.pgactive_nodes");
 
 	/*
 	 * We may want to use the SPI within the loop that processes detached
@@ -326,7 +326,7 @@ bdr_maintain_db_workers(void)
 		 * everything using that slot.
 		 */
 		HeapTuple	tuple;
-		BDRNodeId  *node;
+		pgactiveNodeId  *node;
 		char	   *node_sysid_s;
 		MemoryContext oldcontext;
 
@@ -335,21 +335,21 @@ bdr_maintain_db_workers(void)
 		tuple = SPI_tuptable->vals[i];
 
 		oldcontext = MemoryContextSwitchTo(TopMemoryContext);
-		node = palloc(sizeof(BDRNodeId));
+		node = palloc(sizeof(pgactiveNodeId));
 		MemoryContextSwitchTo(oldcontext);
 
-		node_sysid_s = SPI_getvalue(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_SYSID);
+		node_sysid_s = SPI_getvalue(tuple, SPI_tuptable->tupdesc, pgactive_NODES_ATT_SYSID);
 
 		if (sscanf(node_sysid_s, UINT64_FORMAT, &node->sysid) != 1)
 			elog(ERROR, "parsing sysid uint64 from %s failed", node_sysid_s);
 
 		node->timeline = DatumGetObjectId(
-										  SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_TIMELINE,
+										  SPI_getbinval(tuple, SPI_tuptable->tupdesc, pgactive_NODES_ATT_TIMELINE,
 														&isnull));
 		Assert(!isnull);
 
 		node->dboid = DatumGetObjectId(
-									   SPI_getbinval(tuple, SPI_tuptable->tupdesc, BDR_NODES_ATT_DBOID,
+									   SPI_getbinval(tuple, SPI_tuptable->tupdesc, pgactive_NODES_ATT_DBOID,
 													 &isnull));
 		Assert(!isnull);
 
@@ -362,37 +362,37 @@ bdr_maintain_db_workers(void)
 	 */
 	foreach(lcdetached, detached_nodes)
 	{
-		BDRNodeId  *node = lfirst(lcdetached);
+		pgactiveNodeId  *node = lfirst(lcdetached);
 		bool		found_alive = false;
 		int			slotoff;
 
-		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-		for (slotoff = 0; slotoff < bdr_max_workers; slotoff++)
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+		for (slotoff = 0; slotoff < pgactive_max_workers; slotoff++)
 		{
-			BdrWorker  *w = &BdrWorkerCtl->slots[slotoff];
+			pgactiveWorker  *w = &pgactiveWorkerCtl->slots[slotoff];
 			bool		kill_proc = false;
 
 			/* unused slot */
-			if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+			if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
 				continue;
 
 			/* not directly linked to a peer */
-			if (w->worker_type == BDR_WORKER_PERDB)
+			if (w->worker_type == pgactive_WORKER_PERDB)
 				continue;
 
 			/* unconnected slot */
 			if (w->worker_proc == NULL)
 				continue;
 
-			if (w->worker_type == BDR_WORKER_APPLY)
+			if (w->worker_type == pgactive_WORKER_APPLY)
 			{
-				BdrApplyWorker *apply = &w->data.apply;
+				pgactiveApplyWorker *apply = &w->data.apply;
 
 				/*
 				 * Kill apply workers either if they're running on the
 				 * to-be-killed node or connecting to it.
 				 */
-				if (our_status == BDR_NODE_STATUS_KILLED && w->worker_proc->databaseId == node->dboid)
+				if (our_status == pgactive_NODE_STATUS_KILLED && w->worker_proc->databaseId == node->dboid)
 				{
 					/*
 					 * NB: It's sufficient to check the database oid, the
@@ -400,16 +400,16 @@ bdr_maintain_db_workers(void)
 					 */
 					kill_proc = true;
 				}
-				else if (bdr_nodeid_eq(&apply->remote_node, node))
+				else if (pgactive_nodeid_eq(&apply->remote_node, node))
 					kill_proc = true;
 			}
-			else if (w->worker_type == BDR_WORKER_WALSENDER)
+			else if (w->worker_type == pgactive_WORKER_WALSENDER)
 			{
-				BdrWalsenderWorker *walsnd = &w->data.walsnd;
+				pgactiveWalsenderWorker *walsnd = &w->data.walsnd;
 
-				if (our_status == BDR_NODE_STATUS_KILLED && w->worker_proc->databaseId == node->dboid)
+				if (our_status == pgactive_NODE_STATUS_KILLED && w->worker_proc->databaseId == node->dboid)
 					kill_proc = true;
-				else if (bdr_nodeid_eq(&walsnd->remote_node, node))
+				else if (pgactive_nodeid_eq(&walsnd->remote_node, node))
 					kill_proc = true;
 			}
 			else
@@ -427,7 +427,7 @@ bdr_maintain_db_workers(void)
 				kill(w->worker_pid, SIGTERM);
 			}
 		}
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 
 		if (found_alive)
 		{
@@ -452,9 +452,9 @@ bdr_maintain_db_workers(void)
 			 * If the local node was dropped, we instead drop all slots for
 			 * peer nodes.
 			 */
-			bdr_slot_name(&slot_name_dropped, node, myid.dboid);
+			pgactive_slot_name(&slot_name_dropped, node, myid.dboid);
 
-			we_were_dropped = bdr_nodeid_eq(node, &myid);
+			we_were_dropped = pgactive_nodeid_eq(node, &myid);
 
 			LWLockAcquire(ReplicationSlotControlLock, LW_SHARED);
 			for (i = 0; i < max_replication_slots; i++)
@@ -464,7 +464,7 @@ bdr_maintain_db_workers(void)
 				if (!s->in_use)
 					continue;
 
-				if (strcmp("bdr", NameStr(s->data.plugin)) != 0)
+				if (strcmp("pgactive", NameStr(s->data.plugin)) != 0)
 					continue;
 
 				if (we_were_dropped &&
@@ -480,7 +480,7 @@ bdr_maintain_db_workers(void)
 				{
 					elog(DEBUG1, "need to drop slot %s of detached node %s",
 						 NameStr(s->data.name),
-						 bdr_nodeid_name(node, true, false));
+						 pgactive_nodeid_name(node, true, false));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
 			}
@@ -498,7 +498,7 @@ bdr_maintain_db_workers(void)
 				{
 					char		roname[256];
 
-					snprintf(roname, sizeof(roname), BDR_REPORIGIN_ID_FORMAT,
+					snprintf(roname, sizeof(roname), pgactive_REPORIGIN_ID_FORMAT,
 							 node->sysid, node->timeline, node->dboid, myid.dboid,
 							 EMPTY_REPLICATION_NAME);
 
@@ -530,20 +530,20 @@ bdr_maintain_db_workers(void)
 
 	PopActiveSnapshot();
 	SPI_finish();
-	/* The node cache needs to be invalidated as bdr_nodes may have changed */
-	bdr_nodecache_invalidate();
+	/* The node cache needs to be invalidated as pgactive_nodes may have changed */
+	pgactive_nodecache_invalidate();
 	CommitTransactionCommand();
 
 	foreach(lcforget, nodes_to_forget)
 	{
-		BDRNodeId  *node = lfirst(lcforget);
+		pgactiveNodeId  *node = lfirst(lcforget);
 
 		/*
 		 * If this node held the global DDL lock, purge it. We can no longer
 		 * replicate changes from it so doing so is safe, it can never release
 		 * the lock, and we'll otherwise be unable to recover.
 		 */
-		bdr_locks_node_detached(node);
+		pgactive_locks_node_detached(node);
 
 		/*
 		 * TODO: if we leave it at 'k' we'll keep on re-checking it over and
@@ -551,7 +551,7 @@ bdr_maintain_db_workers(void)
 		 *
 		 * We could set the node as 'dead'. This is a local state, since it
 		 * could still be detaching on other nodes. So we shouldn't just
-		 * update bdr_nodes, we'd have to do a non-replicated update in a
+		 * update pgactive_nodes, we'd have to do a non-replicated update in a
 		 * replicated table and it'd be ugly. We'll need a side-table for
 		 * local node state.
 		 *
@@ -577,7 +577,7 @@ bdr_maintain_db_workers(void)
 		 * Replication origins removal should not be allowed if
 		 * RecoveryInProgress() but we don't do this extra check as
 		 * RecoveryInProgress() is not possible here. Indeed, see the
-		 * RecoveryInProgress() test in bdr_supervisor_worker_main().
+		 * RecoveryInProgress() test in pgactive_supervisor_worker_main().
 		 */
 		elog(DEBUG1, "dropping replication origin %s due to node detach", roname);
 #if PG_VERSION_NUM < 140000
@@ -599,7 +599,7 @@ bdr_maintain_db_workers(void)
 	list_free_deep(nodes_to_forget);
 
 	/* If our own node is dead, don't start new connections to other nodes */
-	if (our_status == BDR_NODE_STATUS_KILLED)
+	if (our_status == pgactive_NODE_STATUS_KILLED)
 	{
 		elog(LOG, "this node has been detached, not starting connections");
 		goto out;
@@ -627,8 +627,8 @@ bdr_maintain_db_workers(void)
 								"  conn_sysid, conn_timeline, conn_dboid, "
 								"  conn_origin_dboid <> 0 AS origin_is_my_id, "
 								"  node_status "
-								"FROM bdr.bdr_connections "
-								"    JOIN bdr.bdr_nodes ON ("
+								"FROM pgactive.pgactive_connections "
+								"    JOIN pgactive.pgactive_nodes ON ("
 								"          conn_sysid = node_sysid AND "
 								"          conn_timeline = node_timeline AND "
 								"          conn_dboid = node_dboid "
@@ -650,11 +650,11 @@ bdr_maintain_db_workers(void)
 								"         conn_origin_sysid ASC NULLS LAST, "
 								"         conn_timeline ASC NULLS LAST, "
 								"         conn_dboid ASC NULLS LAST ",
-								BDR_CON_Q_NARGS, argtypes, values, NULL,
+								pgactive_CON_Q_NARGS, argtypes, values, NULL,
 								false, 0);
 
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "SPI error while querying bdr.bdr_connections");
+		elog(ERROR, "SPI error while querying pgactive.pgactive_connections");
 
 	for (i = 0; i < SPI_processed; i++)
 	{
@@ -662,14 +662,14 @@ bdr_maintain_db_workers(void)
 		HeapTuple	tuple;
 		uint32		slot;
 		uint32		worker_arg;
-		BdrWorker  *worker;
-		BdrApplyWorker *apply;
+		pgactiveWorker  *worker;
+		pgactiveApplyWorker *apply;
 		Datum		temp_datum;
 		bool		isnull;
-		BDRNodeId	target;
+		pgactiveNodeId	target;
 		char	   *tmp_sysid;
 		bool		origin_is_my_id;
-		BdrNodeStatus node_status;
+		pgactiveNodeStatus node_status;
 
 		tuple = SPI_tuptable->vals[i];
 
@@ -703,11 +703,11 @@ bdr_maintain_db_workers(void)
 		Assert(!isnull);
 		node_status = DatumGetChar(temp_datum);
 
-		elog(DEBUG1, "found bdr_connections entry for " BDR_NODEID_FORMAT " (origin specific: %d, status: %c)",
-			 BDR_NODEID_FORMAT_ARGS(target),
+		elog(DEBUG1, "found pgactive_connections entry for " pgactive_NODEID_FORMAT " (origin specific: %d, status: %c)",
+			 pgactive_NODEID_FORMAT_ARGS(target),
 			 (int) origin_is_my_id, node_status);
 
-		if (node_status == BDR_NODE_STATUS_KILLED)
+		if (node_status == pgactive_NODE_STATUS_KILLED)
 		{
 			elog(DEBUG2, "skipping registration of conn as killed");
 			continue;
@@ -723,18 +723,18 @@ bdr_maintain_db_workers(void)
 		 * on it, and it on us, so we're going to successfully exchange DDL
 		 * lock messages etc when we get our workers sorted out.
 		 */
-		if (node_status == BDR_NODE_STATUS_READY)
+		if (node_status == pgactive_NODE_STATUS_READY)
 			nnodes++;
 
-		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 		/*
 		 * Is there already a worker registered for this connection?
 		 */
 		if (find_apply_worker_slot(&target, &worker) != -1)
 		{
-			elog(DEBUG2, "skipping registration of worker for node " BDR_NODEID_FORMAT " on db oid=%u: already registered",
-				 BDR_NODEID_FORMAT_ARGS(target), myid.dboid);
+			elog(DEBUG2, "skipping registration of worker for node " pgactive_NODEID_FORMAT " on db oid=%u: already registered",
+				 pgactive_NODEID_FORMAT_ARGS(target), myid.dboid);
 
 			/*
 			 * Notify the worker that its config could have changed.
@@ -747,7 +747,7 @@ bdr_maintain_db_workers(void)
 			if (worker->data.apply.proclatch != NULL)
 				SetLatch(worker->data.apply.proclatch);
 
-			LWLockRelease(BdrWorkerCtl->lock);
+			LWLockRelease(pgactiveWorkerCtl->lock);
 			continue;
 		}
 
@@ -755,32 +755,32 @@ bdr_maintain_db_workers(void)
 
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
-				 "bdr apply worker for %s to %s",
-				 bdr_nodeid_name(&target, true, false),
-				 bdr_nodeid_name(&myid, true, false));
+				 "pgactive apply worker for %s to %s",
+				 pgactive_nodeid_name(&target, true, false),
+				 pgactive_nodeid_name(&myid, true, false));
 
 		/* Allocate a new shmem slot for this apply worker */
-		worker = bdr_worker_shmem_alloc(BDR_WORKER_APPLY, &slot);
+		worker = pgactive_worker_shmem_alloc(pgactive_WORKER_APPLY, &slot);
 
 		/* Tell the apply worker what its shmem slot is */
 		Assert(slot <= UINT16_MAX);
-		worker_arg = (((uint32) BdrWorkerCtl->worker_generation) << 16) | (uint32) slot;
+		worker_arg = (((uint32) pgactiveWorkerCtl->worker_generation) << 16) | (uint32) slot;
 		bgw.bgw_main_arg = Int32GetDatum(worker_arg);
 
 		/*
 		 * Apply workers (other than in catchup mode, which are registered
 		 * elsewhere) should not be using the local node's connection entry.
 		 */
-		Assert(!bdr_nodeid_eq(&target, &myid));
+		Assert(!pgactive_nodeid_eq(&target, &myid));
 
 		/* Now populate the apply worker state */
 		apply = &worker->data.apply;
 		apply->dboid = MyDatabaseId;
-		bdr_nodeid_cpy(&apply->remote_node, &target);
+		pgactive_nodeid_cpy(&apply->remote_node, &target);
 		apply->replay_stop_lsn = InvalidXLogRecPtr;
 		apply->forward_changesets = false;
-		apply->perdb = bdr_worker_slot;
-		LWLockRelease(BdrWorkerCtl->lock);
+		apply->perdb = pgactive_worker_slot;
+		LWLockRelease(pgactiveWorkerCtl->lock);
 
 		/*
 		 * Finally, register the worker for launch.
@@ -793,29 +793,29 @@ bdr_maintain_db_workers(void)
 			 * make sure the slot we just acquired but failed to launch a
 			 * worker for gets released again though.
 			 */
-			LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+			LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 			apply->dboid = InvalidOid;
 			apply->remote_node.sysid = 0;
 			apply->remote_node.timeline = 0;
 			apply->remote_node.dboid = InvalidOid;
-			worker->worker_type = BDR_WORKER_EMPTY_SLOT;
-			LWLockRelease(BdrWorkerCtl->lock);
+			worker->worker_type = pgactive_WORKER_EMPTY_SLOT;
+			LWLockRelease(pgactiveWorkerCtl->lock);
 
 			ereport(ERROR,
-					(errmsg("failed to register apply worker for " BDR_NODEID_FORMAT,
-							BDR_NODEID_FORMAT_ARGS(target))));
+					(errmsg("failed to register apply worker for " pgactive_NODEID_FORMAT,
+							pgactive_NODEID_FORMAT_ARGS(target))));
 		}
 		else
 		{
-			elog(DEBUG2, "registered apply worker for " BDR_NODEID_FORMAT,
-				 BDR_NODEID_FORMAT_ARGS(target));
+			elog(DEBUG2, "registered apply worker for " pgactive_NODEID_FORMAT,
+				 pgactive_NODEID_FORMAT_ARGS(target));
 		}
 	}
 
 	PopActiveSnapshot();
 	SPI_finish();
-	/* The node cache needs to be invalidated as bdr_nodes may have changed */
-	bdr_nodecache_invalidate();
+	/* The node cache needs to be invalidated as pgactive_nodes may have changed */
+	pgactive_nodecache_invalidate();
 	CommitTransactionCommand();
 
 out:
@@ -829,15 +829,15 @@ out:
 	 * until it completes, the node count should only change when it's safe.
 	 * In particular it should only go up when the DDL lock is held.
 	 */
-	bdr_worker_slot->data.perdb.nnodes = nnodes;
-	bdr_locks_set_nnodes(nnodes);
+	pgactive_worker_slot->data.perdb.nnodes = nnodes;
+	pgactive_locks_set_nnodes(nnodes);
 
 	elog(DEBUG2, "updated worker counts");
 }
 
 /*
  * Check whether the local node and one remote node have same
- * bdr.max_nodes and bdr.skip_ddl_replication GUC values.
+ * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values.
  *
  * If remote nodes exist and none is available to check the values
  * against then error out with FATAL (per-db worker will keep re-trying).
@@ -858,7 +858,7 @@ check_params_are_same(void)
 	{
 		StartTransactionCommand();
 		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-		all_local_dsn = bdr_get_all_local_dsn();
+		all_local_dsn = pgactive_get_all_local_dsn();
 		MemoryContextSwitchTo(saved_ctx);
 		empty_list = true;
 
@@ -869,41 +869,41 @@ check_params_are_same(void)
 
 			empty_list = false;
 
-			conn = bdr_connect_nonrepl(dsn,
-									   "bdrnodeinfo", false);
+			conn = pgactive_connect_nonrepl(dsn,
+									   "pgactivenodeinfo", false);
 
 			if (PQstatus(conn) != CONNECTION_OK)
 				continue;
 
-			PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+			PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 									PointerGetDatum(&conn));
 			{
 				struct remote_node_info ri;
 
-				bdr_get_remote_nodeinfo_internal(conn, &ri);
+				pgactive_get_remote_nodeinfo_internal(conn, &ri);
 
-				if (bdr_max_nodes != ri.max_nodes)
+				if (pgactive_max_nodes != ri.max_nodes)
 					ereport(ERROR,
 							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("bdr.max_nodes parameter value (%d) on local node " BDR_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
-									bdr_max_nodes,
-									BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+							 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
+									pgactive_max_nodes,
+									pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
 									ri.max_nodes),
-							 errhint("The parameter must be set to the same value on all BDR members.")));
+							 errhint("The parameter must be set to the same value on all pgactive members.")));
 
-				if (prev_bdr_skip_ddl_replication != ri.skip_ddl_replication)
+				if (prev_pgactive_skip_ddl_replication != ri.skip_ddl_replication)
 					ereport(ERROR,
 							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("bdr.skip_ddl_replication parameter value (%s) on local node " BDR_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
-									prev_bdr_skip_ddl_replication ? "true" : "false",
-									BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+							 errmsg("pgactive.skip_ddl_replication parameter value (%s) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
+									prev_pgactive_skip_ddl_replication ? "true" : "false",
+									pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
 									ri.skip_ddl_replication ? "true" : "false"),
-							 errhint("The parameter must be set to the same value on all BDR members.")));
+							 errhint("The parameter must be set to the same value on all pgactive members.")));
 
 				free_remote_node_info(&ri);
 				check_done = true;
 			}
-			PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+			PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 										PointerGetDatum(&conn));
 
 			PQfinish(conn);
@@ -919,20 +919,20 @@ check_params_are_same(void)
 		{
 			ereport(FATAL,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("local node " BDR_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
-							BDR_LOCALID_FORMAT_WITHNAME_ARGS),
+					 errmsg("local node " pgactive_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
+							pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
 					 errhint("Ensure one remote node is connectable from the local node.")));
 		}
 	}
 }
 
 /*
- * Each database with BDR enabled on it has a static background worker,
+ * Each database with pgactive enabled on it has a static background worker,
  * registered at shared_preload_libraries time during postmaster start. This is
  * the entry point for these bgworkers.
  *
- * This worker handles BDR startup on the database and launches apply workers
- * for each BDR connection.
+ * This worker handles pgactive startup on the database and launches apply workers
+ * for each pgactive connection.
  *
  * Since the worker is fork()ed from the postmaster, all globals initialised in
  * _PG_init remain valid.
@@ -940,59 +940,59 @@ check_params_are_same(void)
  * This worker can use the SPI and shared memory.
  */
 void
-bdr_perdb_worker_main(Datum main_arg)
+pgactive_perdb_worker_main(Datum main_arg)
 {
 	int			rc = 0;
-	BdrPerdbWorker *perdb;
+	pgactivePerdbWorker *perdb;
 	StringInfoData si;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
 	is_perdb_worker = true;
 
 	initStringInfo(&si);
 
-	bdr_bgworker_init(DatumGetInt32(main_arg), BDR_WORKER_PERDB);
+	pgactive_bgworker_init(DatumGetInt32(main_arg), pgactive_WORKER_PERDB);
 
-	perdb = &bdr_worker_slot->data.perdb;
+	perdb = &pgactive_worker_slot->data.perdb;
 
 	perdb->nnodes = -1;
 
-	bdr_make_my_nodeid(&myid);
-	elog(DEBUG1, "per-db worker for node " BDR_NODEID_FORMAT " starting", BDR_LOCALID_FORMAT_ARGS);
+	pgactive_make_my_nodeid(&myid);
+	elog(DEBUG1, "per-db worker for node " pgactive_NODEID_FORMAT " starting", pgactive_LOCALID_FORMAT_ARGS);
 
-	appendStringInfo(&si, "%s:perdb", bdr_get_my_cached_node_name());
+	appendStringInfo(&si, "%s:perdb", pgactive_get_my_cached_node_name());
 	SetConfigOption("application_name", si.data, PGC_USERSET, PGC_S_SESSION);
 	SetConfigOption("lock_timeout", "10000", PGC_USERSET, PGC_S_SESSION);
 
-	CurrentResourceOwner = ResourceOwnerCreate(NULL, "bdr seq top-level resource owner");
-	bdr_saved_resowner = CurrentResourceOwner;
+	CurrentResourceOwner = ResourceOwnerCreate(NULL, "pgactive seq top-level resource owner");
+	pgactive_saved_resowner = CurrentResourceOwner;
 
 	/*
 	 * It's necessary to acquire a lock here so that a concurrent
-	 * bdr_perdb_xact_callback can't try to set our latch at the same time as
+	 * pgactive_perdb_xact_callback can't try to set our latch at the same time as
 	 * we write to it.
 	 *
 	 * There's no per-worker lock, so we just take the lock on the whole
 	 * segment.
 	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 	perdb->proclatch = &MyProc->procLatch;
 	perdb->p_dboid = MyDatabaseId;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	Assert(perdb->c_dboid == perdb->p_dboid);
 
 	/* need to be able to perform writes ourselves */
-	bdr_executor_always_allow_writes(true);
-	bdr_locks_startup();
+	pgactive_executor_always_allow_writes(true);
+	pgactive_locks_startup();
 
 	{
 		int			spi_ret;
 		MemoryContext saved_ctx;
-		BDRNodeInfo *local_node;
+		pgactiveNodeInfo *local_node;
 
 		/*
-		 * Check the local bdr.bdr_nodes table to see if there's an entry for
+		 * Check the local pgactive.pgactive_nodes table to see if there's an entry for
 		 * our node.
 		 *
 		 * Note that we don't have to explicitly SPI_finish(...) on error
@@ -1005,14 +1005,14 @@ bdr_perdb_worker_main(Datum main_arg)
 		PushActiveSnapshot(GetTransactionSnapshot());
 
 		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-		local_node = bdr_nodes_get_local_info(&myid);
+		local_node = pgactive_nodes_get_local_info(&myid);
 		MemoryContextSwitchTo(saved_ctx);
 
 		if (local_node == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("local node record for " BDR_NODEID_FORMAT " not found",
-							BDR_NODEID_FORMAT_ARGS(myid))));
+					 errmsg("local node record for " pgactive_NODEID_FORMAT " not found",
+							pgactive_NODEID_FORMAT_ARGS(myid))));
 
 		SPI_finish();
 		PopActiveSnapshot();
@@ -1020,25 +1020,25 @@ bdr_perdb_worker_main(Datum main_arg)
 
 		/*
 		 * Check whether the local node and one remote node have same
-		 * bdr.max_nodes and bdr.skip_ddl_replication GUC values.
+		 * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values.
 		 */
 		check_params_are_same();
 
 		/*
 		 * Do we need to init the local DB from a remote node?
 		 */
-		if (local_node->status != BDR_NODE_STATUS_READY
-			&& local_node->status != BDR_NODE_STATUS_KILLED)
-			bdr_init_replica(local_node);
+		if (local_node->status != pgactive_NODE_STATUS_READY
+			&& local_node->status != pgactive_NODE_STATUS_KILLED)
+			pgactive_init_replica(local_node);
 
-		bdr_bdr_node_free(local_node);
+		pgactive_pgactive_node_free(local_node);
 	}
 
-	elog(DEBUG1, "starting BDR apply workers on " BDR_NODEID_FORMAT,
-		 BDR_LOCALID_FORMAT_ARGS);
+	elog(DEBUG1, "starting pgactive apply workers on " pgactive_NODEID_FORMAT,
+		 pgactive_LOCALID_FORMAT_ARGS);
 
 	/* Launch the apply workers */
-	bdr_maintain_db_workers();
+	pgactive_maintain_db_workers();
 
 	while (!ProcDiePending)
 	{
@@ -1047,7 +1047,7 @@ bdr_perdb_worker_main(Datum main_arg)
 			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* set log_min_messages */
-			SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+			SetConfigOption("log_min_messages", pgactive_error_severity(pgactive_log_min_messages),
 							PGC_POSTMASTER, PGC_S_OVERRIDE);
 		}
 
@@ -1063,7 +1063,7 @@ bdr_perdb_worker_main(Datum main_arg)
 		 * passed without events. That's a stopgap for the case a backend
 		 * committed txn changes but died before setting the latch.
 		 */
-		rc = BDRWaitLatch(&MyProc->procLatch,
+		rc = pgactiveWaitLatch(&MyProc->procLatch,
 						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 						  180000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
@@ -1075,7 +1075,7 @@ bdr_perdb_worker_main(Datum main_arg)
 			 * If the perdb worker's latch is set we're being asked to rescan
 			 * and launch new apply workers.
 			 */
-			bdr_maintain_db_workers();
+			pgactive_maintain_db_workers();
 		}
 	}
 

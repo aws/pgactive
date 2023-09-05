@@ -1,20 +1,20 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_commandfilter.c
+ * pgactive_commandfilter.c
  *		prevent execution of utility commands not yet or never supported
  *
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_commandfilter.c
+ *		pgactive_commandfilter.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
-#include "bdr_locks.h"
+#include "pgactive.h"
+#include "pgactive_locks.h"
 
 #include "fmgr.h"
 #include "miscadmin.h"
@@ -46,8 +46,8 @@
 #include "utils/rel.h"
 
 /*
-* bdr_commandfilter.c: a ProcessUtility_hook to prevent a cluster from running
-* commands that BDR does not yet support.
+* pgactive_commandfilter.c: a ProcessUtility_hook to prevent a cluster from running
+* commands that pgactive does not yet support.
 */
 
 static ProcessUtility_hook_type next_ProcessUtility_hook = NULL;
@@ -55,8 +55,8 @@ static ProcessUtility_hook_type next_ProcessUtility_hook = NULL;
 static ClientAuthentication_hook_type next_ClientAuthentication_hook = NULL;
 
 /* GUCs */
-/* replaced by bdr_skip_ddl_replication for now
-bool           bdr_permit_unsafe_commands = false; */
+/* replaced by pgactive_skip_ddl_replication for now
+bool           pgactive_permit_unsafe_commands = false; */
 
 #if PG_VERSION_NUM >= 120000
 bool		default_with_oids = false;
@@ -64,13 +64,13 @@ bool		default_with_oids = false;
 
 static void error_unsupported_command(const char *cmdtag);
 
-static int	bdr_ddl_nestlevel = 0;
-bool		bdr_in_extension = false;
+static int	pgactive_ddl_nestlevel = 0;
+bool		pgactive_in_extension = false;
 
 /*
 * Check the passed rangevar, locking it and looking it up in the cache
 * then determine if the relation requires logging to WAL. If it does, then
-* right now BDR won't cope with it and we must reject the operation that
+* right now pgactive won't cope with it and we must reject the operation that
 * touches this relation.
 */
 static void
@@ -85,7 +85,7 @@ error_on_persistent_rv(RangeVar *rv,
 	if (rv == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("unqualified command %s is unsafe with BDR active",
+				 errmsg("unqualified command %s is unsafe with pgactive active",
 						cmdtag)));
 
 	rel = table_openrv_extended(rv, lockmode, missing_ok);
@@ -98,7 +98,7 @@ error_on_persistent_rv(RangeVar *rv,
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("%s may only affect UNLOGGED or TEMPORARY tables " \
-							"when BDR is active; %s is a regular table",
+							"when pgactive is active; %s is a regular table",
 							cmdtag, rv->relname)));
 	}
 }
@@ -106,13 +106,13 @@ error_on_persistent_rv(RangeVar *rv,
 static void
 error_unsupported_command(const char *cmdtag)
 {
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("%s is not supported when BDR is active",
+			 errmsg("%s is not supported when pgactive is active",
 					cmdtag)));
 }
 
@@ -137,8 +137,8 @@ filter_CreateStmt(Node *parsetree,
 
 	stmt = (CreateStmt *) parsetree;
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	if (stmt->ofTypename != NULL)
@@ -161,7 +161,7 @@ filter_CreateStmt(Node *parsetree,
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("tables WITH OIDs are not supported with bdr")));
+				 errmsg("tables WITH OIDs are not supported with pgactive")));
 	}
 
 	/* verify table elements */
@@ -178,7 +178,7 @@ filter_CreateStmt(Node *parsetree,
 			{
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("EXCLUDE constraints are unsafe with BDR active")));
+						 errmsg("EXCLUDE constraints are unsafe with pgactive active")));
 			}
 		}
 	}
@@ -188,7 +188,7 @@ static void
 filter_AlterTableStmt(Node *parsetree,
 					  const char *completionTag,
 					  const char *queryString,
-					  BDRLockType * lock_type)
+					  pgactiveLockType * lock_type)
 {
 	AlterTableStmt *astmt;
 	ListCell   *cell1;
@@ -204,8 +204,8 @@ filter_AlterTableStmt(Node *parsetree,
 	Oid			relid;
 	LOCKMODE	lockmode;
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	astmt = (AlterTableStmt *) parsetree;
@@ -220,7 +220,7 @@ filter_AlterTableStmt(Node *parsetree,
 	relid = AlterTableLookupRelation(astmt, lockmode);
 
 	/* XXX Do we need to take care of beforeStmts and afterStmts? */
-	stmts = transformAlterTableStmtBdr(relid, astmt, queryString);
+	stmts = transformAlterTableStmtpgactive(relid, astmt, queryString);
 
 #if PG_VERSION_NUM >= 150000
 	foreach(cell1, stmts->cmds)
@@ -315,7 +315,7 @@ filter_AlterTableStmt(Node *parsetree,
 						 */
 						IndexStmt  *index = (IndexStmt *) stmt->def;
 
-						*lock_type = BDR_LOCK_DDL;
+						*lock_type = pgactive_LOCK_DDL;
 
 						if (index->excludeOpNames != NIL)
 						{
@@ -336,7 +336,7 @@ filter_AlterTableStmt(Node *parsetree,
 				case AT_DropCluster:	/* SET WITHOUT CLUSTER */
 				case AT_ChangeOwner:
 				case AT_SetStorage:
-					*lock_type = BDR_LOCK_DDL;
+					*lock_type = pgactive_LOCK_DDL;
 					break;
 
 				case AT_SetRelOptions:	/* SET (...) */
@@ -373,7 +373,7 @@ filter_AlterTableStmt(Node *parsetree,
 					break;
 
 				case AT_ValidateConstraint: /* VALIDATE CONSTRAINT */
-					*lock_type = BDR_LOCK_DDL;
+					*lock_type = pgactive_LOCK_DDL;
 					break;
 
 				case AT_AlterConstraint:
@@ -423,7 +423,7 @@ filter_AlterTableStmt(Node *parsetree,
 					 * It's safe to ALTER TABLE ... ENABLE|DISABLE TRIGGER
 					 * without blocking concurrent writes.
 					 */
-					*lock_type = BDR_LOCK_DDL;
+					*lock_type = pgactive_LOCK_DDL;
 					break;
 
 				case AT_EnableAlwaysTrig:
@@ -504,8 +504,8 @@ filter_CreateTableAs(Node *parsetree)
 
 	stmt = (CreateTableAsStmt *) parsetree;
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	if (ispermanent(stmt->into->rel->relpersistence))
@@ -659,7 +659,7 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 	 * here so don't delete it from this list if you update it. Make sure to
 	 * check other callsites of PreventCommandIfReadOnly too.
 	 *
-	 * BDR handles plannable statements in BdrExecutorStart, not here.
+	 * pgactive handles plannable statements in pgactiveExecutorStart, not here.
 	 */
 	switch (nodeTag(parsetree))
 	{
@@ -751,39 +751,39 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 }
 
 static void
-bdr_commandfilter_dbname(const char *dbname)
+pgactive_commandfilter_dbname(const char *dbname)
 {
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
-	if (strcmp(dbname, BDR_SUPERVISOR_DBNAME) == 0)
+	if (strcmp(dbname, pgactive_SUPERVISOR_DBNAME) == 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_RESERVED_NAME),
-				 errmsg("BDR extension reserves the database name "
-						BDR_SUPERVISOR_DBNAME " for its own use"),
+				 errmsg("pgactive extension reserves the database name "
+						pgactive_SUPERVISOR_DBNAME " for its own use"),
 				 errhint("Use a different database name.")));
 	}
 }
 
 static void
-prevent_drop_extension_bdr(DropStmt *stmt)
+prevent_drop_extension_pgactive(DropStmt *stmt)
 {
 	ListCell   *cell;
-	Oid			bdr_oid;
+	Oid			pgactive_oid;
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pgactive_skip_ddl_replication)
 		return;
 
 	/* Only interested in DROP EXTENSION */
 	if (stmt->removeType != OBJECT_EXTENSION)
 		return;
 
-	bdr_oid = get_extension_oid("bdr", false);
+	pgactive_oid = get_extension_oid("pgactive", false);
 
-	/* Check to see if the BDR extension is being dropped */
+	/* Check to see if the pgactive extension is being dropped */
 	foreach(cell, stmt->objects)
 	{
 #if PG_VERSION_NUM < 150000
@@ -795,21 +795,21 @@ prevent_drop_extension_bdr(DropStmt *stmt)
 
 		ext_oid = get_extension_oid(strVal(objname), false);
 
-		if (bdr_oid == ext_oid)
+		if (pgactive_oid == ext_oid)
 			ereport(ERROR,
-					(errmsg("dropping the BDR extension is prohibited while BDR is active"),
-					 errhint("Detach this node with bdr.detach_by_node_names(...) first, or if appropriate use bdr.bdr_remove(...).")));
+					(errmsg("dropping the pgactive extension is prohibited while pgactive is active"),
+					 errhint("Detach this node with pgactive.detach_by_node_names(...) first, or if appropriate use pgactive.pgactive_remove(...).")));
 	}
 }
 
 /*
- * We disallow creating an external logical replication extension when BDR is
- * active. Technically, BDR has nothing to do with such external logical
+ * We disallow creating an external logical replication extension when pgactive is
+ * active. Technically, pgactive has nothing to do with such external logical
  * replication extensions, however, we disallow them for now to not have any
- * possible data divergence issues and conflicts on nodes within the BDR group.
- * For instance, when a BDR node pulls in changes from a non-BDR node using
+ * possible data divergence issues and conflicts on nodes within the pgactive group.
+ * For instance, when a pgactive node pulls in changes from a non-pgactive node using
  * any of external logical replication extensions, then, the node can easily
- * diverge from the other nodes in BDR group, and may cause conflicts.
+ * diverge from the other nodes in pgactive group, and may cause conflicts.
  *
  * XXX: We might have to leave all of these to the user and allow such
  * extensions at some point.
@@ -820,12 +820,12 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 
 	if (pg_strncasecmp(stmt->extname, "pglogical", 9) == 0)
 		ereport(ERROR,
-				(errmsg("cannot create an external logical replication extension when BDR is active")));
+				(errmsg("cannot create an external logical replication extension when pgactive is active")));
 }
 
 #if PG_VERSION_NUM >= 150000
 static void
-bdr_commandfilter(PlannedStmt *pstmt,
+pgactive_commandfilter(PlannedStmt *pstmt,
 				  const char *queryString,
 				  bool readOnlyTree,
 				  ProcessUtilityContext context,
@@ -835,7 +835,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				  QueryCompletion *qc)
 #else
 static void
-bdr_commandfilter(PlannedStmt *pstmt,
+pgactive_commandfilter(PlannedStmt *pstmt,
 				  const char *queryString,
 				  ProcessUtilityContext context,
 				  ParamListInfo params,
@@ -848,66 +848,66 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	bool		incremented_nestlevel = false;
 	bool		affects_only_nonpermanent;
 	bool		entered_extension = false;
-	bool		altering_bdr_nid_func = false;
+	bool		altering_pgactive_nid_func = false;
 
 	/* take strongest lock by default. */
-	BDRLockType lock_type = BDR_LOCK_WRITE;
+	pgactiveLockType lock_type = pgactive_LOCK_WRITE;
 
 	/*
-	 * Only BDR can create/drop/alter BDR node identifier getter function on
-	 * local node i.e. no replication to other BDR members.
+	 * Only pgactive can create/drop/alter pgactive node identifier getter function on
+	 * local node i.e. no replication to other pgactive members.
 	 */
 	switch (nodeTag(parsetree))
 	{
 		case T_CreateFunctionStmt:	/* CREATE FUNCTION */
-			if (is_bdr_nid_getter_function_create((CreateFunctionStmt *) parsetree))
+			if (is_pgactive_nid_getter_function_create((CreateFunctionStmt *) parsetree))
 			{
-				if (is_bdr_creating_nid_getter_function() ||
-					bdr_permit_node_identifier_getter_function_creation)
+				if (is_pgactive_creating_nid_getter_function() ||
+					pgactive_permit_node_identifier_getter_function_creation)
 					goto done;
 				else
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("creation of BDR node identifier getter function is not allowed")));
+							 errmsg("creation of pgactive node identifier getter function is not allowed")));
 			}
 			break;
 		case T_DropStmt:		/* DROP FUNCTION */
-			if (is_bdr_nid_getter_function_drop((DropStmt *) parsetree))
+			if (is_pgactive_nid_getter_function_drop((DropStmt *) parsetree))
 			{
-				if (is_bdr_creating_nid_getter_function() ||
-					bdr_permit_node_identifier_getter_function_creation)
+				if (is_pgactive_creating_nid_getter_function() ||
+					pgactive_permit_node_identifier_getter_function_creation)
 					goto done;
 				else
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("dropping of BDR node identifier getter function is not allowed")));
+							 errmsg("dropping of pgactive node identifier getter function is not allowed")));
 			}
 			break;
 		case T_AlterFunctionStmt:	/* ALTER FUNCTION */
-			altering_bdr_nid_func =
-				is_bdr_nid_getter_function_alter((AlterFunctionStmt *) parsetree);
+			altering_pgactive_nid_func =
+				is_pgactive_nid_getter_function_alter((AlterFunctionStmt *) parsetree);
 			break;
 		case T_AlterOwnerStmt:	/* ALTER FUNCTION OWNER TO */
-			altering_bdr_nid_func =
-				is_bdr_nid_getter_function_alter_owner((AlterOwnerStmt *) parsetree);
+			altering_pgactive_nid_func =
+				is_pgactive_nid_getter_function_alter_owner((AlterOwnerStmt *) parsetree);
 			break;
 		case T_RenameStmt:		/* ALTER FUNCTION RENAME TO */
-			altering_bdr_nid_func =
-				is_bdr_nid_getter_function_alter_rename((RenameStmt *) parsetree);
+			altering_pgactive_nid_func =
+				is_pgactive_nid_getter_function_alter_rename((RenameStmt *) parsetree);
 			break;
 		default:
 			break;
 	}
 
-	if (altering_bdr_nid_func)
+	if (altering_pgactive_nid_func)
 	{
-		if (is_bdr_creating_nid_getter_function() ||
-			bdr_permit_node_identifier_getter_function_creation)
+		if (is_pgactive_creating_nid_getter_function() ||
+			pgactive_permit_node_identifier_getter_function_creation)
 			goto done;
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("altering of BDR node identifier getter function is not allowed")));
+					 errmsg("altering of pgactive node identifier getter function is not allowed")));
 	}
 
 	/*
@@ -915,7 +915,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	 * hook (if any) or the standard one. The reason is that there is no
 	 * reason to filter anything in such a case.
 	 */
-	if (bdr_skip_ddl_replication)
+	if (pgactive_skip_ddl_replication)
 	{
 		if (next_ProcessUtility_hook)
 			next_ProcessUtility_hook(pstmt, queryString,
@@ -949,26 +949,26 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		goto done;
 
 	/* Permit only VACUUM on the supervisordb, if it exists */
-	if (BdrSupervisorDbOid == InvalidOid)
-		BdrSupervisorDbOid = bdr_get_supervisordb_oid(true);
+	if (pgactiveSupervisorDbOid == InvalidOid)
+		pgactiveSupervisorDbOid = pgactive_get_supervisordb_oid(true);
 
-	if (BdrSupervisorDbOid != InvalidOid
-		&& MyDatabaseId == BdrSupervisorDbOid
+	if (pgactiveSupervisorDbOid != InvalidOid
+		&& MyDatabaseId == pgactiveSupervisorDbOid
 		&& nodeTag(parsetree) != T_VacuumStmt)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("no commands may be run on the BDR supervisor database")));
+				 errmsg("no commands may be run on the pgactive supervisor database")));
 	}
 
 	/*
 	 * Extension contents aren't individually replicated. While postgres sets
 	 * creating_extension for create/alter extension, it doesn't set it for
 	 * drop extension. To ensure we don't replicate anything for drop
-	 * extension, we use bdr_in_extension that was set when BDR first sees
+	 * extension, we use pgactive_in_extension that was set when pgactive first sees
 	 * drop extension.
 	 */
-	if (creating_extension || bdr_in_extension)
+	if (creating_extension || pgactive_in_extension)
 		goto done;
 
 	/* don't perform filtering while replaying */
@@ -983,43 +983,43 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	{
 		TransactionStmt *stmt = (TransactionStmt *) parsetree;
 
-		if (in_bdr_replicate_ddl_command &&
+		if (in_pgactive_replicate_ddl_command &&
 			(stmt->kind == TRANS_STMT_COMMIT ||
 			 stmt->kind == TRANS_STMT_ROLLBACK ||
 			 stmt->kind == TRANS_STMT_PREPARE))
 		{
 			/*
-			 * It's unsafe to let bdr_replicate_ddl_command run transaction
+			 * It's unsafe to let pgactive_replicate_ddl_command run transaction
 			 * control commands via SPI that might end the current xact, since
 			 * it's being called from the fmgr/executor who'll expect a valid
 			 * transaction context on return.
 			 */
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("cannot COMMIT, ROLLBACK or PREPARE TRANSACTION in bdr_replicate_ddl_command")));
+					 errmsg("cannot COMMIT, ROLLBACK or PREPARE TRANSACTION in pgactive_replicate_ddl_command")));
 		}
 		goto done;
 	}
 
-	/* don't filter if this database isn't using bdr */
-	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+	/* don't filter if this database isn't using pgactive */
+	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
 		goto done;
 
 	/* check for read-only mode */
 	{
 		CommandTag	tag;
 
-		if (bdr_local_node_read_only()
+		if (pgactive_local_node_read_only()
 
 		/*
-		 * replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for
+		 * replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for
 		 * now
 		 */
-			&& !bdr_skip_ddl_replication
+			&& !pgactive_skip_ddl_replication
 			&& !allowed_on_read_only_node(parsetree, &tag))
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-					 errmsg("cannot run %s on read-only BDR node", GetCommandTagName(tag))));
+					 errmsg("cannot run %s on read-only pgactive node", GetCommandTagName(tag))));
 	}
 
 	/* commands we skip (for now) */
@@ -1118,18 +1118,18 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	}
 
 	/*
-	 * We stop people from creating a DB named BDR_SUPERVISOR_DBNAME if the
-	 * BDR extension is installed because we reserve that name, even if BDR
+	 * We stop people from creating a DB named pgactive_SUPERVISOR_DBNAME if the
+	 * pgactive extension is installed because we reserve that name, even if pgactive
 	 * isn't actually active.
 	 *
 	 */
 	switch (nodeTag(parsetree))
 	{
 		case T_CreatedbStmt:
-			bdr_commandfilter_dbname(((CreatedbStmt *) parsetree)->dbname);
+			pgactive_commandfilter_dbname(((CreatedbStmt *) parsetree)->dbname);
 			goto done;
 		case T_DropdbStmt:
-			bdr_commandfilter_dbname(((DropdbStmt *) parsetree)->dbname);
+			pgactive_commandfilter_dbname(((DropdbStmt *) parsetree)->dbname);
 			goto done;
 		case T_RenameStmt:
 
@@ -1140,8 +1140,8 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			 */
 			if (((RenameStmt *) parsetree)->renameType == OBJECT_DATABASE)
 			{
-				bdr_commandfilter_dbname(((RenameStmt *) parsetree)->subname);
-				bdr_commandfilter_dbname(((RenameStmt *) parsetree)->newname);
+				pgactive_commandfilter_dbname(((RenameStmt *) parsetree)->subname);
+				pgactive_commandfilter_dbname(((RenameStmt *) parsetree)->newname);
 				goto done;
 			}
 
@@ -1153,10 +1153,10 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	switch (nodeTag(parsetree))
 	{
 		case T_DropStmt:
-			prevent_drop_extension_bdr((DropStmt *) parsetree);
+			prevent_drop_extension_pgactive((DropStmt *) parsetree);
 			break;
 		case T_AlterOwnerStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 		default:
 			break;
@@ -1166,7 +1166,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	switch (nodeTag(parsetree))
 	{
 		case T_CreateSchemaStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_CreateStmt:
@@ -1175,11 +1175,11 @@ bdr_commandfilter(PlannedStmt *pstmt,
 #else
 			filter_CreateStmt(parsetree, completionTag);
 #endif
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_CreateForeignTableStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_AlterTableStmt:
@@ -1211,7 +1211,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 						break;
 				}
 
-				lock_type = BDR_LOCK_DDL;
+				lock_type = pgactive_LOCK_DDL;
 				break;
 			}
 
@@ -1223,37 +1223,37 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 				/*
 				 * Only allow CONCURRENTLY when not wrapped in
-				 * bdr.replicate_ddl_command; see 2ndQuadrant/bdr-private#124
+				 * pgactive.replicate_ddl_command; see 2ndQuadrant/pgactive-private#124
 				 * for details and linked issues.
 				 *
 				 * We can permit it but not replicate it otherwise. To ensure
 				 * that users aren't confused, only permit it when
-				 * bdr.skip_ddl_replication is set.
+				 * pgactive.skip_ddl_replication is set.
 				 */
 
 				/*
-				 * replace bdr_permit_unsafe_commands by
-				 * bdr_skip_ddl_replication for now
+				 * replace pgactive_permit_unsafe_commands by
+				 * pgactive_skip_ddl_replication for now
 				 */
-				if (stmt->concurrent && !bdr_skip_ddl_replication)
+				if (stmt->concurrent && !pgactive_skip_ddl_replication)
 				{
-					if (in_bdr_replicate_ddl_command)
+					if (in_pgactive_replicate_ddl_command)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command"),
-								 errhint("Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.")));
+								 errmsg("CREATE INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command"),
+								 errhint("Run CREATE INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.")));
 
-					if (!bdr_skip_ddl_replication)
+					if (!pgactive_skip_ddl_replication)
 						error_on_persistent_rv(stmt->relation,
-											   "CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set",
+											   "CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set",
 											   AccessExclusiveLock, false);
 				}
 
 				/*
-				 * replace bdr_permit_unsafe_commands by
-				 * bdr_skip_ddl_replication for now
+				 * replace pgactive_permit_unsafe_commands by
+				 * pgactive_skip_ddl_replication for now
 				 */
-				if (stmt->whereClause && stmt->unique && !bdr_skip_ddl_replication)
+				if (stmt->whereClause && stmt->unique && !pgactive_skip_ddl_replication)
 					error_on_persistent_rv(stmt->relation,
 										   "CREATE UNIQUE INDEX ... WHERE",
 										   AccessExclusiveLock, false);
@@ -1263,7 +1263,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				 * parallel with writing.
 				 */
 				if (!stmt->unique && stmt->concurrent)
-					lock_type = BDR_LOCK_DDL;
+					lock_type = pgactive_LOCK_DDL;
 
 				break;
 			}
@@ -1281,22 +1281,22 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 			/*
-			 * We disallow a BDR node from being a subscriber in postgres
-			 * logical replication when BDR is active. Technically, BDR has
+			 * We disallow a pgactive node from being a subscriber in postgres
+			 * logical replication when pgactive is active. Technically, pgactive has
 			 * nothing to do with postgres logical replication, however, we
-			 * disallow subscriptions on a BDR node for now to not have any
+			 * disallow subscriptions on a pgactive node for now to not have any
 			 * possible data divergence issues and conflicts on nodes within
-			 * the BDR group. For instance, when a BDR node pulls in changes
-			 * from a non-BDR publisher using postgres logical replication,
-			 * then, the node can easily diverge from the other nodes in BDR
+			 * the pgactive group. For instance, when a pgactive node pulls in changes
+			 * from a non-pgactive publisher using postgres logical replication,
+			 * then, the node can easily diverge from the other nodes in pgactive
 			 * group, and may cause conflicts.
 			 *
-			 * However, we have no problem if a BDR node is a publisher in
-			 * postgres logical replication. Meaning, a non-BDR node can still
-			 * pull in changes from a BDR node.
+			 * However, we have no problem if a pgactive node is a publisher in
+			 * postgres logical replication. Meaning, a non-pgactive node can still
+			 * pull in changes from a pgactive node.
 			 *
 			 * XXX: We might have to leave all of these to the user and allow
-			 * subscriptions on BDR nodes.
+			 * subscriptions on pgactive nodes.
 			 */
 		case T_CreateSubscriptionStmt:
 		case T_AlterSubscriptionStmt:
@@ -1306,7 +1306,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 		case T_CreatePublicationStmt:
 		case T_AlterPublicationStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_CreateFdwStmt:
@@ -1317,7 +1317,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 			/*
 			 * Execute the following only on local node i.e. no replication to
-			 * other BDR members.
+			 * other pgactive members.
 			 */
 		case T_CreateForeignServerStmt:
 		case T_AlterForeignServerStmt:
@@ -1329,12 +1329,12 @@ bdr_commandfilter(PlannedStmt *pstmt,
 		case T_CompositeTypeStmt:	/* CREATE TYPE (composite) */
 		case T_CreateEnumStmt:	/* CREATE TYPE AS ENUM */
 		case T_CreateRangeStmt: /* CREATE TYPE AS RANGE */
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_ViewStmt:		/* CREATE VIEW */
 		case T_CreateFunctionStmt:	/* CREATE FUNCTION */
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_AlterEnumStmt:
@@ -1365,7 +1365,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_CreateDomainStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_CreateConversionStmt:
@@ -1388,34 +1388,34 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 			/*
 			 * DROP INDEX CONCURRENTLY is currently only safe when run outside
-			 * bdr.replicate_ddl_command, and only with
-			 * bdr.skip_ddl_replication set. See 2ndQuadrant/bdr-private#124
+			 * pgactive.replicate_ddl_command, and only with
+			 * pgactive.skip_ddl_replication set. See 2ndQuadrant/pgactive-private#124
 			 * and linked issues.
 			 */
 			{
 				DropStmt   *stmt = (DropStmt *) parsetree;
 
 				/*
-				 * replace bdr_permit_unsafe_commands by
-				 * bdr_skip_ddl_replication for now
+				 * replace pgactive_permit_unsafe_commands by
+				 * pgactive_skip_ddl_replication for now
 				 */
-				if (stmt->removeType == OBJECT_INDEX && stmt->concurrent && !bdr_skip_ddl_replication)
+				if (stmt->removeType == OBJECT_INDEX && stmt->concurrent && !pgactive_skip_ddl_replication)
 				{
-					if (in_bdr_replicate_ddl_command)
+					if (in_pgactive_replicate_ddl_command)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command"),
-								 errhint("Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.")));
+								 errmsg("DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command"),
+								 errhint("Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.")));
 
-					if (!bdr_skip_ddl_replication && !statement_affects_only_nonpermanent(parsetree))
+					if (!pgactive_skip_ddl_replication && !statement_affects_only_nonpermanent(parsetree))
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set")));
+								 errmsg("DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set")));
 				}
 
 				/*
 				 * Execute the DROP SERVER only on local node i.e. no
-				 * replication to other BDR members.
+				 * replication to other pgactive members.
 				 */
 				if (stmt->removeType == OBJECT_FOREIGN_SERVER)
 					goto done;
@@ -1455,7 +1455,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_AlterDefaultPrivilegesStmt:
-			lock_type = BDR_LOCK_DDL;
+			lock_type = pgactive_LOCK_DDL;
 			break;
 
 		case T_SecLabelStmt:
@@ -1465,7 +1465,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 				sstmt = (SecLabelStmt *) parsetree;
 
 				if (sstmt->provider == NULL ||
-					strcmp(sstmt->provider, "bdr") == 0)
+					strcmp(sstmt->provider, "pgactive") == 0)
 					break;
 				error_unsupported_command(GetCommandTagName(CreateCommandTag(parsetree)));
 				break;
@@ -1473,7 +1473,7 @@ bdr_commandfilter(PlannedStmt *pstmt,
 
 		case T_CommentStmt:
 		case T_ReassignOwnedStmt:
-			lock_type = BDR_LOCK_NOLOCK;
+			lock_type = pgactive_LOCK_NOLOCK;
 			break;
 
 		case T_GrantStmt:
@@ -1489,20 +1489,20 @@ bdr_commandfilter(PlannedStmt *pstmt,
 			 */
 
 			/*
-			 * replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication
+			 * replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication
 			 * for now
 			 */
-			if (!bdr_skip_ddl_replication)
+			if (!pgactive_skip_ddl_replication)
 				elog(ERROR, "unrecognized node type: %d", (int) nodeTag(parsetree));
 			break;
 	}
 
-	/* now lock other nodes in the bdr flock against ddl */
+	/* now lock other nodes in the pgactive flock against ddl */
 	affects_only_nonpermanent = statement_affects_only_nonpermanent(parsetree);
-	/* replace bdr_skip_ddl_locking by bdr_skip_ddl_replication for now */
-	if (!bdr_skip_ddl_replication && !affects_only_nonpermanent
-		&& lock_type != BDR_LOCK_NOLOCK)
-		bdr_acquire_ddl_lock(lock_type);
+	/* replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for now */
+	if (!pgactive_skip_ddl_replication && !affects_only_nonpermanent
+		&& lock_type != pgactive_LOCK_NOLOCK)
+		pgactive_acquire_ddl_lock(lock_type);
 
 	/*
 	 * Many top level DDL statements trigger subsequent actions that also
@@ -1514,45 +1514,45 @@ bdr_commandfilter(PlannedStmt *pstmt,
 	 * (including those that mix DDL and DML, and those with transaction
 	 * control statements).
 	 */
-	if (!affects_only_nonpermanent && !bdr_skip_ddl_replication &&
-		!bdr_in_extension && !in_bdr_replicate_ddl_command &&
-		bdr_ddl_nestlevel == 0)
+	if (!affects_only_nonpermanent && !pgactive_skip_ddl_replication &&
+		!pgactive_in_extension && !in_pgactive_replicate_ddl_command &&
+		pgactive_ddl_nestlevel == 0)
 	{
 		if (context != PROCESS_UTILITY_TOPLEVEL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("DDL command attempted inside function or multi-statement string"),
-					 errdetail("BDR does not support transparent DDL replication for "
+					 errdetail("pgactive does not support transparent DDL replication for "
 							   "multi-statement strings or function bodies containing DDL "
 							   "commands. Problem statement has tag [%s] in SQL string: %s",
 							   GetCommandTagName(CreateCommandTag(parsetree)), queryString),
-					 errhint("Use bdr.bdr_replicate_ddl_command(...) instead.")));
+					 errhint("Use pgactive.pgactive_replicate_ddl_command(...) instead.")));
 
-		Assert(bdr_ddl_nestlevel >= 0);
+		Assert(pgactive_ddl_nestlevel >= 0);
 
-		bdr_capture_ddl(parsetree, queryString, context, params, dest, CreateCommandTag(parsetree));
+		pgactive_capture_ddl(parsetree, queryString, context, params, dest, CreateCommandTag(parsetree));
 
 		elog(DEBUG3, "DDLREP: Entering level %d DDL block, toplevel command is %s",
-			 bdr_ddl_nestlevel, queryString);
+			 pgactive_ddl_nestlevel, queryString);
 		incremented_nestlevel = true;
-		bdr_ddl_nestlevel++;
+		pgactive_ddl_nestlevel++;
 	}
 	else
 		elog(DEBUG3, "DDLREP: At ddl level %d ignoring non-persistent cmd %s",
-			 bdr_ddl_nestlevel, queryString);
+			 pgactive_ddl_nestlevel, queryString);
 
 done:
 	switch (nodeTag(parsetree))
 	{
 		case T_TruncateStmt:
-			bdr_start_truncate();
+			pgactive_start_truncate();
 			break;
 
 			/*
 			 * To avoid replicating commands inside create/alter/drop
 			 * extension, we have to set global state that reentrant calls to
 			 * ProcessUtility_hook will see so they can skip the command -
-			 * bdr_in_extension. We also need to know to unset it when this
+			 * pgactive_in_extension. We also need to know to unset it when this
 			 * outer invocation of ProcessUtility_hook ends.
 			 */
 		case T_DropStmt:
@@ -1562,14 +1562,14 @@ done:
 		case T_CreateExtensionStmt:
 		case T_AlterExtensionStmt:
 		case T_AlterExtensionContentsStmt:
-			if (!bdr_in_extension)
+			if (!pgactive_in_extension)
 			{
-				bdr_in_extension = true;
+				pgactive_in_extension = true;
 				entered_extension = true;
 			}
 
 			/*
-			 * When we are here with bdr_in_extension true, it means that we
+			 * When we are here with pgactive_in_extension true, it means that we
 			 * entered create/alter/drop extension previously, but the
 			 * extension script file is having one or more of alter extension
 			 * ... drop function/drop extension statements. However, postgres
@@ -1577,10 +1577,10 @@ done:
 			 * "ERROR: nested ALTER EXTENSION is not supported" if create
 			 * extension or just the alter extension respectively is specified
 			 * in an extension script file. We don't do anything fancy here
-			 * for BDR, other than ensuring the alter extension ... drop
+			 * for pgactive, other than ensuring the alter extension ... drop
 			 * function/ drop extension statements within extension script
 			 * file aren't replicated, which will be taken care by the flag
-			 * bdr_in_extension that's set to true previously.
+			 * pgactive_in_extension that's set to true previously.
 			 */
 
 			break;
@@ -1615,23 +1615,23 @@ done:
 	{
 		/*
 		 * We don't have to do any truncate cleanup here. The next
-		 * bdr_start_truncate() will deal with it.
+		 * pgactive_start_truncate() will deal with it.
 		 *
 		 * We do have to handle nest level unrolling.
 		 */
 		if (incremented_nestlevel)
 		{
-			bdr_ddl_nestlevel--;
-			Assert(bdr_ddl_nestlevel >= 0);
+			pgactive_ddl_nestlevel--;
+			Assert(pgactive_ddl_nestlevel >= 0);
 			elog(DEBUG3, "DDLREP: Exiting level %d in exception ",
-				 bdr_ddl_nestlevel);
+				 pgactive_ddl_nestlevel);
 		}
 
 		/* Error was during extension creation */
 		if (entered_extension)
 		{
-			Assert(bdr_in_extension);
-			bdr_in_extension = false;
+			Assert(pgactive_in_extension);
+			pgactive_in_extension = false;
 		}
 
 		PG_RE_THROW();
@@ -1639,29 +1639,29 @@ done:
 	PG_END_TRY();
 
 	if (nodeTag(parsetree) == T_TruncateStmt)
-		bdr_finish_truncate();
+		pgactive_finish_truncate();
 
 	if (entered_extension)
 	{
-		Assert(bdr_in_extension);
-		bdr_in_extension = false;
+		Assert(pgactive_in_extension);
+		pgactive_in_extension = false;
 	}
 
 	if (incremented_nestlevel)
 	{
-		bdr_ddl_nestlevel--;
-		Assert(bdr_ddl_nestlevel >= 0);
+		pgactive_ddl_nestlevel--;
+		Assert(pgactive_ddl_nestlevel >= 0);
 		elog(DEBUG3, "DDLREP: Exiting level %d block normally",
-			 bdr_ddl_nestlevel);
+			 pgactive_ddl_nestlevel);
 	}
-	Assert(bdr_ddl_nestlevel >= 0);
+	Assert(pgactive_ddl_nestlevel >= 0);
 }
 
 static void
-bdr_ClientAuthentication_hook(Port *port, int status)
+pgactive_ClientAuthentication_hook(Port *port, int status)
 {
 	if (MyProcPort->database_name != NULL
-		&& strcmp(MyProcPort->database_name, BDR_SUPERVISOR_DBNAME) == 0)
+		&& strcmp(MyProcPort->database_name, pgactive_SUPERVISOR_DBNAME) == 0)
 	{
 
 		/*
@@ -1677,8 +1677,8 @@ bdr_ClientAuthentication_hook(Port *port, int status)
 		 */
 		ereport(WARNING,
 				(errcode(ERRCODE_RESERVED_NAME),
-				 errmsg("BDR extension reserves the database "
-						BDR_SUPERVISOR_DBNAME " for its own use"),
+				 errmsg("pgactive extension reserves the database "
+						pgactive_SUPERVISOR_DBNAME " for its own use"),
 				 errhint("Use a different database.")));
 	}
 
@@ -1689,11 +1689,11 @@ bdr_ClientAuthentication_hook(Port *port, int status)
 
 /* Module load */
 void
-init_bdr_commandfilter(void)
+init_pgactive_commandfilter(void)
 {
 	next_ProcessUtility_hook = ProcessUtility_hook;
-	ProcessUtility_hook = bdr_commandfilter;
+	ProcessUtility_hook = pgactive_commandfilter;
 
 	next_ClientAuthentication_hook = ClientAuthentication_hook;
-	ClientAuthentication_hook = bdr_ClientAuthentication_hook;
+	ClientAuthentication_hook = pgactive_ClientAuthentication_hook;
 }

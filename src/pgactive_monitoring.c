@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * bdr_monitoring.c
+ * pgactive_monitoring.c
  * 		support for monitoring and progress tracking
  *
  * Copyright (c) 2017, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		  bdr_monitoring.c
+ *		  pgactive_monitoring.c
  *
  *-------------------------------------------------------------------------
  *
@@ -25,9 +25,9 @@
 
 #include "pgstat.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
-PG_FUNCTION_INFO_V1(bdr_wait_for_slots_confirmed_flush_lsn);
+PG_FUNCTION_INFO_V1(pgactive_wait_for_slots_confirmed_flush_lsn);
 
 /*
  * Wait for the confirmed_flush_lsn of the specified slot, or all logical slots
@@ -37,7 +37,7 @@ PG_FUNCTION_INFO_V1(bdr_wait_for_slots_confirmed_flush_lsn);
  * No timeout is offered, use a statement_timeout.
  */
 Datum
-bdr_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
+pgactive_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 {
 	XLogRecPtr	target_lsn;
 	Name		slot_name;
@@ -93,7 +93,7 @@ bdr_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 		if (oldest_confirmed_lsn >= target_lsn)
 			break;
 
-		(void) BDRWaitLatch(&MyProc->procLatch,
+		(void) pgactiveWaitLatch(&MyProc->procLatch,
 							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 							1000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);

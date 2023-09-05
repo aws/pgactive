@@ -1,6 +1,6 @@
-# bdr extension
+# pgactive extension
 comment = 'Bi-directional replication for PostgreSQL'
 default_version = '2.1.0'
-module_pathname = '$libdir/bdr'
+module_pathname = '$libdir/pgactive'
 relocatable = false
 schema = pg_catalog

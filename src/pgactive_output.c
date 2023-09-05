@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * bdr_output.c
- *		  BDR output plugin
+ * pgactive_output.c
+ *		  pgactive output plugin
  *
  * Copyright (c) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		  bdr_output.c
+ *		  pgactive_output.c
  *
  *-------------------------------------------------------------------------
  */
@@ -17,8 +17,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#include "bdr.h"
-#include "bdr_internal.h"
+#include "pgactive.h"
+#include "pgactive_internal.h"
 #include "miscadmin.h"
 
 #include "access/sysattr.h"
@@ -72,7 +72,7 @@ typedef struct
 {
 	MemoryContext context;
 
-	BDRNodeId	remote_node;
+	pgactiveNodeId	remote_node;
 
 	bool		allow_binary_protocol;
 	bool		allow_sendrecv_protocol;
@@ -81,9 +81,9 @@ typedef struct
 
 	uint32		client_pg_version;
 	uint32		client_pg_catversion;
-	uint32		client_bdr_version;
-	char	   *client_bdr_variant;
-	uint32		client_min_bdr_version;
+	uint32		client_pgactive_version;
+	char	   *client_pgactive_variant;
+	uint32		client_min_pgactive_version;
 	size_t		client_sizeof_int;
 	size_t		client_sizeof_long;
 	size_t		client_sizeof_datum;
@@ -93,16 +93,16 @@ typedef struct
 	bool		client_float8_byval;
 	bool		client_int_datetime;
 	char	   *client_db_encoding;
-	Oid			bdr_schema_oid;
-	Oid			bdr_conflict_handlers_reloid;
-	Oid			bdr_locks_reloid;
-	Oid			bdr_conflict_history_reloid;
+	Oid			pgactive_schema_oid;
+	Oid			pgactive_conflict_handlers_reloid;
+	Oid			pgactive_locks_reloid;
+	Oid			pgactive_conflict_history_reloid;
 
 	int			num_replication_sets;
 	char	  **replication_sets;
-}			BdrOutputData;
+}			pgactiveOutputData;
 
-static BdrWalsenderWorker * bdr_walsender_worker = NULL;
+static pgactiveWalsenderWorker * pgactive_walsender_worker = NULL;
 
 /* These must be available to pg_dlsym() */
 static void pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
@@ -126,7 +126,7 @@ static void pg_decode_message(LogicalDecodingContext *ctx,
 
 /* private prototypes */
 static void write_rel(StringInfo out, Relation rel);
-static void write_tuple(BdrOutputData * data, StringInfo out, Relation rel,
+static void write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 						HeapTuple tuple);
 
 static void pglReorderBufferCleanSerializedTXNs(const char *slotname);
@@ -147,9 +147,9 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 	Assert(ThisTimeLineID > 0);
 }
 
-/* Ensure a bdr_parse_... arg is non-null */
+/* Ensure a pgactive_parse_... arg is non-null */
 static void
-bdr_parse_notnull(DefElem *elem, const char *paramtype)
+pgactive_parse_notnull(DefElem *elem, const char *paramtype)
 {
 	if (elem->arg == NULL || strVal(elem->arg) == NULL)
 		ereport(ERROR,
@@ -160,9 +160,9 @@ bdr_parse_notnull(DefElem *elem, const char *paramtype)
 
 
 static void
-bdr_parse_uint32(DefElem *elem, uint32 *res)
+pgactive_parse_uint32(DefElem *elem, uint32 *res)
 {
-	bdr_parse_notnull(elem, "uint32");
+	pgactive_parse_notnull(elem, "uint32");
 	errno = 0;
 	*res = strtoul(strVal(elem->arg), NULL, 0);
 
@@ -174,9 +174,9 @@ bdr_parse_uint32(DefElem *elem, uint32 *res)
 }
 
 static void
-bdr_parse_size_t(DefElem *elem, size_t *res)
+pgactive_parse_size_t(DefElem *elem, size_t *res)
 {
-	bdr_parse_notnull(elem, "size_t");
+	pgactive_parse_notnull(elem, "size_t");
 	errno = 0;
 	*res = strtoull(strVal(elem->arg), NULL, 0);
 
@@ -188,9 +188,9 @@ bdr_parse_size_t(DefElem *elem, size_t *res)
 }
 
 static void
-bdr_parse_bool(DefElem *elem, bool *res)
+pgactive_parse_bool(DefElem *elem, bool *res)
 {
-	bdr_parse_notnull(elem, "bool");
+	pgactive_parse_notnull(elem, "bool");
 	if (!parse_bool(strVal(elem->arg), res))
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -199,12 +199,12 @@ bdr_parse_bool(DefElem *elem, bool *res)
 }
 
 static void
-bdr_parse_identifier_list_arr(DefElem *elem, char ***list, int *len)
+pgactive_parse_identifier_list_arr(DefElem *elem, char ***list, int *len)
 {
 	List	   *namelist;
 	ListCell   *c;
 
-	bdr_parse_notnull(elem, "list");
+	pgactive_parse_notnull(elem, "list");
 
 	if (!SplitIdentifierString(pstrdup(strVal(elem->arg)),
 							   ',', &namelist))
@@ -226,14 +226,14 @@ bdr_parse_identifier_list_arr(DefElem *elem, char ***list, int *len)
 }
 
 static void
-bdr_parse_str(DefElem *elem, char **res)
+pgactive_parse_str(DefElem *elem, char **res)
 {
-	bdr_parse_notnull(elem, "string");
+	pgactive_parse_notnull(elem, "string");
 	*res = pstrdup(strVal(elem->arg));
 }
 
 static void
-bdr_req_param(const char *param)
+pgactive_req_param(const char *param)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -242,20 +242,20 @@ bdr_req_param(const char *param)
 }
 
 /*
- * Check bdr.bdr_nodes entry in local DB and if status != r
+ * Check pgactive.pgactive_nodes entry in local DB and if status != r
  * and we're trying to begin logical replay, raise an error.
  *
- * Also prevents slot creation if the BDR extension isn't installed in the
+ * Also prevents slot creation if the pgactive extension isn't installed in the
  * local node.
  *
  * If this function returns it's safe to begin replay.
  */
 static void
-bdr_ensure_node_ready(BdrOutputData * data)
+pgactive_ensure_node_ready(pgactiveOutputData * data)
 {
 	int			spi_ret;
 	char		our_status;
-	BdrNodeStatus remote_status;
+	pgactiveNodeStatus remote_status;
 	NameData	dbname;
 	char	   *tmp_dbname;
 
@@ -266,31 +266,31 @@ bdr_ensure_node_ready(BdrOutputData * data)
 
 	/*
 	 * Refuse to begin replication if the local node isn't yet ready to send
-	 * data. Check the status in bdr.bdr_nodes.
+	 * data. Check the status in pgactive.pgactive_nodes.
 	 */
 	spi_ret = SPI_connect();
 	if (spi_ret != SPI_OK_CONNECT)
 		elog(ERROR, "local SPI connect failed; shouldn't happen");
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	our_status = bdr_local_node_status();
+	our_status = pgactive_local_node_status();
 
 	{
-		BDRNodeInfo *remote_nodeinfo;
+		pgactiveNodeInfo *remote_nodeinfo;
 
-		remote_nodeinfo = bdr_nodes_get_local_info(&data->remote_node);
+		remote_nodeinfo = pgactive_nodes_get_local_info(&data->remote_node);
 		remote_status = remote_nodeinfo == NULL ? '\0' : remote_nodeinfo->status;
-		bdr_bdr_node_free(remote_nodeinfo);
+		pgactive_pgactive_node_free(remote_nodeinfo);
 	}
 
 	SPI_finish();
 	PopActiveSnapshot();
 
-	if (remote_status == BDR_NODE_STATUS_KILLED)
+	if (remote_status == pgactive_NODE_STATUS_KILLED)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("bdr output plugin: slot usage rejected, remote node is killed")));
+				 errmsg("pgactive output plugin: slot usage rejected, remote node is killed")));
 	}
 
 	/*
@@ -298,20 +298,20 @@ bdr_ensure_node_ready(BdrOutputData * data)
 	 */
 	switch (our_status)
 	{
-		case BDR_NODE_STATUS_READY:
-		case BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS:
+		case pgactive_NODE_STATUS_READY:
+		case pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS:
 			break;				/* node ready or creating outbound slots */
-		case BDR_NODE_STATUS_NONE:
-		case BDR_NODE_STATUS_BEGINNING_INIT:
-			/* This isn't a BDR node yet. */
+		case pgactive_NODE_STATUS_NONE:
+		case pgactive_NODE_STATUS_BEGINNING_INIT:
+			/* This isn't a pgactive node yet. */
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr output plugin: slot creation rejected, bdr.bdr_nodes entry for local node " BDR_NODEID_FORMAT " does not exist",
-							BDR_LOCALID_FORMAT_ARGS),
-					 errdetail("BDR is not active on this database."),
-					 errhint("Add BDR to shared_preload_libraries and check logs for BDR startup errors.")));
+					 errmsg("pgactive output plugin: slot creation rejected, pgactive.pgactive_nodes entry for local node " pgactive_NODEID_FORMAT " does not exist",
+							pgactive_LOCALID_FORMAT_ARGS),
+					 errdetail("pgactive is not active on this database."),
+					 errhint("Add pgactive to shared_preload_libraries and check logs for pgactive startup errors.")));
 			break;
-		case BDR_NODE_STATUS_CATCHUP:
+		case pgactive_NODE_STATUS_CATCHUP:
 
 			/*
 			 * When in catchup mode we write rows with their true origin, so
@@ -323,11 +323,11 @@ bdr_ensure_node_ready(BdrOutputData * data)
 			 * we should set readonly mode to prevent them entirely).
 			 */
 			break;
-		case BDR_NODE_STATUS_COPYING_INITIAL_DATA:
+		case pgactive_NODE_STATUS_COPYING_INITIAL_DATA:
 
 			/*
 			 * We used to refuse to create a slot before/during apply of base
-			 * backup. Now we have bdr.do_not_replicate set DoNotReplicateId
+			 * backup. Now we have pgactive.do_not_replicate set DoNotReplicateId
 			 * when restoring so it's safe to do so since we can't replicate
 			 * the backup to peers anymore.
 			 *
@@ -335,7 +335,7 @@ bdr_ensure_node_ready(BdrOutputData * data)
 			 * we should set readonly mode to prevent them entirely).
 			 */
 			break;
-		case BDR_NODE_STATUS_KILLED:
+		case pgactive_NODE_STATUS_KILLED:
 			elog(ERROR, "node is exiting");
 			break;
 
@@ -351,14 +351,14 @@ static void
 pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is_init)
 {
 	ListCell   *option;
-	BdrOutputData *data;
+	pgactiveOutputData *data;
 	Oid			schema_oid;
 	bool		tx_started = false;
 	Oid			local_dboid;
 
-	data = palloc0(sizeof(BdrOutputData));
+	data = palloc0(sizeof(pgactiveOutputData));
 	data->context = AllocSetContextCreate(TopMemoryContext,
-										  "bdr conversion context",
+										  "pgactive conversion context",
 										  ALLOCSET_DEFAULT_MINSIZE,
 										  ALLOCSET_DEFAULT_INITSIZE,
 										  ALLOCSET_DEFAULT_MAXSIZE);
@@ -367,14 +367,14 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 
 	opt->output_type = OUTPUT_PLUGIN_BINARY_OUTPUT;
 
-	data->bdr_conflict_history_reloid = InvalidOid;
-	data->bdr_conflict_handlers_reloid = InvalidOid;
-	data->bdr_locks_reloid = InvalidOid;
-	data->bdr_schema_oid = InvalidOid;
+	data->pgactive_conflict_history_reloid = InvalidOid;
+	data->pgactive_conflict_handlers_reloid = InvalidOid;
+	data->pgactive_locks_reloid = InvalidOid;
+	data->pgactive_schema_oid = InvalidOid;
 	data->num_replication_sets = -1;
 
 	/* parse where the connection has to be from */
-	bdr_parse_slot_name(NameStr(MyReplicationSlot->data.name),
+	pgactive_parse_slot_name(NameStr(MyReplicationSlot->data.name),
 						&data->remote_node, &local_dboid);
 
 	/* parse options passed in by the client */
@@ -386,41 +386,41 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		Assert(elem->arg == NULL || IsA(elem->arg, String));
 
 		if (strcmp(elem->defname, "pg_version") == 0)
-			bdr_parse_uint32(elem, &data->client_pg_version);
+			pgactive_parse_uint32(elem, &data->client_pg_version);
 		else if (strcmp(elem->defname, "pg_catversion") == 0)
-			bdr_parse_uint32(elem, &data->client_pg_catversion);
-		else if (strcmp(elem->defname, "bdr_version") == 0)
-			bdr_parse_uint32(elem, &data->client_bdr_version);
-		else if (strcmp(elem->defname, "bdr_variant") == 0)
-			bdr_parse_str(elem, &data->client_bdr_variant);
-		else if (strcmp(elem->defname, "min_bdr_version") == 0)
-			bdr_parse_uint32(elem, &data->client_min_bdr_version);
+			pgactive_parse_uint32(elem, &data->client_pg_catversion);
+		else if (strcmp(elem->defname, "pgactive_version") == 0)
+			pgactive_parse_uint32(elem, &data->client_pgactive_version);
+		else if (strcmp(elem->defname, "pgactive_variant") == 0)
+			pgactive_parse_str(elem, &data->client_pgactive_variant);
+		else if (strcmp(elem->defname, "min_pgactive_version") == 0)
+			pgactive_parse_uint32(elem, &data->client_min_pgactive_version);
 		else if (strcmp(elem->defname, "sizeof_int") == 0)
-			bdr_parse_size_t(elem, &data->client_sizeof_int);
+			pgactive_parse_size_t(elem, &data->client_sizeof_int);
 		else if (strcmp(elem->defname, "sizeof_long") == 0)
-			bdr_parse_size_t(elem, &data->client_sizeof_long);
+			pgactive_parse_size_t(elem, &data->client_sizeof_long);
 		else if (strcmp(elem->defname, "sizeof_datum") == 0)
-			bdr_parse_size_t(elem, &data->client_sizeof_datum);
+			pgactive_parse_size_t(elem, &data->client_sizeof_datum);
 		else if (strcmp(elem->defname, "maxalign") == 0)
-			bdr_parse_size_t(elem, &data->client_maxalign);
+			pgactive_parse_size_t(elem, &data->client_maxalign);
 		else if (strcmp(elem->defname, "bigendian") == 0)
-			bdr_parse_bool(elem, &data->client_bigendian);
+			pgactive_parse_bool(elem, &data->client_bigendian);
 		else if (strcmp(elem->defname, "float4_byval") == 0)
-			bdr_parse_bool(elem, &data->client_float4_byval);
+			pgactive_parse_bool(elem, &data->client_float4_byval);
 		else if (strcmp(elem->defname, "float8_byval") == 0)
-			bdr_parse_bool(elem, &data->client_float8_byval);
+			pgactive_parse_bool(elem, &data->client_float8_byval);
 		else if (strcmp(elem->defname, "integer_datetimes") == 0)
-			bdr_parse_bool(elem, &data->client_int_datetime);
+			pgactive_parse_bool(elem, &data->client_int_datetime);
 		else if (strcmp(elem->defname, "db_encoding") == 0)
 			data->client_db_encoding = pstrdup(strVal(elem->arg));
 		else if (strcmp(elem->defname, "forward_changesets") == 0)
-			bdr_parse_bool(elem, &data->forward_changesets);
+			pgactive_parse_bool(elem, &data->forward_changesets);
 		else if (strcmp(elem->defname, "replication_sets") == 0)
 		{
 			int			i;
 
 			/* parse list */
-			bdr_parse_identifier_list_arr(elem,
+			pgactive_parse_identifier_list_arr(elem,
 										  &data->replication_sets,
 										  &data->num_replication_sets);
 
@@ -428,7 +428,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 
 			/* validate elements */
 			for (i = 0; i < data->num_replication_sets; i++)
-				bdr_validate_replication_set_name(data->replication_sets[i],
+				pgactive_validate_replication_set_name(data->replication_sets[i],
 												  true);
 
 			/* make it bsearch()able */
@@ -444,17 +444,17 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 			 */
 			data->client_pg_version = PG_VERSION_NUM;
 			data->client_pg_catversion = CATALOG_VERSION_NO;
-			data->client_bdr_version = BDR_VERSION_NUM;
-			data->client_bdr_variant = BDR_VARIANT;
-			data->client_min_bdr_version = BDR_VERSION_NUM;
+			data->client_pgactive_version = pgactive_VERSION_NUM;
+			data->client_pgactive_variant = pgactive_VARIANT;
+			data->client_min_pgactive_version = pgactive_VERSION_NUM;
 			data->client_sizeof_int = sizeof(int);
 			data->client_sizeof_long = sizeof(long);
 			data->client_sizeof_datum = sizeof(Datum);
 			data->client_maxalign = MAXIMUM_ALIGNOF;
-			data->client_bigendian = bdr_get_bigendian();
-			data->client_float4_byval = bdr_get_float4byval();
-			data->client_float8_byval = bdr_get_float8byval();
-			data->client_int_datetime = bdr_get_integer_timestamps();
+			data->client_bigendian = pgactive_get_bigendian();
+			data->client_float4_byval = pgactive_get_float4byval();
+			data->client_float8_byval = pgactive_get_float8byval();
+			data->client_int_datetime = pgactive_get_integer_timestamps();
 			data->client_db_encoding = pstrdup(GetDatabaseEncodingName());
 		}
 		else
@@ -482,13 +482,13 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 	}
 
 	/*
-	 * Ensure that the BDR extension is installed on this database.
+	 * Ensure that the pgactive extension is installed on this database.
 	 *
-	 * We must prevent slot creation before the BDR extension is created,
+	 * We must prevent slot creation before the pgactive extension is created,
 	 * otherwise the event trigger for DDL replication will record the
-	 * extension's creation in bdr.bdr_queued_commands and the slot position
+	 * extension's creation in pgactive.pgactive_queued_commands and the slot position
 	 * will be before then, causing CREATE EXTENSION to be replayed. Since the
-	 * other end already has the BDR extension (obviously) this will cause
+	 * other end already has the pgactive extension (obviously) this will cause
 	 * replay to fail.
 	 *
 	 * TODO: Should really test for the extension its self, but this is faster
@@ -500,47 +500,47 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		StartTransactionCommand();
 	}
 
-	/* BDR extension must be installed. */
-	if (get_namespace_oid("bdr", true) == InvalidOid)
+	/* pgactive extension must be installed. */
+	if (get_namespace_oid("pgactive", true) == InvalidOid)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("bdr extension does not exist on " BDR_NODEID_FORMAT,
-						BDR_LOCALID_FORMAT_ARGS),
-				 errdetail("Cannot create a BDR slot without the BDR extension installed.")));
+				 errmsg("pgactive extension does not exist on " pgactive_NODEID_FORMAT,
+						pgactive_LOCALID_FORMAT_ARGS),
+				 errdetail("Cannot create a pgactive slot without the pgactive extension installed.")));
 	}
 
 	/* no options are passed in during initialization, so don't complain there */
 	if (!is_init)
 	{
 		if (data->client_pg_version == 0)
-			bdr_req_param("pg_version");
+			pgactive_req_param("pg_version");
 		if (data->client_pg_catversion == 0)
-			bdr_req_param("pg_catversion");
-		if (data->client_bdr_version == 0)
-			bdr_req_param("bdr_version");
-		if (data->client_min_bdr_version == 0)
-			bdr_req_param("min_bdr_version");
+			pgactive_req_param("pg_catversion");
+		if (data->client_pgactive_version == 0)
+			pgactive_req_param("pgactive_version");
+		if (data->client_min_pgactive_version == 0)
+			pgactive_req_param("min_pgactive_version");
 		if (data->client_sizeof_int == 0)
-			bdr_req_param("sizeof_int");
+			pgactive_req_param("sizeof_int");
 		if (data->client_sizeof_long == 0)
-			bdr_req_param("sizeof_long");
+			pgactive_req_param("sizeof_long");
 		if (data->client_sizeof_datum == 0)
-			bdr_req_param("sizeof_datum");
+			pgactive_req_param("sizeof_datum");
 		if (data->client_maxalign == 0)
-			bdr_req_param("maxalign");
+			pgactive_req_param("maxalign");
 		/* XXX: can't check for boolean values this way */
 		if (data->client_db_encoding == NULL)
-			bdr_req_param("db_encoding");
+			pgactive_req_param("db_encoding");
 
 		/* check incompatibilities we cannot work around */
 		if (strcmp(data->client_db_encoding, GetDatabaseEncodingName()) != 0)
 			elog(ERROR, "mismatching encodings are not yet supported");
 
-		if (data->client_min_bdr_version > BDR_VERSION_NUM)
-			elog(ERROR, "incompatible BDR client and server versions, server too old");
-		if (data->client_bdr_version < BDR_MIN_REMOTE_VERSION_NUM)
-			elog(ERROR, "incompatible BDR client and server versions, client too old");
+		if (data->client_min_pgactive_version > pgactive_VERSION_NUM)
+			elog(ERROR, "incompatible pgactive client and server versions, server too old");
+		if (data->client_pgactive_version < pgactive_MIN_REMOTE_VERSION_NUM)
+			elog(ERROR, "incompatible pgactive client and server versions, client too old");
 
 		data->allow_binary_protocol = true;
 		data->allow_sendrecv_protocol = true;
@@ -563,7 +563,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 			data->allow_binary_protocol = false;
 			elog(LOG, "disabling binary protocol because of sizeof differences");
 		}
-		else if (data->client_bigendian != bdr_get_bigendian())
+		else if (data->client_bigendian != pgactive_get_bigendian())
 		{
 			data->allow_binary_protocol = false;
 			elog(LOG, "disabling binary protocol because of endianess difference");
@@ -573,11 +573,11 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		 * We also can't use the binary protocol if there are critical
 		 * differences in compile time settings.
 		 */
-		if (data->client_float4_byval != bdr_get_float4byval() ||
-			data->client_float8_byval != bdr_get_float8byval())
+		if (data->client_float4_byval != pgactive_get_float4byval() ||
+			data->client_float8_byval != pgactive_get_float8byval())
 			data->allow_binary_protocol = false;
 
-		if (data->client_int_datetime != bdr_get_integer_timestamps())
+		if (data->client_int_datetime != pgactive_get_integer_timestamps())
 			data->int_datetime_mismatch = true;
 		else
 			data->int_datetime_mismatch = false;
@@ -595,43 +595,43 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 		if (data->client_pg_version / 100 != PG_VERSION_NUM / 100)
 			data->allow_sendrecv_protocol = false;
 
-		bdr_maintain_schema(false);
+		pgactive_maintain_schema(false);
 
-		data->bdr_schema_oid = get_namespace_oid("bdr", true);
-		schema_oid = data->bdr_schema_oid;
+		data->pgactive_schema_oid = get_namespace_oid("pgactive", true);
+		schema_oid = data->pgactive_schema_oid;
 
 		if (schema_oid != InvalidOid)
 		{
-			data->bdr_conflict_handlers_reloid =
-				get_relname_relid("bdr_conflict_handlers", schema_oid);
+			data->pgactive_conflict_handlers_reloid =
+				get_relname_relid("pgactive_conflict_handlers", schema_oid);
 
-			if (data->bdr_conflict_handlers_reloid == InvalidOid)
-				elog(ERROR, "cache lookup for relation bdr.bdr_conflict_handlers failed");
+			if (data->pgactive_conflict_handlers_reloid == InvalidOid)
+				elog(ERROR, "cache lookup for relation pgactive.pgactive_conflict_handlers failed");
 			else
-				elog(DEBUG1, "bdr.bdr_conflict_handlers OID set to %u",
-					 data->bdr_conflict_handlers_reloid);
+				elog(DEBUG1, "pgactive.pgactive_conflict_handlers OID set to %u",
+					 data->pgactive_conflict_handlers_reloid);
 
-			data->bdr_conflict_history_reloid =
-				get_relname_relid("bdr_conflict_history", schema_oid);
+			data->pgactive_conflict_history_reloid =
+				get_relname_relid("pgactive_conflict_history", schema_oid);
 
-			if (data->bdr_conflict_history_reloid == InvalidOid)
-				elog(ERROR, "cache lookup for relation bdr.bdr_conflict_history failed");
+			if (data->pgactive_conflict_history_reloid == InvalidOid)
+				elog(ERROR, "cache lookup for relation pgactive.pgactive_conflict_history failed");
 
-			data->bdr_locks_reloid =
-				get_relname_relid("bdr_global_locks", schema_oid);
+			data->pgactive_locks_reloid =
+				get_relname_relid("pgactive_global_locks", schema_oid);
 
-			if (data->bdr_locks_reloid == InvalidOid)
-				elog(ERROR, "cache lookup for relation bdr.bdr_global_locks failed");
+			if (data->pgactive_locks_reloid == InvalidOid)
+				elog(ERROR, "cache lookup for relation pgactive.pgactive_global_locks failed");
 		}
 		else
-			elog(WARNING, "cache lookup for schema bdr failed");
+			elog(WARNING, "cache lookup for schema pgactive failed");
 
 		/*
 		 * Make sure it's safe to begin playing changes to the remote end.
 		 * This'll ERROR out if we're not ready. Note that this does NOT
 		 * prevent slot creation, only START_REPLICATION from the slot.
 		 */
-		bdr_ensure_node_ready(data);
+		pgactive_ensure_node_ready(data);
 	}
 
 	if (tx_started)
@@ -643,28 +643,28 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 	{
 		uint32		worker_idx;
 
-		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
-		if (BdrWorkerCtl->worker_management_paused)
+		if (pgactiveWorkerCtl->worker_management_paused)
 		{
-			LWLockRelease(BdrWorkerCtl->lock);
-			elog(ERROR, "BDR worker management is currently paused, walsender exiting; retry later.");
+			LWLockRelease(pgactiveWorkerCtl->lock);
+			elog(ERROR, "pgactive worker management is currently paused, walsender exiting; retry later.");
 		}
 
-		bdr_worker_shmem_alloc(BDR_WORKER_WALSENDER, &worker_idx);
-		bdr_worker_shmem_acquire(BDR_WORKER_WALSENDER, worker_idx, true);
-		bdr_worker_slot->worker_pid = MyProcPid;
-		bdr_worker_slot->worker_proc = MyProc;
+		pgactive_worker_shmem_alloc(pgactive_WORKER_WALSENDER, &worker_idx);
+		pgactive_worker_shmem_acquire(pgactive_WORKER_WALSENDER, worker_idx, true);
+		pgactive_worker_slot->worker_pid = MyProcPid;
+		pgactive_worker_slot->worker_proc = MyProc;
 		/* can be null if sql interface is used */
-		bdr_worker_slot->data.walsnd.walsender = MyWalSnd;
-		bdr_worker_slot->data.walsnd.slot = MyReplicationSlot;
-		bdr_nodeid_cpy(&bdr_worker_slot->data.walsnd.remote_node, &data->remote_node);
-		bdr_worker_slot->data.walsnd.last_sent_xact_id = InvalidTransactionId;
-		bdr_worker_slot->data.walsnd.last_sent_xact_committs = 0;
-		bdr_worker_slot->data.walsnd.last_sent_xact_at = 0;
-		bdr_walsender_worker = &bdr_worker_slot->data.walsnd;
+		pgactive_worker_slot->data.walsnd.walsender = MyWalSnd;
+		pgactive_worker_slot->data.walsnd.slot = MyReplicationSlot;
+		pgactive_nodeid_cpy(&pgactive_worker_slot->data.walsnd.remote_node, &data->remote_node);
+		pgactive_worker_slot->data.walsnd.last_sent_xact_id = InvalidTransactionId;
+		pgactive_worker_slot->data.walsnd.last_sent_xact_committs = 0;
+		pgactive_worker_slot->data.walsnd.last_sent_xact_at = 0;
+		pgactive_walsender_worker = &pgactive_worker_slot->data.walsnd;
 
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 	}
 }
 
@@ -672,7 +672,7 @@ static void
 pg_decode_shutdown(LogicalDecodingContext *ctx)
 {
 	/* release and free slot */
-	bdr_worker_shmem_release();
+	pgactive_worker_shmem_release();
 }
 
 /*
@@ -683,7 +683,7 @@ static inline bool
 should_forward_changeset(LogicalDecodingContext *ctx,
 						 RepOriginId origin_id)
 {
-	BdrOutputData *const data = ctx->output_plugin_private;
+	pgactiveOutputData *const data = ctx->output_plugin_private;
 
 	if (origin_id == InvalidRepOriginId || data->forward_changesets)
 		return true;
@@ -691,15 +691,15 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 		return false;
 
 	/*
-	 * We do not let the BDR output plugin replicate changes that came from
-	 * BDR peers to avoid replication loops. We used to check the replication
-	 * origin name to determine whether the changes came from peer BDR nodes
-	 * or non-BDR nodes. The commit 76a88a0ba23b874 introduced a shared hash
-	 * table to track all BDR replication origin names. We used this hash
-	 * table to filter out changes from peer BDR nodes and to forward changes
-	 * from non-BDR nodes. However, we determined a severe performance
+	 * We do not let the pgactive output plugin replicate changes that came from
+	 * pgactive peers to avoid replication loops. We used to check the replication
+	 * origin name to determine whether the changes came from peer pgactive nodes
+	 * or non-pgactive nodes. The commit 76a88a0ba23b874 introduced a shared hash
+	 * table to track all pgactive replication origin names. We used this hash
+	 * table to filter out changes from peer pgactive nodes and to forward changes
+	 * from non-pgactive nodes. However, we determined a severe performance
 	 * bottleneck with the hash table lookup. A simple use-case that revealed
-	 * this bottleneck is - on a 2 node BDR group, bulk loaded data on node 1,
+	 * this bottleneck is - on a 2 node pgactive group, bulk loaded data on node 1,
 	 * upon applying the changes received from node 1, the logical walsender
 	 * on node 2 corresponding to node 1 was performing a hash table lookup
 	 * for every decoded change. Due to this, frequent look up the walsender
@@ -707,11 +707,11 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 	 * reach node 1.
 	 *
 	 * To avoid the performance bottleneck, we do two things - 1) We disallow
-	 * a BDR node pulling in changes from any non-BDR/external logical
+	 * a pgactive node pulling in changes from any non-pgactive/external logical
 	 * replication solutions. 2) We removed the shared hash table completely.
-	 * With these things, a BDR node doesn't have to look for any replication
-	 * origin names to determine non-BDR changes. Because, every change that
-	 * comes with a valid origin_id is essentially from BDR peers, and can
+	 * With these things, a pgactive node doesn't have to look for any replication
+	 * origin names to determine non-pgactive changes. Because, every change that
+	 * comes with a valid origin_id is essentially from pgactive peers, and can
 	 * safely be filtered out i.e. not forward further to avoid replication
 	 * loops.
 	 */
@@ -719,28 +719,28 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 }
 
 static inline bool
-should_forward_change(LogicalDecodingContext *ctx, BdrOutputData * data,
-					  BDRRelation * r, enum ReorderBufferChangeType change)
+should_forward_change(LogicalDecodingContext *ctx, pgactiveOutputData * data,
+					  pgactiveRelation * r, enum ReorderBufferChangeType change)
 {
-	/* internal bdr relations that may not be replicated */
-	if (RelationGetRelid(r->rel) == data->bdr_conflict_handlers_reloid ||
-		RelationGetRelid(r->rel) == data->bdr_locks_reloid ||
-		RelationGetRelid(r->rel) == data->bdr_conflict_history_reloid)
+	/* internal pgactive relations that may not be replicated */
+	if (RelationGetRelid(r->rel) == data->pgactive_conflict_handlers_reloid ||
+		RelationGetRelid(r->rel) == data->pgactive_locks_reloid ||
+		RelationGetRelid(r->rel) == data->pgactive_conflict_history_reloid)
 		return false;
 
 	/*
 	 * Quite ugly, but there's no neat way right now: Flush replication set
-	 * configuration from bdr's relcache.
+	 * configuration from pgactive's relcache.
 	 */
-	if (RelationGetRelid(r->rel) == BdrReplicationSetConfigRelid)
-		BDRRelcacheHashInvalidateCallback(0, InvalidOid);
+	if (RelationGetRelid(r->rel) == pgactiveReplicationSetConfigRelid)
+		pgactiveRelcacheHashInvalidateCallback(0, InvalidOid);
 
-	/* always replicate other stuff in the bdr schema */
-	if (r->rel->rd_rel->relnamespace == data->bdr_schema_oid)
+	/* always replicate other stuff in the pgactive schema */
+	if (r->rel->rd_rel->relnamespace == data->pgactive_schema_oid)
 		return true;
 
 	if (!r->computed_repl_valid)
-		bdr_heap_compute_replication_settings(r,
+		pgactive_heap_compute_replication_settings(r,
 											  data->num_replication_sets,
 											  data->replication_sets);
 
@@ -762,12 +762,12 @@ should_forward_change(LogicalDecodingContext *ctx, BdrOutputData * data,
  * BEGIN callback
  *
  * If you change this you must also change the corresponding code in
- * bdr_apply.c . Make sure that any flags are in sync.
+ * pgactive_apply.c . Make sure that any flags are in sync.
  */
 void
 pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 {
-	BdrOutputData *data = ctx->output_plugin_private;
+	pgactiveOutputData *data = ctx->output_plugin_private;
 	int			flags = 0;
 	TimestampTz committime;
 
@@ -785,7 +785,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	 * the origin node ID and LSN in BEGIN records.
 	 */
 	if (data->forward_changesets)
-		flags |= BDR_OUTPUT_TRANSACTION_HAS_ORIGIN;
+		flags |= pgactive_OUTPUT_TRANSACTION_HAS_ORIGIN;
 
 	/* send the flags field its self */
 	pq_sendint(ctx->out, flags, 4);
@@ -793,8 +793,8 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	/* fixed fields */
 
 	/*
-	 * BDR 1.0 sent the commit start lsn here, but that has issues with
-	 * progress tracking; see bdr_apply for details. Instead send LSN of end
+	 * pgactive 1.0 sent the commit start lsn here, but that has issues with
+	 * progress tracking; see pgactive_apply for details. Instead send LSN of end
 	 * of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
@@ -808,7 +808,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	pq_sendint(ctx->out, txn->xid, 4);
 
 	/* and optional data selected above */
-	if (flags & BDR_OUTPUT_TRANSACTION_HAS_ORIGIN)
+	if (flags & pgactive_OUTPUT_TRANSACTION_HAS_ORIGIN)
 	{
 		/*
 		 * The RepOriginId in txn->origin_id is our local identifier for the
@@ -816,20 +816,20 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 		 * converted into the (sysid, tlid, dboid) that uniquely identifies
 		 * the node globally so that can be sent.
 		 */
-		BDRNodeId	origin;
+		pgactiveNodeId	origin;
 
-		bdr_fetch_sysid_via_node_id(txn->origin_id, &origin);
+		pgactive_fetch_sysid_via_node_id(txn->origin_id, &origin);
 
-		bdr_send_nodeid(ctx->out, &origin, false);
+		pgactive_send_nodeid(ctx->out, &origin, false);
 		pq_sendint64(ctx->out, txn->origin_lsn);
 	}
 
 	OutputPluginWrite(ctx, true);
 
 	/* Save last sent transaction info */
-	bdr_walsender_worker->last_sent_xact_id = txn->xid;
-	bdr_walsender_worker->last_sent_xact_committs = committime;
-	bdr_walsender_worker->last_sent_xact_at = GetCurrentTimestamp();
+	pgactive_walsender_worker->last_sent_xact_id = txn->xid;
+	pgactive_walsender_worker->last_sent_xact_committs = committime;
+	pgactive_walsender_worker->last_sent_xact_at = GetCurrentTimestamp();
 
 	return;
 }
@@ -886,9 +886,9 @@ void
 pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 				 Relation relation, ReorderBufferChange *change)
 {
-	BdrOutputData *data;
+	pgactiveOutputData *data;
 	MemoryContext old;
-	BDRRelation *bdr_relation;
+	pgactiveRelation *pgactive_relation;
 
 #ifdef USE_ASSERT_CHECKING
 
@@ -901,9 +901,9 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	 * without any lock, and our should_forward_change() check can miss it.
 	 * That is less of a concern than acquiring lock for every decoded change.
 	 */
-	bdr_relation = bdr_table_open(RelationGetRelid(relation), AccessShareLock);
+	pgactive_relation = pgactive_table_open(RelationGetRelid(relation), AccessShareLock);
 #else
-	bdr_relation = bdr_table_open(RelationGetRelid(relation), NoLock);
+	pgactive_relation = pgactive_table_open(RelationGetRelid(relation), NoLock);
 #endif
 
 	data = ctx->output_plugin_private;
@@ -914,7 +914,7 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	if (!should_forward_changeset(ctx, txn->origin_id))
 		goto skip;
 
-	if (!should_forward_change(ctx, data, bdr_relation, change->action))
+	if (!should_forward_change(ctx, data, pgactive_relation, change->action))
 		goto skip;
 
 	OutputPluginPrepareWrite(ctx, true);
@@ -961,7 +961,7 @@ skip:
 	MemoryContextSwitchTo(old);
 	MemoryContextReset(data->context);
 
-	bdr_table_close(bdr_relation, NoLock);
+	pgactive_table_close(pgactive_relation, NoLock);
 }
 
 /*
@@ -995,7 +995,7 @@ write_rel(StringInfo out, Relation rel)
  * Make the executive decision about which protocol to use.
  */
 static void
-decide_datum_transfer(BdrOutputData * data,
+decide_datum_transfer(pgactiveOutputData * data,
 					  Form_pg_attribute att, Form_pg_type typclass,
 					  bool *use_binary, bool *use_sendrecv)
 {
@@ -1038,7 +1038,7 @@ decide_datum_transfer(BdrOutputData * data,
  * Write a tuple to the outputstream, in the most efficient format possible.
  */
 static void
-write_tuple(BdrOutputData * data, StringInfo out, Relation rel,
+write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 			HeapTuple tuple)
 {
 	TupleDesc	desc;
@@ -1178,7 +1178,7 @@ pg_decode_message(LogicalDecodingContext *ctx,
 				  bool transactional, const char *prefix,
 				  Size sz, const char *message)
 {
-	if (strcmp(prefix, BDR_LOGICAL_MSG_PREFIX) == 0)
+	if (strcmp(prefix, pgactive_LOGICAL_MSG_PREFIX) == 0)
 	{
 		OutputPluginPrepareWrite(ctx, true);
 		pq_sendbyte(ctx->out, 'M'); /* message follows */

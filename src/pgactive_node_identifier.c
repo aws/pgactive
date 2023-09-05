@@ -1,20 +1,20 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_node_identifier.c
- *		BDR node identifier related code - user-facing functions, static
- *      getter function, shmem cache for storing per-db BDR node
+ * pgactive_node_identifier.c
+ *		pgactive node identifier related code - user-facing functions, static
+ *      getter function, shmem cache for storing per-db pgactive node
  * 		identifier etc.
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_node_identifier.c
+ *		pgactive_node_identifier.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "access/xact.h"
 #include "catalog/pg_type.h"
@@ -26,50 +26,50 @@
 #include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
 
-PGDLLEXPORT Datum bdr_generate_node_identifier(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_get_node_identifier(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_generate_node_identifier(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_node_identifier(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_generate_node_identifier);
-PG_FUNCTION_INFO_V1(bdr_get_node_identifier);
+PG_FUNCTION_INFO_V1(pgactive_generate_node_identifier);
+PG_FUNCTION_INFO_V1(pgactive_get_node_identifier);
 
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
-BdrNodeIdentifierControl *BdrNodeIdentifierCtl = NULL;
+pgactiveNodeIdentifierControl *pgactiveNodeIdentifierCtl = NULL;
 
 /* callback to cleanup on abort */
 bool		cb_registered = false;
 
-/* global indicator we are manipulating BDR artifacts */
-bool		bdrart = false;
+/* global indicator we are manipulating pgactive artifacts */
+bool		pgactiveart = false;
 
-#define SET_BDRART \
+#define SET_pgactiveART \
 do { \
 	if (!cb_registered) \
 	{ \
-		RegisterXactCallback(pg_bdr_xact_callback, NULL); \
+		RegisterXactCallback(pg_pgactive_xact_callback, NULL); \
 		cb_registered = true; \
 	} \
-	bdrart = true; \
+	pgactiveart = true; \
 } while (0)
 
-#define UNSET_BDRART \
+#define UNSET_pgactiveART \
 do { \
-	bdrart = false; \
+	pgactiveart = false; \
 } while (0)
 
-static size_t bdr_nid_shmem_size(void);
-static void bdr_nid_shmem_startup(void);
-static void bdr_nid_shmem_reset(Oid dboid);
-static void bdr_nid_shmem_reset_all(bool need_lock);
-static void bdr_nid_shmem_set(Oid dboid, uint64 nid);
-static uint64 bdr_nid_shmem_get(Oid dboid);
-static void pg_bdr_xact_callback(XactEvent event, void *arg);
-static void bdr_spi_exec(const char *cmd, int ret);
-static bool get_bdr_nid_getter_function_dependency(void);
-static bool is_bdr_nid_getter_function_in_stmt(ObjectType objtype,
+static size_t pgactive_nid_shmem_size(void);
+static void pgactive_nid_shmem_startup(void);
+static void pgactive_nid_shmem_reset(Oid dboid);
+static void pgactive_nid_shmem_reset_all(bool need_lock);
+static void pgactive_nid_shmem_set(Oid dboid, uint64 nid);
+static uint64 pgactive_nid_shmem_get(Oid dboid);
+static void pg_pgactive_xact_callback(XactEvent event, void *arg);
+static void pgactive_spi_exec(const char *cmd, int ret);
+static bool get_pgactive_nid_getter_function_dependency(void);
+static bool is_pgactive_nid_getter_function_in_stmt(ObjectType objtype,
 											   Node *object);
 
 static bool
-get_bdr_nid_getter_function_dependency(void)
+get_pgactive_nid_getter_function_dependency(void)
 {
 	StringInfoData cmd;
 	char	   *getter_func_dependency;
@@ -80,8 +80,8 @@ get_bdr_nid_getter_function_dependency(void)
 					 "SELECT 1 FROM pg_proc p JOIN pg_depend d ON p.oid = d.objid "
 					 "WHERE p.proname = '%s' "
 					 "AND deptype = 'e' AND refobjid = "
-					 "(SELECT oid FROM pg_extension WHERE extname = 'bdr'));",
-					 BDR_NID_GETTER_FUNC_NAME);
+					 "(SELECT oid FROM pg_extension WHERE extname = 'pgactive'));",
+					 pgactive_NID_GETTER_FUNC_NAME);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -106,14 +106,14 @@ get_bdr_nid_getter_function_dependency(void)
 }
 
 /*
- * Generate a BDR node identifier and store it in a static getter function. The
- * static getter function approach not only helps each database joining BDR
- * group get a unique identifier, but also helps achieve failover of BDR node
+ * Generate a pgactive node identifier and store it in a static getter function. The
+ * static getter function approach not only helps each database joining pgactive
+ * group get a unique identifier, but also helps achieve failover of pgactive node
  * in streaming replication (while keeping the same node identifiers) as the
  * standby will have the getter function replicated to it.
  */
 Datum
-bdr_generate_node_identifier(PG_FUNCTION_ARGS)
+pgactive_generate_node_identifier(PG_FUNCTION_ARGS)
 {
 	uint64		nid;
 	StringInfoData cmd;
@@ -124,13 +124,13 @@ bdr_generate_node_identifier(PG_FUNCTION_ARGS)
 
 	/*
 	 * Clear the node id in cache because it can happen that the previous
-	 * attempt to generate node identifier, or join a node to BDR group may
+	 * attempt to generate node identifier, or join a node to pgactive group may
 	 * have failed.
 	 */
-	bdr_nid_shmem_reset(MyDatabaseId);
+	pgactive_nid_shmem_reset(MyDatabaseId);
 
 	/*
-	 * Generate BDR node identifier using similar logic that Postgres uses to
+	 * Generate pgactive node identifier using similar logic that Postgres uses to
 	 * generate system_identifier.
 	 */
 	nid = GenerateNodeIdentifier();
@@ -138,50 +138,50 @@ bdr_generate_node_identifier(PG_FUNCTION_ARGS)
 	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "CREATE OR REPLACE FUNCTION bdr.%s() RETURNS numeric AS $$ "
+	appendStringInfo(&cmd, "CREATE OR REPLACE FUNCTION pgactive.%s() RETURNS numeric AS $$ "
 					 "SELECT %s::numeric $$ LANGUAGE SQL;",
-					 BDR_NID_GETTER_FUNC_NAME,
+					 pgactive_NID_GETTER_FUNC_NAME,
 					 buf);
 
-	/* flag that we are manipulating BDR artifacts */
-	SET_BDRART;
+	/* flag that we are manipulating pgactive artifacts */
+	SET_pgactiveART;
 
-	bdr_spi_exec(cmd.data, SPI_OK_UTILITY);
+	pgactive_spi_exec(cmd.data, SPI_OK_UTILITY);
 
 	is_getter_func_part_of_extension =
-		get_bdr_nid_getter_function_dependency();
+		get_pgactive_nid_getter_function_dependency();
 
-	/* If getter function isn't part of BDR extension, add it */
+	/* If getter function isn't part of pgactive extension, add it */
 	if (!is_getter_func_part_of_extension)
 	{
 		resetStringInfo(&cmd);
-		appendStringInfo(&cmd, "ALTER EXTENSION bdr ADD FUNCTION bdr.%s();",
-						 BDR_NID_GETTER_FUNC_NAME);
+		appendStringInfo(&cmd, "ALTER EXTENSION pgactive ADD FUNCTION pgactive.%s();",
+						 pgactive_NID_GETTER_FUNC_NAME);
 
-		bdr_spi_exec(cmd.data, SPI_OK_UTILITY);
+		pgactive_spi_exec(cmd.data, SPI_OK_UTILITY);
 	}
 
-	/* done manipulating BDR artifacts */
-	UNSET_BDRART;
+	/* done manipulating pgactive artifacts */
+	UNSET_pgactiveART;
 
-	bdr_nid_shmem_set(MyDatabaseId, nid);
+	pgactive_nid_shmem_set(MyDatabaseId, nid);
 	pfree(cmd.data);
 	PG_RETURN_VOID();
 }
 
 /*
- * Get BDR node identifier for current database. First it looks in shmem cache,
+ * Get pgactive node identifier for current database. First it looks in shmem cache,
  * upon cache miss, reads from the getter function and fills the cache.
  */
 uint64
-bdr_get_nid_internal(void)
+pgactive_get_nid_internal(void)
 {
 	StringInfoData cmd;
 	char	   *nid_str;
 	uint64		nid;
 	bool		tx_started = false;
 
-	nid = bdr_nid_shmem_get(MyDatabaseId);
+	nid = pgactive_nid_shmem_get(MyDatabaseId);
 
 	if (nid != 0)
 		return nid;
@@ -193,8 +193,8 @@ bdr_get_nid_internal(void)
 	}
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT * FROM bdr.%s();",
-					 BDR_NID_GETTER_FUNC_NAME);
+	appendStringInfo(&cmd, "SELECT * FROM pgactive.%s();",
+					 pgactive_NID_GETTER_FUNC_NAME);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -207,7 +207,7 @@ bdr_get_nid_internal(void)
 	nid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
 	if (sscanf(nid_str, UINT64_FORMAT, &nid) != 1)
-		elog(ERROR, "parsing BDR node identifier to uint64 from %s failed",
+		elog(ERROR, "parsing pgactive node identifier to uint64 from %s failed",
 			 nid_str);
 
 	if (SPI_finish() != SPI_OK_FINISH)
@@ -219,23 +219,23 @@ bdr_get_nid_internal(void)
 	Assert(nid != 0);
 
 	/* Save the read node identifier in the cache. */
-	bdr_nid_shmem_set(MyDatabaseId, nid);
+	pgactive_nid_shmem_set(MyDatabaseId, nid);
 	pfree(cmd.data);
 
 	return nid;
 }
 
 /*
- * User-facing function to get BDR node identifier for current database.
+ * User-facing function to get pgactive node identifier for current database.
  */
 Datum
-bdr_get_node_identifier(PG_FUNCTION_ARGS)
+pgactive_get_node_identifier(PG_FUNCTION_ARGS)
 {
 	uint64		nid;
 	char		buf[256];
 	Datum		result;
 
-	nid = bdr_get_nid_internal();
+	nid = pgactive_get_nid_internal();
 
 	/* Convert to numeric. */
 	snprintf(buf, sizeof(buf), UINT64_FORMAT, nid);
@@ -251,26 +251,26 @@ bdr_get_node_identifier(PG_FUNCTION_ARGS)
  * Cleanup at main-transaction end.
  */
 static void
-pg_bdr_xact_callback(XactEvent event, void *arg)
+pg_pgactive_xact_callback(XactEvent event, void *arg)
 {
-	/* end BDR artifacts */
-	UNSET_BDRART;
+	/* end pgactive artifacts */
+	UNSET_pgactiveART;
 }
 
 /*
- * Check if BDR is creating BDR node identifier getter function.
+ * Check if pgactive is creating pgactive node identifier getter function.
  */
 bool
-is_bdr_creating_nid_getter_function(void)
+is_pgactive_creating_nid_getter_function(void)
 {
-	return bdrart;
+	return pgactiveart;
 }
 
 /*
- * A helper for BDR around SPI facility.
+ * A helper for pgactive around SPI facility.
  */
 static void
-bdr_spi_exec(const char *cmd, int ret)
+pgactive_spi_exec(const char *cmd, int ret)
 {
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -283,10 +283,10 @@ bdr_spi_exec(const char *cmd, int ret)
 }
 
 /*
- * Check if BDR node identifier getter function exists.
+ * Check if pgactive node identifier getter function exists.
  */
 Oid
-find_bdr_nid_getter_function(void)
+find_pgactive_nid_getter_function(void)
 {
 	List	   *funcname;
 	Oid			funcoid;
@@ -299,7 +299,7 @@ find_bdr_nid_getter_function(void)
 		StartTransactionCommand();
 	}
 
-	funcname = list_make2(makeString("bdr"), makeString(BDR_NID_GETTER_FUNC_NAME));
+	funcname = list_make2(makeString("pgactive"), makeString(pgactive_NID_GETTER_FUNC_NAME));
 	funcoid = LookupFuncName(funcname, 0, args, true);
 
 	if (tx_started)
@@ -309,10 +309,10 @@ find_bdr_nid_getter_function(void)
 }
 
 /*
- * Check if BDR node identifier getter function is being created.
+ * Check if pgactive node identifier getter function is being created.
  */
 bool
-is_bdr_nid_getter_function_create(CreateFunctionStmt *stmt)
+is_pgactive_nid_getter_function_create(CreateFunctionStmt *stmt)
 {
 	char	   *funcname;
 	char	   *schemaname;
@@ -322,17 +322,17 @@ is_bdr_nid_getter_function_create(CreateFunctionStmt *stmt)
 							 &schemaname,
 							 &funcname);
 	if (funcname != NULL &&
-		pg_strcasecmp(funcname, BDR_NID_GETTER_FUNC_NAME) == 0)
+		pg_strcasecmp(funcname, pgactive_NID_GETTER_FUNC_NAME) == 0)
 		return true;
 
 	return false;
 }
 
 /*
- * Check if BDR node identifier getter function is being dropped.
+ * Check if pgactive node identifier getter function is being dropped.
  */
 bool
-is_bdr_nid_getter_function_drop(DropStmt *stmt)
+is_pgactive_nid_getter_function_drop(DropStmt *stmt)
 {
 	ListCell   *lc;
 
@@ -340,7 +340,7 @@ is_bdr_nid_getter_function_drop(DropStmt *stmt)
 	{
 		Node	   *object = lfirst(lc);
 
-		if (is_bdr_nid_getter_function_in_stmt(stmt->removeType,
+		if (is_pgactive_nid_getter_function_in_stmt(stmt->removeType,
 											   object))
 			return true;
 	}
@@ -349,10 +349,10 @@ is_bdr_nid_getter_function_drop(DropStmt *stmt)
 }
 
 /*
- * Check if BDR node identifier getter function is being altered.
+ * Check if pgactive node identifier getter function is being altered.
  */
 bool
-is_bdr_nid_getter_function_alter(AlterFunctionStmt *stmt)
+is_pgactive_nid_getter_function_alter(AlterFunctionStmt *stmt)
 {
 	Oid			funcoid;
 	char	   *funcname;
@@ -365,36 +365,36 @@ is_bdr_nid_getter_function_alter(AlterFunctionStmt *stmt)
 	funcname = get_func_name(funcoid);
 
 	if (funcname != NULL &&
-		pg_strcasecmp(funcname, BDR_NID_GETTER_FUNC_NAME) == 0)
+		pg_strcasecmp(funcname, pgactive_NID_GETTER_FUNC_NAME) == 0)
 		return true;
 
 	return false;
 }
 
 /*
- * Check if BDR node identifier getter function is being altered
+ * Check if pgactive node identifier getter function is being altered
  * (ALTER FUNCTION OWNER TO).
  */
 bool
-is_bdr_nid_getter_function_alter_owner(AlterOwnerStmt *stmt)
+is_pgactive_nid_getter_function_alter_owner(AlterOwnerStmt *stmt)
 {
-	return is_bdr_nid_getter_function_in_stmt(stmt->objectType,
+	return is_pgactive_nid_getter_function_in_stmt(stmt->objectType,
 											  stmt->object);
 }
 
 /*
- * Check if BDR node identifier getter function is being altered
+ * Check if pgactive node identifier getter function is being altered
  * (ALTER FUNCTION RENAME TO).
  */
 bool
-is_bdr_nid_getter_function_alter_rename(RenameStmt *stmt)
+is_pgactive_nid_getter_function_alter_rename(RenameStmt *stmt)
 {
-	return is_bdr_nid_getter_function_in_stmt(stmt->renameType,
+	return is_pgactive_nid_getter_function_in_stmt(stmt->renameType,
 											  stmt->object);
 }
 
 static bool
-is_bdr_nid_getter_function_in_stmt(ObjectType objtype, Node *object)
+is_pgactive_nid_getter_function_in_stmt(ObjectType objtype, Node *object)
 {
 	Relation	relation;
 	ObjectAddress address;
@@ -416,29 +416,29 @@ is_bdr_nid_getter_function_in_stmt(ObjectType objtype, Node *object)
 	funcname = get_func_name(address.objectId);
 
 	if (funcname != NULL &&
-		pg_strcasecmp(funcname, BDR_NID_GETTER_FUNC_NAME) == 0)
+		pg_strcasecmp(funcname, pgactive_NID_GETTER_FUNC_NAME) == 0)
 		return true;
 
 	return false;
 }
 
 /*
- * BDR node identifier shared memory functions.
+ * pgactive node identifier shared memory functions.
  */
 
 static size_t
-bdr_nid_shmem_size(void)
+pgactive_nid_shmem_size(void)
 {
 	Size		size = 0;
 
-	size = add_size(size, sizeof(BdrNodeIdentifierControl));
-	size = add_size(size, mul_size(bdr_max_databases, sizeof(BdrNodeIdentifier)));
+	size = add_size(size, sizeof(pgactiveNodeIdentifierControl));
+	size = add_size(size, mul_size(pgactive_max_databases, sizeof(pgactiveNodeIdentifier)));
 
 	return size;
 }
 
 static void
-bdr_nid_shmem_startup(void)
+pgactive_nid_shmem_startup(void)
 {
 	bool		found;
 
@@ -446,43 +446,43 @@ bdr_nid_shmem_startup(void)
 		prev_shmem_startup_hook();
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
-	BdrNodeIdentifierCtl = ShmemInitStruct("bdr_nid",
-										   bdr_nid_shmem_size(),
+	pgactiveNodeIdentifierCtl = ShmemInitStruct("pgactive_nid",
+										   pgactive_nid_shmem_size(),
 										   &found);
 	if (!found)
 	{
-		memset(BdrNodeIdentifierCtl, 0, bdr_nid_shmem_size());
-		BdrNodeIdentifierCtl->lock = &(GetNamedLWLockTranche("bdr_nid")->lock);
-		bdr_nid_shmem_reset_all(false);
+		memset(pgactiveNodeIdentifierCtl, 0, pgactive_nid_shmem_size());
+		pgactiveNodeIdentifierCtl->lock = &(GetNamedLWLockTranche("pgactive_nid")->lock);
+		pgactive_nid_shmem_reset_all(false);
 	}
 	LWLockRelease(AddinShmemInitLock);
 }
 
 /* Needs to be called from a shared_preload_library _PG_init() */
 void
-bdr_nid_shmem_init(void)
+pgactive_nid_shmem_init(void)
 {
 	/* Must be called from postmaster its self */
 	Assert(IsPostmasterEnvironment && !IsUnderPostmaster);
 
-	BdrNodeIdentifierCtl = NULL;
+	pgactiveNodeIdentifierCtl = NULL;
 
-	RequestAddinShmemSpace(bdr_nid_shmem_size());
-	RequestNamedLWLockTranche("bdr_nid", 1);
+	RequestAddinShmemSpace(pgactive_nid_shmem_size());
+	RequestNamedLWLockTranche("pgactive_nid", 1);
 
 	prev_shmem_startup_hook = shmem_startup_hook;
-	shmem_startup_hook = bdr_nid_shmem_startup;
+	shmem_startup_hook = pgactive_nid_shmem_startup;
 }
 
 static void
-bdr_nid_shmem_reset(Oid dboid)
+pgactive_nid_shmem_reset(Oid dboid)
 {
 	int			i;
 
-	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
-	for (i = 0; i < bdr_max_databases; i++)
+	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_EXCLUSIVE);
+	for (i = 0; i < pgactive_max_databases; i++)
 	{
-		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
+		pgactiveNodeIdentifier *w = &pgactiveNodeIdentifierCtl->nids[i];
 
 		if (w->dboid == dboid && w->nid != 0)
 		{
@@ -491,38 +491,38 @@ bdr_nid_shmem_reset(Oid dboid)
 			break;
 		}
 	}
-	LWLockRelease(BdrNodeIdentifierCtl->lock);
+	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 }
 
 static void
-bdr_nid_shmem_reset_all(bool need_lock)
+pgactive_nid_shmem_reset_all(bool need_lock)
 {
 	int			i;
 
 	if (need_lock)
-		LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
+		LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_EXCLUSIVE);
 
-	for (i = 0; i < bdr_max_databases; i++)
+	for (i = 0; i < pgactive_max_databases; i++)
 	{
-		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
+		pgactiveNodeIdentifier *w = &pgactiveNodeIdentifierCtl->nids[i];
 
 		w->dboid = InvalidOid;
 		w->nid = 0;
 	}
 
 	if (need_lock)
-		LWLockRelease(BdrNodeIdentifierCtl->lock);
+		LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 }
 
 static void
-bdr_nid_shmem_set(Oid dboid, uint64 nid)
+pgactive_nid_shmem_set(Oid dboid, uint64 nid)
 {
 	int			i;
 
-	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_EXCLUSIVE);
-	for (i = 0; i < bdr_max_databases; i++)
+	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_EXCLUSIVE);
+	for (i = 0; i < pgactive_max_databases; i++)
 	{
-		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
+		pgactiveNodeIdentifier *w = &pgactiveNodeIdentifierCtl->nids[i];
 
 		if (w->dboid == InvalidOid && w->nid == 0)
 		{
@@ -531,19 +531,19 @@ bdr_nid_shmem_set(Oid dboid, uint64 nid)
 			break;
 		}
 	}
-	LWLockRelease(BdrNodeIdentifierCtl->lock);
+	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 }
 
 static uint64
-bdr_nid_shmem_get(Oid dboid)
+pgactive_nid_shmem_get(Oid dboid)
 {
 	int			i;
 	uint64		nid = 0;
 
-	LWLockAcquire(BdrNodeIdentifierCtl->lock, LW_SHARED);
-	for (i = 0; i < bdr_max_databases; i++)
+	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_SHARED);
+	for (i = 0; i < pgactive_max_databases; i++)
 	{
-		BdrNodeIdentifier *w = &BdrNodeIdentifierCtl->nids[i];
+		pgactiveNodeIdentifier *w = &pgactiveNodeIdentifierCtl->nids[i];
 
 		if (w->dboid == dboid && w->nid != 0)
 		{
@@ -551,7 +551,7 @@ bdr_nid_shmem_get(Oid dboid)
 			break;
 		}
 	}
-	LWLockRelease(BdrNodeIdentifierCtl->lock);
+	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 
 	return nid;
 }

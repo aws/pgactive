@@ -1,22 +1,22 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_executor.c
- *      Relation and index access and maintenance routines required by bdr
+ * pgactive_executor.c
+ *      Relation and index access and maintenance routines required by pgactive
  *
- * BDR does a lot of direct access to indexes and relations, some of which
+ * pgactive does a lot of direct access to indexes and relations, some of which
  * isn't handled by simple calls into the backend. Most of it lives here.
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *      bdr_executor.c
+ *      pgactive_executor.c
  *
  * -------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "access/heapam.h"
 #include "access/xact.h"
@@ -42,19 +42,19 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 
-static void BdrExecutorStart(QueryDesc *queryDesc, int eflags);
+static void pgactiveExecutorStart(QueryDesc *queryDesc, int eflags);
 CommandTag	CreateWritableStmtTag(PlannedStmt *plannedstmt);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
 
-static bool bdr_always_allow_writes = false;
+static bool pgactive_always_allow_writes = false;
 
-PGDLLEXPORT Datum bdr_set_node_read_only(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_set_node_read_only(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_set_node_read_only);
+PG_FUNCTION_INFO_V1(pgactive_set_node_read_only);
 
 EState *
-bdr_create_rel_estate(Relation rel, ResultRelInfo *resultRelInfo)
+pgactive_create_rel_estate(Relation rel, ResultRelInfo *resultRelInfo)
 {
 	EState	   *estate;
 
@@ -118,7 +118,7 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
 		if (recheckIndexes != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("bdr doesn't support index rechecks")));
+					 errmsg("pgactive doesn't support index rechecks")));
 	}
 
 	/* FIXME: recheck the indexes */
@@ -126,7 +126,7 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
 }
 
 void
-build_index_scan_keys(ResultRelInfo *relinfo, ScanKey *scan_keys, BDRTupleData * tup)
+build_index_scan_keys(ResultRelInfo *relinfo, ScanKey *scan_keys, pgactiveTupleData * tup)
 {
 	int			i;
 
@@ -170,7 +170,7 @@ build_index_scan_keys(ResultRelInfo *relinfo, ScanKey *scan_keys, BDRTupleData *
  * Returns whether any column contains NULLs.
  */
 bool
-build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData * tup)
+build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, pgactiveTupleData * tup)
 {
 	int			attoff;
 	Datum		indclassDatum;
@@ -240,7 +240,7 @@ build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, BDRTupleData *
  * context of the passed slot.
  */
 bool
-find_pkey_tuple(ScanKey skey, BDRRelation * rel, Relation idxrel,
+find_pkey_tuple(ScanKey skey, pgactiveRelation * rel, Relation idxrel,
 				TupleTableSlot *slot, bool lock, LockTupleMode mode)
 {
 #if PG_VERSION_NUM < 120000
@@ -355,7 +355,7 @@ retry:
 }
 
 void
-bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
+pgactive_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 {
 	HeapTuple	tuple = NULL;
 	Relation	rel;
@@ -363,7 +363,7 @@ bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 	SnapshotData SnapshotDirty;
 	SysScanDesc scan;
 	ScanKeyData key;
-	BdrNodeStatus status;
+	pgactiveNodeStatus status;
 
 	Assert(IsTransactionState());
 
@@ -371,8 +371,8 @@ bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 	 * We don't allow the user to clear read-only status while the local node
 	 * is initing.
 	 */
-	status = bdr_local_node_status();
-	if ((status != BDR_NODE_STATUS_READY && status != BDR_NODE_STATUS_KILLED) && !force)
+	status = pgactive_local_node_status();
+	if ((status != pgactive_NODE_STATUS_READY && status != pgactive_NODE_STATUS_KILLED) && !force)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
@@ -381,7 +381,7 @@ bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 
 	InitDirtySnapshot(SnapshotDirty);
 
-	rv = makeRangeVar("bdr", "bdr_nodes", -1);
+	rv = makeRangeVar("pgactive", "pgactive_nodes", -1);
 	rel = table_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key,
@@ -428,32 +428,32 @@ bdr_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 	/* now release lock again,  */
 	table_close(rel, RowExclusiveLock);
 
-	bdr_connections_changed(NULL);
+	pgactive_connections_changed(NULL);
 }
 
 /*
- * Set node_read_only field in bdr_nodes entry for given node.
+ * Set node_read_only field in pgactive_nodes entry for given node.
  *
  * This has to be C function to avoid being subject to the executor read-only
  * filtering.
  */
 Datum
-bdr_set_node_read_only(PG_FUNCTION_ARGS)
+pgactive_set_node_read_only(PG_FUNCTION_ARGS)
 {
 	char	   *node_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	bool		read_only = PG_GETARG_BOOL(1);
 
-	bdr_set_node_read_only_guts(node_name, read_only, false);
+	pgactive_set_node_read_only_guts(node_name, read_only, false);
 
 	PG_RETURN_VOID();
 }
 
 
 void
-bdr_executor_always_allow_writes(bool always_allow)
+pgactive_executor_always_allow_writes(bool always_allow)
 {
 	Assert(IsUnderPostmaster);
-	bdr_always_allow_writes = always_allow;
+	pgactive_always_allow_writes = always_allow;
 }
 
 CommandTag
@@ -470,13 +470,13 @@ CreateWritableStmtTag(PlannedStmt *plannedstmt)
 }
 
 /*
- * The BDR ExecutorStart_hook that does DDL lock checks and forbids
+ * The pgactive ExecutorStart_hook that does DDL lock checks and forbids
  * writing into tables without replica identity index.
  *
  * Runs in all backends and workers.
  */
 static void
-BdrExecutorStart(QueryDesc *queryDesc, int eflags)
+pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	bool		performs_writes = false;
 	bool		read_only_node;
@@ -484,7 +484,7 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	List	   *rangeTable;
 	PlannedStmt *plannedstmt = queryDesc->plannedstmt;
 
-	if (bdr_always_allow_writes)
+	if (pgactive_always_allow_writes)
 		goto done;
 
 	/* don't perform filtering while replaying */
@@ -502,17 +502,17 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	if (!performs_writes)
 		goto done;
 
-	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
 		goto done;
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	read_only_node = bdr_local_node_read_only() && !bdr_skip_ddl_replication;
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	read_only_node = pgactive_local_node_read_only() && !pgactive_skip_ddl_replication;
 
 	/* check for concurrent global DDL locks */
-	bdr_locks_check_dml();
+	pgactive_locks_check_dml();
 
 	/*
-	 * Are we in bdr.replicate_ddl_command? If so, it's not safe to do DML,
+	 * Are we in pgactive.replicate_ddl_command? If so, it's not safe to do DML,
 	 * since this will basically do statement based replication that'll mess
 	 * up volatile functions etc. If we skipped replicating it as rows and
 	 * just replicated statements, we'd get wrong sequences and so on.
@@ -521,7 +521,7 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	 * replicate its effects with rows, either. Otherwise DDL like this would
 	 * break:
 	 *
-	 * bdr.replicate_ddl_command($$ ALTER TABLE foo ADD COLUMN bar ...; UPDATE
+	 * pgactive.replicate_ddl_command($$ ALTER TABLE foo ADD COLUMN bar ...; UPDATE
 	 * foo SET bar = baz WHERE ...; ALTER TABLE foo DROP COLUMN baz; $$);
 	 *
 	 * ... because we'd apply the DROP COLUMN before we replicated the rows,
@@ -529,7 +529,7 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 	 * would fail because the incoming rows would have data for dropped column
 	 * 'baz'.
 	 */
-	if (in_bdr_replicate_ddl_command && !bdr_in_extension)
+	if (in_pgactive_replicate_ddl_command && !pgactive_in_extension)
 	{
 		if (queryDesc->operation == CMD_INSERT
 			|| queryDesc->operation == CMD_UPDATE
@@ -537,8 +537,8 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command"),
-					 errhint("Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.")));
+					 errmsg("row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside pgactive.replicate_ddl_command"),
+					 errhint("Split up scripts, putting DDL in pgactive.replicate_ddl_command and DML as normal statements.")));
 		}
 	}
 
@@ -580,7 +580,7 @@ BdrExecutorStart(QueryDesc *queryDesc, int eflags)
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
 					 errmsg("%s may only affect UNLOGGED or TEMPORARY tables " \
-							"on read-only BDR node; %s is a regular table",
+							"on read-only pgactive node; %s is a regular table",
 							GetCommandTagName(CreateWritableStmtTag(plannedstmt)),
 							RelationGetRelationName(rel))));
 
@@ -610,8 +610,8 @@ done:
 
 
 void
-bdr_executor_init(void)
+pgactive_executor_init(void)
 {
 	PrevExecutorStart_hook = ExecutorStart_hook;
-	ExecutorStart_hook = BdrExecutorStart;
+	ExecutorStart_hook = pgactiveExecutorStart;
 }

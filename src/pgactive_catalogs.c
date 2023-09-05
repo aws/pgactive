@@ -1,22 +1,22 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_catalogs.c
- *		Access to bdr catalog information like bdr.bdr_nodes
+ * pgactive_catalogs.c
+ *		Access to pgactive catalog information like pgactive.pgactive_nodes
  *
  * Functions usable by both the output plugin and the extension/workers for
- * accessing and manipulating BDR's catalogs, like bdr.bdr_nodes.
+ * accessing and manipulating pgactive's catalogs, like pgactive.pgactive_nodes.
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr.c
+ *		pgactive.c
  *
  * -------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 #include "miscadmin.h"
 
 #include "access/xact.h"
@@ -40,25 +40,25 @@
 #include "catalog/pg_namespace.h"
 
 static int	getattno(const char *colname);
-static char *bdr_textarr_to_identliststr(ArrayType *textarray);
+static char *pgactive_textarr_to_identliststr(ArrayType *textarray);
 
-Datum		bdr_node_status_to_char(PG_FUNCTION_ARGS);
-Datum		bdr_node_status_from_char(PG_FUNCTION_ARGS);
+Datum		pgactive_node_status_to_char(PG_FUNCTION_ARGS);
+Datum		pgactive_node_status_from_char(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_node_status_to_char);
-PG_FUNCTION_INFO_V1(bdr_node_status_from_char);
+PG_FUNCTION_INFO_V1(pgactive_node_status_to_char);
+PG_FUNCTION_INFO_V1(pgactive_node_status_from_char);
 
 /*
- * Get the bdr.bdr_nodes status value for the specified node from the local
- * bdr.bdr_nodes table via SPI.
+ * Get the pgactive.pgactive_nodes status value for the specified node from the local
+ * pgactive.pgactive_nodes table via SPI.
  *
- * Returns the status value, or '\0' if no such row exists or bdr schema
+ * Returns the status value, or '\0' if no such row exists or pgactive schema
  * doesn't exist (extension may have been dropped).
  *
  * SPI must be initialized, and you must be in a running transaction.
  */
-BdrNodeStatus
-bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
+pgactiveNodeStatus
+pgactive_nodes_get_local_status(const pgactiveNodeId * const node, bool missing_ok)
 {
 	int			spi_ret;
 	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
@@ -73,13 +73,13 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
 
 	/*
-	 * Determine if BDR is present on this DB. The output plugin can be
-	 * started on a db that doesn't actually have BDR active, but we don't
+	 * Determine if pgactive is present on this DB. The output plugin can be
+	 * started on a db that doesn't actually have pgactive active, but we don't
 	 * want to allow that.
 	 *
-	 * Check for a bdr schema.
+	 * Check for a pgactive schema.
 	 */
-	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("bdr"));
+	schema_oid = pgactiveGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid, CStringGetDatum("pgactive"));
 	if (schema_oid == InvalidOid)
 	{
 		if (missing_ok)
@@ -87,9 +87,9 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("no BDR schema is present in database %s, cannot create a BDR slot",
+					 errmsg("no pgactive schema is present in database %s, cannot create a pgactive slot",
 							get_database_name(MyDatabaseId)),
-					 errhint("There is no bdr.connections entry for this database on the target node or BDR is not in shared_preload_libraries.")));
+					 errhint("There is no pgactive.connections entry for this database on the target node or pgactive is not in shared_preload_libraries.")));
 	}
 
 	values[0] = CStringGetTextDatum(sysid_str);
@@ -97,12 +97,12 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 	values[2] = ObjectIdGetDatum(node->dboid);
 
 	spi_ret = SPI_execute_with_args(
-									"SELECT node_status FROM bdr.bdr_nodes "
+									"SELECT node_status FROM pgactive.pgactive_nodes "
 									"WHERE node_sysid = $1 AND node_timeline = $2 AND node_dboid = $3",
 									3, argtypes, values, NULL, false, 1);
 
 	if (spi_ret != SPI_OK_SELECT)
-		elog(ERROR, "unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
+		elog(ERROR, "unable to query pgactive.pgactive_nodes, SPI error %d", spi_ret);
 
 	if (SPI_processed == 0)
 		return '\0';
@@ -111,23 +111,23 @@ bdr_nodes_get_local_status(const BDRNodeId * const node, bool missing_ok)
 										&isnull));
 
 	if (isnull)
-		elog(ERROR, "node_status in bdr.bdr_nodes table cannot be null");
+		elog(ERROR, "node_status in pgactive.pgactive_nodes table cannot be null");
 
-	return (BdrNodeStatus) status;
+	return (pgactiveNodeStatus) status;
 }
 
 /*
- * Get the bdr.bdr_nodes record for the specififed node from the local
- * bdr.bdr_nodes table via SPI.
+ * Get the pgactive.pgactive_nodes record for the specififed node from the local
+ * pgactive.pgactive_nodes table via SPI.
  *
  * Returns the status value, or NULL if no such row exists.
  *
  * SPI must be initialized, and you must be in a running transaction.
  */
-BDRNodeInfo *
-bdr_nodes_get_local_info(const BDRNodeId * const node)
+pgactiveNodeInfo *
+pgactive_nodes_get_local_info(const pgactiveNodeId * const node)
 {
-	BDRNodeInfo *nodeinfo = NULL;
+	pgactiveNodeInfo *nodeinfo = NULL;
 	char		sysid_str[33];
 	HeapTuple	tuple = NULL;
 	Relation	rel;
@@ -137,7 +137,7 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
 
-	rv = makeRangeVar("bdr", "bdr_nodes", -1);
+	rv = makeRangeVar("pgactive", "pgactive_nodes", -1);
 	rel = table_openrv(rv, RowExclusiveLock);
 
 	ScanKeyInit(&key[0],
@@ -163,11 +163,11 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 		TupleDesc	desc = RelationGetDescr(rel);
 		Datum		tmp;
 
-		nodeinfo = palloc0(sizeof(BDRNodeInfo));
-		bdr_nodeid_cpy(&nodeinfo->id, node);
-		nodeinfo->status = (BdrNodeStatus) DatumGetChar(fastgetattr(tuple, 4, desc, &isnull));
+		nodeinfo = palloc0(sizeof(pgactiveNodeInfo));
+		pgactive_nodeid_cpy(&nodeinfo->id, node);
+		nodeinfo->status = (pgactiveNodeStatus) DatumGetChar(fastgetattr(tuple, 4, desc, &isnull));
 		if (isnull)
-			elog(ERROR, "node_status in bdr.bdr_nodes table cannot be null");
+			elog(ERROR, "node_status in pgactive.pgactive_nodes table cannot be null");
 
 		tmp = fastgetattr(tuple, 5, desc, &isnull);
 		if (isnull)
@@ -184,12 +184,12 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 			nodeinfo->init_from_dsn = pstrdup(TextDatumGetCString(tmp));
 
 		nodeinfo->read_only = DatumGetBool(fastgetattr(tuple, 8, desc, &isnull));
-		/* Readonly will be null on upgrade from an older BDR */
+		/* Readonly will be null on upgrade from an older pgactive */
 		if (isnull)
 			nodeinfo->read_only = false;
 
 		nodeinfo->seq_id = DatumGetInt16(fastgetattr(tuple, 9, desc, &isnull));
-		/* seq_id will be null on upgrade from an older BDR */
+		/* seq_id will be null on upgrade from an older pgactive */
 		if (isnull)
 			nodeinfo->seq_id = -1;
 
@@ -202,9 +202,9 @@ bdr_nodes_get_local_info(const BDRNodeId * const node)
 	return nodeinfo;
 }
 
-/* Free the BDRNodeInfo pointer including its properties. */
+/* Free the pgactiveNodeInfo pointer including its properties. */
 void
-bdr_bdr_node_free(BDRNodeInfo * node)
+pgactive_pgactive_node_free(pgactiveNodeInfo * node)
 {
 	if (node == NULL)
 		return;
@@ -217,13 +217,13 @@ bdr_bdr_node_free(BDRNodeInfo * node)
 }
 
 void
-bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus fromstatus)
+pgactive_nodes_set_local_status(pgactiveNodeStatus status, pgactiveNodeStatus fromstatus)
 {
-	bdr_nodes_set_local_attrs(status, fromstatus, NULL);
+	pgactive_nodes_set_local_attrs(status, fromstatus, NULL);
 }
 
 /*
- * Update mutable fields on the local bdr.bdr_nodes entry as identified by
+ * Update mutable fields on the local pgactive.pgactive_nodes entry as identified by
  * current sysid,tlid,dboid. The node record must already exist and have the
  * specified old status.
  *
@@ -232,11 +232,11 @@ bdr_nodes_set_local_status(BdrNodeStatus status, BdrNodeStatus fromstatus)
  * If seq_id is passed as non-null a sequence ID is assigned. node_seq_id
  * cannot be set back to null from this interface.
  *
- * Unlike bdr_nodes_get_local_status, this inteface does not accept
+ * Unlike pgactive_nodes_get_local_status, this inteface does not accept
  * sysid, tlid and dboid input but can only set the status of the local node.
  */
 void
-bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const int *seq_id)
+pgactive_nodes_set_local_attrs(pgactiveNodeStatus status, pgactiveNodeStatus oldstatus, const int *seq_id)
 {
 	int			spi_ret;
 	Oid			argtypes[] = {CHAROID, TEXTOID, OIDOID, OIDOID, CHAROID, INT4OID};
@@ -244,11 +244,11 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 	Datum		values[6];
 	char		sysid_str[33];
 	bool		tx_started = false;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
-	Assert(status != BDR_NODE_STATUS_NONE); /* Cannot pass \0 */
+	Assert(status != pgactive_NODE_STATUS_NONE); /* Cannot pass \0 */
 	/* Cannot have replication apply state set in this tx */
 	Assert(replorigin_session_origin == InvalidRepOriginId);
 
@@ -273,7 +273,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 		nulls[5] = 'n';
 
 	spi_ret = SPI_execute_with_args(
-									"UPDATE bdr.bdr_nodes"
+									"UPDATE pgactive.pgactive_nodes"
 									"   SET node_status = $1,"
 									"       node_seq_id = coalesce($6, node_seq_id)"
 									" WHERE node_sysid = $2"
@@ -285,7 +285,7 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
 	if (spi_ret != SPI_OK_UPDATE)
 		elog(ERROR, "unable to set status=%c of row (node_sysid="
 			 UINT64_FORMAT ", node_timeline=%u, node_dboid=%u) "
-			 "in bdr.bdr_nodes: SPI error %d",
+			 "in pgactive.pgactive_nodes: SPI error %d",
 			 status, myid.sysid, myid.timeline, myid.dboid, spi_ret);
 
 	SPI_finish();
@@ -300,12 +300,12 @@ bdr_nodes_set_local_attrs(BdrNodeStatus status, BdrNodeStatus oldstatus, const i
  * the active DB.
  */
 bool
-bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId * node, bool missing_ok)
+pgactive_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, pgactiveNodeId * node, bool missing_ok)
 {
 	if (node_id == InvalidRepOriginId || node_id == DoNotReplicateId)
 	{
 		/* It's the local node */
-		bdr_make_my_nodeid(node);
+		pgactive_make_my_nodeid(node);
 	}
 	else
 	{
@@ -317,14 +317,14 @@ bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId * node, bool
 		if (riname == NULL)
 			return false;
 
-		bdr_parse_replident_name(riname, node, &local_dboid);
+		pgactive_parse_replident_name(riname, node, &local_dboid);
 		pfree(riname);
 
 		if (local_dboid != MyDatabaseId)
 		{
 			ereport(ERROR,
 					(errmsg("lookup failed for replication identifier %u", node_id),
-					 errdetail("Replication identifier %u exists but is owned by another BDR node in the same PostgreSQL instance, with dboid %u. Current node oid is %u.",
+					 errdetail("Replication identifier %u exists but is owned by another pgactive node in the same PostgreSQL instance, with dboid %u. Current node oid is %u.",
 							   node_id, local_dboid, MyDatabaseId)));
 		}
 	}
@@ -332,22 +332,22 @@ bdr_fetch_sysid_via_node_id_ifexists(RepOriginId node_id, BDRNodeId * node, bool
 }
 
 void
-bdr_fetch_sysid_via_node_id(RepOriginId node_id, BDRNodeId * node)
+pgactive_fetch_sysid_via_node_id(RepOriginId node_id, pgactiveNodeId * node)
 {
-	(void) bdr_fetch_sysid_via_node_id_ifexists(node_id, node, false);
+	(void) pgactive_fetch_sysid_via_node_id_ifexists(node_id, node, false);
 }
 
 /*
  * Get node identifiers from a replication identifier (replident, riident) name
  *
- * This isn't in bdr_common.c because it uses elog().
+ * This isn't in pgactive_common.c because it uses elog().
  */
 void
-bdr_parse_replident_name(const char *riname, BDRNodeId * node, Oid *local_dboid)
+pgactive_parse_replident_name(const char *riname, pgactiveNodeId * node, Oid *local_dboid)
 {
 	NameData	replication_name;
 
-	if (sscanf(riname, BDR_REPORIGIN_ID_FORMAT,
+	if (sscanf(riname, pgactive_REPORIGIN_ID_FORMAT,
 			   &node->sysid, &node->timeline, &node->dboid, local_dboid,
 			   NameStr(replication_name)) != 4)
 	{
@@ -359,14 +359,14 @@ bdr_parse_replident_name(const char *riname, BDRNodeId * node, Oid *local_dboid)
 /*
  * Get node identifiers from a slot name
  *
- * This isn't in bdr_common.c because it uses elog().
+ * This isn't in pgactive_common.c because it uses elog().
  */
 void
-bdr_parse_slot_name(const char *sname, BDRNodeId * remote, Oid *local_dboid)
+pgactive_parse_slot_name(const char *sname, pgactiveNodeId * remote, Oid *local_dboid)
 {
 	NameData	replication_name;
 
-	if (sscanf(sname, BDR_SLOT_NAME_FORMAT,
+	if (sscanf(sname, pgactive_SLOT_NAME_FORMAT,
 			   local_dboid, &remote->sysid, &remote->timeline, &remote->dboid,
 			   NameStr(replication_name)) != 4)
 	{
@@ -379,16 +379,16 @@ bdr_parse_slot_name(const char *sname, BDRNodeId * remote, Oid *local_dboid)
  * Format a replication origin / replication identifier (riident, replident)
  * name from a (sysid,timeline,dboid tuple).
  *
- * This isn't in bdr_common.c because it uses StringInfo.
+ * This isn't in pgactive_common.c because it uses StringInfo.
  */
 char *
-bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
+pgactive_replident_name(const pgactiveNodeId * const remote, Oid local_dboid)
 {
 	StringInfoData si;
 
 	initStringInfo(&si);
 
-	appendStringInfo(&si, BDR_REPORIGIN_ID_FORMAT,
+	appendStringInfo(&si, pgactive_REPORIGIN_ID_FORMAT,
 					 remote->sysid, remote->timeline, remote->dboid, local_dboid,
 					 EMPTY_REPLICATION_NAME);
 
@@ -397,12 +397,12 @@ bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid)
 }
 
 RepOriginId
-bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
+pgactive_fetch_node_id_via_sysid(const pgactiveNodeId * const node)
 {
 	char	   *ident;
 	RepOriginId id;
 
-	ident = bdr_replident_name(node, MyDatabaseId);
+	ident = pgactive_replident_name(node, MyDatabaseId);
 	id = replorigin_by_name(ident, false);
 	pfree(ident);
 
@@ -411,7 +411,7 @@ bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
 
 /*
  * Read connection configuration data from the DB and return zero or more
- * matching palloc'd BdrConnectionConfig results in a list.
+ * matching palloc'd pgactiveConnectionConfig results in a list.
  *
  * A transaction must be open.
  *
@@ -419,7 +419,7 @@ bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
  * this is the transaction memory context, but you can switch to contexts
  * before calling.
  *
- * Each BdrConnectionConfig's char* fields are palloc'd values.
+ * Each pgactiveConnectionConfig's char* fields are palloc'd values.
  *
  * Uses the SPI, so push/pop caller's SPI state if needed.
  *
@@ -432,10 +432,10 @@ bdr_fetch_node_id_via_sysid(const BDRNodeId * const node)
  * Connections for nodes with state 'k'illed are not returned.
  * Connections in other states are, since we should fail (and retry)
  * until they're ready to accept slot creation. Connections with
- * no corresponding bdr.bdr_nodes row also get ignored.
+ * no corresponding pgactive.pgactive_nodes row also get ignored.
  */
 List *
-bdr_read_connection_configs()
+pgactive_read_connection_configs()
 {
 	HeapTuple	tuple;
 	StringInfoData query;
@@ -447,9 +447,9 @@ bdr_read_connection_configs()
 	char		sysid_str[33];
 	Datum		values[3];
 	Oid			types[3] = {TEXTOID, OIDOID, OIDOID};
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
 	Assert(IsTransactionState());
 
@@ -470,8 +470,8 @@ bdr_read_connection_configs()
 					 "  conn_replication_sets, "
 					 "  conn_origin_dboid <> 0 AS origin_is_my_id, "
 					 "  node_name "
-					 "FROM bdr.bdr_connections "
-					 "INNER JOIN bdr.bdr_nodes "
+					 "FROM pgactive.pgactive_connections "
+					 "INNER JOIN pgactive.pgactive_nodes "
 					 "  ON (conn_sysid = node_sysid AND "
 					 "      conn_timeline = node_timeline AND "
 					 "      conn_dboid = node_dboid) "
@@ -481,7 +481,7 @@ bdr_read_connection_configs()
 					 "   OR (conn_origin_sysid = $1 "
 					 "  AND  conn_origin_timeline = $2 "
 					 "  AND  conn_origin_dboid = $3)) "
-					 "  AND node_status <> " BDR_NODE_STATUS_KILLED_S " "
+					 "  AND node_status <> " pgactive_NODE_STATUS_KILLED_S " "
 					 "ORDER BY conn_sysid, conn_timeline, conn_dboid, "
 					 "         conn_origin_sysid ASC NULLS LAST, "
 					 "         conn_timeline ASC NULLS LAST, "
@@ -500,7 +500,7 @@ bdr_read_connection_configs()
 	ret = SPI_execute_with_args(query.data, 3, types, values, NULL, false, 0);
 
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "SPI error while querying bdr.bdr_connections");
+		elog(ERROR, "SPI error while querying pgactive.pgactive_connections");
 
 	/* Switch to calling memory context to copy results */
 	saved_ctx = MemoryContextSwitchTo(caller_ctx);
@@ -512,7 +512,7 @@ bdr_read_connection_configs()
 		ArrayType  *conn_replication_sets;
 		char	   *tmp_sysid;
 
-		BdrConnectionConfig *cfg = palloc(sizeof(BdrConnectionConfig));
+		pgactiveConnectionConfig *cfg = palloc(sizeof(pgactiveConnectionConfig));
 
 		tuple = SPI_tuptable->vals[i];
 
@@ -574,7 +574,7 @@ bdr_read_connection_configs()
 		else
 		{
 			cfg->replication_sets =
-				bdr_textarr_to_identliststr(conn_replication_sets);
+				pgactive_textarr_to_identliststr(conn_replication_sets);
 		}
 
 		tmp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
@@ -601,10 +601,10 @@ bdr_read_connection_configs()
 }
 
 /*
- * Get the list of local_dsn from bdr_nodes (excluding current node).
+ * Get the list of local_dsn from pgactive_nodes (excluding current node).
  */
 List *
-bdr_get_all_local_dsn()
+pgactive_get_all_local_dsn()
 {
 	HeapTuple	tuple;
 	StringInfoData query;
@@ -616,9 +616,9 @@ bdr_get_all_local_dsn()
 	char		sysid_str[33];
 	Datum		values[1];
 	Oid			types[1] = {TEXTOID};
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
 	Assert(IsTransactionState());
 
@@ -634,9 +634,9 @@ bdr_get_all_local_dsn()
 	 * Configurations for all nodes, including the local node, are read.
 	 */
 	appendStringInfo(&query, "SELECT node_local_dsn "
-					 "FROM bdr.bdr_nodes "
+					 "FROM pgactive.pgactive_nodes "
 					 "WHERE node_sysid != $1"
-					 " AND node_status <> " BDR_NODE_STATUS_KILLED_S " "
+					 " AND node_status <> " pgactive_NODE_STATUS_KILLED_S " "
 		);
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
@@ -649,7 +649,7 @@ bdr_get_all_local_dsn()
 	ret = SPI_execute_with_args(query.data, 1, types, values, NULL, false, 0);
 
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
+		elog(ERROR, "SPI error while querying pgactive.pgactive_nodes");
 
 	/* Switch to calling memory context to copy results */
 	saved_ctx = MemoryContextSwitchTo(caller_ctx);
@@ -681,7 +681,7 @@ bdr_get_all_local_dsn()
 }
 
 void
-bdr_free_connection_config(BdrConnectionConfig * cfg)
+pgactive_free_connection_config(pgactiveConnectionConfig * cfg)
 {
 	if (cfg->dsn != NULL)
 		pfree(cfg->dsn);
@@ -692,13 +692,13 @@ bdr_free_connection_config(BdrConnectionConfig * cfg)
 /*
  * Fetch the connection configuration for the specified node
  */
-BdrConnectionConfig *
-bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
+pgactiveConnectionConfig *
+pgactive_get_connection_config(const pgactiveNodeId * const node, bool missing_ok)
 {
 	List	   *configs;
 	ListCell   *lc;
 	MemoryContext saved_ctx;
-	BdrConnectionConfig *found_config = NULL;
+	pgactiveConnectionConfig *found_config = NULL;
 	bool		tx_started = false;
 
 	Assert(MyDatabaseId != InvalidOid);
@@ -710,7 +710,7 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	}
 
 	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-	configs = bdr_read_connection_configs();
+	configs = pgactive_read_connection_configs();
 	MemoryContextSwitchTo(saved_ctx);
 
 	/*
@@ -721,24 +721,24 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	 */
 	foreach(lc, configs)
 	{
-		BdrConnectionConfig *cfg = (BdrConnectionConfig *) lfirst(lc);
+		pgactiveConnectionConfig *cfg = (pgactiveConnectionConfig *) lfirst(lc);
 
-		if (bdr_nodeid_eq(&cfg->remote_node, node))
+		if (pgactive_nodeid_eq(&cfg->remote_node, node))
 		{
 			found_config = cfg;
 			break;
 		}
 		else
 		{
-			bdr_free_connection_config(cfg);
+			pgactive_free_connection_config(cfg);
 		}
 	}
 
 	if (found_config == NULL && !missing_ok)
-		elog(ERROR, "failed to find expected bdr.connections row "
+		elog(ERROR, "failed to find expected pgactive.connections row "
 			 "(conn_sysid,conn_timeline,conn_dboid) = "
 			 "(" UINT64_FORMAT ",%u,%u) "
-			 "in bdr.bdr_connections",
+			 "in pgactive.pgactive_connections",
 			 node->sysid, node->timeline, node->dboid);
 
 	if (tx_started)
@@ -749,14 +749,14 @@ bdr_get_connection_config(const BDRNodeId * const node, bool missing_ok)
 	return found_config;
 }
 
-BdrConnectionConfig *
-bdr_get_my_connection_config(bool missing_ok)
+pgactiveConnectionConfig *
+pgactive_get_my_connection_config(bool missing_ok)
 {
-	BDRNodeId	ni;
+	pgactiveNodeId	ni;
 
-	bdr_make_my_nodeid(&ni);
+	pgactive_make_my_nodeid(&ni);
 
-	return bdr_get_connection_config(&ni, missing_ok);
+	return pgactive_get_connection_config(&ni, missing_ok);
 }
 
 
@@ -767,7 +767,7 @@ getattno(const char *colname)
 
 	attno = SPI_fnumber(SPI_tuptable->tupdesc, colname);
 	if (attno == SPI_ERROR_NOATTRIBUTE)
-		elog(ERROR, "SPI error while reading %s from bdr.bdr_connections", colname);
+		elog(ERROR, "SPI error while reading %s from pgactive.pgactive_connections", colname);
 
 	return attno;
 }
@@ -778,7 +778,7 @@ getattno(const char *colname)
  * context.
  */
 static char *
-bdr_textarr_to_identliststr(ArrayType *textarray)
+pgactive_textarr_to_identliststr(ArrayType *textarray)
 {
 	Datum	   *elems;
 	int			nelems,
@@ -819,7 +819,7 @@ void
 stringify_node_identity(char *sysid_str, Size sysid_str_size,
 						char *timeline_str, Size timeline_str_size,
 						char *dboid_str, Size dboid_str_size,
-						const BDRNodeId * const nodeid)
+						const pgactiveNodeId * const nodeid)
 {
 	snprintf(sysid_str, sysid_str_size, UINT64_FORMAT, nodeid->sysid);
 	snprintf(timeline_str, timeline_str_size, "%u", nodeid->timeline);
@@ -831,34 +831,34 @@ stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
 						   char *timeline_str, Size timeline_str_size,
 						   char *dboid_str, Size dboid_str_size)
 {
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 	return stringify_node_identity(sysid_str, sysid_str_size, timeline_str,
 								   timeline_str_size, dboid_str, dboid_str_size,
 								   &myid);
 }
 
 Datum
-bdr_node_status_from_char(PG_FUNCTION_ARGS)
+pgactive_node_status_from_char(PG_FUNCTION_ARGS)
 {
-	BdrNodeStatus status = (BdrNodeStatus) PG_GETARG_CHAR(0);
+	pgactiveNodeStatus status = (pgactiveNodeStatus) PG_GETARG_CHAR(0);
 	const char *result = NULL;
 
-#define BDR_NODE_STATUS_TOSTR(teststatus) \
+#define pgactive_NODE_STATUS_TOSTR(teststatus) \
 	case teststatus: \
 		result = #teststatus; \
 		break;
 
 	switch (status)
 	{
-			BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_NONE)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_BEGINNING_INIT)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CATCHUP)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_READY)
-				BDR_NODE_STATUS_TOSTR(BDR_NODE_STATUS_KILLED)
+			pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_NONE)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_BEGINNING_INIT)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_COPYING_INITIAL_DATA)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_CATCHUP)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_READY)
+				pgactive_NODE_STATUS_TOSTR(pgactive_NODE_STATUS_KILLED)
 	};
 
 	if (result == NULL)
@@ -868,12 +868,12 @@ bdr_node_status_from_char(PG_FUNCTION_ARGS)
 }
 
 Datum
-bdr_node_status_to_char(PG_FUNCTION_ARGS)
+pgactive_node_status_to_char(PG_FUNCTION_ARGS)
 {
 	char	   *status = text_to_cstring(PG_GETARG_TEXT_P(0));
-	BdrNodeStatus result;
+	pgactiveNodeStatus result;
 
-#define BDR_NODE_STATUS_FROMSTR(teststatus) \
+#define pgactive_NODE_STATUS_FROMSTR(teststatus) \
 	if (strcmp(status, #teststatus) == 0) \
 	{ \
 		result = teststatus; \
@@ -882,23 +882,23 @@ bdr_node_status_to_char(PG_FUNCTION_ARGS)
 
 	do
 	{
-		BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_NONE)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_BEGINNING_INIT)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_COPYING_INITIAL_DATA)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CATCHUP)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_READY)
-			BDR_NODE_STATUS_FROMSTR(BDR_NODE_STATUS_KILLED)
+		pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_NONE)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_BEGINNING_INIT)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_COPYING_INITIAL_DATA)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_CATCHUP)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_READY)
+			pgactive_NODE_STATUS_FROMSTR(pgactive_NODE_STATUS_KILLED)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("string '%s' isn't recognised as a BDR status", status)));
+					 errmsg("string '%s' isn't recognised as a pgactive status", status)));
 	} while (false);
 
 	PG_RETURN_CHAR((char) result);
 }
 
 bool
-bdr_nodeid_eq(const BDRNodeId * const left, const BDRNodeId * const right)
+pgactive_nodeid_eq(const pgactiveNodeId * const left, const pgactiveNodeId * const right)
 {
 	if (left == right)
 		return true;
@@ -912,7 +912,7 @@ bdr_nodeid_eq(const BDRNodeId * const left, const BDRNodeId * const right)
 }
 
 void
-bdr_nodeid_cpy(BDRNodeId * const dest, const BDRNodeId * const src)
+pgactive_nodeid_cpy(pgactiveNodeId * const dest, const pgactiveNodeId * const src)
 {
 	Assert(dest != NULL && src != NULL);
 	dest->sysid = src->sysid;
@@ -921,11 +921,11 @@ bdr_nodeid_cpy(BDRNodeId * const dest, const BDRNodeId * const src)
 }
 
 void
-bdr_make_my_nodeid(BDRNodeId * const ni)
+pgactive_make_my_nodeid(pgactiveNodeId * const ni)
 {
 	Assert(ni != NULL);
-	ni->sysid = bdr_get_nid_internal();
-	ni->timeline = BDRThisTimeLineID;
+	ni->sysid = pgactive_get_nid_internal();
+	ni->timeline = pgactiveThisTimeLineID;
 	ni->dboid = MyDatabaseId;
 
 	/*
@@ -941,10 +941,10 @@ bdr_make_my_nodeid(BDRNodeId * const ni)
 }
 
 /*
- * Get the remote node's node_seq_id from bdr.bdr_nodes table via SPI.
+ * Get the remote node's node_seq_id from pgactive.pgactive_nodes table via SPI.
  */
 int
-bdr_remote_node_seq_id(void)
+pgactive_remote_node_seq_id(void)
 {
 	int			spi_ret;
 	Oid			argtypes[] = {TEXTOID, OIDOID, OIDOID};
@@ -952,13 +952,13 @@ bdr_remote_node_seq_id(void)
 	bool		isnull;
 	char		sysid_str[33];
 	Oid			schema_oid;
-	BDRNodeId  *node;
+	pgactiveNodeId  *node;
 	bool		tx_started = false;
 	int			node_seq_id;
 
-	Assert(IsBdrApplyWorker());
+	Assert(IspgactiveApplyWorker());
 
-	node = &(GetBdrApplyWorkerShmemPtr()->remote_node);
+	node = &(GetpgactiveApplyWorkerShmemPtr()->remote_node);
 
 	if (!IsTransactionState())
 	{
@@ -972,21 +972,21 @@ bdr_remote_node_seq_id(void)
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, node->sysid);
 
 	/*
-	 * Determine if BDR is present on this DB. The output plugin can be
-	 * started on a db that doesn't actually have BDR active, but we don't
+	 * Determine if pgactive is present on this DB. The output plugin can be
+	 * started on a db that doesn't actually have pgactive active, but we don't
 	 * want to allow that.
 	 *
-	 * Check for a bdr schema.
+	 * Check for a pgactive schema.
 	 */
-	schema_oid = BdrGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid,
-									CStringGetDatum("bdr"));
+	schema_oid = pgactiveGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid,
+									CStringGetDatum("pgactive"));
 	if (schema_oid == InvalidOid)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("no BDR schema is present in database %s, cannot create a BDR slot",
+				 errmsg("no pgactive schema is present in database %s, cannot create a pgactive slot",
 						get_database_name(MyDatabaseId)),
-				 errhint("There is no bdr.connections entry for this database on the target node or BDR is not in shared_preload_libraries.")));
+				 errhint("There is no pgactive.connections entry for this database on the target node or pgactive is not in shared_preload_libraries.")));
 	}
 
 	values[0] = CStringGetTextDatum(sysid_str);
@@ -994,22 +994,22 @@ bdr_remote_node_seq_id(void)
 	values[2] = ObjectIdGetDatum(node->dboid);
 
 	spi_ret = SPI_execute_with_args(
-									"SELECT node_seq_id FROM bdr.bdr_nodes "
+									"SELECT node_seq_id FROM pgactive.pgactive_nodes "
 									"WHERE node_sysid = $1 AND node_timeline = $2 AND node_dboid = $3",
 									3, argtypes, values, NULL, false, 1);
 
 	if (spi_ret != SPI_OK_SELECT)
-		elog(ERROR, "unable to query bdr.bdr_nodes, SPI error %d", spi_ret);
+		elog(ERROR, "unable to query pgactive.pgactive_nodes, SPI error %d", spi_ret);
 
 	if (SPI_processed == 0)
-		elog(ERROR, "unable to fetch rows from bdr.bdr_nodes");
+		elog(ERROR, "unable to fetch rows from pgactive.pgactive_nodes");
 
 	node_seq_id = DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[0],
 											  SPI_tuptable->tupdesc, 1,
 											  &isnull));
 
 	if (isnull)
-		elog(ERROR, "node_seq_id in bdr.bdr_nodes table cannot be null");
+		elog(ERROR, "node_seq_id in pgactive.pgactive_nodes table cannot be null");
 
 	SPI_finish();
 	PopActiveSnapshot();

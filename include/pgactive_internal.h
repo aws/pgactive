@@ -1,15 +1,15 @@
 /*
- * bdr_internal.h
+ * pgactive_internal.h
  *
  * BiDirectionalReplication
  *
  * Copyright (c) 2012-2015, PostgreSQL Global Development Group
  *
- * bdr_internal.h must be #include-able from FRONTEND code, so it may not
+ * pgactive_internal.h must be #include-able from FRONTEND code, so it may not
  * reference elog, List, etc.
  */
-#ifndef BDR_INTERNAL_H
-#define BDR_INTERNAL_H
+#ifndef pgactive_INTERNAL_H
+#define pgactive_INTERNAL_H
 
 #include <signal.h>
 #include "access/xlogdefs.h"
@@ -21,53 +21,53 @@
  *
  * params: local_dboid, remote_sysid, remote_timeline, remote_dboid, replname
  */
-#define BDR_SLOT_NAME_FORMAT "bdr_%u_"UINT64_FORMAT"_%u_%u__%s"
+#define pgactive_SLOT_NAME_FORMAT "pgactive_%u_"UINT64_FORMAT"_%u_%u__%s"
 
 /*
  * The format used for replication identifiers (riident, replident)
  *
  * params: remote_sysid, remote_timeline, remote_dboid, local_dboid, replname
  */
-#define BDR_REPORIGIN_ID_FORMAT "bdr_"UINT64_FORMAT"_%u_%u_%u_%s"
+#define pgactive_REPORIGIN_ID_FORMAT "pgactive_"UINT64_FORMAT"_%u_%u_%u_%s"
 
-typedef enum BdrNodeStatus
+typedef enum pgactiveNodeStatus
 {
-	BDR_NODE_STATUS_NONE = '\0',
-	BDR_NODE_STATUS_BEGINNING_INIT = 'b',
-	BDR_NODE_STATUS_COPYING_INITIAL_DATA = 'i',
-	BDR_NODE_STATUS_CATCHUP = 'c',
-	BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS = 'o',
-	BDR_NODE_STATUS_READY = 'r',
-	BDR_NODE_STATUS_KILLED = 'k'
-} BdrNodeStatus;
+	pgactive_NODE_STATUS_NONE = '\0',
+	pgactive_NODE_STATUS_BEGINNING_INIT = 'b',
+	pgactive_NODE_STATUS_COPYING_INITIAL_DATA = 'i',
+	pgactive_NODE_STATUS_CATCHUP = 'c',
+	pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS = 'o',
+	pgactive_NODE_STATUS_READY = 'r',
+	pgactive_NODE_STATUS_KILLED = 'k'
+} pgactiveNodeStatus;
 
 /*
  * Because C doesn't let us do literal string concatentation
  * with "char", provide versions as SQL literals too.
  */
-#define BDR_NODE_STATUS_BEGINNING_INIT_S "'b'"
-#define BDR_NODE_STATUS_COPYING_INITIAL_DATA_S "'i'"
-#define BDR_NODE_STATUS_CATCHUP_S "'c'"
-#define BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS_S "'o'"
-#define BDR_NODE_STATUS_READY_S "'r'"
-#define BDR_NODE_STATUS_KILLED_S "'k'"
+#define pgactive_NODE_STATUS_BEGINNING_INIT_S "'b'"
+#define pgactive_NODE_STATUS_COPYING_INITIAL_DATA_S "'i'"
+#define pgactive_NODE_STATUS_CATCHUP_S "'c'"
+#define pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS_S "'o'"
+#define pgactive_NODE_STATUS_READY_S "'r'"
+#define pgactive_NODE_STATUS_KILLED_S "'k'"
 
-#define BDR_NID_GETTER_FUNC_NAME "_bdr_node_identifier_getter_private"
+#define pgactive_NID_GETTER_FUNC_NAME "_pgactive_node_identifier_getter_private"
 
-#define BDRThisTimeLineID 0
+#define pgactiveThisTimeLineID 0
 
-/* Structure representing bdr_nodes record */
-typedef struct BDRNodeId
+/* Structure representing pgactive_nodes record */
+typedef struct pgactiveNodeId
 {
 	uint64		sysid;
 	TimeLineID	timeline;
 	Oid			dboid;
-}			BDRNodeId;
+}			pgactiveNodeId;
 
-/* A configured BDR connection from bdr_connections */
-typedef struct BdrConnectionConfig
+/* A configured pgactive connection from pgactive_connections */
+typedef struct pgactiveConnectionConfig
 {
-	BDRNodeId	remote_node;
+	pgactiveNodeId	remote_node;
 
 	/*
 	 * If the origin_ id fields are set then they must refer to our node,
@@ -81,8 +81,8 @@ typedef struct BdrConnectionConfig
 	char	   *dsn;
 
 	/*
-	 * bdr_nodes.node_name, palloc'd in same memory context as this struct.
-	 * Could be NULL if we're talking to an old BDR.
+	 * pgactive_nodes.node_name, palloc'd in same memory context as this struct.
+	 * Could be NULL if we're talking to an old pgactive.
 	 */
 	char	   *node_name;
 
@@ -90,27 +90,27 @@ typedef struct BdrConnectionConfig
 
 	/* Quoted identifier-list of replication sets */
 	char	   *replication_sets;
-}			BdrConnectionConfig;
+}			pgactiveConnectionConfig;
 
-extern void bdr_error_nodeids_must_differ(const BDRNodeId * const other_nodeid);
-extern BdrConnectionConfig * bdr_get_connection_config(const BDRNodeId * nodeid,
+extern void pgactive_error_nodeids_must_differ(const pgactiveNodeId * const other_nodeid);
+extern pgactiveConnectionConfig * pgactive_get_connection_config(const pgactiveNodeId * nodeid,
 													   bool missing_ok);
-extern BdrConnectionConfig * bdr_get_my_connection_config(bool missing_ok);
+extern pgactiveConnectionConfig * pgactive_get_my_connection_config(bool missing_ok);
 
-extern void bdr_free_connection_config(BdrConnectionConfig * cfg);
+extern void pgactive_free_connection_config(pgactiveConnectionConfig * cfg);
 
-extern void bdr_slot_name(Name out_name, const BDRNodeId * const remote, Oid local_dboid);
+extern void pgactive_slot_name(Name out_name, const pgactiveNodeId * const remote, Oid local_dboid);
 
-extern char *bdr_replident_name(const BDRNodeId * const remote, Oid local_dboid);
+extern char *pgactive_replident_name(const pgactiveNodeId * const remote, Oid local_dboid);
 
-extern void bdr_parse_slot_name(const char *name, BDRNodeId * remote, Oid *local_dboid);
+extern void pgactive_parse_slot_name(const char *name, pgactiveNodeId * remote, Oid *local_dboid);
 
-extern void bdr_parse_replident_name(const char *name, BDRNodeId * remote, Oid *local_dboid);
+extern void pgactive_parse_replident_name(const char *name, pgactiveNodeId * remote, Oid *local_dboid);
 
-extern int	bdr_find_other_exec(const char *argv0, const char *target,
+extern int	pgactive_find_other_exec(const char *argv0, const char *target,
 								uint32 *version, char *retpath);
 
 extern uint64 GenerateNodeIdentifier(void);
 
 char	   *get_connect_string(const char *servername);
-#endif							/* BDR_INTERNAL_H */
+#endif							/* pgactive_INTERNAL_H */

@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------
  *
- * bdr.c
+ * pgactive.c
  *		Replication!!!
  *
  * Replication???
@@ -8,7 +8,7 @@
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr.c
+ *		pgactive.c
  *
  * -------------------------------------------------------------------------
  */
@@ -21,8 +21,8 @@
 #include <sys/statvfs.h>
 #endif
 
-#include "bdr.h"
-#include "bdr_locks.h"
+#include "pgactive.h"
+#include "pgactive_locks.h"
 
 #include "libpq-fe.h"
 #include "funcapi.h"
@@ -90,107 +90,107 @@
 volatile sig_atomic_t ConfigReloadPending = false;
 #endif
 
-ResourceOwner bdr_saved_resowner;
-Oid			BdrSchemaOid = InvalidOid;
-Oid			BdrNodesRelid = InvalidOid;
-Oid			BdrConnectionsRelid = InvalidOid;
-Oid			BdrConflictHistoryRelId = InvalidOid;
-Oid			BdrLocksRelid = InvalidOid;
-Oid			BdrLocksByOwnerRelid = InvalidOid;
-Oid			BdrReplicationSetConfigRelid = InvalidOid;
-Oid			BdrSupervisorDbOid = InvalidOid;
+ResourceOwner pgactive_saved_resowner;
+Oid			pgactiveSchemaOid = InvalidOid;
+Oid			pgactiveNodesRelid = InvalidOid;
+Oid			pgactiveConnectionsRelid = InvalidOid;
+Oid			pgactiveConflictHistoryRelId = InvalidOid;
+Oid			pgactiveLocksRelid = InvalidOid;
+Oid			pgactiveLocksByOwnerRelid = InvalidOid;
+Oid			pgactiveReplicationSetConfigRelid = InvalidOid;
+Oid			pgactiveSupervisorDbOid = InvalidOid;
 
 /* GUC storage */
-static bool bdr_synchronous_commit;
-int			bdr_debug_apply_delay;
-int			bdr_max_workers;
-int			bdr_max_databases;
-bool		bdr_skip_ddl_replication;
-bool		prev_bdr_skip_ddl_replication;
+static bool pgactive_synchronous_commit;
+int			pgactive_debug_apply_delay;
+int			pgactive_max_workers;
+int			pgactive_max_databases;
+bool		pgactive_skip_ddl_replication;
+bool		prev_pgactive_skip_ddl_replication;
 
-/* replaced by bdr_skip_ddl_replication for now
-bool		bdr_skip_ddl_locking; */
-bool		bdr_do_not_replicate;
-bool		bdr_discard_mismatched_row_attributes;
-bool		bdr_debug_trace_replay;
-int			bdr_debug_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
-char	   *bdr_extra_apply_connection_options;
-int			bdr_log_min_messages = WARNING;
-int			bdr_init_node_parallel_jobs;
-int			bdr_max_nodes;
-bool		bdr_permit_node_identifier_getter_function_creation;
+/* replaced by pgactive_skip_ddl_replication for now
+bool		pgactive_skip_ddl_locking; */
+bool		pgactive_do_not_replicate;
+bool		pgactive_discard_mismatched_row_attributes;
+bool		pgactive_debug_trace_replay;
+int			pgactive_debug_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
+char	   *pgactive_extra_apply_connection_options;
+int			pgactive_log_min_messages = WARNING;
+int			pgactive_init_node_parallel_jobs;
+int			pgactive_max_nodes;
+bool		pgactive_permit_node_identifier_getter_function_creation;
 
 PG_MODULE_MAGIC;
 
 #if PG_VERSION_NUM >= 150000
-shmem_request_hook_type bdr_prev_shmem_request_hook = NULL;
+shmem_request_hook_type pgactive_prev_shmem_request_hook = NULL;
 #endif
 
 void		_PG_init(void);
 
-PGDLLEXPORT Datum bdr_apply_pause(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_apply_resume(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_is_apply_paused(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_version(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_version_num(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_min_remote_version_num(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_variant(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_get_local_nodeid(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_parse_slot_name_sql(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_parse_replident_name_sql(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_format_slot_name_sql(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_format_replident_name_sql(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_get_workers_info(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_skip_changes(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_pause_worker_management(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_is_active_in_db(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_xact_replication_origin(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_conninfo_cmp(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_apply_pause(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_apply_resume(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_is_apply_paused(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_version(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_version_num(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_min_remote_version_num(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_variant(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_local_nodeid(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_parse_slot_name_sql(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_parse_replident_name_sql(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_format_slot_name_sql(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_format_replident_name_sql(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_workers_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_skip_changes(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_pause_worker_management(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_is_active_in_db(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_xact_replication_origin(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_conninfo_cmp(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_free_disk_space(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(bdr_apply_pause);
-PG_FUNCTION_INFO_V1(bdr_apply_resume);
-PG_FUNCTION_INFO_V1(bdr_is_apply_paused);
-PG_FUNCTION_INFO_V1(bdr_version);
-PG_FUNCTION_INFO_V1(bdr_version_num);
-PG_FUNCTION_INFO_V1(bdr_min_remote_version_num);
-PG_FUNCTION_INFO_V1(bdr_variant);
-PG_FUNCTION_INFO_V1(bdr_get_local_nodeid);
-PG_FUNCTION_INFO_V1(bdr_parse_slot_name_sql);
-PG_FUNCTION_INFO_V1(bdr_parse_replident_name_sql);
-PG_FUNCTION_INFO_V1(bdr_format_slot_name_sql);
-PG_FUNCTION_INFO_V1(bdr_format_replident_name_sql);
-PG_FUNCTION_INFO_V1(bdr_get_workers_info);
-PG_FUNCTION_INFO_V1(bdr_skip_changes);
-PG_FUNCTION_INFO_V1(bdr_pause_worker_management);
-PG_FUNCTION_INFO_V1(bdr_is_active_in_db);
-PG_FUNCTION_INFO_V1(bdr_xact_replication_origin);
-PG_FUNCTION_INFO_V1(bdr_conninfo_cmp);
-PG_FUNCTION_INFO_V1(bdr_destroy_temporary_dump_directories);
+PG_FUNCTION_INFO_V1(pgactive_apply_pause);
+PG_FUNCTION_INFO_V1(pgactive_apply_resume);
+PG_FUNCTION_INFO_V1(pgactive_is_apply_paused);
+PG_FUNCTION_INFO_V1(pgactive_version);
+PG_FUNCTION_INFO_V1(pgactive_version_num);
+PG_FUNCTION_INFO_V1(pgactive_min_remote_version_num);
+PG_FUNCTION_INFO_V1(pgactive_variant);
+PG_FUNCTION_INFO_V1(pgactive_get_local_nodeid);
+PG_FUNCTION_INFO_V1(pgactive_parse_slot_name_sql);
+PG_FUNCTION_INFO_V1(pgactive_parse_replident_name_sql);
+PG_FUNCTION_INFO_V1(pgactive_format_slot_name_sql);
+PG_FUNCTION_INFO_V1(pgactive_format_replident_name_sql);
+PG_FUNCTION_INFO_V1(pgactive_get_workers_info);
+PG_FUNCTION_INFO_V1(pgactive_skip_changes);
+PG_FUNCTION_INFO_V1(pgactive_pause_worker_management);
+PG_FUNCTION_INFO_V1(pgactive_is_active_in_db);
+PG_FUNCTION_INFO_V1(pgactive_xact_replication_origin);
+PG_FUNCTION_INFO_V1(pgactive_conninfo_cmp);
+PG_FUNCTION_INFO_V1(pgactive_destroy_temporary_dump_directories);
 PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
 PG_FUNCTION_INFO_V1(get_replication_lag_info);
 PG_FUNCTION_INFO_V1(get_free_disk_space);
 PG_FUNCTION_INFO_V1(check_file_system_mount_points);
 
-static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
+static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
-static bool bdr_terminate_workers_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
+static bool pgactive_terminate_workers_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
-static void bdr_object_relabel(const ObjectAddress *object, const char *seclabel);
+static void pgactive_object_relabel(const ObjectAddress *object, const char *seclabel);
 
 static void GetConnectionDSN(uint64 sysid, StringInfoData *dsn);
 static void GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
-												 BDRNodeId myid,
+												 pgactiveNodeId myid,
 												 StringInfoData *dsn,
 												 TransactionId *xid,
 												 TimestampTz *committs,
 												 TimestampTz *applied_at);
 
-static const struct config_enum_entry bdr_debug_trace_ddl_locks_level_options[] = {
+static const struct config_enum_entry pgactive_debug_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
 	{"peers", DDL_LOCK_TRACE_PEERS, false},
 	{"acquire_release", DDL_LOCK_TRACE_ACQUIRE_RELEASE, false},
@@ -200,10 +200,10 @@ static const struct config_enum_entry bdr_debug_trace_ddl_locks_level_options[] 
 };
 
 /*
- * bdr_error_severity --- get string representing elevel
+ * pgactive_error_severity --- get string representing elevel
  */
 const char *
-bdr_error_severity(int elevel)
+pgactive_error_severity(int elevel)
 {
 	const char *elevel_char;
 
@@ -271,7 +271,7 @@ SignalHandlerForConfigReload(SIGNAL_ARGS)
  * Get database Oid of the remotedb.
  */
 static Oid
-bdr_get_remote_dboid(const char *conninfo_db)
+pgactive_get_remote_dboid(const char *conninfo_db)
 {
 	PGconn	   *dbConn;
 	PGresult   *res;
@@ -311,7 +311,7 @@ bdr_get_remote_dboid(const char *conninfo_db)
 }
 
 /*
- * Establish a BDR connection
+ * Establish a pgactive connection
  *
  * Connects to the remote node, identifies it, and generates local and remote
  * replication identifiers and slot name. The conninfo string passed should
@@ -331,9 +331,9 @@ bdr_get_remote_dboid(const char *conninfo_db)
  *   remote_node (members)
  */
 PGconn *
-bdr_connect(const char *conninfo,
+pgactive_connect(const char *conninfo,
 			Name appname,
-			BDRNodeId * remote_node)
+			pgactiveNodeId * remote_node)
 {
 	PGconn	   *streamConn;
 	PGconn	   *conn;
@@ -350,9 +350,9 @@ bdr_connect(const char *conninfo,
 
 	servername = get_connect_string(conninfo);
 	appendStringInfo(&conninfo_nrepl, "application_name='%s' %s %s %s",
-					 (appname == NULL ? "bdr" : NameStr(*appname)),
-					 bdr_default_apply_connection_options,
-					 bdr_extra_apply_connection_options,
+					 (appname == NULL ? "pgactive" : NameStr(*appname)),
+					 pgactive_default_apply_connection_options,
+					 pgactive_extra_apply_connection_options,
 					 (servername == NULL ? conninfo : servername));
 
 	appendStringInfo(&conninfo_repl, "%s replication=database",
@@ -391,7 +391,7 @@ bdr_connect(const char *conninfo,
 	else
 	{
 		remote_node->dboid =
-			bdr_get_remote_dboid((servername == NULL ? conninfo : servername));
+			pgactive_get_remote_dboid((servername == NULL ? conninfo : servername));
 	}
 
 	remote_tlid = PQgetvalue(res, 0, 1);
@@ -399,11 +399,11 @@ bdr_connect(const char *conninfo,
 	if (sscanf(remote_tlid, "%u", &remote_node->timeline) != 1)
 		elog(ERROR, "could not parse remote tlid %s", remote_tlid);
 
-	remote_node->timeline = BDRThisTimeLineID;
+	remote_node->timeline = pgactiveThisTimeLineID;
 
 	PQclear(res);
 
-	/* Make a non-replication connection to get the BDR node identifier. */
+	/* Make a non-replication connection to get the pgactive node identifier. */
 	conn = PQconnectdb(conninfo_nrepl.data);
 	if (PQstatus(conn) != CONNECTION_OK)
 	{
@@ -415,7 +415,7 @@ bdr_connect(const char *conninfo,
 
 	cmd = makeStringInfo();
 	appendStringInfoString(cmd,
-						   "SELECT bdr.bdr_get_node_identifier() AS node_id;");
+						   "SELECT pgactive.pgactive_get_node_identifier() AS node_id;");
 
 	elog(DEBUG3, "sending command: \"%s\"", cmd->data);
 
@@ -427,21 +427,21 @@ bdr_connect(const char *conninfo,
 	}
 	if (PQntuples(res) != 1 || PQnfields(res) != 1)
 	{
-		elog(ERROR, "could not fetch BDR node identifier: got %d rows and %d columns, expected 1 row and 1 column",
+		elog(ERROR, "could not fetch pgactive node identifier: got %d rows and %d columns, expected 1 row and 1 column",
 			 PQntuples(res), PQnfields(res));
 	}
 
 	remote_sysid = PQgetvalue(res, 0, 0);
 
 	if (sscanf(remote_sysid, UINT64_FORMAT, &remote_node->sysid) != 1)
-		elog(ERROR, "could not parse remote BDR node identifier %s", remote_sysid);
+		elog(ERROR, "could not parse remote pgactive node identifier %s", remote_sysid);
 
 	pfree(cmd->data);
 	pfree(cmd);
 	PQclear(res);
 
-	elog(DEBUG2, "local node " BDR_NODEID_FORMAT_WITHNAME ", remote node " BDR_NODEID_FORMAT_WITHNAME,
-		 BDR_LOCALID_FORMAT_WITHNAME_ARGS, BDR_NODEID_FORMAT_WITHNAME_ARGS(*remote_node));
+	elog(DEBUG2, "local node " pgactive_NODEID_FORMAT_WITHNAME ", remote node " pgactive_NODEID_FORMAT_WITHNAME,
+		 pgactive_LOCALID_FORMAT_WITHNAME_ARGS, pgactive_NODEID_FORMAT_WITHNAME_ARGS(*remote_node));
 
 	pfree(conninfo_nrepl.data);
 	pfree(conninfo_repl.data);
@@ -473,7 +473,7 @@ bdr_connect(const char *conninfo,
  * slot.
  */
 static void
-bdr_create_slot(PGconn *streamConn, Name slot_name,
+pgactive_create_slot(PGconn *streamConn, Name slot_name,
 				char *remote_ident, RepOriginId *replication_identifier,
 				char **snapshot)
 {
@@ -489,7 +489,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 
 	/* acquire remote decoding slot */
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
-					 NameStr(*slot_name), "bdr");
+					 NameStr(*slot_name), "pgactive");
 
 	elog(DEBUG3, "sending replication command: %s", query.data);
 
@@ -512,7 +512,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 
 	/* now commit local identifier */
 	CommitTransactionCommand();
-	CurrentResourceOwner = bdr_saved_resowner;
+	CurrentResourceOwner = pgactive_saved_resowner;
 	elog(DEBUG1, "created replication identifier %u", *replication_identifier);
 
 	if (snapshot)
@@ -522,7 +522,7 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
 }
 
 /*
- * Perform setup work common to all bdr worker types, such as:
+ * Perform setup work common to all pgactive worker types, such as:
  *
  * - set signal handers and unblock signals
  * - Establish db connection
@@ -530,12 +530,12 @@ bdr_create_slot(PGconn *streamConn, Name slot_name,
  *
  */
 void
-bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
+pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 {
 	uint16		worker_generation;
 	uint16		worker_idx;
 	Oid			dboid;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 	char		mystatus;
 
 	Assert(IsBackgroundWorker);
@@ -545,24 +545,24 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	worker_generation = (uint16) (worker_arg >> 16);
 	worker_idx = (uint16) (worker_arg & 0x0000FFFF);
 
-	if (worker_generation != BdrWorkerCtl->worker_generation)
+	if (worker_generation != pgactiveWorkerCtl->worker_generation)
 	{
-		elog(DEBUG1, "BDR apply or perdb worker from generation %d exiting after finding shmem generation is %d",
-			 worker_generation, BdrWorkerCtl->worker_generation);
+		elog(DEBUG1, "pgactive apply or perdb worker from generation %d exiting after finding shmem generation is %d",
+			 worker_generation, pgactiveWorkerCtl->worker_generation);
 		proc_exit(0);
 	}
 
-	bdr_worker_shmem_acquire(worker_type, worker_idx, false);
+	pgactive_worker_shmem_acquire(worker_type, worker_idx, false);
 
 	/* figure out database to connect to */
-	if (worker_type == BDR_WORKER_PERDB)
-		dboid = bdr_worker_slot->data.perdb.c_dboid;
-	else if (worker_type == BDR_WORKER_APPLY)
+	if (worker_type == pgactive_WORKER_PERDB)
+		dboid = pgactive_worker_slot->data.perdb.c_dboid;
+	else if (worker_type == pgactive_WORKER_APPLY)
 	{
-		BdrApplyWorker *apply;
-		BdrPerdbWorker *perdb;
+		pgactiveApplyWorker *apply;
+		pgactivePerdbWorker *perdb;
 
-		apply = &bdr_worker_slot->data.apply;
+		apply = &pgactive_worker_slot->data.apply;
 		apply->last_applied_xact_id = InvalidTransactionId;
 		apply->last_applied_xact_committs = 0;
 		apply->last_applied_xact_at = 0;
@@ -572,7 +572,7 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	}
 	else
 		elog(FATAL, "don't know how to connect to this type of work: %u",
-			 bdr_worker_type);
+			 pgactive_worker_type);
 
 	Assert(OidIsValid(dboid));
 
@@ -587,77 +587,77 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	BackgroundWorkerInitializeConnectionByOid(dboid, InvalidOid, 0);
 	Assert(ThisTimeLineID > 0);
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	bdr_worker_slot->worker_pid = MyProcPid;
-	bdr_worker_slot->worker_proc = MyProc;
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactive_worker_slot->worker_pid = MyProcPid;
+	pgactive_worker_slot->worker_proc = MyProc;
 
 	/* Check if we decided to unregister this worker. */
-	if (!OidIsValid(find_bdr_nid_getter_function()))
+	if (!OidIsValid(find_pgactive_nid_getter_function()))
 	{
-		elog(LOG, "unregistering %s worker due to missing BDR node identifier getter function",
-			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply");
+		elog(LOG, "unregistering %s worker due to missing pgactive node identifier getter function",
+			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply");
 
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 		goto unregister;
 	}
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	StartTransactionCommand();
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
-	bdr_make_my_nodeid(&myid);
-	mystatus = bdr_nodes_get_local_status(&myid, true);
+	pgactive_make_my_nodeid(&myid);
+	mystatus = pgactive_nodes_get_local_status(&myid, true);
 	SPI_finish();
 	PopActiveSnapshot();
 	CommitTransactionCommand();
 
 	/*
 	 * We unregister per-db/apply worker when local node_status is killed or
-	 * no row exists for the node in bdr_nodes. This can happen after a node
-	 * is detached or BDR is removed from local node. Unregistering the worker
+	 * no row exists for the node in pgactive_nodes. This can happen after a node
+	 * is detached or pgactive is removed from local node. Unregistering the worker
 	 * prevents subsequent worker fail-and-restart cycles.
 	 */
-	if (mystatus == BDR_NODE_STATUS_KILLED)
+	if (mystatus == pgactive_NODE_STATUS_KILLED)
 	{
-		elog(LOG, "unregistering %s worker due to node " BDR_NODEID_FORMAT " detach",
-			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
-			 BDR_NODEID_FORMAT_ARGS(myid));
+		elog(LOG, "unregistering %s worker due to node " pgactive_NODEID_FORMAT " detach",
+			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply",
+			 pgactive_NODEID_FORMAT_ARGS(myid));
 		goto unregister;
 	}
 	else if (mystatus == '\0')
 	{
-		elog(LOG, "unregistering %s worker due to missing bdr.bdr_nodes row for node " BDR_NODEID_FORMAT "",
-			 worker_type == BDR_WORKER_PERDB ? "per-db" : "apply",
-			 BDR_NODEID_FORMAT_ARGS(myid));
+		elog(LOG, "unregistering %s worker due to missing pgactive.pgactive_nodes row for node " pgactive_NODEID_FORMAT "",
+			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply",
+			 pgactive_NODEID_FORMAT_ARGS(myid));
 		goto unregister;
 	}
 
 	/*
-	 * Ensure BDR extension is up to date and get the name of the database
+	 * Ensure pgactive extension is up to date and get the name of the database
 	 * this background is connected to.
 	 */
-	bdr_executor_always_allow_writes(true);
+	pgactive_executor_always_allow_writes(true);
 	StartTransactionCommand();
-	bdr_maintain_schema(true);
+	pgactive_maintain_schema(true);
 	MyProcPort->database_name = MemoryContextStrdup(TopMemoryContext,
 													get_database_name(MyDatabaseId));
 	CommitTransactionCommand();
-	bdr_executor_always_allow_writes(false);
+	pgactive_executor_always_allow_writes(false);
 
 	/* always work in our own schema */
-	SetConfigOption("search_path", "bdr, pg_catalog",
+	SetConfigOption("search_path", "pgactive, pg_catalog",
 					PGC_BACKEND, PGC_S_OVERRIDE);
 
 	/* setup synchronous commit according to the user's wishes */
 	SetConfigOption("synchronous_commit",
-					bdr_synchronous_commit ? "local" : "off",
+					pgactive_synchronous_commit ? "local" : "off",
 					PGC_BACKEND, PGC_S_OVERRIDE);	/* other context? */
 
 	/* set log_min_messages */
-	SetConfigOption("log_min_messages", bdr_error_severity(bdr_log_min_messages),
+	SetConfigOption("log_min_messages", pgactive_error_severity(pgactive_log_min_messages),
 					PGC_POSTMASTER, PGC_S_OVERRIDE);
 
-	if (worker_type == BDR_WORKER_APPLY)
+	if (worker_type == pgactive_WORKER_APPLY)
 	{
 		/* Run as replica session replication role, this avoids FK checks. */
 		SetConfigOption("session_replication_role", "replica",
@@ -671,18 +671,18 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	 * output.
 	 */
 	StartTransactionCommand();
-	bdr_setup_my_cached_node_names();
-	if (worker_type == BDR_WORKER_APPLY)
+	pgactive_setup_my_cached_node_names();
+	if (worker_type == pgactive_WORKER_APPLY)
 	{
-		BdrApplyWorker *apply = &bdr_worker_slot->data.apply;
+		pgactiveApplyWorker *apply = &pgactive_worker_slot->data.apply;
 
-		bdr_setup_cached_remote_name(&apply->remote_node);
+		pgactive_setup_cached_remote_name(&apply->remote_node);
 	}
-	else if (worker_type == BDR_WORKER_WALSENDER)
+	else if (worker_type == pgactive_WORKER_WALSENDER)
 	{
-		BdrWalsenderWorker *walsender = &bdr_worker_slot->data.walsnd;
+		pgactiveWalsenderWorker *walsender = &pgactive_worker_slot->data.walsnd;
 
-		bdr_setup_cached_remote_name(&walsender->remote_node);
+		pgactive_setup_cached_remote_name(&walsender->remote_node);
 	}
 	CommitTransactionCommand();
 
@@ -698,8 +698,8 @@ bdr_bgworker_init(uint32 worker_arg, BdrWorkerType worker_type)
 	return;
 
 unregister:
-	bdr_worker_shmem_free(bdr_worker_slot, NULL);
-	bdr_worker_slot = NULL;
+	pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
+	pgactive_worker_slot = NULL;
 	proc_exit(0);				/* unregister */
 }
 
@@ -707,7 +707,7 @@ unregister:
  * Re-usable common error message
  */
 void
-bdr_error_nodeids_must_differ(const BDRNodeId * const nodeid)
+pgactive_error_nodeids_must_differ(const pgactiveNodeId * const nodeid)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_NAME),
@@ -718,13 +718,13 @@ bdr_error_nodeids_must_differ(const BDRNodeId * const nodeid)
 
 /*
  *----------------------
- * Connect to the BDR remote end, IDENTIFY_SYSTEM, and CREATE_SLOT if necessary.
+ * Connect to the pgactive remote end, IDENTIFY_SYSTEM, and CREATE_SLOT if necessary.
  * Generates slot name, replication identifier.
  *
  * Raises an error on failure, will not return null.
  *
  * Arguments:
- *	  connection_name:  bdr conn name from bdr.connections to get dsn from
+ *	  connection_name:  pgactive conn name from pgactive.connections to get dsn from
  *
  * Returns:
  *    the libpq connection
@@ -738,30 +738,30 @@ bdr_error_nodeids_must_differ(const BDRNodeId * const nodeid)
  *----------------------
  */
 PGconn *
-bdr_establish_connection_and_slot(const char *dsn,
+pgactive_establish_connection_and_slot(const char *dsn,
 								  const char *application_name_suffix, Name out_slot_name,
-								  BDRNodeId * out_nodeid,
+								  pgactiveNodeId * out_nodeid,
 								  RepOriginId *out_replication_identifier, char **out_snapshot)
 {
 	PGconn	   *streamConn;
 	bool		tx_started = false;
 	NameData	appname;
 	char	   *remote_repident_name;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
 	snprintf(NameStr(appname), NAMEDATALEN, "%s:%s",
-			 bdr_get_my_cached_node_name(), application_name_suffix);
+			 pgactive_get_my_cached_node_name(), application_name_suffix);
 
 	/*
-	 * Establish BDR conn and IDENTIFY_SYSTEM, ERROR on things like connection
+	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like connection
 	 * failure.
 	 */
-	streamConn = bdr_connect(dsn, &appname, out_nodeid);
+	streamConn = pgactive_connect(dsn, &appname, out_nodeid);
 
-	bdr_slot_name(out_slot_name, &myid, out_nodeid->dboid);
-	remote_repident_name = bdr_replident_name(out_nodeid, myid.dboid);
+	pgactive_slot_name(out_slot_name, &myid, out_nodeid->dboid);
+	remote_repident_name = pgactive_replident_name(out_nodeid, myid.dboid);
 	Assert(remote_repident_name != NULL);
 
 	if (!IsTransactionState())
@@ -785,14 +785,14 @@ bdr_establish_connection_and_slot(const char *dsn,
 		/*
 		 * Slot doesn't exist, create it.
 		 *
-		 * The per-db worker will create slots when we first init BDR, but new
+		 * The per-db worker will create slots when we first init pgactive, but new
 		 * workers added afterwards are expected to create their own slots at
 		 * connect time; that's when this runs.
 		 */
 
 		/* create local replication identifier and a remote slot */
 		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
-		bdr_create_slot(streamConn, out_slot_name, remote_repident_name,
+		pgactive_create_slot(streamConn, out_slot_name, remote_repident_name,
 						out_replication_identifier, out_snapshot);
 	}
 
@@ -802,14 +802,14 @@ bdr_establish_connection_and_slot(const char *dsn,
 }
 
 static bool
-bdr_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
+pgactive_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
 {
 	if (!(*newvalue))
 		/* False is always acceptable */
 		return true;
 
 	/*
-	 * Only set bdr.do_not_replicate if configured via startup packet from the
+	 * Only set pgactive.do_not_replicate if configured via startup packet from the
 	 * client application. This prevents possibly unsafe accesses to the
 	 * replication identifier state in postmaster context, etc.
 	 */
@@ -817,16 +817,16 @@ bdr_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
 		return false;
 
 	/*
-	 * Allow bdr.do_not_replicate to be set only during local node is
+	 * Allow pgactive.do_not_replicate to be set only during local node is
 	 * restoring from the dump of remote node.
 	 */
-	if (BdrWorkerCtl != NULL)
+	if (pgactiveWorkerCtl != NULL)
 	{
 		bool		in_init_exec_dump_restore;
 
-		LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-		in_init_exec_dump_restore = BdrWorkerCtl->in_init_exec_dump_restore;
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+		in_init_exec_dump_restore = pgactiveWorkerCtl->in_init_exec_dump_restore;
+		LWLockRelease(pgactiveWorkerCtl->lock);
 
 		if (!in_init_exec_dump_restore)
 			return false;
@@ -843,7 +843,7 @@ bdr_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource source)
  * init_replica, so we cannot spew WARNINGs everywhere.
  */
 static void
-bdr_do_not_replicate_assign_hook(bool newvalue, void *extra)
+pgactive_do_not_replicate_assign_hook(bool newvalue, void *extra)
 {
 	/* Mark these transactions as not to be replicated to other nodes */
 	if (newvalue)
@@ -853,24 +853,24 @@ bdr_do_not_replicate_assign_hook(bool newvalue, void *extra)
 }
 
 static void
-bdr_discard_mismatched_row_attributes_assign_hook(bool newvalue, void *extra)
+pgactive_discard_mismatched_row_attributes_assign_hook(bool newvalue, void *extra)
 {
 	if (newvalue)
 	{
 		/* To make sure it lands up in the log */
-		elog(LOG, "WARNING: bdr.discard_missing_row_attributes has been enabled by the user");
+		elog(LOG, "WARNING: pgactive.discard_missing_row_attributes has been enabled by the user");
 
 		/* To make it more likey the user sees the message in the client */
-		elog(WARNING, "WARNING: bdr.discard_missing_row_attributes has been enabled, data discrepencies may result");
+		elog(WARNING, "WARNING: pgactive.discard_missing_row_attributes has been enabled, data discrepencies may result");
 	}
 }
 
 /*
- * We restrict the "unsafe" BDR settings so they can only be set in a
+ * We restrict the "unsafe" pgactive settings so they can only be set in a
  * few contexts. Report whether this is such a context.
  */
 static bool
-bdr_guc_source_ok_for_unsafe(GucSource source)
+pgactive_guc_source_ok_for_unsafe(GucSource source)
 {
 	switch (source)
 	{
@@ -896,17 +896,17 @@ bdr_guc_source_ok_for_unsafe(GucSource source)
 }
 
 static bool
-bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
+pgactive_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 {
-	if (!(*newvalue) && !bdr_guc_source_ok_for_unsafe(source))
+	if (!(*newvalue) && !pgactive_guc_source_ok_for_unsafe(source))
 	{
 		/*
 		 * guc.c will report an error, we just provide some more explanation
 		 * first
 		 */
 		ereport(WARNING,
-				(errmsg("unsafe BDR configuration options can not be disabled locally"),
-				 errdetail("The BDR option bdr.skip_ddl_replication should only be disabled globally."),
+				(errmsg("unsafe pgactive configuration options can not be disabled locally"),
+				 errdetail("The pgactive option pgactive.skip_ddl_replication should only be disabled globally."),
 				 errhint("See the manual for information on these options. Using them without care can break replication.")));
 		return false;
 	}
@@ -915,12 +915,12 @@ bdr_permit_unsafe_guc_check_hook(bool *newvalue, void **extra, GucSource source)
 }
 
 /*
- * BDR security label implementation
+ * pgactive security label implementation
  *
- * Provide object metadata for bdr using the security label infrastructure.
+ * Provide object metadata for pgactive using the security label infrastructure.
  */
 static void
-bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
+pgactive_object_relabel(const ObjectAddress *object, const char *seclabel)
 {
 	switch (object->classId)
 	{
@@ -930,10 +930,10 @@ bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
 				aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TABLE,
 							   get_rel_name(object->objectId));
 
-			/* ensure bdr_relcache.c is coherent */
+			/* ensure pgactive_relcache.c is coherent */
 			CacheInvalidateRelcacheByRelid(object->objectId);
 
-			bdr_parse_relation_options(seclabel, NULL);
+			pgactive_parse_relation_options(seclabel, NULL);
 			break;
 		case DatabaseRelationId:
 
@@ -941,10 +941,10 @@ bdr_object_relabel(const ObjectAddress *object, const char *seclabel)
 				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_ALL_RIGHTS_DATABASE,
 							   get_database_name(object->objectId));
 
-			/* ensure bdr_dbcache.c is coherent */
+			/* ensure pgactive_dbcache.c is coherent */
 			CacheInvalidateCatalog(DatabaseRelationId);
 
-			bdr_parse_database_options(seclabel, NULL);
+			pgactive_parse_database_options(seclabel, NULL);
 			break;
 		default:
 			elog(ERROR, "unsupported object type: %s",
@@ -969,118 +969,118 @@ _PG_init(void)
 		if (!process_shared_preload_libraries_in_progress)
 			ereport(ERROR,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("bdr must be loaded via shared_preload_libraries")));
+					 errmsg("pgactive must be loaded via shared_preload_libraries")));
 
 		if (!track_commit_timestamp)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr requires track_commit_timestamp to be enabled")));
+					 errmsg("pgactive requires track_commit_timestamp to be enabled")));
 
 		if (wal_level < WAL_LEVEL_LOGICAL)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("bdr requires wal_level >= logical")));
+					 errmsg("pgactive requires wal_level >= logical")));
 	}
 
 	/* XXX: make it changeable at SIGHUP? */
-	DefineCustomBoolVariable("bdr.synchronous_commit",
-							 "BDR specific synchronous commit setting.",
+	DefineCustomBoolVariable("pgactive.synchronous_commit",
+							 "pgactive specific synchronous commit setting.",
 							 NULL,
-							 &bdr_synchronous_commit,
+							 &pgactive_synchronous_commit,
 							 false,
 							 PGC_POSTMASTER,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.log_conflicts_to_table",
-							 "Log BDR conflicts to bdr.conflict_history table.",
+	DefineCustomBoolVariable("pgactive.log_conflicts_to_table",
+							 "Log pgactive conflicts to pgactive.conflict_history table.",
 							 NULL,
-							 &bdr_log_conflicts_to_table,
+							 &pgactive_log_conflicts_to_table,
 							 true,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.log_conflicts_to_logfile",
-							 "Log BDR conflicts to postgres log file.",
+	DefineCustomBoolVariable("pgactive.log_conflicts_to_logfile",
+							 "Log pgactive conflicts to postgres log file.",
 							 NULL,
-							 &bdr_log_conflicts_to_logfile,
+							 &pgactive_log_conflicts_to_logfile,
 							 false,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.conflict_logging_include_tuples",
-							 "Log whole tuples when logging BDR conflicts.",
+	DefineCustomBoolVariable("pgactive.conflict_logging_include_tuples",
+							 "Log whole tuples when logging pgactive conflicts.",
 							 NULL,
-							 &bdr_conflict_logging_include_tuples,
+							 &pgactive_conflict_logging_include_tuples,
 							 true,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
-/* replaced by bdr_skip_ddl_replication for now
-	DefineCustomBoolVariable("bdr.permit_ddl_locking",
+/* replaced by pgactive_skip_ddl_replication for now
+	DefineCustomBoolVariable("pgactive.permit_ddl_locking",
 							 "Allow commands that can acquire global DDL lock.",
 							 NULL,
-							 &bdr_permit_ddl_locking,
+							 &pgactive_permit_ddl_locking,
 							 true,
 							 PGC_USERSET,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.permit_unsafe_ddl_commands",
+	DefineCustomBoolVariable("pgactive.permit_unsafe_ddl_commands",
 							 "Allow commands that might cause data or " \
-							 "replication problems under BDR to run.",
+							 "replication problems under pgactive to run.",
 							 NULL,
-							 &bdr_permit_unsafe_commands,
+							 &pgactive_permit_unsafe_commands,
 							 false,
 							 PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
 */
 
-	DefineCustomBoolVariable("bdr.skip_ddl_replication",
-							 "Internal. DDL replication in BDR is not a fully supported feature yet.",
-							 "This parameter must be set to the same value on all BDR members, otherwise "
-							 "a new node can't join BDR group or an existing node can't start BDR workers.",
-							 &bdr_skip_ddl_replication,
+	DefineCustomBoolVariable("pgactive.skip_ddl_replication",
+							 "Internal. DDL replication in pgactive is not a fully supported feature yet.",
+							 "This parameter must be set to the same value on all pgactive members, otherwise "
+							 "a new node can't join pgactive group or an existing node can't start pgactive workers.",
+							 &pgactive_skip_ddl_replication,
 							 true,
 							 PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
-/* replaced by bdr_skip_ddl_replication for now
-	DefineCustomBoolVariable("bdr.skip_ddl_locking",
+							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
+/* replaced by pgactive_skip_ddl_replication for now
+	DefineCustomBoolVariable("pgactive.skip_ddl_locking",
 							 "Don't acquire global DDL locks while performing DDL.",
 							 "Note that it's quite dangerous to do so.",
-							 &bdr_skip_ddl_locking,
+							 &pgactive_skip_ddl_locking,
 							 false,
 							 PGC_SUSET,
 							 0,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
 */
-	DefineCustomIntVariable("bdr.debug_apply_delay",
-							"Sets apply delay for all configured BDR connections.",
+	DefineCustomIntVariable("pgactive.debug_apply_delay",
+							"Sets apply delay for all configured pgactive connections.",
 							"A transaction won't be replayed until at least apply_delay "
 							"milliseconds have elapsed since it was committed.",
-							&bdr_debug_apply_delay,
+							&pgactive_debug_apply_delay,
 							0, 0, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
-	DefineCustomIntVariable("bdr.max_ddl_lock_delay",
+	DefineCustomIntVariable("pgactive.max_ddl_lock_delay",
 							"Sets maximum delay before canceling queries while waiting for global lock.",
 							"If set to -1, max_standby_streaming_delay will be used.",
-							&bdr_max_ddl_lock_delay,
+							&pgactive_max_ddl_lock_delay,
 							-1, -1, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
-	DefineCustomIntVariable("bdr.ddl_lock_timeout",
+	DefineCustomIntVariable("pgactive.ddl_lock_timeout",
 							"Sets maximum allowed duration of any wait for a global lock.",
 							"If set to -1, lock_timeout will be used.",
-							&bdr_ddl_lock_timeout,
+							&pgactive_ddl_lock_timeout,
 							-1, -1, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
@@ -1094,10 +1094,10 @@ _PG_init(void)
 	 *
 	 * XXX: Might need this in production too?
 	 */
-	DefineCustomIntVariable("bdr.ddl_lock_acquire_timeout",
+	DefineCustomIntVariable("pgactive.ddl_lock_acquire_timeout",
 							"Sets maximum allowed duration of wait for global lock acquisition.",
 							"If set to -1, the acquirer waits for global lock indefinitely.",
-							&bdr_ddl_lock_acquire_timeout,
+							&pgactive_ddl_lock_acquire_timeout,
 							-1, -1, INT_MAX,
 							PGC_SUSET,
 							GUC_UNIT_MS,
@@ -1109,132 +1109,132 @@ _PG_init(void)
 	 * crash recovery is very careful to delete only particularly formatted
 	 * files. Instead for now just allow user to specify dump storage.
 	 */
-	DefineCustomStringVariable("bdr.temp_dump_directory",
+	DefineCustomStringVariable("pgactive.temp_dump_directory",
 							   "Directory to store dumps for local restore.",
 							   NULL,
-							   &bdr_temp_dump_directory,
+							   &pgactive_temp_dump_directory,
 							   "/tmp",
 							   PGC_POSTMASTER,
 							   0,
 							   NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.do_not_replicate",
+	DefineCustomBoolVariable("pgactive.do_not_replicate",
 							 "Internal. Set during local initialization from basebackup only.",
 							 NULL,
-							 &bdr_do_not_replicate,
+							 &pgactive_do_not_replicate,
 							 false,
 							 PGC_BACKEND,
 							 0,
-							 bdr_do_not_replicate_check_hook,
-							 bdr_do_not_replicate_assign_hook,
+							 pgactive_do_not_replicate_check_hook,
+							 pgactive_do_not_replicate_assign_hook,
 							 NULL);
 
-	DefineCustomBoolVariable("bdr.discard_mismatched_row_attributes",
+	DefineCustomBoolVariable("pgactive.discard_mismatched_row_attributes",
 							 "Internal. Only for use during recovery from faults.",
 							 NULL,
-							 &bdr_discard_mismatched_row_attributes,
+							 &pgactive_discard_mismatched_row_attributes,
 							 false,
 							 PGC_BACKEND,
 							 0,
-							 NULL, bdr_discard_mismatched_row_attributes_assign_hook, NULL);
+							 NULL, pgactive_discard_mismatched_row_attributes_assign_hook, NULL);
 
-	DefineCustomBoolVariable("bdr.debug_trace_replay",
+	DefineCustomBoolVariable("pgactive.debug_trace_replay",
 							 "Log a message for each remote action processed "
-							 "by a BDR apply worker.",
+							 "by a pgactive apply worker.",
 							 NULL,
-							 &bdr_debug_trace_replay,
+							 &pgactive_debug_trace_replay,
 							 false,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomEnumVariable("bdr.debug_trace_ddl_locks_level",
+	DefineCustomEnumVariable("pgactive.debug_trace_ddl_locks_level",
 							 "Log DDL locking activity at this log level.",
 							 NULL,
-							 &bdr_debug_trace_ddl_locks_level,
+							 &pgactive_debug_trace_ddl_locks_level,
 							 DDL_LOCK_TRACE_STATEMENT,
-							 bdr_debug_trace_ddl_locks_level_options,
+							 pgactive_debug_trace_ddl_locks_level_options,
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
 
-	DefineCustomStringVariable("bdr.extra_apply_connection_options",
+	DefineCustomStringVariable("pgactive.extra_apply_connection_options",
 							   "Connection options to add to all peer node connections.",
 							   NULL,
-							   &bdr_extra_apply_connection_options,
+							   &pgactive_extra_apply_connection_options,
 							   "",
 							   PGC_SIGHUP,
 							   0,
 							   NULL, NULL, NULL);
 
-	DefineCustomEnumVariable("bdr.log_min_messages",
-							 "log_min_messages for BDR bgworkers.",
+	DefineCustomEnumVariable("pgactive.log_min_messages",
+							 "log_min_messages for pgactive bgworkers.",
 							 NULL,
-							 &bdr_log_min_messages,
+							 &pgactive_log_min_messages,
 							 WARNING,
-							 bdr_message_level_options,
+							 pgactive_message_level_options,
 							 PGC_SIGHUP,
 							 GUC_SUPERUSER_ONLY,
 							 NULL, NULL, NULL);
 
-	DefineCustomIntVariable("bdr.init_node_parallel_jobs",
+	DefineCustomIntVariable("pgactive.init_node_parallel_jobs",
 							"Sets parallel jobs to be used by dump and restore while logical join of a node.",
 							"Set this to a reasonable value based on database size and number of objects it has.",
-							&bdr_init_node_parallel_jobs,
+							&pgactive_init_node_parallel_jobs,
 							2, 1, PG_MAX_JOBS,
 							PGC_SIGHUP,
 							0,
 							NULL, NULL, NULL);
 
-	DefineCustomIntVariable("bdr.max_nodes",
-							"Sets maximum allowed nodes in a BDR group.",
-							"This parameter must be set to same value on all BDR members, otherwise "
-							"a new node can't join BDR group or an existing node can't start BDR workers.",
-							&bdr_max_nodes,
+	DefineCustomIntVariable("pgactive.max_nodes",
+							"Sets maximum allowed nodes in a pgactive group.",
+							"This parameter must be set to same value on all pgactive members, otherwise "
+							"a new node can't join pgactive group or an existing node can't start pgactive workers.",
+							&pgactive_max_nodes,
 							4, 2, MAX_NODE_ID + 1,
 							PGC_POSTMASTER,
 							0,
 							NULL, NULL, NULL);
 
-	DefineCustomBoolVariable("bdr.permit_node_identifier_getter_function_creation",
-							 "Internal. Set during physical node joining with bdr_init_copy only.",
+	DefineCustomBoolVariable("pgactive.permit_node_identifier_getter_function_creation",
+							 "Internal. Set during physical node joining with pgactive_init_copy only.",
 							 NULL,
-							 &bdr_permit_node_identifier_getter_function_creation,
+							 &pgactive_permit_node_identifier_getter_function_creation,
 							 false,
 							 PGC_SUSET,
 							 GUC_SUPERUSER_ONLY | GUC_DISALLOW_IN_FILE | GUC_DISALLOW_IN_AUTO_FILE,
-							 bdr_permit_unsafe_guc_check_hook, NULL, NULL);
+							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
 
-	EmitWarningsOnPlaceholders("bdr");
+	EmitWarningsOnPlaceholders("pgactive");
 
 	/* Security label provider hook */
-	register_label_provider(BDR_SECLABEL_PROVIDER, bdr_object_relabel);
+	register_label_provider(pgactive_SECLABEL_PROVIDER, pgactive_object_relabel);
 
 	if (!IsBinaryUpgrade)
 	{
 
-		bdr_supervisor_register();
+		pgactive_supervisor_register();
 
 		/*
 		 * Reserve shared memory segment to store bgworker connection
 		 * information and hook into shmem initialization.
 		 */
 #if PG_VERSION_NUM >= 150000
-		bdr_prev_shmem_request_hook = shmem_request_hook;
-		shmem_request_hook = bdr_shmem_init;
+		pgactive_prev_shmem_request_hook = shmem_request_hook;
+		shmem_request_hook = pgactive_shmem_init;
 #else
-		bdr_shmem_init();
+		pgactive_shmem_init();
 #endif
 
-		bdr_executor_init();
+		pgactive_executor_init();
 
 		/* Set up a ProcessUtility_hook to stop unsupported commands being run */
-		init_bdr_commandfilter();
+		init_pgactive_commandfilter();
 	}
 }
 
 Oid
-bdr_lookup_relid(const char *relname, Oid schema_oid)
+pgactive_lookup_relid(const char *relname, Oid schema_oid)
 {
 	Oid			relid;
 
@@ -1259,27 +1259,27 @@ bdr_lookup_relid(const char *relname, Oid schema_oid)
  * ensure the required extension(s) are at the current version.
  */
 void
-bdr_maintain_schema(bool update_extensions)
+pgactive_maintain_schema(bool update_extensions)
 {
 	Relation	extrel;
-	Oid			bdr_oid;
+	Oid			pgactive_oid;
 	Oid			schema_oid;
 
 	Assert(IsTransactionState());
 
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	prev_bdr_skip_ddl_replication = bdr_skip_ddl_replication;
-	set_config_option("bdr.skip_ddl_replication", "true",
+	prev_pgactive_skip_ddl_replication = pgactive_skip_ddl_replication;
+	set_config_option("pgactive.skip_ddl_replication", "true",
 					  PGC_SUSET, PGC_S_OVERRIDE, GUC_ACTION_LOCAL,
 					  true, 0, false);
 
-	/* make sure we're operating without other bdr workers interfering */
+	/* make sure we're operating without other pgactive workers interfering */
 	extrel = table_open(ExtensionRelationId, ShareUpdateExclusiveLock);
 
-	bdr_oid = get_extension_oid("bdr", true);
-	if (bdr_oid == InvalidOid)
-		elog(ERROR, "bdr extension is not installed in the current database");
+	pgactive_oid = get_extension_oid("pgactive", true);
+	if (pgactive_oid == InvalidOid)
+		elog(ERROR, "pgactive extension is not installed in the current database");
 
 	if (update_extensions)
 	{
@@ -1287,120 +1287,120 @@ bdr_maintain_schema(bool update_extensions)
 
 		/* TODO: only do this if necessary */
 		alter_stmt.options = NIL;
-		alter_stmt.extname = (char *) "bdr";
+		alter_stmt.extname = (char *) "pgactive";
 		ExecAlterExtensionStmt(NULL, &alter_stmt);
 	}
 
 	table_close(extrel, NoLock);
 
 	/* setup initial queued_cmds OID */
-	schema_oid = get_namespace_oid("bdr", false);
-	BdrSchemaOid = schema_oid;
-	BdrNodesRelid =
-		bdr_lookup_relid("bdr_nodes", schema_oid);
-	BdrConnectionsRelid =
-		bdr_lookup_relid("bdr_connections", schema_oid);
+	schema_oid = get_namespace_oid("pgactive", false);
+	pgactiveSchemaOid = schema_oid;
+	pgactiveNodesRelid =
+		pgactive_lookup_relid("pgactive_nodes", schema_oid);
+	pgactiveConnectionsRelid =
+		pgactive_lookup_relid("pgactive_connections", schema_oid);
 	QueuedDDLCommandsRelid =
-		bdr_lookup_relid("bdr_queued_commands", schema_oid);
-	BdrConflictHistoryRelId =
-		bdr_lookup_relid("bdr_conflict_history", schema_oid);
-	BdrReplicationSetConfigRelid =
-		bdr_lookup_relid("bdr_replication_set_config", schema_oid);
+		pgactive_lookup_relid("pgactive_queued_commands", schema_oid);
+	pgactiveConflictHistoryRelId =
+		pgactive_lookup_relid("pgactive_conflict_history", schema_oid);
+	pgactiveReplicationSetConfigRelid =
+		pgactive_lookup_relid("pgactive_replication_set_config", schema_oid);
 	QueuedDropsRelid =
-		bdr_lookup_relid("bdr_queued_drops", schema_oid);
-	BdrLocksRelid =
-		bdr_lookup_relid("bdr_global_locks", schema_oid);
-	BdrLocksByOwnerRelid =
-		bdr_lookup_relid("bdr_global_locks_byowner", schema_oid);
-	BdrSupervisorDbOid = bdr_get_supervisordb_oid(false);
+		pgactive_lookup_relid("pgactive_queued_drops", schema_oid);
+	pgactiveLocksRelid =
+		pgactive_lookup_relid("pgactive_global_locks", schema_oid);
+	pgactiveLocksByOwnerRelid =
+		pgactive_lookup_relid("pgactive_global_locks_byowner", schema_oid);
+	pgactiveSupervisorDbOid = pgactive_get_supervisordb_oid(false);
 
-	bdr_conflict_handlers_init();
+	pgactive_conflict_handlers_init();
 
 	PopActiveSnapshot();
 }
 
 Datum
-bdr_apply_pause(PG_FUNCTION_ARGS)
+pgactive_apply_pause(PG_FUNCTION_ARGS)
 {
 	/*
 	 * It's safe to pause without grabbing the segment lock; an overlapping
 	 * resume won't do any harm.
 	 */
-	BdrWorkerCtl->pause_apply = true;
+	pgactiveWorkerCtl->pause_apply = true;
 	PG_RETURN_VOID();
 }
 
 Datum
-bdr_apply_resume(PG_FUNCTION_ARGS)
+pgactive_apply_resume(PG_FUNCTION_ARGS)
 {
 	int			i;
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-	BdrWorkerCtl->pause_apply = false;
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
+	pgactiveWorkerCtl->pause_apply = false;
 
 	/*
 	 * To get apply workers to notice immediately we have to set all their
 	 * latches. This will also force config reloads, but that's cheap and
 	 * harmless.
 	 */
-	for (i = 0; i < bdr_max_workers; i++)
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
 
-		if (w->worker_type == BDR_WORKER_APPLY)
+		if (w->worker_type == pgactive_WORKER_APPLY)
 		{
-			BdrApplyWorker *apply = &w->data.apply;
+			pgactiveApplyWorker *apply = &w->data.apply;
 
 			SetLatch(apply->proclatch);
 		}
 	}
 
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 	PG_RETURN_VOID();
 }
 
 Datum
-bdr_is_apply_paused(PG_FUNCTION_ARGS)
+pgactive_is_apply_paused(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_BOOL(BdrWorkerCtl->pause_apply);
+	PG_RETURN_BOOL(pgactiveWorkerCtl->pause_apply);
 }
 
 Datum
-bdr_version(PG_FUNCTION_ARGS)
+pgactive_version(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_TEXT_P(cstring_to_text(BDR_VERSION_STR));
+	PG_RETURN_TEXT_P(cstring_to_text(pgactive_VERSION_STR));
 }
 
 Datum
-bdr_version_num(PG_FUNCTION_ARGS)
+pgactive_version_num(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_INT32(BDR_VERSION_NUM);
+	PG_RETURN_INT32(pgactive_VERSION_NUM);
 }
 
 Datum
-bdr_min_remote_version_num(PG_FUNCTION_ARGS)
+pgactive_min_remote_version_num(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_INT32(BDR_MIN_REMOTE_VERSION_NUM);
+	PG_RETURN_INT32(pgactive_MIN_REMOTE_VERSION_NUM);
 }
 
 Datum
-bdr_variant(PG_FUNCTION_ARGS)
+pgactive_variant(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_TEXT_P(cstring_to_text(BDR_VARIANT));
+	PG_RETURN_TEXT_P(cstring_to_text(pgactive_VARIANT));
 }
 
 /* Return a tuple of (sysid oid, tlid oid, dboid oid) */
 Datum
-bdr_get_local_nodeid(PG_FUNCTION_ARGS)
+pgactive_get_local_nodeid(PG_FUNCTION_ARGS)
 {
 	Datum		values[3];
 	bool		isnull[3];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		sysid_str[33];
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
@@ -1420,7 +1420,7 @@ bdr_get_local_nodeid(PG_FUNCTION_ARGS)
 }
 
 Datum
-bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
+pgactive_parse_slot_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *slot_name = NameStr(*PG_GETARG_NAME(0));
 	Datum		values[5];
@@ -1428,7 +1428,7 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
-	BDRNodeId	remote;
+	pgactiveNodeId	remote;
 	Oid			local_dboid;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
@@ -1437,7 +1437,7 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	bdr_parse_slot_name(slot_name, &remote, &local_dboid);
+	pgactive_parse_slot_name(slot_name, &remote, &local_dboid);
 
 	snprintf(remote_sysid_str, sizeof(remote_sysid_str),
 			 UINT64_FORMAT, remote.sysid);
@@ -1454,7 +1454,7 @@ bdr_parse_slot_name_sql(PG_FUNCTION_ARGS)
 }
 
 Datum
-bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
+pgactive_parse_replident_name_sql(PG_FUNCTION_ARGS)
 {
 	const char *replident_name = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Datum		values[5];
@@ -1462,7 +1462,7 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
-	BDRNodeId	remote;
+	pgactiveNodeId	remote;
 	Oid			local_dboid;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
@@ -1471,7 +1471,7 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	bdr_parse_replident_name(replident_name, &remote, &local_dboid);
+	pgactive_parse_replident_name(replident_name, &remote, &local_dboid);
 
 	snprintf(remote_sysid_str, sizeof(remote_sysid_str),
 			 UINT64_FORMAT, remote.sysid);
@@ -1488,9 +1488,9 @@ bdr_parse_replident_name_sql(PG_FUNCTION_ARGS)
 }
 
 Datum
-bdr_format_slot_name_sql(PG_FUNCTION_ARGS)
+pgactive_format_slot_name_sql(PG_FUNCTION_ARGS)
 {
-	BDRNodeId	remote;
+	pgactiveNodeId	remote;
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Oid			local_dboid = PG_GETARG_OID(3);
 	const char *replication_name = NameStr(*PG_GETARG_NAME(4));
@@ -1507,15 +1507,15 @@ bdr_format_slot_name_sql(PG_FUNCTION_ARGS)
 
 	slot_name = (Name) palloc0(NAMEDATALEN);
 
-	bdr_slot_name(slot_name, &remote, local_dboid);
+	pgactive_slot_name(slot_name, &remote, local_dboid);
 
 	PG_RETURN_NAME(slot_name);
 }
 
 Datum
-bdr_format_replident_name_sql(PG_FUNCTION_ARGS)
+pgactive_format_replident_name_sql(PG_FUNCTION_ARGS)
 {
-	BDRNodeId	remote;
+	pgactiveNodeId	remote;
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Oid			local_dboid = PG_GETARG_OID(3);
 	const char *replication_name = NameStr(*PG_GETARG_NAME(4));
@@ -1530,24 +1530,24 @@ bdr_format_replident_name_sql(PG_FUNCTION_ARGS)
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
 		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
-	replident_name = bdr_replident_name(&remote, local_dboid);
+	replident_name = pgactive_replident_name(&remote, local_dboid);
 
 	PG_RETURN_TEXT_P(cstring_to_text(replident_name));
 }
 
 
 /*
- * You should prefer to use bdr_version_num but if you can't
+ * You should prefer to use pgactive_version_num but if you can't
  * then this will be handy.
  *
  * ERRORs if the major/minor/rev can't be parsed.
  *
  * If subrev is absent or cannot be parsed returns -1 for subrev.
  *
- * The return value is the bdr version in BDR_VERSION_NUM form.
+ * The return value is the pgactive version in pgactive_VERSION_NUM form.
  */
 int
-bdr_parse_version(const char *bdr_version_str,
+pgactive_parse_version(const char *pgactive_version_str,
 				  int *o_major, int *o_minor, int *o_rev, int *o_subrev)
 {
 	int			nparsed,
@@ -1556,10 +1556,10 @@ bdr_parse_version(const char *bdr_version_str,
 				rev,
 				subrev;
 
-	nparsed = sscanf(bdr_version_str, "%d.%d.%d.%d", &major, &minor, &rev, &subrev);
+	nparsed = sscanf(pgactive_version_str, "%d.%d.%d.%d", &major, &minor, &rev, &subrev);
 
 	if (nparsed < 3)
-		elog(ERROR, "unable to parse '%s' as a BDR version number", bdr_version_str);
+		elog(ERROR, "unable to parse '%s' as a pgactive version number", pgactive_version_str);
 	else if (nparsed < 4)
 		subrev = -1;
 
@@ -1576,33 +1576,33 @@ bdr_parse_version(const char *bdr_version_str,
 }
 
 static void
-bdr_skip_changes_cleanup(int code, Datum arg)
+pgactive_skip_changes_cleanup(int code, Datum arg)
 {
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	BdrWorkerCtl->worker_management_paused = false;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactiveWorkerCtl->worker_management_paused = false;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 }
 
 Datum
-bdr_skip_changes(PG_FUNCTION_ARGS)
+pgactive_skip_changes(PG_FUNCTION_ARGS)
 {
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	XLogRecPtr	upto_lsn = PG_GETARG_LSN(3);
 	RepOriginId nodeid;
-	BDRNodeId	myid,
+	pgactiveNodeId	myid,
 				remote;
 
 	remote.timeline = PG_GETARG_OID(1);
 	remote.dboid = PG_GETARG_OID(2);
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (!bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (!pgactive_skip_ddl_replication)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("skipping changes is unsafe and will cause replicas to be out of sync"),
-				 errhint("Set bdr.skip_ddl_replication if you are sure you want to do this.")));
+				 errhint("Set pgactive.skip_ddl_replication if you are sure you want to do this.")));
 
 	if (upto_lsn == InvalidXLogRecPtr)
 		ereport(ERROR,
@@ -1612,11 +1612,11 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
 		elog(ERROR, "parsing of remote sysid as uint64 failed");
 
-	if (bdr_nodeid_eq(&myid, &remote))
+	if (pgactive_nodeid_eq(&myid, &remote))
 		elog(ERROR, "passed ID is for the local node, can't skip changes from self");
 
-	/* Only ever matches a replnode id owned by the local BDR node */
-	nodeid = bdr_fetch_node_id_via_sysid(&remote);
+	/* Only ever matches a replnode id owned by the local pgactive node */
+	nodeid = pgactive_fetch_node_id_via_sysid(&remote);
 
 	if (nodeid == InvalidRepOriginId)
 		ereport(ERROR,
@@ -1635,11 +1635,11 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 	 * re-enabling worker management at this time; at worst, we'll just fail
 	 * to advance the replication identifier with an error.
 	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	BdrWorkerCtl->worker_management_paused = true;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactiveWorkerCtl->worker_management_paused = true;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_skip_changes_cleanup, (Datum) 0);
+	PG_ENSURE_ERROR_CLEANUP(pgactive_skip_changes_cleanup, (Datum) 0);
 	{
 		/*
 		 * We can't advance the replication identifier until we terminate any
@@ -1650,16 +1650,16 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 		 * wait for it to exit. Because we're blocked worker management it
 		 * can't be relaunched until we give the go-ahead.
 		 */
-		bdr_terminate_workers_byid(&remote, BDR_WORKER_APPLY);
+		pgactive_terminate_workers_byid(&remote, pgactive_WORKER_APPLY);
 
 		/*
 		 * The worker is signaled, but if it was actually running it might not
 		 * have exited yet, and we need it to release its hold on the
 		 * replication origin. Wait until it does.
 		 */
-		while (bdr_get_worker_pid_byid(&remote, BDR_WORKER_APPLY) != 0)
+		while (pgactive_get_worker_pid_byid(&remote, pgactive_WORKER_APPLY) != 0)
 		{
-			(void) BDRWaitLatch(&MyProc->procLatch,
+			(void) pgactiveWaitLatch(&MyProc->procLatch,
 								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 								500L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
@@ -1681,56 +1681,56 @@ bdr_skip_changes(PG_FUNCTION_ARGS)
 
 		UnlockRelationOid(ReplicationOriginRelationId, RowExclusiveLock);
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_skip_changes_cleanup, (Datum) 0);
+	PG_END_ENSURE_ERROR_CLEANUP(pgactive_skip_changes_cleanup, (Datum) 0);
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	BdrWorkerCtl->worker_management_paused = false;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactiveWorkerCtl->worker_management_paused = false;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	PG_RETURN_VOID();
 }
 
 /*
- * Look up bdr worker by sysid/timeline/dboid and get its pid if it is running,
+ * Look up pgactive worker by sysid/timeline/dboid and get its pid if it is running,
  * or 0 if not.
  */
 static int
-bdr_get_worker_pid_byid(const BDRNodeId * const node, BdrWorkerType worker_type)
+pgactive_get_worker_pid_byid(const pgactiveNodeId * const node, pgactiveWorkerType worker_type)
 {
 	int			pid = 0;
-	BdrWorker  *worker;
+	pgactiveWorker  *worker;
 
 	/*
 	 * Right now there can only be one worker for any given remote, so we
 	 * don't really have to deal with multiple workers at all.
 	 */
-	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-	worker = bdr_worker_get_entry(node, worker_type);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
+	worker = pgactive_worker_get_entry(node, worker_type);
 
 	if (worker != NULL && worker->worker_proc != NULL)
 		pid = worker->worker_proc->pid;
 
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	return pid;
 }
 
 Datum
-bdr_get_workers_info(PG_FUNCTION_ARGS)
+pgactive_get_workers_info(PG_FUNCTION_ARGS)
 {
-#define BDR_GET_WORKERS_PID_COLS	5
+#define pgactive_GET_WORKERS_PID_COLS	5
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	int			i;
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-	for (i = 0; i < bdr_max_workers; i++)
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
-		Datum		values[BDR_GET_WORKERS_PID_COLS] = {0};
-		bool		nulls[BDR_GET_WORKERS_PID_COLS] = {0};
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		Datum		values[pgactive_GET_WORKERS_PID_COLS] = {0};
+		bool		nulls[pgactive_GET_WORKERS_PID_COLS] = {0};
 		uint64		sysid = 0;	/* keep compiler quiet */
 		TimeLineID	timeline = 0;	/* keep compiler quiet */
 		Oid			dboid = InvalidOid; /* keep compiler quiet */
@@ -1738,34 +1738,34 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 		text	   *worker_type = NULL; /* keep compiler quiet */
 
 		/* unused slot */
-		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
 			continue;
 
 		/* unconnected slot */
 		if (w->worker_proc == NULL)
 			continue;
 
-		if (w->worker_type == BDR_WORKER_APPLY)
+		if (w->worker_type == pgactive_WORKER_APPLY)
 		{
-			BdrApplyWorker *aw = &w->data.apply;
+			pgactiveApplyWorker *aw = &w->data.apply;
 
 			sysid = aw->remote_node.sysid;
 			timeline = aw->remote_node.timeline;
 			dboid = aw->remote_node.dboid;
 			worker_type = cstring_to_text("apply");
 		}
-		else if (w->worker_type == BDR_WORKER_PERDB)
+		else if (w->worker_type == pgactive_WORKER_PERDB)
 		{
-			BdrPerdbWorker *pw = &w->data.perdb;
+			pgactivePerdbWorker *pw = &w->data.perdb;
 
 			nulls[0] = true;
 			nulls[1] = true;
 			dboid = pw->p_dboid;
 			worker_type = cstring_to_text("per-db");
 		}
-		else if (w->worker_type == BDR_WORKER_WALSENDER)
+		else if (w->worker_type == pgactive_WORKER_WALSENDER)
 		{
-			BdrWalsenderWorker *ws = &w->data.walsnd;
+			pgactiveWalsenderWorker *ws = &w->data.walsnd;
 
 			sysid = ws->remote_node.sysid;
 			timeline = ws->remote_node.timeline;
@@ -1773,7 +1773,7 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 			worker_type = cstring_to_text("walsender");
 		}
 
-		if (w->worker_type != BDR_WORKER_PERDB)
+		if (w->worker_type != pgactive_WORKER_PERDB)
 		{
 			snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, sysid);
 			values[0] = CStringGetTextDatum(sysid_str);
@@ -1786,10 +1786,10 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);
 	}
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	PG_RETURN_VOID();
-#undef BDR_GET_WORKERS_PID_COLS
+#undef pgactive_GET_WORKERS_PID_COLS
 }
 
 /*
@@ -1797,9 +1797,9 @@ bdr_get_workers_info(PG_FUNCTION_ARGS)
  * is operating on the current database.
  */
 static bool
-bdr_terminate_workers_byid(const BDRNodeId * const node, BdrWorkerType worker_type)
+pgactive_terminate_workers_byid(const pgactiveNodeId * const node, pgactiveWorkerType worker_type)
 {
-	int			pid = bdr_get_worker_pid_byid(node, worker_type);
+	int			pid = pgactive_get_worker_pid_byid(node, worker_type);
 
 	if (pid == 0)
 		return false;
@@ -1820,43 +1820,43 @@ bdr_terminate_workers_byid(const BDRNodeId * const node, BdrWorkerType worker_ty
 
 /*
  * This function is used for debugging and tests, mainly to make unit tests more
- * predictable. It pauses BDR worker management and stops new worker launches
+ * predictable. It pauses pgactive worker management and stops new worker launches
  * until unpaused.
  *
- * The pause applies across all BDR nodes on the current instance. When unpaused,
- * the caller should signal bdr_connections_changed() on every node.
+ * The pause applies across all pgactive nodes on the current instance. When unpaused,
+ * the caller should signal pgactive_connections_changed() on every node.
  *
  * This function is intentionally undocumented and isn't for normal use.
  */
 Datum
-bdr_pause_worker_management(PG_FUNCTION_ARGS)
+pgactive_pause_worker_management(PG_FUNCTION_ARGS)
 {
 	bool		pause = PG_GETARG_BOOL(0);
 
-	/* replace bdr_permit_unsafe_commands by bdr_skip_ddl_replication for now */
-	if (pause && !bdr_skip_ddl_replication)
+	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	if (pause && !pgactive_skip_ddl_replication)
 		elog(ERROR, "this function is for internal test use only");
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_EXCLUSIVE);
-	BdrWorkerCtl->worker_management_paused = pause;
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	pgactiveWorkerCtl->worker_management_paused = pause;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
-	elog(LOG, "BDR worker management %s", pause ? "paused" : "unpaused");
+	elog(LOG, "pgactive worker management %s", pause ? "paused" : "unpaused");
 
 	PG_RETURN_VOID();
 }
 
 /*
- * Report whether BDR is active on the DB.
+ * Report whether pgactive is active on the DB.
  */
 Datum
-bdr_is_active_in_db(PG_FUNCTION_ARGS)
+pgactive_is_active_in_db(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_BOOL(bdr_is_bdr_activated_db(MyDatabaseId));
+	PG_RETURN_BOOL(pgactive_is_pgactive_activated_db(MyDatabaseId));
 }
 
 Datum
-bdr_xact_replication_origin(PG_FUNCTION_ARGS)
+pgactive_xact_replication_origin(PG_FUNCTION_ARGS)
 {
 	TransactionId xid = PG_GETARG_UINT32(0);
 	RepOriginId data;
@@ -1929,7 +1929,7 @@ InitMaterializedSRF(FunctionCallInfo fcinfo, bits32 flags)
  * error if any of the passed-in connection string is invalid.
  */
 Datum
-bdr_conninfo_cmp(PG_FUNCTION_ARGS)
+pgactive_conninfo_cmp(PG_FUNCTION_ARGS)
 {
 	char	   *conninfo1 = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	char	   *conninfo2 = text_to_cstring(PG_GETARG_TEXT_PP(1));
@@ -2012,11 +2012,11 @@ destroy_temp_dump_dirs(int code, Datum arg)
 	char		prefix[MAXPGPATH];
 
 	snprintf(prefix, sizeof(prefix), "%s/%s-" UINT64_FORMAT "-",
-			 bdr_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
+			 pgactive_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
 			 GetSystemIdentifier());
 
-	dir = AllocateDir(bdr_temp_dump_directory);
-	while ((de = ReadDir(dir, bdr_temp_dump_directory)) != NULL)
+	dir = AllocateDir(pgactive_temp_dump_directory);
+	while ((de = ReadDir(dir, pgactive_temp_dump_directory)) != NULL)
 	{
 		char		path[MAXPGPATH];
 		struct stat st;
@@ -2027,7 +2027,7 @@ destroy_temp_dump_dirs(int code, Datum arg)
 		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
 			continue;
 
-		snprintf(path, sizeof(path), "%s/%s", bdr_temp_dump_directory,
+		snprintf(path, sizeof(path), "%s/%s", pgactive_temp_dump_directory,
 				 de->d_name);
 
 		if (stat(path, &st) == 0 && S_ISDIR(st.st_mode))
@@ -2048,12 +2048,12 @@ destroy_temp_dump_dir(int code, Datum arg)
 	if (stat(dir, &st) == 0 && S_ISDIR(st.st_mode))
 	{
 		if (!rmtree(dir, true))
-			elog(WARNING, "failed to clean up BDR dump temporary directory %s", dir);
+			elog(WARNING, "failed to clean up pgactive dump temporary directory %s", dir);
 	}
 }
 
 Datum
-bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
+pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
 {
 	destroy_temp_dump_dirs(0, 0);
 
@@ -2067,15 +2067,15 @@ get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	bool		isnull[3];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
-	BDRNodeId	target;
+	pgactiveNodeId	target;
 	char	   *sysid_str = text_to_cstring(PG_GETARG_TEXT_PP(0));
-	BdrWorker  *worker;
+	pgactiveWorker  *worker;
 	bool		lock_acquired = false;
 	TransactionId xid = InvalidTransactionId;
 	TimestampTz committs = 0;
 	TimestampTz applied_at = 0;
 
-	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
 		PG_RETURN_VOID();
 
 	if (sscanf(sysid_str, UINT64_FORMAT, &target.sysid) != 1)
@@ -2090,15 +2090,15 @@ get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	if (!LWLockHeldByMe(BdrWorkerCtl->lock))
+	if (!LWLockHeldByMe(pgactiveWorkerCtl->lock))
 	{
-		LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
 		lock_acquired = true;
 	}
 
 	if (find_apply_worker_slot(&target, &worker) != -1)
 	{
-		BdrApplyWorker *apply;
+		pgactiveApplyWorker *apply;
 
 		apply = &worker->data.apply;
 		xid = apply->last_applied_xact_id;
@@ -2106,15 +2106,15 @@ get_last_applied_xact_info(PG_FUNCTION_ARGS)
 		applied_at = apply->last_applied_xact_at;
 	}
 	else
-		elog(LOG, "could not find apply worker for a given node " BDR_NODEID_FORMAT "",
-			 BDR_NODEID_FORMAT_ARGS(target));
+		elog(LOG, "could not find apply worker for a given node " pgactive_NODEID_FORMAT "",
+			 pgactive_NODEID_FORMAT_ARGS(target));
 
 	values[0] = ObjectIdGetDatum(xid);
 	values[1] = TimestampTzGetDatum(committs);
 	values[2] = TimestampTzGetDatum(applied_at);
 
 	if (lock_acquired)
-		LWLockRelease(BdrWorkerCtl->lock);
+		LWLockRelease(pgactiveWorkerCtl->lock);
 
 	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
@@ -2130,7 +2130,7 @@ GetConnectionDSN(uint64 sysid, StringInfoData *dsn)
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, sysid);
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT conn_dsn FROM bdr.bdr_connections WHERE conn_sysid = '%s';",
+	appendStringInfo(&cmd, "SELECT conn_dsn FROM pgactive.pgactive_connections WHERE conn_sysid = '%s';",
 					 sysid_str);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
@@ -2154,7 +2154,7 @@ GetConnectionDSN(uint64 sysid, StringInfoData *dsn)
 
 static void
 GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
-									 BDRNodeId myid,
+									 pgactiveNodeId myid,
 									 StringInfoData *dsn,
 									 TransactionId *xid,
 									 TimestampTz *committs,
@@ -2164,20 +2164,20 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 	PGresult   *res;
 	StringInfoData cmd;
 
-	conn = bdr_connect_nonrepl(dsn->data, "apply_info", false);
+	conn = pgactive_connect_nonrepl(dsn->data, "apply_info", false);
 
-	/* Make sure BDR is actually present and active on the remote */
-	bdr_ensure_ext_installed(conn);
+	/* Make sure pgactive is actually present and active on the remote */
+	pgactive_ensure_ext_installed(conn);
 
 	*xid = InvalidTransactionId;
 	*committs = 0;
 	*applied_at = 0;
 
-	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
 	{
 		initStringInfo(&cmd);
-		appendStringInfo(&cmd, "SELECT * FROM bdr.get_last_applied_xact_info('%s', %u, %u);",
+		appendStringInfo(&cmd, "SELECT * FROM pgactive.get_last_applied_xact_info('%s', %u, %u);",
 						 sysid_str, myid.timeline, myid.dboid);
 
 		res = PQexec(conn, cmd.data);
@@ -2210,7 +2210,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 															  ObjectIdGetDatum(InvalidOid),
 															  Int32GetDatum(-1)));
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 								PointerGetDatum(&conn));
 
 done:
@@ -2225,33 +2225,33 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 #define GET_REPLICATION_LAG_INFO_COLS	7
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	int			i;
-	BDRNodeId	myid;
+	pgactiveNodeId	myid;
 	char		local_sysid_str[33];
 
-	if (!bdr_is_bdr_activated_db(MyDatabaseId))
+	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
 		PG_RETURN_VOID();
 
-	bdr_make_my_nodeid(&myid);
+	pgactive_make_my_nodeid(&myid);
 	snprintf(local_sysid_str, sizeof(local_sysid_str), UINT64_FORMAT,
 			 myid.sysid);
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
 
-	LWLockAcquire(BdrWorkerCtl->lock, LW_SHARED);
-	for (i = 0; i < bdr_max_workers; i++)
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
+	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		BdrWorker  *w = &BdrWorkerCtl->slots[i];
+		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
 		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
 		bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
-		BdrWalsenderWorker *ws;
+		pgactiveWalsenderWorker *ws;
 		StringInfoData conn_dsn;
 		TransactionId last_applied_xact_id;
 		TimestampTz last_applied_xact_committs;
 		TimestampTz last_applied_xact_at;
 
 		/* unused slot */
-		if (w->worker_type == BDR_WORKER_EMPTY_SLOT)
+		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
 			continue;
 
 		/* unconnected slot */
@@ -2259,11 +2259,11 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 			continue;
 
 		/* we'll deal with walsender workers only */
-		if (w->worker_type == BDR_WORKER_APPLY ||
-			w->worker_type == BDR_WORKER_PERDB)
+		if (w->worker_type == pgactive_WORKER_APPLY ||
+			w->worker_type == pgactive_WORKER_PERDB)
 			continue;
 
-		Assert(w->worker_type == BDR_WORKER_WALSENDER);
+		Assert(w->worker_type == pgactive_WORKER_WALSENDER);
 		ws = &w->data.walsnd;
 
 		initStringInfo(&conn_dsn);
@@ -2284,7 +2284,7 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);
 	}
-	LWLockRelease(BdrWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	PG_RETURN_VOID();
 #undef GET_REPLICATION_LAG_INFO_COLS

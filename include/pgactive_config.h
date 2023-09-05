@@ -9,4 +9,4 @@
 #undef PACKAGE_URL
 #undef PACKAGE_VERSION
 
-#include "bdr_config_generated.h"
+#include "pgactive_config_generated.h"

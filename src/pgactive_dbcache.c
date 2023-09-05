@@ -1,18 +1,18 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_dbcache.c
- *		coherent, per database, cache for BDR.
+ * pgactive_dbcache.c
+ *		coherent, per database, cache for pgactive.
  *
  * Copyright (c) 2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_dbcache.c
+ *		pgactive_dbcache.c
  * -------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 #include "miscadmin.h"
 
@@ -28,33 +28,33 @@
 #include "utils/builtins.h"
 
 /* Cache entry. */
-typedef struct BDRDatabaseCacheEntry
+typedef struct pgactiveDatabaseCacheEntry
 {
 	Oid			oid;			/* cache key, needs to be first */
 	const char *dbname;
 	bool		valid;
-	bool		bdr_activated;
-}			BDRDatabaseCacheEntry;
+	bool		pgactive_activated;
+}			pgactiveDatabaseCacheEntry;
 
-static HTAB *BDRDatabaseCacheHash = NULL;
+static HTAB *pgactiveDatabaseCacheHash = NULL;
 
-static BDRDatabaseCacheEntry * bdr_dbcache_lookup(Oid dboid, bool missing_ok);
+static pgactiveDatabaseCacheEntry * pgactive_dbcache_lookup(Oid dboid, bool missing_ok);
 
 static void
-bdr_dbcache_invalidate_entry(Datum arg, int cacheid, uint32 hashvalue)
+pgactive_dbcache_invalidate_entry(Datum arg, int cacheid, uint32 hashvalue)
 {
 	HASH_SEQ_STATUS status;
-	BDRDatabaseCacheEntry *hentry;
+	pgactiveDatabaseCacheEntry *hentry;
 
-	Assert(BDRDatabaseCacheHash != NULL);
+	Assert(pgactiveDatabaseCacheHash != NULL);
 
 	/*
 	 * Currently we just reset all entries; it's unlikely anything more
 	 * complicated is worthwile.
 	 */
-	hash_seq_init(&status, BDRDatabaseCacheHash);
+	hash_seq_init(&status, pgactiveDatabaseCacheHash);
 
-	while ((hentry = (BDRDatabaseCacheEntry *) hash_seq_search(&status)) != NULL)
+	while ((hentry = (pgactiveDatabaseCacheEntry *) hash_seq_search(&status)) != NULL)
 	{
 		hentry->valid = false;
 	}
@@ -62,7 +62,7 @@ bdr_dbcache_invalidate_entry(Datum arg, int cacheid, uint32 hashvalue)
 }
 
 static void
-bdr_dbcache_initialize()
+pgactive_dbcache_initialize()
 {
 	HASHCTL		ctl;
 
@@ -73,26 +73,26 @@ bdr_dbcache_initialize()
 	/* Initialize the hash table. */
 	MemSet(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(Oid);
-	ctl.entrysize = sizeof(BDRDatabaseCacheEntry);
+	ctl.entrysize = sizeof(pgactiveDatabaseCacheEntry);
 	ctl.hash = tag_hash;
 	ctl.hcxt = CacheMemoryContext;
 
-	BDRDatabaseCacheHash = hash_create("BDR database cache", 128, &ctl,
+	pgactiveDatabaseCacheHash = hash_create("pgactive database cache", 128, &ctl,
 									   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
-	CacheRegisterSyscacheCallback(DATABASEOID, bdr_dbcache_invalidate_entry, (Datum) 0);
+	CacheRegisterSyscacheCallback(DATABASEOID, pgactive_dbcache_invalidate_entry, (Datum) 0);
 }
 
 void
-bdr_parse_database_options(const char *label, bool *is_active)
+pgactive_parse_database_options(const char *label, bool *is_active)
 {
 	JsonbIterator *it;
 	JsonbValue	v;
 	int			r;
 	int			level = 0;
 	Jsonb	   *data = NULL;
-	bool		parsing_bdr = false;
+	bool		parsing_pgactive = false;
 
 	if (label == NULL)
 		return;
@@ -109,25 +109,25 @@ bdr_parse_database_options(const char *label, bool *is_active)
 		if (level == 0 && r != WJB_BEGIN_OBJECT)
 			elog(ERROR, "root element needs to be an object");
 		else if (level == 0 && it->nElems > 1)
-			elog(ERROR, "only 'bdr' allowed on root level");
+			elog(ERROR, "only 'pgactive' allowed on root level");
 		else if (level == 0 && r == WJB_BEGIN_OBJECT)
 		{
 			level++;
 		}
 		else if (level == 1 && r == WJB_KEY)
 		{
-			if (strncmp(v.val.string.val, "bdr", v.val.string.len) != 0)
+			if (strncmp(v.val.string.val, "pgactive", v.val.string.len) != 0)
 				elog(ERROR, "unexpected key: %s",
 					 pnstrdup(v.val.string.val, v.val.string.len));
-			parsing_bdr = true;
+			parsing_pgactive = true;
 		}
 		else if (level == 1 && r == WJB_VALUE)
 		{
-			if (!parsing_bdr)
+			if (!parsing_pgactive)
 				elog(ERROR, "in wrong state when parsing key");
 
 			if (v.type != jbvBool)
-				elog(ERROR, "unexpected type for key 'bdr': %u", v.type);
+				elog(ERROR, "unexpected type for key 'pgactive': %u", v.type);
 
 			if (is_active != NULL)
 				*is_active = v.val.boolean;
@@ -139,7 +139,7 @@ bdr_parse_database_options(const char *label, bool *is_active)
 		else if (r == WJB_END_OBJECT)
 		{
 			level--;
-			parsing_bdr = false;
+			parsing_pgactive = false;
 		}
 		else
 			elog(ERROR, "unexpected content: %u at level %d", r, level);
@@ -153,31 +153,31 @@ bdr_parse_database_options(const char *label, bool *is_active)
  * At some future point this probably will need to be externally accessible,
  * but right now we don't need it yet.
  */
-static BDRDatabaseCacheEntry *
-bdr_dbcache_lookup(Oid dboid, bool missing_ok)
+static pgactiveDatabaseCacheEntry *
+pgactive_dbcache_lookup(Oid dboid, bool missing_ok)
 {
-	BDRDatabaseCacheEntry *entry;
+	pgactiveDatabaseCacheEntry *entry;
 	bool		found;
 	ObjectAddress object;
 	HeapTuple	dbtuple;
 	const char *label;
 
-	if (BDRDatabaseCacheHash == NULL)
-		bdr_dbcache_initialize();
+	if (pgactiveDatabaseCacheHash == NULL)
+		pgactive_dbcache_initialize();
 
 	/*
 	 * HASH_ENTER returns the existing entry if present or creates a new one.
 	 */
-	entry = hash_search(BDRDatabaseCacheHash, (void *) &dboid,
+	entry = hash_search(pgactiveDatabaseCacheHash, (void *) &dboid,
 						HASH_ENTER, &found);
 
 	if (found && entry->valid)
 		return entry;
 
 	/* zero out data part of the entry */
-	memset(((char *) entry) + offsetof(BDRDatabaseCacheEntry, dbname),
+	memset(((char *) entry) + offsetof(pgactiveDatabaseCacheEntry, dbname),
 		   0,
-		   sizeof(BDRDatabaseCacheEntry) - offsetof(BDRDatabaseCacheEntry, dbname));
+		   sizeof(pgactiveDatabaseCacheEntry) - offsetof(pgactiveDatabaseCacheEntry, dbname));
 
 	dbtuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(dboid));
 
@@ -195,8 +195,8 @@ bdr_dbcache_lookup(Oid dboid, bool missing_ok)
 	object.objectId = dboid;
 	object.objectSubId = 0;
 
-	label = GetSecurityLabel(&object, BDR_SECLABEL_PROVIDER);
-	bdr_parse_database_options(label, &entry->bdr_activated);
+	label = GetSecurityLabel(&object, pgactive_SECLABEL_PROVIDER);
+	pgactive_parse_database_options(label, &entry->pgactive_activated);
 
 	entry->valid = true;
 
@@ -205,12 +205,12 @@ bdr_dbcache_lookup(Oid dboid, bool missing_ok)
 
 
 /*
- * Is the database configured for bdr?
+ * Is the database configured for pgactive?
  */
 bool
-bdr_is_bdr_activated_db(Oid dboid)
+pgactive_is_pgactive_activated_db(Oid dboid)
 {
-	BDRDatabaseCacheEntry *entry;
+	pgactiveDatabaseCacheEntry *entry;
 
 	/* won't know until we've forked/execed */
 	Assert(IsUnderPostmaster);
@@ -218,7 +218,7 @@ bdr_is_bdr_activated_db(Oid dboid)
 	/* potentially need to access syscaches */
 	Assert(IsTransactionState());
 
-	entry = bdr_dbcache_lookup(dboid, false);
+	entry = pgactive_dbcache_lookup(dboid, false);
 
-	return entry->bdr_activated;
+	return entry->pgactive_activated;
 }

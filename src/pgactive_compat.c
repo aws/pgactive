@@ -1,21 +1,21 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_compat.c
+ * pgactive_compat.c
  *		Checks for cross version/arch/settings compatibility
  *
  * Copyright (C) 2014-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_compat.c
+ *		pgactive_compat.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr.h"
+#include "pgactive.h"
 
 bool
-bdr_get_float4byval(void)
+pgactive_get_float4byval(void)
 {
 #ifdef USE_FLOAT4_BYVAL
 	return true;
@@ -25,7 +25,7 @@ bdr_get_float4byval(void)
 }
 
 bool
-bdr_get_float8byval(void)
+pgactive_get_float8byval(void)
 {
 #ifdef USE_FLOAT8_BYVAL
 	return true;
@@ -35,7 +35,7 @@ bdr_get_float8byval(void)
 }
 
 bool
-bdr_get_integer_timestamps(void)
+pgactive_get_integer_timestamps(void)
 {
 #ifdef USE_INTEGER_DATETIMES
 	return true;
@@ -45,7 +45,7 @@ bdr_get_integer_timestamps(void)
 }
 
 bool
-bdr_get_bigendian(void)
+pgactive_get_bigendian(void)
 {
 #ifdef WORDS_BIGENDIAN
 	return true;

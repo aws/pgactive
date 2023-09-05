@@ -1,20 +1,20 @@
 /* -------------------------------------------------------------------------
  *
- * bdr_user_mapping.c
- *		FOREIGN SERVER and USER MAPPING implementation for BDR
+ * pgactive_user_mapping.c
+ *		FOREIGN SERVER and USER MAPPING implementation for pgactive
  *
  *
  * Copyright (C) 2012-2015, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		bdr_user_mapping.c
+ *		pgactive_user_mapping.c
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include "bdr_compat.h"
-#include "bdr_internal.h"
+#include "pgactive_compat.h"
+#include "pgactive_internal.h"
 
 #include "access/reloptions.h"
 #include "access/xact.h"
@@ -223,15 +223,15 @@ is_valid_dsn_option(const PQconninfoOption *options, const char *option,
 /*
  * Functions taken from contrib/dblink/dblink.c
  *
- * Validate the options given to a bdr foreign server or user mapping.
+ * Validate the options given to a pgactive foreign server or user mapping.
  * Raise an error if any option is invalid.
  *
  * We just check the names of options here, so semantic errors in options,
  * such as invalid numeric format, will be detected at the attempt to connect.
  */
-PG_FUNCTION_INFO_V1(bdr_fdw_validator);
+PG_FUNCTION_INFO_V1(pgactive_fdw_validator);
 Datum
-bdr_fdw_validator(PG_FUNCTION_ARGS)
+pgactive_fdw_validator(PG_FUNCTION_ARGS)
 {
 	List	   *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 	Oid			context = PG_GETARG_OID(1);

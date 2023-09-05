@@ -3,18 +3,18 @@
 #include "libpq/pqformat.h"
 #include "utils/elog.h"
 
-#include "bdr.h"
-#include "bdr_internal.h"
+#include "pgactive.h"
+#include "pgactive_internal.h"
 
 /*
- * Extract a BDR node ID from a wire protocol message.
+ * Extract a pgactive node ID from a wire protocol message.
  *
  * The boolean flag for node name is required because, for historical reasons,
- * some BDR messages send an empty node-name field in node IDs and others do
+ * some pgactive messages send an empty node-name field in node IDs and others do
  * not.
  */
 void
-bdr_getmsg_nodeid(StringInfo message, BDRNodeId * const nodeid, bool expect_empty_nodename)
+pgactive_getmsg_nodeid(StringInfo message, pgactiveNodeId * const nodeid, bool expect_empty_nodename)
 {
 	nodeid->sysid = pq_getmsgint64(message);
 	nodeid->timeline = pq_getmsgint(message, 4);
@@ -31,7 +31,7 @@ bdr_getmsg_nodeid(StringInfo message, BDRNodeId * const nodeid, bool expect_empt
 }
 
 void
-bdr_send_nodeid(StringInfo s, const BDRNodeId * const nodeid, bool include_empty_nodename)
+pgactive_send_nodeid(StringInfo s, const pgactiveNodeId * const nodeid, bool include_empty_nodename)
 {
 	pq_sendint64(s, nodeid->sysid);
 	pq_sendint(s, nodeid->timeline, 4);
@@ -44,7 +44,7 @@ bdr_send_nodeid(StringInfo s, const BDRNodeId * const nodeid, bool include_empty
  * Converts an int64 to network byte order.
  */
 void
-bdr_sendint64(int64 i, char *buf)
+pgactive_sendint64(int64 i, char *buf)
 {
 	uint32		n32;
 

@@ -1,5 +1,5 @@
-#ifndef PG_BDR_COMPAT_H
-#define PG_BDR_COMPAT_H
+#ifndef PG_pgactive_COMPAT_H
+#define PG_pgactive_COMPAT_H
 
 #include "access/heapam.h"
 #include "access/genam.h"
@@ -11,7 +11,7 @@
  * XXX Should it be table_slot_create for >= 12 instead of
  * ExecInitExtraTupleSlot?
  */
-#define ExecInitExtraTupleSlotBdr(estate, a) \
+#define ExecInitExtraTupleSlotpgactive(estate, a) \
 	ExecInitExtraTupleSlot(estate, a, &TTSOpsHeapTuple)
 
 #define pg_analyze_and_rewrite(parsetree, query_string, paramTypes, numParams) \
@@ -27,14 +27,14 @@
 		InvalidOid \
 )
 
-#define transformAlterTableStmtBdr(relid, astmt, queryString) \
+#define transformAlterTableStmtpgactive(relid, astmt, queryString) \
 	transformAlterTableStmt(relid, astmt, queryString, &beforeStmts, &afterStmts)
 
 #define TTS_TUP(slot) (((HeapTupleTableSlot *)slot)->tuple)
 
-#define BdrGetSysCacheOid1 GetSysCacheOid1
+#define pgactiveGetSysCacheOid1 GetSysCacheOid1
 
-#define BdrGetSysCacheOid2 GetSysCacheOid2
+#define pgactiveGetSysCacheOid2 GetSysCacheOid2
 
 /* GetSysCacheOid2 equivalent that errors out if nothing is found */
 static inline Oid
@@ -51,7 +51,7 @@ GetSysCacheOid2Error(int cacheId, AttrNumber oidcol,
 	return result;
 }
 
-#define BdrGetSysCacheOid2Error(cacheId, oidcol, key1, key2) \
+#define pgactiveGetSysCacheOid2Error(cacheId, oidcol, key1, key2) \
 	GetSysCacheOid2Error(cacheId, oidcol, key1, key2)
 
 /* 2a10fdc4307a667883f7a3369cb93a721ade9680 */
