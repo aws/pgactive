@@ -11,10 +11,7 @@ use PostgreSQL::Test::Utils;
 use Time::HiRes qw(usleep);
 use IPC::Run;
 use Test::More;
-use utils::nodemanagement qw(
-		:DEFAULT
-		generate_bdr_logical_join_query
-		);
+use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
 my $nodes = make_bdr_group(2,'node_');

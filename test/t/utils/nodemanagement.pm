@@ -14,7 +14,7 @@ use PostgreSQL::Test::Cluster;
 use PostgreSQL::Test::Utils;
 use Test::More;
 use IPC::Run;
-use Time::HiRes;
+use Time::HiRes qw(usleep);
 use vars qw($bdr_test_dbname);
 
 use Carp 'verbose';
@@ -24,7 +24,6 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
 @ISA         = qw(Exporter);
 @EXPORT      = qw(
     $bdr_test_dbname
-
     make_bdr_group
     initandstart_node
     initandstart_bdr_group
@@ -49,13 +48,18 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
     wait_acquire_ddl_lock
     cancel_ddl_lock
     release_ddl_lock
+    generate_bdr_logical_join_query
+    bdr_update_postgresql_conf
+    get_log_size
+    find_in_log
+    create_bdr_group_with_db
+    join_bdr_group_with_db
+    create_and_check_data
     );
 
 # For use by other modules, but need not appear in the default namespace of
 # tests.
 @EXPORT_OK   = qw(
-    generate_bdr_logical_join_query
-  	bdr_update_postgresql_conf
     copy_transform_postgresqlconf
     start_bdr_init_copy
     wait_detach_completion
@@ -785,6 +789,103 @@ sub release_ddl_lock {
 
     ${$psql->{stdin}} .= "ROLLBACK;\n\\echo ROLLBACK\n\\q";
     $psql->{handle}->finish;
+}
+
+# Return the size of logfile of $node in bytes
+sub get_log_size
+{
+	my ($node) = @_;
+
+	return (stat $node->logfile)[7];
+}
+
+# Find $pat in logfile of $node after $off-th byte
+sub find_in_log
+{
+	my ($node, $pat, $off) = @_;
+	#my $max_attempts = $PostgreSQL::Test::Utils::timeout_default * 10;
+	my $max_attempts = 60 * 10;
+	my $log;
+
+	while ($max_attempts-- >= 0)
+	{
+		$log = PostgreSQL::Test::Utils::slurp_file($node->logfile, $off);
+		last if ($log =~ m/$pat/);
+		usleep(100_000);
+	}
+
+	return $log =~ m/$pat/;
+}
+
+sub create_bdr_group_with_db {
+    my ($node_name, $db) = @_;
+
+    my $node = PostgreSQL::Test::Cluster->new($node_name);
+    initandstart_node($node, $db);
+
+    my $port = $node->port;
+    my $host = $node->host;
+    my $node_connstr = "port=$port host=$host dbname=$db";
+
+    $node->safe_psql($db, qq{
+        SELECT bdr.bdr_create_group(
+            local_node_name := '$node_name',
+            node_external_dsn := '$node_connstr');});
+    $node->safe_psql($db, qq[
+        SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+    $node->safe_psql($db, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
+    or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_create_group');
+
+    return $node;
+}
+
+sub join_bdr_group_with_db {
+    my ($node_name, $upstream_node, $db) = @_;
+
+    my $node = PostgreSQL::Test::Cluster->new($node_name);
+    initandstart_node($node, $db);
+
+    my $port = $node->port;
+    my $host = $node->host;
+    my $node_connstr = "port=$port host=$host dbname=$db";
+
+    $port = $upstream_node->port;
+    $host = $upstream_node->host;
+    my $upstream_node_connstr = "port=$port host=$host dbname=$db";
+
+    $node->safe_psql($db, qq{
+        SELECT bdr.bdr_join_group(
+            local_node_name := '$node_name',
+            node_external_dsn := '$node_connstr',
+            join_using_dsn := '$upstream_node_connstr');});
+    $node->safe_psql($db, qq[
+        SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+    $node->safe_psql($db, 'SELECT bdr.bdr_is_active_in_db()' ) eq 't'
+    or BAIL_OUT('!bdr.bdr_is_active_in_db() after bdr_join_group');
+
+    return $node;
+}
+
+sub create_and_check_data {
+    my ($node1, $node2, $db) = @_;
+
+    $node1->safe_psql($db,
+        q[CREATE TABLE fruits(id integer, name varchar);]);
+    $node1->safe_psql($db,
+        q[INSERT INTO fruits VALUES (1, 'Mango');]);
+    wait_for_apply($node1, $node2);
+
+    $node2->safe_psql($db,
+        q[INSERT INTO fruits VALUES (2, 'Apple');]);
+    wait_for_apply($node2, $node1);
+
+    my $query = qq[SELECT COUNT(*) FROM fruits;];
+    my $expected = 2;
+    my $res1 = $node1->safe_psql($db, $query);
+    my $res2 = $node2->safe_psql($db, $query);
+
+    is($res1, $expected, "BDR node " . $node1->name() . "has all the data");
+    is($res2, $expected, "BDR node " . $node2->name() . "has all the data");
 }
 
 1;

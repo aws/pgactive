@@ -102,3 +102,14 @@ SELECT * FROM ddl_info;
 -- Run the upgrade function, even though we started with 2.0, so we exercise it
 -- and so we know it won't break things when run on a 2.0 cluster.
 SELECT bdr.bdr_assign_seq_ids_post_upgrade();
+
+-- Verify utility functions to handle BDR statuses
+SELECT
+  c::"char" AS status_char,
+  bdr.bdr_node_status_from_char(c::"char") AS status_str,
+  bdr.bdr_node_status_to_char(bdr.bdr_node_status_from_char(c::"char")) AS roundtrip_char
+FROM (VALUES ('b'),('i'),('c'),('o'),('r'),('k')) x(c)
+ORDER BY c;
+
+-- Verify that there are some stats already
+SELECT COUNT(*) > 0 AS ok FROM bdr.bdr_stats;

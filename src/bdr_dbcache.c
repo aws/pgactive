@@ -179,8 +179,6 @@ bdr_dbcache_lookup(Oid dboid, bool missing_ok)
 		   0,
 		   sizeof(BDRDatabaseCacheEntry) - offsetof(BDRDatabaseCacheEntry, dbname));
 
-
-	/* lookup db entry and error out when the db doesn't exist && !missin_ok */
 	dbtuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(dboid));
 
 	if (!HeapTupleIsValid(dbtuple) && !missing_ok)

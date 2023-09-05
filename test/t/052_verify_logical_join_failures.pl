@@ -9,11 +9,7 @@ use Config;
 use PostgreSQL::Test::Cluster;
 use PostgreSQL::Test::Utils;
 use Test::More;
-use utils::nodemanagement qw(
-		:DEFAULT
-		generate_bdr_logical_join_query
-        bdr_update_postgresql_conf
-		);
+use utils::nodemanagement;
 
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
