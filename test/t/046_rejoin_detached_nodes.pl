@@ -14,90 +14,61 @@ use Test::More;
 use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
-my $nodes = make_bdr_group(3,'node_');
-my ($node_0,$node_1,$node_2) = @$nodes;
+my $nodes = make_bdr_group(2,'node_');
+my ($node_0,$node_1) = @$nodes;
 
-# Detach a node from 3 node cluster
-note "Detach node_0 from 3 node cluster\n";
+# Detach a node from 2 node cluster
+note "Detach node_0 from 2 node cluster\n";
 bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 # Remove BDR from the detached node
 $node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
 
-#
-# Use case 1: a detached node without relations that already exist on the other
-# nodes is able to rejoin.
-# Such relation(s) (if any) are not replicated during the re-join.
-#
-
-# create a table on the detached and removed node
+# Create a table on the detached and removed node
 $node_0->safe_psql($bdr_test_dbname, "create table db_not_empty(a int primary key)");
 
-# re-join the detached node
-bdr_logical_join($node_0, $node_1);
-check_join_status($node_0, $node_1);
+# Try re-joining the detached node
+my $join_query = generate_bdr_logical_join_query($node_0, $node_1);
 
 # Must not use safe_psql since we expect an error here
 my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
-($psql_ret, $psql_stdout, $psql_stderr) = $node_1->psql(
+($psql_ret, $psql_stdout, $psql_stderr) = $node_0->psql(
     $bdr_test_dbname,
-    "SELECT count(*) from db_not_empty;");
-like($psql_stderr, qr/relation "db_not_empty" does not exist/, "db_not_empty not replicated during re-join");
+    $join_query);
+like($psql_stderr, qr/.*ERROR.*database joining BDR group has existing user tables/,
+     "joining of a node failed due to existing user tables in database");
 
-#
-# Use case 2: a detached node with relations that already exist on the other
-# nodes is failing to rejoin.
-#
+# Ensure database is empty before joining BDR group
+$node_0->safe_psql($bdr_test_dbname, q[DROP TABLE db_not_empty;]);
 
-# create a table on node_0 (now that it re-joined)
-exec_ddl($node_0, q[CREATE TABLE public.test_dup(a int primary key);]);
+# Now re-join the detached node
+bdr_logical_join($node_0, $node_1);
+check_join_status($node_0, $node_1);
 
-# Make sure everything caught up by forcing another lock
-$node_0->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
+# Create a table on node_0 (now that it re-joined)
+$node_0->safe_psql($bdr_test_dbname,
+    q[CREATE TABLE fruits(id integer, name varchar);]);
+$node_0->safe_psql($bdr_test_dbname,
+    q[INSERT INTO fruits VALUES (1, 'Cherry');]);
+wait_for_apply($node_0, $node_1);
 
-# Detach node0 from 3 node cluster
-note "Detach node_0 from 3 node cluster\n";
+$node_1->safe_psql($bdr_test_dbname,
+    q[INSERT INTO fruits VALUES (2, 'Apple');]);
+wait_for_apply($node_0, $node_1);
+
+# Check data is available on all BDR nodes after rejoin
+my $query = qq[SELECT COUNT(*) FROM fruits;];
+my $expected = 2;
+my $node_0_res = $node_0->safe_psql($bdr_test_dbname, $query);
+my $node_1_res = $node_1->safe_psql($bdr_test_dbname, $query);
+
+is($node_0_res, $expected, "BDR node node_0 has all the data");
+is($node_1_res, $expected, "BDR node node_1 has all the data");
+
+# Again, detach node_0 from 2 node cluster
+note "Detach node_0 from 2 node cluster\n";
 bdr_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
-# Remove BDR from the detached node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
-
-# re-join the detached node
-my $logstart_0 = get_log_size($node_0);
-bdr_logical_join($node_0, $node_1, nowait => 1);
-
-# re-join should complain about test_dup already exists
-my $result = wait_for_re_join_to_fail($node_0,
-    qr!.*pg_restore:.*relation "test_dup" already exists!,
-    $logstart_0);
-
-ok($result, "re-join node_0 is failing");
-
 done_testing();
-
-# Return the size of logfile of $node in bytes
-sub get_log_size
-{
-	my ($node) = @_;
-
-	return (stat $node->logfile)[7];
-}
-
-# Find $pat in logfile of $node after $off-th byte
-sub wait_for_re_join_to_fail
-{
-	my ($node, $pat, $off) = @_;
-	my $max_attempts = $PostgreSQL::Test::Utils::timeout_default * 10;
-	my $log;
-
-	while ($max_attempts-- >= 0)
-	{
-		$log = PostgreSQL::Test::Utils::slurp_file($node->logfile, $off);
-		last if ($log =~ m/$pat/);
-		usleep(100_000);
-	}
-
-	return $log =~ m/$pat/;
-}

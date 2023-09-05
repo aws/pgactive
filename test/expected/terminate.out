@@ -102,6 +102,12 @@ SELECT wait_for_nworkers(2);
  
 (1 row)
 
+SELECT pg_sleep(10);
+ pg_sleep 
+----------
+ 
+(1 row)
+
 BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(true); COMMIT;
  _bdr_pause_worker_management_private 
 --------------------------------------
@@ -122,6 +128,12 @@ SELECT n.node_name, bdr.bdr_terminate_workers(node_sysid, node_timeline, node_db
  node_name | bdr_terminate_workers 
 -----------+-----------------------
  node-pg   | t
+(1 row)
+
+SELECT pg_sleep(10);
+ pg_sleep 
+----------
+ 
 (1 row)
 
 -- We must remain with our own walsender

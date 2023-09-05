@@ -47,14 +47,10 @@
 PGDLLEXPORT Datum bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_test_replication_connection(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_test_remote_connectback(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_copytable_test(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum bdr_drop_remote_slot(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_get_remote_nodeinfo);
 PG_FUNCTION_INFO_V1(bdr_test_replication_connection);
 PG_FUNCTION_INFO_V1(bdr_test_remote_connectback);
-PG_FUNCTION_INFO_V1(bdr_copytable_test);
-PG_FUNCTION_INFO_V1(bdr_drop_remote_slot);
 
 /*
  * Make standard postgres connection, ERROR on failure.
@@ -209,36 +205,6 @@ bdr_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 }
 
 /*
- * Test function for bdr_copytable.
- */
-Datum
-bdr_copytable_test(PG_FUNCTION_ARGS)
-{
-	const char *fromdsn = PG_GETARG_CSTRING(0);
-	const char *todsn = PG_GETARG_CSTRING(1);
-	const char *fromquery = PG_GETARG_CSTRING(2);
-	const char *toquery = PG_GETARG_CSTRING(3);
-
-	PGconn	   *fromconn,
-			   *toconn;
-
-	fromconn = PQconnectdb(fromdsn);
-	if (PQstatus(fromconn) != CONNECTION_OK)
-		elog(ERROR, "from conn failed");
-
-	toconn = PQconnectdb(todsn);
-	if (PQstatus(toconn) != CONNECTION_OK)
-		elog(ERROR, "to conn failed");
-
-	bdr_copytable(fromconn, toconn, fromquery, toquery);
-
-	PQfinish(fromconn);
-	PQfinish(toconn);
-
-	PG_RETURN_VOID();
-}
-
-/*
  * The implementation guts of bdr_get_remote_nodeinfo, callable with
  * a pre-existing connection.
  */
@@ -377,14 +343,37 @@ bdr_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		elog(ERROR, "got more than one bdr.bdr_nodes row matching local nodeid");	/* shouldn't happen */
 
 	PQclear(res);
+
+	/* Fetch total indexes size from remote node */
+	res = PQexec(conn, "SELECT sum(pg_indexes_size(r.oid)) AS indexessize "
+				 "FROM pg_class r JOIN pg_namespace n "
+				 "ON relnamespace = n.oid WHERE n.nspname NOT IN "
+				 "('pg_catalog', 'bdr', 'information_schema') "
+				 "AND relkind = 'r' AND relpersistence = 'p';");
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		ereport(ERROR,
+				(errmsg("unable to get total indexes size from remote node"),
+				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
+
+	Assert(PQnfields(res) == 1);
+	Assert(PQntuples(res) == 1);
+
+	if (PQgetisnull(res, 0, 0))
+		ri->indexessize = 0;
+	else
+		ri->indexessize = DatumGetInt64(
+										DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 0))));
+
+	PQclear(res);
 }
 
 Datum
 bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 {
 	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	Datum		values[17];
-	bool		isnull[17];
+	Datum		values[18];
+	bool		isnull[18];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -422,19 +411,20 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		values[9] = CStringGetTextDatum(ri.node_name);
 		values[10] = CStringGetTextDatum(ri.dbname);
 		values[11] = Int64GetDatum(ri.dbsize);
-		values[12] = Int32GetDatum(ri.max_nodes);
-		values[13] = BoolGetDatum(ri.skip_ddl_replication);
-		values[14] = Int32GetDatum(ri.cur_nodes);
+		values[12] = Int64GetDatum(ri.indexessize);
+		values[13] = Int32GetDatum(ri.max_nodes);
+		values[14] = BoolGetDatum(ri.skip_ddl_replication);
+		values[15] = Int32GetDatum(ri.cur_nodes);
 
 		if (ri.datcollate == NULL)
-			isnull[15] = true;
-		else
-			values[15] = CStringGetTextDatum(ri.datcollate);
-
-		if (ri.datctype == NULL)
 			isnull[16] = true;
 		else
-			values[16] = CStringGetTextDatum(ri.datctype);
+			values[16] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[17] = true;
+		else
+			values[17] = CStringGetTextDatum(ri.datctype);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
@@ -681,96 +671,4 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 	PQfinish(conn);
 
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
-}
-
-
-/*
- * Drops replication slot on remote node that has been used by the local node.
- */
-Datum
-bdr_drop_remote_slot(PG_FUNCTION_ARGS)
-{
-	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
-	PGconn	   *conn;
-	PGresult   *res;
-	NameData	slotname;
-	BdrConnectionConfig *cfg;
-	BDRNodeId	remote;
-
-	remote.timeline = PG_GETARG_OID(1);
-	remote.dboid = PG_GETARG_OID(2);
-
-	if (sscanf(remote_sysid_str, UINT64_FORMAT, &remote.sysid) != 1)
-		elog(ERROR, "parsing of remote sysid as uint64 failed");
-
-	cfg = bdr_get_connection_config(&remote, false);
-	conn = bdr_connect_nonrepl(cfg->dsn, "bdr_drop_replication_slot", true);
-	bdr_free_connection_config(cfg);
-
-	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
-							PointerGetDatum(&conn));
-	{
-		struct remote_node_info ri;
-		const char *values[1];
-		Oid			types[1] = {TEXTOID};
-		BDRNodeId	myid;
-
-		bdr_make_my_nodeid(&myid);
-		memset(&ri, 0, sizeof(ri));
-
-		/* Try connecting and build slot name from retrieved info */
-		bdr_get_remote_nodeinfo_internal(conn, &ri);
-		bdr_slot_name(&slotname, &myid, remote.dboid);
-		free_remote_node_info(&ri);
-
-		values[0] = NameStr(slotname);
-
-		/* Check if the slot exists */
-		res = PQexecParams(conn,
-						   "SELECT plugin "
-						   "FROM pg_catalog.pg_replication_slots "
-						   "WHERE slot_name = $1",
-						   1, types, values, NULL, NULL, 0);
-
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			ereport(ERROR,
-					(errmsg("getting remote slot info failed"),
-					 errdetail("SELECT FROM pg_catalog.pg_replication_slots failed with: %s",
-							   PQerrorMessage(conn))));
-		}
-
-		/* Slot not found return false */
-		if (PQntuples(res) == 0)
-		{
-			PQfinish(conn);
-			PG_RETURN_BOOL(false);
-		}
-
-		/* Slot found, validate that it's BDR slot */
-		if (PQgetisnull(res, 0, 0))
-			elog(ERROR, "unexpectedly null field %s", PQfname(res, 0));
-
-		if (strcmp("bdr", PQgetvalue(res, 0, 0)) != 0)
-			ereport(ERROR,
-					(errmsg("slot %s is not BDR slot", NameStr(slotname))));
-
-		res = PQexecParams(conn, "SELECT pg_drop_replication_slot($1)",
-						   1, types, values, NULL, NULL, 0);
-
-		/* And finally, drop the slot. */
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			ereport(ERROR,
-					(errmsg("remote slot drop failed"),
-					 errdetail("SELECT pg_drop_replication_slot() failed with: %s",
-							   PQerrorMessage(conn))));
-		}
-	}
-	PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
-								PointerGetDatum(&conn));
-
-	PQfinish(conn);
-
-	PG_RETURN_BOOL(true);
 }

@@ -16,7 +16,6 @@ use Test::More;
 use utils::nodemanagement qw(
     :DEFAULT
     $bdr_test_dbname
-    generate_bdr_logical_join_query
     copy_transform_postgresqlconf
     start_bdr_init_copy
     wait_detach_completion

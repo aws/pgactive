@@ -78,7 +78,7 @@ $node_a->stop;
 is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B during restart A');
 $node_a->start;
 # to make sure a is ready for queries again:
-sleep(1);
+sleep(10);
 
 note "taking final DDL lock";
 $node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);

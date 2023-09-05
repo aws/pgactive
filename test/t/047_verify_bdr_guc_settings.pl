@@ -12,10 +12,7 @@ use PostgreSQL::Test::Utils;
 use Time::HiRes qw(usleep);
 use IPC::Run;
 use Test::More;
-use utils::nodemanagement qw(
-		:DEFAULT
-		generate_bdr_logical_join_query
-		);
+use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
@@ -201,29 +198,3 @@ $node_0->stop;
 $node_1->stop;
 
 done_testing();
-
-# Return the size of logfile of $node in bytes
-sub get_log_size
-{
-	my ($node) = @_;
-
-	return (stat $node->logfile)[7];
-}
-
-# Find $pat in logfile of $node after $off-th byte
-sub find_in_log
-{
-	my ($node, $pat, $off) = @_;
-	#my $max_attempts = $PostgreSQL::Test::Utils::timeout_default * 10;
-	my $max_attempts = 60 * 10;
-	my $log;
-
-	while ($max_attempts-- >= 0)
-	{
-		$log = PostgreSQL::Test::Utils::slurp_file($node->logfile, $off);
-		last if ($log =~ m/$pat/);
-		usleep(100_000);
-	}
-
-	return $log =~ m/$pat/;
-}

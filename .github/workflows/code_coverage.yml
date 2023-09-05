@@ -1,14 +1,5 @@
-name: BDR CI
+name: BDR code coverage CI
 on:
-  schedule:
-    # Runs every day at 5am.
-    - cron: '0 5 * * *'
-  push:
-    paths-ignore:
-      - 'doc/**'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
   workflow_dispatch:
 jobs:
   test:
@@ -33,20 +24,13 @@ jobs:
 
       - name: Checkout Postgres
         run: |
-          sudo apt-get -y -q install libipc-run-perl
+          sudo apt-get -y -q install libipc-run-perl lcov
           git clone --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
-
-      - if: ${{ matrix.version == 'REL_11_STABLE' }}
-        name: Apply per-test-script runtime display patch (REL_11_STABLE only)
-        run: |
-          cd postgres
-          git apply $GITHUB_WORKSPACE/bdr/src/compat/11/v1-0001-Add-per-test-script-runtime-display-to-pg_regress.patch
-          git status
 
       - name: Build Postgres
         run: |
           cd postgres
-          sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests CFLAGS="-ggdb3 -O0"
+          sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests --enable-coverage CFLAGS="-ggdb3 -O0"
           make -j4 install
 
           # Install extensions required for BDR tests
@@ -54,19 +38,6 @@ jobs:
           make -C contrib/cube install
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
-
-      - if: ${{ matrix.version == 'REL_16_STABLE' }}
-        name: Check BDR code indentation (REL_16_STABLE only)
-        run: |
-          cd postgres
-          make -C src/tools/pg_bsd_indent/ -j4 install
-          cat << EOF >> pgindent.ignore
-          src/compat/11/pg_dump/*
-          src/compat/15/pg_dump/*
-          src/compat/16/pg_dump/*
-          EOF
-          src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --show-diff $GITHUB_WORKSPACE/bdr > pgindent.diffs
-          test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0
 
       - name: Build BDR
         run: |
@@ -90,20 +61,39 @@ jobs:
           cd bdr
           make PROVE_FLAGS="--timer -v" prove_check
 
-      - name: Run pgbench tests with BDR
-        run: |
-            cd bdr
-            time sh test/bdr_pgbench.sh PGSRC=$GITHUB_WORKSPACE/postgres BDRSRC=$GITHUB_WORKSPACE/bdr RESULTS=$GITHUB_WORKSPACE/pgbench_results
-
       - name: Upload test artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
-            postgres/pgindent.diffs
             bdr/test/regression.diffs
             bdr/test/tmp_check/log
-            # Upload bdr_pgbench.sh results
-            $GITHUB_WORKSPACE/pgbench_results
-          retention-days: 1
+          retention-days: 7
+
+      - name: Collect code coverage info
+        if: ${{ always() }}
+        run: |
+          # The steps to run code coverage are referred from
+          # https://www.postgresql.org/message-id/CAB7nPqQkUyN_A88Rw4iAaYax%3Dm4DwNPwoScBVyb3ihmfks8uDg%40mail.gmail.com
+          # and https://www.postgresql.org/docs/current/regress-coverage.html
+          cd bdr
+          make coverage-html abs_top_srcdir=$(pwd)
+          /usr/bin/lcov --gcov-tool /usr/bin/gcov -q --no-external -c -i -d . -d ./ -o lcov_base.info
+          /usr/bin/lcov --gcov-tool /usr/bin/gcov -q --no-external -c -d . -d ./ -o lcov_test.info
+          rm -rf coverage
+          /usr/bin/genhtml --legend -o coverage-${{ matrix.version }} --title='BDR on ${{ matrix.version }}' --num-spaces=4  lcov_base.info lcov_test.info
+
+          # Clean up steps. They are here as demonstration for developers
+          # running code coverage indvidually.
+          # rm -rf  coverage coverage-${{ matrix.version }} coverage-html-stamp
+          # rm -f src/*.gcda src/*.gcno src/lcov*.info src/*.gcov src/.*.gcov src/*.gcov.out lcov_base.info lcov_test.info
+
+      - name: Upload code coverage artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-artifact-${{ matrix.os }}-${{ matrix.version }}
+          path: |
+            bdr/coverage-${{ matrix.version }}
+          retention-days: 7

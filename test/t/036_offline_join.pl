@@ -14,7 +14,6 @@ use IPC::Run qw(timeout);;
 use Test::More;
 use utils::nodemanagement qw(
 		:DEFAULT
-		generate_bdr_logical_join_query
 		copy_transform_postgresqlconf
 		start_bdr_init_copy
 		);

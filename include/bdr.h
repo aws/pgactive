@@ -795,6 +795,8 @@ typedef struct remote_node_info
 	char	   *node_name;
 	char	   *dbname;
 	int64		dbsize;			/* database size in bytes */
+	/* total size of indexes present in database in bytes */
+	int64		indexessize;
 	int			max_nodes;
 	bool		skip_ddl_replication;
 	int			cur_nodes;
