@@ -2167,7 +2167,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 	PGresult   *res;
 	StringInfoData cmd;
 
-	conn = bdr_connect_nonrepl(dsn->data, "apply_info");
+	conn = bdr_connect_nonrepl(dsn->data, "apply_info", false);
 
 	/* Make sure BDR is actually present and active on the remote */
 	bdr_ensure_ext_installed(conn);

@@ -117,7 +117,7 @@ $upstream_node = $node_0;
 my $node_1 = PostgreSQL::Test::Cluster->new('node_1');
 initandstart_node($node_1);
 
-my $logstart_1 = get_log_size($node_1);
+my $logstart_0 = get_log_size($node_0);
 
 $node_1->append_conf('postgresql.conf', q{bdr.skip_ddl_replication = false});
 $node_1->restart;
@@ -140,19 +140,19 @@ $node_1->restart;
 bdr_logical_join($node_1, $upstream_node);
 check_join_status($node_1, $upstream_node);
 
-# Change/deviate bdr.skip_ddl_replication value from the group and restart the node, the
-# node mustn't start per-db and apply workers.
-$node_1->append_conf('postgresql.conf', qq(bdr.skip_ddl_replication = false));
-$node_1->restart;
-$result = find_in_log($node_1,
+# This time, on the "creator" node, change/deviate bdr.skip_ddl_replication value
+# from the group and restart the node, the node mustn't start per-db and apply workers.
+$node_0->append_conf('postgresql.conf', qq(bdr.skip_ddl_replication = false));
+$node_0->restart;
+$result = find_in_log($node_0,
 	qr[ERROR:  bdr.skip_ddl_replication parameter value .* on local node .* doesn't match with remote node .*],
-	$logstart_1);
+	$logstart_0);
 ok($result, "bdr.skip_ddl_replication parameter value mismatch between local node and remote node is detected");
 
 # Change bdr.max_nodes value on node to make it successfully start per-db and
 # apply workers.
-$node_1->append_conf('postgresql.conf', qq(bdr.skip_ddl_replication = true));
-$node_1->restart;
+$node_0->append_conf('postgresql.conf', qq(bdr.skip_ddl_replication = true));
+$node_0->restart;
 
 # Create some data on upstream node after node_1 joins the group successfully.
 $node_0->safe_psql($bdr_test_dbname,
@@ -171,6 +171,28 @@ is($node_0->safe_psql($bdr_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
    '2', "Changes available on node_0");
 is($node_1->safe_psql($bdr_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
    '2', "Changes available on node_1");
+
+$node_0->stop;
+$node_1->stop;
+
+# Check that we error out if we are not able to connect to any remote nodes
+
+$logstart_0 = get_log_size($node_0);
+$node_0->start;
+
+$result = find_in_log($node_0,
+	qr[FATAL:  local node.*is not able to connect to any remote node to compare its parameters with.*],
+	$logstart_0);
+ok($result, "Error out if no remote nodes to compare with");
+
+# Check no error as soon as local node can connect to one remote node
+$node_1->start;
+$logstart_0 = get_log_size($node_0);
+
+$result = !find_in_log($node_0,
+	qr[FATAL:  local node.*is not able to connect to any remote node to compare its parameters with.*],
+	$logstart_0);
+ok($result, "No error out as soon as local node can connect to one remote node to compare with");
 
 $node_0->stop;
 $node_1->stop;

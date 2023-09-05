@@ -382,7 +382,7 @@ bdr_sync_nodes(PGconn *remote_conn, BDRNodeInfo * local_node)
 {
 	PGconn	   *local_conn;
 
-	local_conn = bdr_connect_nonrepl(local_node->local_dsn, "init");
+	local_conn = bdr_connect_nonrepl(local_node->local_dsn, "init", true);
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&local_conn));
@@ -987,7 +987,7 @@ bdr_init_replica(BDRNodeInfo * local_node)
 		 local_node->init_from_dsn);
 
 	nonrepl_init_conn =
-		bdr_connect_nonrepl(local_node->init_from_dsn, "init");
+		bdr_connect_nonrepl(local_node->init_from_dsn, "init", true);
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&nonrepl_init_conn));

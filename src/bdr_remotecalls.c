@@ -56,7 +56,7 @@ PG_FUNCTION_INFO_V1(bdr_test_remote_connectback);
  * Make standard postgres connection, ERROR on failure.
  */
 PGconn *
-bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
+bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool report_fatal)
 {
 	PGconn	   *nonrepl_conn;
 	StringInfoData dsn;
@@ -77,7 +77,7 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 	 * we are up to and let us resume an incomplete start.
 	 */
 	nonrepl_conn = PQconnectdb(dsn.data);
-	if (PQstatus(nonrepl_conn) != CONNECTION_OK)
+	if (PQstatus(nonrepl_conn) != CONNECTION_OK && report_fatal)
 	{
 		ereport(FATAL,
 				(errmsg("could not connect to the server in non-replication mode: %s",
@@ -381,7 +381,7 @@ bdr_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrnodeinfo");
+	conn = bdr_connect_nonrepl(remote_node_dsn, "bdrnodeinfo", true);
 
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
@@ -616,7 +616,7 @@ bdr_test_remote_connectback(PG_FUNCTION_ARGS)
 		elog(ERROR, "return type must be a row type");
 
 	remote_servername = get_connect_string(remote_node_dsn);
-	conn = bdr_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "bdrconnectback");
+	conn = bdr_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "bdrconnectback", true);
 
 	PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
 							PointerGetDatum(&conn));

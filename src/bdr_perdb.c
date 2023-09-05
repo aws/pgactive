@@ -54,6 +54,8 @@ static bool xacthook_connections_changed = false;
 
 static bool is_perdb_worker = true;
 
+static void check_params_are_same(void);
+
 bool
 IsBdrPerdbWorker(void)
 {
@@ -834,6 +836,97 @@ out:
 }
 
 /*
+ * Check whether the local node and one remote node have same
+ * bdr.max_nodes and bdr.skip_ddl_replication GUC values.
+ *
+ * If remote nodes exist and none is available to check the values
+ * against then error out with FATAL (per-db worker will keep re-trying).
+ *
+ * Once a remote node is available, if their values differ then let's
+ * not proceed further.
+ */
+static void
+check_params_are_same(void)
+{
+	MemoryContext saved_ctx;
+	List	   *all_local_dsn;
+	ListCell   *lc;
+	bool		check_done = false;
+	bool		empty_list = false;
+
+	while (!check_done && !empty_list)
+	{
+		StartTransactionCommand();
+		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
+		all_local_dsn = bdr_get_all_local_dsn();
+		MemoryContextSwitchTo(saved_ctx);
+		empty_list = true;
+
+		foreach(lc, all_local_dsn)
+		{
+			char	   *dsn = (char *) lfirst(lc);
+			PGconn	   *conn;
+
+			empty_list = false;
+
+			conn = bdr_connect_nonrepl(dsn,
+									   "bdrnodeinfo", false);
+
+			if (PQstatus(conn) != CONNECTION_OK)
+				continue;
+
+			PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+									PointerGetDatum(&conn));
+			{
+				struct remote_node_info ri;
+
+				bdr_get_remote_nodeinfo_internal(conn, &ri);
+
+				if (bdr_max_nodes != ri.max_nodes)
+					ereport(ERROR,
+							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+							 errmsg("bdr.max_nodes parameter value (%d) on local node " BDR_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
+									bdr_max_nodes,
+									BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+									ri.max_nodes),
+							 errhint("The parameter must be set to the same value on all BDR members.")));
+
+				if (prev_bdr_skip_ddl_replication != ri.skip_ddl_replication)
+					ereport(ERROR,
+							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+							 errmsg("bdr.skip_ddl_replication parameter value (%s) on local node " BDR_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
+									prev_bdr_skip_ddl_replication ? "true" : "false",
+									BDR_LOCALID_FORMAT_WITHNAME_ARGS,
+									ri.skip_ddl_replication ? "true" : "false"),
+							 errhint("The parameter must be set to the same value on all BDR members.")));
+
+				free_remote_node_info(&ri);
+				check_done = true;
+			}
+			PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
+										PointerGetDatum(&conn));
+
+			PQfinish(conn);
+			/* no need to check against other remote nodes */
+			if (check_done)
+				break;
+		}
+
+		CommitTransactionCommand();
+		list_free(all_local_dsn);
+
+		if (!check_done && !empty_list)
+		{
+			ereport(FATAL,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("local node " BDR_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
+							BDR_LOCALID_FORMAT_WITHNAME_ARGS),
+					 errhint("Ensure one remote node is connectable from the local node.")));
+		}
+	}
+}
+
+/*
  * Each database with BDR enabled on it has a static background worker,
  * registered at shared_preload_libraries time during postmaster start. This is
  * the entry point for these bgworkers.
@@ -926,49 +1019,10 @@ bdr_perdb_worker_main(Datum main_arg)
 		CommitTransactionCommand();
 
 		/*
-		 * Check whether the local node and remote node have same
-		 * bdr.max_nodes and bdr.skip_ddl_replication GUC values, if they
-		 * don't, let's not proceed further.
+		 * Check whether the local node and one remote node have same
+		 * bdr.max_nodes and bdr.skip_ddl_replication GUC values.
 		 */
-		if (local_node->init_from_dsn != NULL)
-		{
-			PGconn	   *conn;
-
-			conn = bdr_connect_nonrepl(local_node->init_from_dsn,
-									   "bdrnodeinfo");
-
-			PG_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
-									PointerGetDatum(&conn));
-			{
-				struct remote_node_info ri;
-
-				bdr_get_remote_nodeinfo_internal(conn, &ri);
-
-				if (bdr_max_nodes != ri.max_nodes)
-					ereport(ERROR,
-							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("bdr.max_nodes parameter value (%d) on local node " BDR_NODEID_FORMAT " doesn't match with remote node (%d)",
-									bdr_max_nodes,
-									BDR_LOCALID_FORMAT_ARGS,
-									ri.max_nodes),
-							 errhint("The parameter must be set to the same value on all BDR members.")));
-
-				if (prev_bdr_skip_ddl_replication != ri.skip_ddl_replication)
-					ereport(ERROR,
-							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("bdr.skip_ddl_replication parameter value (%s) on local node " BDR_NODEID_FORMAT " doesn't match with remote node (%s)",
-									prev_bdr_skip_ddl_replication ? "true" : "false",
-									BDR_LOCALID_FORMAT_ARGS,
-									ri.skip_ddl_replication ? "true" : "false"),
-							 errhint("The parameter must be set to the same value on all BDR members.")));
-
-				free_remote_node_info(&ri);
-			}
-			PG_END_ENSURE_ERROR_CLEANUP(bdr_cleanup_conn_close,
-										PointerGetDatum(&conn));
-
-			PQfinish(conn);
-		}
+		check_params_are_same();
 
 		/*
 		 * Do we need to init the local DB from a remote node?

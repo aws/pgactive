@@ -600,6 +600,86 @@ bdr_read_connection_configs()
 	return configs;
 }
 
+/*
+ * Get the list of local_dsn from bdr_nodes (excluding current node).
+ */
+List *
+bdr_get_all_local_dsn()
+{
+	HeapTuple	tuple;
+	StringInfoData query;
+	int			i;
+	int			ret;
+	List	   *all_local_dsn = NIL;
+	MemoryContext caller_ctx,
+				saved_ctx;
+	char		sysid_str[33];
+	Datum		values[1];
+	Oid			types[1] = {TEXTOID};
+	BDRNodeId	myid;
+
+	bdr_make_my_nodeid(&myid);
+
+	Assert(IsTransactionState());
+
+	/* Save the calling memory context, which we'll allocate results in */
+	caller_ctx = MemoryContextSwitchTo(CurTransactionContext);
+
+	initStringInfo(&query);
+
+	/*
+	 * Find a connections row specific to this origin node or if none exists,
+	 * the default connection data for that node.
+	 *
+	 * Configurations for all nodes, including the local node, are read.
+	 */
+	appendStringInfo(&query, "SELECT node_local_dsn "
+					 "FROM bdr.bdr_nodes "
+					 "WHERE node_sysid != $1"
+					 " AND node_status <> " BDR_NODE_STATUS_KILLED_S " "
+		);
+
+	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
+
+	values[0] = CStringGetTextDatum(&sysid_str[0]);
+
+	SPI_connect();
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	ret = SPI_execute_with_args(query.data, 1, types, values, NULL, false, 0);
+
+	if (ret != SPI_OK_SELECT)
+		elog(ERROR, "SPI error while querying bdr.bdr_nodes");
+
+	/* Switch to calling memory context to copy results */
+	saved_ctx = MemoryContextSwitchTo(caller_ctx);
+
+	for (i = 0; i < SPI_processed; i++)
+	{
+		char	   *tmp_local_dsn;
+
+		tuple = SPI_tuptable->vals[i];
+
+		/*
+		 * Fetch tuple attributes
+		 */
+		tmp_local_dsn = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
+									 getattno("node_local_dsn"));
+
+		all_local_dsn = lcons(tmp_local_dsn, all_local_dsn);
+
+	}
+
+	MemoryContextSwitchTo(saved_ctx);
+
+	SPI_finish();
+	PopActiveSnapshot();
+
+	MemoryContextSwitchTo(caller_ctx);
+
+	return all_local_dsn;
+}
+
 void
 bdr_free_connection_config(BdrConnectionConfig * cfg)
 {
