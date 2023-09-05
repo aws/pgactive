@@ -150,7 +150,6 @@ static void initialize_replication_slot(PGconn *conn,
 										Oid dboid,
 										uint64 nid);
 
-static void install_extension(PGconn *conn, const char *extname);
 static bool extension_exists(PGconn *conn, const char *extname);
 
 static void bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
@@ -562,7 +561,7 @@ main(int argc, char **argv)
 			 log_file_name);
 	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
 	if (pg_ctl_ret != 0)
-		die(_("postgres startup for restore point catchup failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
+		die(_("postgres startup for restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 
 	wait_postmaster_connection(local_connstr);
 
@@ -576,7 +575,8 @@ main(int argc, char **argv)
 	wait_for_end_recovery(local_connstr);
 
 	/*
-	 * Clean any per-node data that were copied by pg_basebackup.
+	 * Clean any per-node data that were copied by pg_basebackup and perform
+	 * post recovery checks.
 	 */
 	for (i = 0; i < remote_info->numdbs; i++)
 	{
@@ -588,6 +588,13 @@ main(int argc, char **argv)
 
 		remove_unwanted_data(local_conn);
 
+		/*
+		 * Local node should have got the BDR extension created as part its
+		 * catchup via physical replication with remote node above.
+		 */
+		if (!extension_exists(local_conn, "bdr"))
+			die(_("Could not find BDR extension created on local node\n"));
+
 		PQfinish(local_conn);
 		local_conn = NULL;
 	}
@@ -595,7 +602,7 @@ main(int argc, char **argv)
 	/* Stop Postgres so we can reset system id and start it with BDR loaded. */
 	pg_ctl_ret = run_pg_ctl("stop");
 	if (pg_ctl_ret != 0)
-		die(_("postgres stop after restore point catchup failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
+		die(_("postgres stop after restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 	wait_postmaster_shutdown();
 
 	/*
@@ -610,7 +617,7 @@ main(int argc, char **argv)
 			 "start -l '%s'", log_file_name);
 	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
 	if (pg_ctl_ret != 0)
-		die(_("postgres restart with BDR enabled failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
+		die(_("postgres restart with BDR enabled failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 	wait_postmaster_connection(local_connstr);
 
 	for (i = 0; i < remote_info->numdbs; i++)
@@ -657,7 +664,7 @@ main(int argc, char **argv)
 		print_msg(VERBOSITY_NORMAL, _("Stopping the local node ...\n"));
 		pg_ctl_ret = run_pg_ctl("stop");
 		if (pg_ctl_ret != 0)
-			die(_("Stopping postgres after successful join failed with %d. See '%s'."), pg_ctl_ret, log_file_name);
+			die(_("Stopping postgres after successful join failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 		wait_postmaster_shutdown();
 	}
 
@@ -721,7 +728,7 @@ finish_die()
 	{
 		if (!run_pg_ctl("stop -s"))
 		{
-			fprintf(stderr, _("WARNING: postgres seems to be running, but could not be stopped"));
+			fprintf(stderr, _("WARNING: postgres seems to be running, but could not be stopped\n"));
 		}
 	}
 
@@ -1149,29 +1156,6 @@ extension_exists(PGconn *conn, const char *extname)
 }
 
 /*
- * Create extension.
- */
-static void
-install_extension(PGconn *conn, const char *extname)
-{
-	PQExpBuffer query = createPQExpBuffer();
-	PGresult   *res;
-
-	printfPQExpBuffer(query, "CREATE EXTENSION %s;",
-					  PQescapeIdentifier(conn, extname, strlen(extname)));
-	res = PQexec(conn, query->data);
-
-	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-	{
-		PQclear(res);
-		die(_("Could not install %s extension: %s\n"), extname, PQerrorMessage(conn));
-	}
-
-	PQclear(res);
-	destroyPQExpBuffer(query);
-}
-
-/*
  * Validates input of the replication sets and returns normalized data.
  *
  * The rules enforced here should be same as the ones in
@@ -1434,10 +1418,6 @@ bdr_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	PQExpBuffer query = createPQExpBuffer();
 	PQExpBuffer repsets = createPQExpBuffer();
 	PGresult   *res;
-
-	/* Install required extensions if needed. */
-	if (!extension_exists(conn, "bdr"))
-		install_extension(conn, "bdr");
 
 	/* Ceate BDR node identifier getter function on node. */
 	create_bdr_nid_getter_function(conn, dbname, nid);

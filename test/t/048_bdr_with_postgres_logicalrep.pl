@@ -10,11 +10,7 @@ use PostgreSQL::Test::Cluster;
 use PostgreSQL::Test::Utils;
 use IPC::Run;
 use Test::More;
-use utils::nodemanagement qw(
-        :DEFAULT
-        generate_bdr_logical_join_query
-		bdr_update_postgresql_conf
-        );
+use utils::nodemanagement;
 
 # Create an upstream node and bring up bdr
 my $nodes = make_bdr_group(2,'node_');

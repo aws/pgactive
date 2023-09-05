@@ -1424,11 +1424,6 @@ RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE;
 
-CREATE FUNCTION bdr_drop_remote_slot(sysid text, timeline oid, dboid oid)
-RETURNS boolean
-AS 'MODULE_PATHNAME'
-LANGUAGE C VOLATILE STRICT;
-
 CREATE FUNCTION bdr_get_workers_info (
     OUT sysid text,
     OUT timeline oid,

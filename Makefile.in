@@ -93,7 +93,6 @@ DDLTESTS_FUNC := ddl_fn/ddl_enable_ddl \
 REGRESSCHECKS = init \
 	preseed \
 	init_bdr \
-	status \
 	guc \
 	schema \
 	preseed_check \
