@@ -426,6 +426,7 @@ CREATE FUNCTION bdr_get_remote_nodeinfo (
   node_name OUT text,
   dbname OUT text,
   dbsize OUT int8,
+  indexessize OUT int8,
   max_nodes OUT integer,
   skip_ddl_replication OUT boolean,
   cur_nodes OUT integer,
@@ -682,6 +683,14 @@ DECLARE
     local_db_collation_info_r RECORD;
     collation_errmsg text;
     collation_hintmsg text;
+    data_dir text;
+    temp_dump_dir text;
+    same_file_system_mount_point boolean;
+    free_disk_space1 int8;
+    free_disk_space1_p text;
+    free_disk_space2 int8;
+    free_disk_space2_p text;
+    remote_dbsize_p text;
 BEGIN
     -- Only one tx can be adding connections
     LOCK TABLE bdr.bdr_connections IN EXCLUSIVE MODE;
@@ -826,6 +835,59 @@ BEGIN
                                 local_max_node_value, remote_nodeinfo.max_nodes),
                 HINT = 'The parameter must be set to the same value on all BDR members.',
                 ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT setting FROM pg_settings
+          WHERE name = 'data_directory' INTO data_dir;
+
+        SELECT bdr.get_free_disk_space(data_dir) INTO free_disk_space1;
+        SELECT pg_size_pretty(free_disk_space1) INTO free_disk_space1_p;
+        SELECT pg_size_pretty(remote_nodeinfo.dbsize) INTO remote_dbsize_p;
+
+        -- We estimate that postgres needs 20% more disk space as temporary
+        -- workspace while restoring database for running queries or building
+        -- indexes. Note that it is just an estimation, the actual disk space
+        -- needed depends on various factors. Hence we emit a warning to inform
+        -- early, not an error.
+        IF free_disk_space1 < (1.2 * remote_nodeinfo.dbsize) THEN
+          RAISE WARNING USING
+            MESSAGE = 'node might fail to join BDR group as disk space is likely to be insufficient',
+            DETAIL = format('joining node data directory file system mount point has %s free disk space and remote database is %s in size.',
+                            free_disk_space1_p, remote_dbsize_p),
+            HINT = 'Ensure enough free space on joining node file system.',
+            ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT setting FROM pg_settings
+          WHERE name = 'bdr.temp_dump_directory' INTO temp_dump_dir;
+
+        SELECT bdr.get_free_disk_space(temp_dump_dir) INTO free_disk_space2;
+        SELECT pg_size_pretty(free_disk_space2) INTO free_disk_space2_p;
+
+        -- We estimate that pg_dump needs at least 50% of database size
+        -- excluding total size of indexes on the database. Note that it is
+        -- just an estimation, the actual disk space needed depends on various
+        -- factors. Hence we emit a warning to inform early, not an error.
+        IF free_disk_space2 < ((remote_nodeinfo.dbsize - remote_nodeinfo.indexessize)/2) THEN
+          RAISE WARNING USING
+            MESSAGE = 'node might fail to join BDR group as disk space required to store temporary dump is likely to be insufficient',
+            DETAIL = format('bdr.temp_dump_directory file system mount point has %s free disk space and remote database is %s in size.',
+                            free_disk_space2_p, remote_dbsize_p),
+            HINT = 'Ensure enough free space on bdr.temp_dump_directory file system.',
+            ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+
+        SELECT bdr.check_file_system_mount_points(data_dir, temp_dump_dir)
+          INTO same_file_system_mount_point;
+
+        IF same_file_system_mount_point THEN
+          IF free_disk_space1 <
+             ((1.2 * remote_nodeinfo.dbsize) + ((remote_nodeinfo.dbsize - remote_nodeinfo.indexessize)/2)) THEN
+            RAISE WARNING USING
+              MESSAGE = 'node might fail to join BDR group as disk space required to store both remote database and temporary dump is likely to be insufficient',
+              HINT = 'Ensure enough free space on joining node file system.',
+              ERRCODE = 'object_not_in_prerequisite_state';
+          END IF;
         END IF;
 
 		-- using pg_file_settings here as bdr.skip_ddl_replication is SET to on when entering
@@ -2109,6 +2171,32 @@ FROM
  LEFT JOIN pg_catalog.pg_stat_replication r ON (r.pid = s.active_pid)
 WHERE ps.local_dboid = (select oid from pg_database where datname = current_database())
   AND s.plugin = 'bdr';
+
+CREATE FUNCTION get_free_disk_space(
+  path text,
+  OUT free_disk_space int8
+)
+RETURNS bigint
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION get_free_disk_space(text) FROM public;
+
+COMMENT ON FUNCTION get_free_disk_space(text) IS
+'Gets free disk space in bytes of filesystem to which given path is mounted.';
+
+CREATE FUNCTION check_file_system_mount_points(
+  path1 text,
+  path2 text
+)
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION check_file_system_mount_points(text, text) FROM public;
+
+COMMENT ON FUNCTION check_file_system_mount_points(text, text) IS
+'Checks if given paths are on same file system mount points.';
 
 -- RESET bdr.permit_unsafe_ddl_commands; is removed for now
 RESET bdr.skip_ddl_replication;

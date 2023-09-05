@@ -17,6 +17,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifndef WIN32
+#include <sys/statvfs.h>
+#endif
+
 #include "bdr.h"
 #include "bdr_locks.h"
 
@@ -145,6 +149,8 @@ PGDLLEXPORT Datum bdr_conninfo_cmp(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum bdr_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_free_disk_space(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(bdr_apply_pause);
 PG_FUNCTION_INFO_V1(bdr_apply_resume);
@@ -167,6 +173,8 @@ PG_FUNCTION_INFO_V1(bdr_conninfo_cmp);
 PG_FUNCTION_INFO_V1(bdr_destroy_temporary_dump_directories);
 PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
 PG_FUNCTION_INFO_V1(get_replication_lag_info);
+PG_FUNCTION_INFO_V1(get_free_disk_space);
+PG_FUNCTION_INFO_V1(check_file_system_mount_points);
 
 static int	bdr_get_worker_pid_byid(const BDRNodeId * const nodeid, BdrWorkerType worker_type);
 
@@ -2283,4 +2291,59 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 
 	PG_RETURN_VOID();
 #undef GET_REPLICATION_LAG_INFO_COLS
+}
+
+Datum
+get_free_disk_space(PG_FUNCTION_ARGS)
+{
+#ifdef WIN32
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("getting free disk space is not supported by this installation")));
+#endif
+	char	   *path = text_to_cstring(PG_GETARG_TEXT_P(0));
+	struct statvfs buf;
+	int64		free_space;
+
+	if (statvfs(path, &buf) != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("failed to free disk space for filesystem to which path \"%s\" is mounted: %m",
+						path)));
+
+	free_space = buf.f_bsize * buf.f_bfree;
+
+	PG_RETURN_INT64(free_space);
+}
+
+Datum
+check_file_system_mount_points(PG_FUNCTION_ARGS)
+{
+#ifdef WIN32
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("checking file system mount point is not supported by this installation")));
+#endif
+	char	   *path1 = text_to_cstring(PG_GETARG_TEXT_P(0));
+	char	   *path2 = text_to_cstring(PG_GETARG_TEXT_P(1));
+	struct stat buf1;
+	struct stat buf2;
+
+	if (stat(path1, &buf1) != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("failed to check mount point for path \"%s\": %m",
+						path1)));
+
+	if (stat(path2, &buf2) != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("failed to check mount point for path \"%s\": %m",
+						path2)));
+
+	/* Compare device IDs of the mount points of the paths */
+	if (buf1.st_dev == buf2.st_dev)
+		PG_RETURN_BOOL(true);
+
+	PG_RETURN_BOOL(false);
 }
