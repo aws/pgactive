@@ -184,7 +184,7 @@ connectdb(char *connstr)
 
 	conn = PQconnectdb(connstr);
 	if (PQstatus(conn) != CONNECTION_OK)
-		die(_("Connection to database failed: %s, connection string was: %s\n"), PQerrorMessage(conn), connstr);
+		die(_("Connection to database failed: %s\n"), PQerrorMessage(conn));
 
 	return conn;
 }

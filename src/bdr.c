@@ -285,8 +285,7 @@ bdr_get_remote_dboid(const char *conninfo_db)
 	{
 		ereport(FATAL,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
-				 errmsg("get remote OID: %s", PQerrorMessage(dbConn)),
-				 errdetail("Connection string is '%s'.", conninfo_db)));
+				 errmsg("get remote OID: %s", PQerrorMessage(dbConn))));
 	}
 
 	res = PQexec(dbConn, "SELECT oid FROM pg_database WHERE datname = current_database()");
@@ -365,8 +364,7 @@ bdr_connect(const char *conninfo,
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
 				 errmsg("could not connect to the server in replication mode: %s",
-						PQerrorMessage(streamConn)),
-				 errdetail("Connection string is '%s'", conninfo_repl.data)));
+						PQerrorMessage(streamConn))));
 	}
 
 	elog(DEBUG3, "sending replication command: IDENTIFY_SYSTEM");
@@ -412,8 +410,7 @@ bdr_connect(const char *conninfo,
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
 				 errmsg("could not connect to the server in non-replication mode: %s",
-						PQerrorMessage(streamConn)),
-				 errdetail("Connection string is '%s'", conninfo_nrepl.data)));
+						PQerrorMessage(streamConn))));
 	}
 
 	cmd = makeStringInfo();

@@ -81,8 +81,7 @@ bdr_connect_nonrepl(const char *connstring, const char *appnamesuffix)
 	{
 		ereport(FATAL,
 				(errmsg("could not connect to the server in non-replication mode: %s",
-						PQerrorMessage(nonrepl_conn)),
-				 errdetail("dsn was: %s", dsn.data)));
+						PQerrorMessage(nonrepl_conn))));
 	}
 
 	return nonrepl_conn;
