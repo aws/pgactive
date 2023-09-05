@@ -60,6 +60,8 @@ BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_m
 
 SELECT wait_for_nworkers(2);
 
+SELECT pg_sleep(10);
+
 BEGIN; SET LOCAL bdr.skip_ddl_replication = true; SELECT bdr._bdr_pause_worker_management_private(true); COMMIT;
 
 -- We're one instance with two databases so we should have two walsender workers
@@ -69,6 +71,8 @@ SELECT COUNT(*) = 2 AS ok FROM bdr.bdr_get_workers_info() WHERE worker_type = 'w
 SELECT n.node_name, bdr.bdr_terminate_workers(node_sysid, node_timeline, node_dboid, 'walsender')
   FROM bdr.bdr_nodes n
   WHERE (node_sysid, node_timeline, node_dboid) <> bdr.bdr_get_local_nodeid();
+
+SELECT pg_sleep(10);
 
 -- We must remain with our own walsender
 SELECT COUNT(*) = 1 AS ok FROM bdr.bdr_get_workers_info()
