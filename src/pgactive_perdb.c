@@ -845,6 +845,46 @@ out:
 
 /*
  * Check whether the local node and one remote node have same
+ * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values while ensuring
+ * error cleanup.
+ */
+static void
+check_params_ensure_error_cleanup(PGconn *conn, bool *check_done)
+{
+	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
+							PointerGetDatum(&conn));
+	{
+		struct remote_node_info ri;
+
+		pgactive_get_remote_nodeinfo_internal(conn, &ri);
+
+		if (pgactive_max_nodes != ri.max_nodes)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
+							pgactive_max_nodes,
+							pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
+							ri.max_nodes),
+					 errhint("The parameter must be set to the same value on all pgactive members.")));
+
+		if (prev_pgactive_skip_ddl_replication != ri.skip_ddl_replication)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("pgactive.skip_ddl_replication parameter value (%s) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
+							prev_pgactive_skip_ddl_replication ? "true" : "false",
+							pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
+							ri.skip_ddl_replication ? "true" : "false"),
+					 errhint("The parameter must be set to the same value on all pgactive members.")));
+
+		free_remote_node_info(&ri);
+		*check_done = true;
+	}
+	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
+								PointerGetDatum(&conn));
+}
+
+/*
+ * Check whether the local node and one remote node have same
  * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values.
  *
  * If remote nodes exist and none is available to check the values
@@ -883,36 +923,7 @@ check_params_are_same(void)
 			if (PQstatus(conn) != CONNECTION_OK)
 				continue;
 
-			PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-									PointerGetDatum(&conn));
-			{
-				struct remote_node_info ri;
-
-				pgactive_get_remote_nodeinfo_internal(conn, &ri);
-
-				if (pgactive_max_nodes != ri.max_nodes)
-					ereport(ERROR,
-							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
-									pgactive_max_nodes,
-									pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
-									ri.max_nodes),
-							 errhint("The parameter must be set to the same value on all pgactive members.")));
-
-				if (prev_pgactive_skip_ddl_replication != ri.skip_ddl_replication)
-					ereport(ERROR,
-							(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-							 errmsg("pgactive.skip_ddl_replication parameter value (%s) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
-									prev_pgactive_skip_ddl_replication ? "true" : "false",
-									pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
-									ri.skip_ddl_replication ? "true" : "false"),
-							 errhint("The parameter must be set to the same value on all pgactive members.")));
-
-				free_remote_node_info(&ri);
-				check_done = true;
-			}
-			PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-										PointerGetDatum(&conn));
+			check_params_ensure_error_cleanup(conn, &check_done);
 
 			PQfinish(conn);
 			/* no need to check against other remote nodes */
