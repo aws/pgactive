@@ -1,11 +1,11 @@
 \c postgres
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  f
 (1 row)
 
-SELECT bdr.bdr_create_group(
+SELECT pgactive.pgactive_create_group(
 	local_node_name := 'node-pg',
 	node_external_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
@@ -13,72 +13,72 @@ SELECT bdr.bdr_create_group(
 WARNING:  secondary unique constraint(s) exist on replicated table(s)
 DETAIL:  Table public.some_local_tbl has secondary unique constraint some_local_tbl_key_key. This may cause unhandled replication conflicts.
 HINT:  Drop the secondary unique constraint(s), change the table(s) to UNLOGGED if they don't need to be replicated, or exclude the table(s) from the active replication set(s).
- bdr_create_group 
+ pgactive_create_group 
 ------------------
  
 (1 row)
 
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  t
 (1 row)
 
-SELECT bdr.bdr_wait_for_node_ready();
- bdr_wait_for_node_ready 
+SELECT pgactive.pgactive_wait_for_node_ready();
+ pgactive_wait_for_node_ready 
 -------------------------
  
 (1 row)
 
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  t
 (1 row)
 
 \c regression
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  f
 (1 row)
 
-SELECT bdr.bdr_join_group(
+SELECT pgactive.pgactive_join_group(
 	local_node_name := 'node-regression',
 	node_external_dsn := 'dbname=regression',
 	join_using_dsn := 'dbname=postgres',
 	node_local_dsn := 'dbname=regression',
 	replication_sets := ARRAY['default', 'important', 'for-node-2', 'for-node-2-insert', 'for-node-2-update', 'for-node-2-delete']
 	);
- bdr_join_group 
+ pgactive_join_group 
 ----------------
  
 (1 row)
 
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  t
 (1 row)
 
-SELECT * FROM  bdr.bdr_get_global_locks_info();
-ERROR:  database with oid=16385 is not configured for BDR or BDR is still starting up
+SELECT * FROM  pgactive.pgactive_get_global_locks_info();
+ERROR:  database with oid=16385 is not configured for pgactive or pgactive is still starting up
 -- Silence dynamic messages here
 SET client_min_messages = 'ERROR';
-SELECT bdr.bdr_wait_for_node_ready();
- bdr_wait_for_node_ready 
+SELECT pgactive.pgactive_wait_for_node_ready();
+ pgactive_wait_for_node_ready 
 -------------------------
  
 (1 row)
 
 RESET client_min_messages;
-SELECT bdr.bdr_is_active_in_db();
- bdr_is_active_in_db 
+SELECT pgactive.pgactive_is_active_in_db();
+ pgactive_is_active_in_db 
 ---------------------
  t
 (1 row)
 
-SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = bdr.bdr_get_local_nodeid(), lock_mode, lock_state, owner_local_pid = pg_backend_pid() AS owner_pid_is_me, lockcount, npeers, npeers_confirmed, npeers_declined, npeers_replayed, replay_upto IS NOT NULL AS has_replay_upto FROM bdr.bdr_get_global_locks_info();
+SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = pgactive.pgactive_get_local_nodeid(), lock_mode, lock_state, owner_local_pid = pg_backend_pid() AS owner_pid_is_me, lockcount, npeers, npeers_confirmed, npeers_declined, npeers_replayed, replay_upto IS NOT NULL AS has_replay_upto FROM pgactive.pgactive_get_global_locks_info();
  owner_replorigin | ?column? | lock_mode | lock_state | owner_pid_is_me | lockcount | npeers | npeers_confirmed | npeers_declined | npeers_replayed | has_replay_upto 
 ------------------+----------+-----------+------------+-----------------+-----------+--------+------------------+-----------------+-----------------+-----------------
                   | f        |           | nolock     | f               |         0 |      1 |                0 |               0 |               0 | f
@@ -88,8 +88,8 @@ SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = bdr.bdr_ge
 SELECT plugin, slot_type, database, active FROM pg_replication_slots;
  plugin | slot_type |  database  | active 
 --------+-----------+------------+--------
- bdr    | logical   | postgres   | t
- bdr    | logical   | regression | t
+ pgactive    | logical   | postgres   | t
+ pgactive    | logical   | regression | t
 (2 rows)
 
 SELECT count(*) FROM pg_stat_replication;
@@ -99,14 +99,14 @@ SELECT count(*) FROM pg_stat_replication;
 (1 row)
 
 \c postgres
-SELECT conn_dsn, conn_replication_sets FROM bdr.bdr_connections ORDER BY conn_dsn;
+SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER BY conn_dsn;
      conn_dsn      |                                conn_replication_sets                                 
 -------------------+--------------------------------------------------------------------------------------
  dbname=postgres   | {default,important,for-node-1}
  dbname=regression | {default,important,for-node-2,for-node-2-insert,for-node-2-update,for-node-2-delete}
 (2 rows)
 
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER BY node_local_dsn;
+SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
  node_status |  node_local_dsn   | node_init_from_dsn 
 -------------+-------------------+--------------------
  r           | dbname=postgres   | 
@@ -121,14 +121,14 @@ SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
 (2 rows)
 
 \c regression
-SELECT conn_dsn, conn_replication_sets FROM bdr.bdr_connections ORDER BY conn_dsn;
+SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER BY conn_dsn;
      conn_dsn      |                                conn_replication_sets                                 
 -------------------+--------------------------------------------------------------------------------------
  dbname=postgres   | {default,important,for-node-1}
  dbname=regression | {default,important,for-node-2,for-node-2-insert,for-node-2-update,for-node-2-delete}
 (2 rows)
 
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM bdr.bdr_nodes ORDER BY node_local_dsn;
+SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
  node_status |  node_local_dsn   | node_init_from_dsn 
 -------------+-------------------+--------------------
  r           | dbname=postgres   | 
@@ -142,11 +142,11 @@ SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
         1
 (2 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE VIEW public.ddl_info AS
 SELECT
 	owner_replorigin,
-	(owner_sysid, owner_timeline, owner_dboid) = bdr.bdr_get_local_nodeid() AS is_my_node,
+	(owner_sysid, owner_timeline, owner_dboid) = pgactive.pgactive_get_local_nodeid() AS is_my_node,
 	lock_mode,
 	lock_state,
 	owner_local_pid IS NOT NULL AS owner_pid_set,
@@ -158,9 +158,9 @@ SELECT
 	npeers_declined,
 	npeers_replayed,
 	replay_upto IS NOT NULL AS has_replay_upto
-FROM bdr.bdr_get_global_locks_info();
+FROM pgactive.pgactive_get_global_locks_info();
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -172,21 +172,21 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
-CREATE OR REPLACE FUNCTION public.bdr_regress_variables(
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE OR REPLACE FUNCTION public.pgactive_regress_variables(
     OUT readdb1 text,
     OUT readdb2 text,
     OUT writedb1 text,
     OUT writedb2 text
     ) RETURNS record LANGUAGE SQL AS $f$
 SELECT
-    current_setting('bdrtest.readdb1'),
-    current_setting('bdrtest.readdb2'),
-    current_setting('bdrtest.writedb1'),
-    current_setting('bdrtest.writedb2')
+    current_setting('pgactivetest.readdb1'),
+    current_setting('pgactivetest.readdb2'),
+    current_setting('pgactivetest.writedb1'),
+    current_setting('pgactivetest.writedb2')
 $f$;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -206,31 +206,31 @@ SELECT * FROM ddl_info;
 
 -- Run the upgrade function, even though we started with 2.0, so we exercise it
 -- and so we know it won't break things when run on a 2.0 cluster.
-SELECT bdr.bdr_assign_seq_ids_post_upgrade();
- bdr_assign_seq_ids_post_upgrade 
+SELECT pgactive.pgactive_assign_seq_ids_post_upgrade();
+ pgactive_assign_seq_ids_post_upgrade 
 ---------------------------------
  
 (1 row)
 
--- Verify utility functions to handle BDR statuses
+-- Verify utility functions to handle pgactive statuses
 SELECT
   c::"char" AS status_char,
-  bdr.bdr_node_status_from_char(c::"char") AS status_str,
-  bdr.bdr_node_status_to_char(bdr.bdr_node_status_from_char(c::"char")) AS roundtrip_char
+  pgactive.pgactive_node_status_from_char(c::"char") AS status_str,
+  pgactive.pgactive_node_status_to_char(pgactive.pgactive_node_status_from_char(c::"char")) AS roundtrip_char
 FROM (VALUES ('b'),('i'),('c'),('o'),('r'),('k')) x(c)
 ORDER BY c;
  status_char |               status_str                | roundtrip_char 
 -------------+-----------------------------------------+----------------
- b           | BDR_NODE_STATUS_BEGINNING_INIT          | b
- c           | BDR_NODE_STATUS_CATCHUP                 | c
- i           | BDR_NODE_STATUS_COPYING_INITIAL_DATA    | i
- k           | BDR_NODE_STATUS_KILLED                  | k
- o           | BDR_NODE_STATUS_CREATING_OUTBOUND_SLOTS | o
- r           | BDR_NODE_STATUS_READY                   | r
+ b           | pgactive_NODE_STATUS_BEGINNING_INIT          | b
+ c           | pgactive_NODE_STATUS_CATCHUP                 | c
+ i           | pgactive_NODE_STATUS_COPYING_INITIAL_DATA    | i
+ k           | pgactive_NODE_STATUS_KILLED                  | k
+ o           | pgactive_NODE_STATUS_CREATING_OUTBOUND_SLOTS | o
+ r           | pgactive_NODE_STATUS_READY                   | r
 (6 rows)
 
 -- Verify that there are some stats already
-SELECT COUNT(*) > 0 AS ok FROM bdr.bdr_stats;
+SELECT COUNT(*) > 0 AS ok FROM pgactive.pgactive_stats;
  ok 
 ----
  t

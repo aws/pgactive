@@ -11,15 +11,15 @@ use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
 
-sub bdr_detach_join_tests {
+sub pgactive_detach_join_tests {
     my $type = shift;
 
-    # Create an upstream node and bring up bdr
+    # Create an upstream node and bring up pgactive
     my $node_a = PostgreSQL::Test::Cluster->new('node_a');
-    initandstart_bdr_group($node_a);
+    initandstart_pgactive_group($node_a);
     my $upstream_node = $node_a;
 
-    # Join a new node to first node using bdr_join_group
+    # Join a new node to first node using pgactive_join_group
     my $node_b = PostgreSQL::Test::Cluster->new('node_b');
     initandstart_join_node( $node_b, $node_a, $type );
 

@@ -17,9 +17,9 @@ use utils::concurrent;
 sub global_sequence_tests {
     my $type = shift;
 
-    # Create an upstream node and bring up bdr
+    # Create an upstream node and bring up pgactive
     my $node_a = PostgreSQL::Test::Cluster->new('node_a');
-    initandstart_bdr_group($node_a);
+    initandstart_pgactive_group($node_a);
     my $upstream_node = $node_a;
     my $table_name    = 'test_table_sequence';
     create_table_global_sequence( $node_a, 'test_table_sequence' );
@@ -90,7 +90,7 @@ sub start_insert {
     my ( $stdout, $stderr ) = ( '', '' );
     my $handle = IPC::Run::start(
         [
-            'psql', '-v', 'ON_ERROR_STOP=1', $upstream_node->connstr($bdr_test_dbname), '-f', '-'
+            'psql', '-v', 'ON_ERROR_STOP=1', $upstream_node->connstr($pgactive_test_dbname), '-f', '-'
         ],
         '1>', \$stdout, '2>', \$stderr, '<', \$query,
         IPC::Run::timeout( $PostgreSQL::Test::Utils::timeout_default, exception => $timeout_exc )
@@ -103,7 +103,7 @@ sub start_insert {
 # sequence table
 sub join_under_sequence_write_load {
     my ( $type, $upstream_node, $table_with_sequence ) = @_;
-    $upstream_node->safe_psql( $bdr_test_dbname,
+    $upstream_node->safe_psql( $pgactive_test_dbname,
         "TRUNCATE TABLE test_table_sequence" );
 
     # Initiate heavy Inserts on upstream and simultaneously  join new
@@ -136,15 +136,15 @@ sub join_under_sequence_write_load {
 # ids generated are unique.
 sub check_concurrent_inserts {
     my ( $upstream_node, $table_name, $no_of_inserts, @nodes ) = @_;
-    $upstream_node->safe_psql( $bdr_test_dbname,
+    $upstream_node->safe_psql( $pgactive_test_dbname,
         "TRUNCATE TABLE test_table_sequence" );
     concurrent_inserts( $upstream_node, $table_name, $no_of_inserts, @nodes );
     foreach my $testnode (@nodes) {
         foreach my $node (@nodes) {
-            my $entry = $testnode->safe_psql( $bdr_test_dbname, "SELECT COUNT(*) FROM $table_name WHERE node_name like '" . $node->name . "%'" );
+            my $entry = $testnode->safe_psql( $pgactive_test_dbname, "SELECT COUNT(*) FROM $table_name WHERE node_name like '" . $node->name . "%'" );
             is( $entry, $no_of_inserts, "All inserts on " . $node->name . " OK on " . $testnode->name . "" );
         }
-        my $duplicates = $testnode->safe_psql( $bdr_test_dbname, "SELECT COUNT(*) FROM test_table_sequence GROUP BY id HAVING COUNT(*) > 1");
+        my $duplicates = $testnode->safe_psql( $pgactive_test_dbname, "SELECT COUNT(*) FROM test_table_sequence GROUP BY id HAVING COUNT(*) > 1");
         is( $duplicates, '', "Uniqueness of global sequence " . $testnode->name );
     }
 }
@@ -153,7 +153,7 @@ sub check_concurrent_inserts {
 # on each node.
 sub check_insert_on_new_joins {
     my ( $upstream_node, $type, $join_nodes ) = @_;
-    $upstream_node->safe_psql( $bdr_test_dbname,
+    $upstream_node->safe_psql( $pgactive_test_dbname,
         "TRUNCATE TABLE test_table_sequence" );
     foreach my $join_node ( @{$join_nodes} ) {
         if ( $type eq 'logical' ) {
@@ -180,7 +180,7 @@ sub check_insert_on_concurrent_joins {
         push @join_nodes,@{$join_node}[0];
         $upstream_node = @{$join_node}[1];
     }
-    $upstream_node->safe_psql( $bdr_test_dbname,
+    $upstream_node->safe_psql( $pgactive_test_dbname,
         "TRUNCATE TABLE test_table_sequence" );
     if ( $type eq 'logical' ) {
         concurrent_joins( 'logical', @nodes );

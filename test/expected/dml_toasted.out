@@ -1,25 +1,25 @@
 -- test toasted data
-SELECT * FROM public.bdr_regress_variables()
+SELECT * FROM public.pgactive_regress_variables()
 \gset
 \c :writedb1
 BEGIN;
-RESET bdr.skip_ddl_replication;
-SELECT bdr.bdr_replicate_ddl_command($$
+RESET pgactive.skip_ddl_replication;
+SELECT pgactive.pgactive_replicate_ddl_command($$
 	CREATE TABLE public.toasted (
 		id serial primary key,
 		other text,
 		data text
 	);
 $$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
 	ALTER TABLE public.toasted ALTER COLUMN data SET STORAGE EXTERNAL;
 $$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -31,8 +31,8 @@ INSERT INTO toasted(other, data) VALUES('foo', repeat('1234567890', 300));
 UPDATE toasted SET other = 'foo2';
 -- check that changed toast values are replicated
 UPDATE toasted SET other = 'foo3', data = '-'||data;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -46,8 +46,8 @@ SELECT * FROM toasted ORDER BY id;
 
 \c :writedb2
 \copy toasted from stdin with csv
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -66,9 +66,9 @@ SELECT * FROM toasted ORDER BY id;
 
 \c :writedb1
 BEGIN;
-RESET bdr.skip_ddl_replication;
-SELECT bdr.bdr_replicate_ddl_command($$DROP TABLE public.toasted;$$);
- bdr_replicate_ddl_command 
+RESET pgactive.skip_ddl_replication;
+SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.toasted;$$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)

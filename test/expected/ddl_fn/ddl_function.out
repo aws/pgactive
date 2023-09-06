@@ -1,6 +1,6 @@
 -- tests for functions and triggers
 \c postgres super
-SELECT bdr.bdr_replicate_ddl_command($DDL$ 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ 
 CREATE FUNCTION public.test_fn(IN inpar character varying (20), INOUT inoutpar integer, OUT timestamp with time zone) RETURNS SETOF record AS
 $$
 BEGIN
@@ -8,7 +8,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE  STRICT;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -28,8 +28,8 @@ $DDL$);
  public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar, integer) SECURITY DEFINER CALLED ON NULL INPUT VOLATILE ROWS 1 COST 1; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar, integer) SECURITY DEFINER CALLED ON NULL INPUT VOLATILE ROWS 1 COST 1; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -49,14 +49,14 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar
  public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ 
 CREATE OR REPLACE FUNCTION public.test_fn(IN inpar varchar, INOUT inoutpar integer, OUT timestamp with time zone) RETURNS SETOF record AS 
 $$
 BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -76,8 +76,8 @@ $DDL$);
  public | test_fn | SETOF record     | inpar character varying, INOUT inoutpar integer, OUT timestamp with time zone | func
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_fn(varchar, integer); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP FUNCTION public.test_fn(varchar, integer); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -95,13 +95,13 @@ SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_fn(varchar,
 --------+------+------------------+---------------------+------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE FUNCTION public.test_trigger_fn() RETURNS trigger AS 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE FUNCTION public.test_trigger_fn() RETURNS trigger AS 
 $$
 BEGIN
 END;
 $$ LANGUAGE plpgsql;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -113,7 +113,7 @@ $DDL$);
  public | test_trigger_fn | trigger          |                     | func
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE FUNCTION public.showtrigstate(rel regclass) 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE FUNCTION public.showtrigstate(rel regclass) 
 RETURNS TABLE (
 	tgname name,
 	tgenabled "char",
@@ -128,35 +128,35 @@ WHERE t.tgrelid = $1
 ORDER BY t.tgname;
 $$;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_trigger_table (f1 integer, f2 text); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_trigger_table (f1 integer, f2 text); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON public.test_trigger_table FOR EACH STATEMENT WHEN (True) EXECUTE PROCEDURE public.test_trigger_fn(); 
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ 
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON public.test_trigger_table FOR EACH ROW EXECUTE PROCEDURE public.test_trigger_fn(); 
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -180,14 +180,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | O         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TRIGGER test_trigger_fn_trg1 ON public.test_trigger_table RENAME TO test_trigger_fn_trg; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TRIGGER test_trigger_fn_trg1 ON public.test_trigger_table RENAME TO test_trigger_fn_trg; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -209,14 +209,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | O         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER test_trigger_fn_trg; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER test_trigger_fn_trg; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -238,14 +238,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | O         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER ALL; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER ALL; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -267,14 +267,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | D         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -296,14 +296,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | D         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER USER; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER USER; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -325,14 +325,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | D         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -354,14 +354,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | D         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -383,14 +383,14 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger     | D         | t
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TRIGGER test_trigger_fn_trg2 ON public.test_trigger_table; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TRIGGER test_trigger_fn_trg2 ON public.test_trigger_table; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -410,26 +410,26 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
  truncate_trigger    | D         | t
 (2 rows)
 
--- should fail (for test to be useful it should be called on different node than SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE FUNCTION) $DDL$);
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
+-- should fail (for test to be useful it should be called on different node than SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE FUNCTION) $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
 ERROR:  cannot drop function public.test_trigger_fn() because other objects depend on it
 DETAIL:  trigger test_trigger_fn_trg on table public.test_trigger_table depends on function public.test_trigger_fn()
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 CONTEXT:  during replay of DDL statement:  DROP FUNCTION public.test_trigger_fn(); 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_trigger_table; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_trigger_table; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)

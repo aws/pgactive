@@ -1,11 +1,11 @@
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_create(val int); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_create(val int); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -23,14 +23,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  val    | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_create; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_create; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -38,14 +38,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_simple_create
 \c regression
 \d+ test_tbl_simple_create
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNLOGGED TABLE public.test_tbl_unlogged_create(val int); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNLOGGED TABLE public.test_tbl_unlogged_create(val int); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -63,14 +63,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  val    | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_unlogged_create; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_unlogged_create; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -78,14 +78,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_unlogged_create
 \c regression
 \d+ test_tbl_unlogged_create
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_pk(val int PRIMARY KEY); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_pk(val int PRIMARY KEY); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -107,14 +107,14 @@ Indexes:
 Indexes:
     "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_pk; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_pk; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -122,14 +122,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_simple_pk
 \c regression
 \d+ test_tbl_simple_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1)); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1)); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -153,14 +153,14 @@ Indexes:
 Indexes:
     "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_combined_pk; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_combined_pk; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -168,14 +168,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_combined_pk
 \c regression
 \d+ test_tbl_combined_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -193,14 +193,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -208,14 +208,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_serial
 \c regression
 \d+ test_tbl_serial
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -233,14 +233,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_pk(val SERIAL PRIMARY KEY); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_pk(val SERIAL PRIMARY KEY); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -262,14 +262,14 @@ Indexes:
 Indexes:
     "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_pk; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_pk; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -277,14 +277,14 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_tbl_serial_pk
 \c regression
 \d+ test_tbl_serial_pk
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1)); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1)); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -308,26 +308,26 @@ Indexes:
 Indexes:
     "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_create_index (val int, val2 int); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_create_index (val int, val2 int); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX test1_idx ON public.test_tbl_create_index(val); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX test1_idx ON public.test_tbl_create_index(val); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -353,20 +353,20 @@ Indexes:
     "test1_idx" UNIQUE, btree (val)
     "test2_idx" btree (lower(val2::text))
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test2_idx; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test2_idx; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -386,20 +386,20 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer |           |          |         | plain   |              | 
  val2   | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index USING gist (val, UPPER(val2::text)); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index USING gist (val, UPPER(val2::text)); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -425,19 +425,19 @@ Indexes:
     "test1_idx" btree (val, val2)
     "test2_idx" gist (val, upper(val2::text))
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
 CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -461,17 +461,17 @@ Indexes:
 Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
-ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
+ERROR:  CREATE INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
 CONTEXT:  during replay of DDL statement:  CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
-ERROR:  CREATE INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
+ERROR:  CREATE INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
 CONTEXT:  during replay of DDL statement:  CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -495,29 +495,29 @@ Indexes:
 Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
--- Not supported via bdr.bdr_replicate_ddl_command, see //github.com/2ndQuadrant/bdr-private/issues/124
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test1_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test1_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
 CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test1_idx; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
-ERROR:  DROP INDEX CONCURRENTLY is not supported in bdr.replicate_ddl_command
-HINT:  Run DROP INDEX CONCURRENTLY on each node individually with bdr.skip_ddl_replication set.
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
 CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_create_index; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_create_index; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_arrays_tbl(val int[], val1 text[]); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_arrays_tbl(val int[], val1 text[]); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -537,26 +537,26 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer[] |           |          |         | extended |              | 
  val1   | text[]    |           |          |         | extended |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_arrays_tbl; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_arrays_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS ENUM('a','b','c'); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS ENUM('a','b','c'); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_enums_tbl(val public.test_t, val1 public.test_t); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_enums_tbl(val public.test_t, val1 public.test_t); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -576,20 +576,20 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | test_t |           |          |         | plain   |              | 
  val1   | test_t |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_enums_tbl; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_enums_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -609,20 +609,20 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+------+-------------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS (f1 text, f2 float, f3 integer); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS (f1 text, f2 float, f3 integer); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_composites_tbl(val public.test_t, val1 public.test_t); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_composites_tbl(val public.test_t, val1 public.test_t); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -642,20 +642,20 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | test_t |           |          |         | extended |              | 
  val1   | test_t |           |          |         | extended |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_composites_tbl; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_composites_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -675,53 +675,53 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+------+-------------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_combined_pk; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_combined_pk; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02'); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02'); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 \set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (public.test_tbl_inh_parent); $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (public.test_tbl_inh_parent); $DDL$);
 NOTICE:  merging column "f1" with inherited definition
 NOTICE:  merging column "f2" with inherited definition
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld2(f1 text, f2 date) INHERITS (public.test_tbl_inh_parent); $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld2(f1 text, f2 date) INHERITS (public.test_tbl_inh_parent); $DDL$);
 NOTICE:  merging column "f1" with inherited definition
 NOTICE:  merging column "f2" with inherited definition
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld3(f1 text) INHERITS (public.test_tbl_inh_parent, public.test_tbl_inh_chld1); $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld3(f1 text) INHERITS (public.test_tbl_inh_parent, public.test_tbl_inh_chld1); $DDL$);
 NOTICE:  merging multiple inherited definitions of column "f1"
 NOTICE:  merging multiple inherited definitions of column "f2"
 NOTICE:  merging column "f1" with inherited definition
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 \set VERBOSITY default
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -793,28 +793,28 @@ Child tables: test_tbl_inh_chld1,
               test_tbl_inh_chld2,
               test_tbl_inh_chld3
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO public.test_tbl_inh_parent
           WHERE (f1 LIKE '%1%') DO INSTEAD
           INSERT INTO public.test_tbl_inh_chld1 VALUES (NEW.*);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO public.test_tbl_inh_parent
           WHERE (f1 LIKE '%2%') DO INSTEAD
           INSERT INTO public.test_tbl_inh_chld2 VALUES (NEW.*);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -858,23 +858,23 @@ Child tables: test_tbl_inh_chld1,
               test_tbl_inh_chld2,
               test_tbl_inh_chld3
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_chld1; $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_chld1; $DDL$);
 ERROR:  cannot drop table public.test_tbl_inh_chld1 because other objects depend on it
 DETAIL:  rule test_tbl_inh_parent_rule_ins_1 on table public.test_tbl_inh_parent depends on table public.test_tbl_inh_chld1
 table public.test_tbl_inh_chld3 depends on table public.test_tbl_inh_chld1
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 CONTEXT:  during replay of DDL statement:  DROP TABLE public.test_tbl_inh_chld1; 
 \set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_parent CASCADE; $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_parent CASCADE; $DDL$);
 NOTICE:  drop cascades to 3 other objects
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 \set VERBOSITY default
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -883,9 +883,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_inh_*
 CREATE TABLE test_tbl_exclude(val int PRIMARY KEY,EXCLUDE USING gist(id with =));
-ERROR:  EXCLUDE constraints are unsafe with BDR active
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+ERROR:  EXCLUDE constraints are unsafe with pgactive active
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -901,54 +901,54 @@ SHOW default_with_oids;
  off
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH oids; $DDL$);
-ERROR:  tables WITH OIDs are not supported with bdr
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH oids; $DDL$);
+ERROR:  tables WITH OIDs are not supported with pgactive
 CONTEXT:  during replay of DDL statement:  CREATE TABLE public.tbl_with_oids() WITH oids; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids(); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids(); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 SET default_with_oids = true;
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
-ERROR:  tables WITH OIDs are not supported with bdr
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
+ERROR:  tables WITH OIDs are not supported with pgactive
 CONTEXT:  during replay of DDL statement:  CREATE TABLE public.tbl_with_oids() WITH OIDS; 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 SET default_with_oids = false;
--- ensure storage attributes in SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.are replicated properly $DDL$);
+-- ensure storage attributes in SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.are replicated properly $DDL$);
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -962,8 +962,8 @@ Indexes:
     "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
 Options: fillfactor=75
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -979,12 +979,12 @@ Indexes:
 Options: fillfactor=75
 
 \set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE tbl_showfillfactor;$DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE tbl_showfillfactor;$DDL$);
 ERROR:  relation "tbl_showfillfactor" does not exist
 \set VERBOSITY default
 --- AGGREGATE ---
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE AGGREGATE public.test_avg (
    sfunc = int4_avg_accum, basetype = int4, stype = _int8,
    finalfunc = int8_avg,
@@ -992,37 +992,37 @@ CREATE AGGREGATE public.test_avg (
    sortop = =
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 -- without finalfunc; test obsolete spellings 'sfunc1' etc
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE AGGREGATE public.test_sum (
    sfunc1 = int4pl, basetype = int4, stype1 = int4,
    initcond1 = '0'
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 -- zero-argument aggregate
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE AGGREGATE public.test_cnt (*) (
    sfunc = int8inc, stype = int8,
    initcond = '0'
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -1046,32 +1046,32 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  public | test_sum | integer          | integer             | agg
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP AGGREGATE public.test_avg(int4);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP AGGREGATE public.test_sum(int4);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP AGGREGATE public.test_cnt(*);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -1089,47 +1089,47 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+------+------------------+---------------------+------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 create type public.aggtype as (a integer, b integer, c text);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 create function public.aggf_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
 as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
 language sql strict immutable;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 create function public.aggfns_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
 as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
 language sql immutable;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 create aggregate public.test_aggfstr(integer,integer,text) (
    sfunc = public.aggf_trans, stype = public.aggtype[],
    initcond = '{}'
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -1149,40 +1149,40 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  public | test_aggfstr | aggtype[]        | integer, integer, text | agg
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP AGGREGATE public.test_aggfstr(integer,integer,text);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP FUNCTION public.aggf_trans(public.aggtype[],integer,integer,text);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP FUNCTION public.aggfns_trans(public.aggtype[],integer,integer,text);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TYPE public.aggtype;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -1202,7 +1202,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 --- OPERATOR ---
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE OPERATOR public.## (
    leftarg = path,
    rightarg = path,
@@ -1210,35 +1210,35 @@ CREATE OPERATOR public.## (
    commutator = OPERATOR(public.##)
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE OPERATOR public.@#@ (
    rightarg = int8,		-- left unary
    procedure = factorial
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE OPERATOR public.#@# (
    leftarg = int8,		-- right unary
    procedure = factorial
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -1286,26 +1286,26 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  public | #@#  | bigint        |                | numeric     | factorial
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP OPERATOR public.##(path, path);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP OPERATOR public.@#@(none,int8);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP OPERATOR public.#@#(int8,none);
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -1328,8 +1328,8 @@ $DDL$);
 --------+------+---------------+----------------+-------------+-------------
 (0 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)

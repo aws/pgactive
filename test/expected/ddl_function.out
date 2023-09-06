@@ -125,8 +125,8 @@ $$;
 CREATE TABLE test_trigger_table (f1 integer, f2 text);
 CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON test_trigger_table FOR EACH STATEMENT WHEN (True) EXECUTE PROCEDURE test_trigger_fn();
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON test_trigger_table FOR EACH ROW EXECUTE PROCEDURE test_trigger_fn();
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -151,8 +151,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TRIGGER test_trigger_fn_trg1 ON test_trigger_table RENAME TO test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -175,8 +175,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table DISABLE TRIGGER test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -199,8 +199,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table DISABLE TRIGGER ALL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -223,8 +223,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -247,8 +247,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table ENABLE TRIGGER USER;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -271,8 +271,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -295,8 +295,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 ALTER TABLE test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -319,8 +319,8 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 (3 rows)
 
 DROP TRIGGER test_trigger_fn_trg2 ON test_trigger_table;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -347,8 +347,8 @@ DETAIL:  trigger test_trigger_fn_trg on table test_trigger_table depends on func
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 DROP TABLE test_trigger_table;
 DROP FUNCTION test_trigger_fn();
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)

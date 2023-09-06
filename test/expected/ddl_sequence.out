@@ -1,7 +1,7 @@
 --  ALTER TABLE public.DROP COLUMN (pk column)
 CREATE TABLE public.test (test_id SERIAL);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -27,8 +27,8 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
 Owned by: public.test.test_id
 
 ALTER TABLE public.test  DROP COLUMN test_id;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -47,8 +47,8 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
 DROP TABLE public.test;
 -- ADD CONSTRAINT PRIMARY KEY
 CREATE TABLE public.test (test_id SERIAL NOT NULL);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -61,8 +61,8 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  test_id | integer |           | not null | nextval('test_test_id_seq'::regclass) | plain   |              | 
 
 ALTER TABLE public.test ADD CONSTRAINT test_pkey PRIMARY KEY (test_id);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -77,8 +77,8 @@ Indexes:
     "test_pkey" PRIMARY KEY, btree (test_id)
 
 DROP TABLE public.test;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -86,8 +86,8 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 -- normal sequence
 CREATE SEQUENCE public.test_seq increment 10;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -112,8 +112,8 @@ ALTER SEQUENCE public.test_seq restart;
 ALTER SEQUENCE public.test_seq cache 10;
 ALTER SEQUENCE public.test_seq cycle;
 ALTER SEQUENCE public.test_seq RENAME TO renamed_test_seq;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -135,8 +135,8 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c postgres
 DROP SEQUENCE public.renamed_test_seq;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -148,9 +148,9 @@ CREATE SEQUENCE public.test_seq;
 -- DESTINATION COLUMN TYPE REQUIRED BIGINT
 DROP TABLE IF EXISTS public.test_tbl;
 NOTICE:  table "test_tbl" does not exist, skipping
-CREATE TABLE public.test_tbl (a int DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+CREATE TABLE public.test_tbl (a int DEFAULT pgactive.pgactive_snowflake_id_nextval('public.test_seq'),b text);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -159,7 +159,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
                                                        Table "public.test_tbl"
  Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
 --------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ a      | integer |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
  b      | text    |           |          |                                                    | extended |              | 
 
 \c postgres
@@ -167,7 +167,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
                                                        Table "public.test_tbl"
  Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
 --------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ a      | integer |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
  b      | text    |           |          |                                                    | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
@@ -179,15 +179,15 @@ SELECT count(*) FROM test_tbl;
 (1 row)
 
 DROP TABLE public.test_tbl;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
 
-CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+CREATE TABLE public.test_tbl (a bigint DEFAULT pgactive.pgactive_snowflake_id_nextval('public.test_seq'),b text);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -196,7 +196,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
                                                        Table "public.test_tbl"
  Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
 --------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ a      | bigint |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
  b      | text   |           |          |                                                    | extended |              | 
 
 \c postgres
@@ -204,7 +204,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
                                                        Table "public.test_tbl"
  Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
 --------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ a      | bigint |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
  b      | text   |           |          |                                                    | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
@@ -216,8 +216,8 @@ SELECT count(*) FROM test_tbl;
 
 DROP SEQUENCE public.test_seq CASCADE;
 NOTICE:  drop cascades to default value for column a of table test_tbl
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)

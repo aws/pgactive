@@ -1,31 +1,31 @@
 -- test sanity checks for tables without pk
-SELECT * FROM public.bdr_regress_variables()
+SELECT * FROM public.pgactive_regress_variables()
 \gset
 \c :writedb1
 BEGIN;
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 -- Suppress some CONTEXT msgs that vary by version
 SET LOCAL client_min_messages = warning;
-SELECT bdr.bdr_replicate_ddl_command($$
-	CREATE TABLE public.bdr_missing_pk_parent(a serial PRIMARY KEY);
-	CREATE TABLE public.bdr_missing_pk(a serial) INHERITS (public.bdr_missing_pk_parent);
-	CREATE VIEW public.bdr_missing_pk_view AS SELECT * FROM public.bdr_missing_pk;
+SELECT pgactive.pgactive_replicate_ddl_command($$
+	CREATE TABLE public.pgactive_missing_pk_parent(a serial PRIMARY KEY);
+	CREATE TABLE public.pgactive_missing_pk(a serial) INHERITS (public.pgactive_missing_pk_parent);
+	CREATE VIEW public.pgactive_missing_pk_view AS SELECT * FROM public.pgactive_missing_pk;
 $$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 COMMIT;
-INSERT INTO bdr_missing_pk SELECT generate_series(1, 10);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+INSERT INTO pgactive_missing_pk SELECT generate_series(1, 10);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
 
 \c :readdb2
-SELECT * FROM bdr_missing_pk;
+SELECT * FROM pgactive_missing_pk;
  a  
 ----
   1
@@ -42,64 +42,64 @@ SELECT * FROM bdr_missing_pk;
 
 -- these should fail
 \c :writedb2
-UPDATE bdr_missing_pk SET a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+UPDATE pgactive_missing_pk SET a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
-DELETE FROM bdr_missing_pk WHERE a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+DELETE FROM pgactive_missing_pk WHERE a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
-UPDATE bdr_missing_pk_parent SET a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+UPDATE pgactive_missing_pk_parent SET a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
-DELETE FROM bdr_missing_pk_parent WHERE a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+DELETE FROM pgactive_missing_pk_parent WHERE a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	UPDATE bdr_missing_pk SET a = 1 WHERE a > 1 RETURNING a
+	UPDATE pgactive_missing_pk SET a = 1 WHERE a > 1 RETURNING a
 ) SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	DELETE FROM bdr_missing_pk RETURNING a
+	DELETE FROM pgactive_missing_pk RETURNING a
 ) SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
-UPDATE bdr_missing_pk_view SET a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+UPDATE pgactive_missing_pk_view SET a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
-DELETE FROM bdr_missing_pk_view WHERE a = 1;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+DELETE FROM pgactive_missing_pk_view WHERE a = 1;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	UPDATE bdr_missing_pk_view SET a = 1 WHERE a > 1 RETURNING a
+	UPDATE pgactive_missing_pk_view SET a = 1 WHERE a > 1 RETURNING a
 ) SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	DELETE FROM bdr_missing_pk_view RETURNING a
+	DELETE FROM pgactive_missing_pk_view RETURNING a
 ) SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	UPDATE bdr_missing_pk SET a = 1 RETURNING *
-) INSERT INTO bdr_missing_pk SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+	UPDATE pgactive_missing_pk SET a = 1 RETURNING *
+) INSERT INTO pgactive_missing_pk SELECT * FROM foo;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 WITH foo AS (
-	DELETE FROM bdr_missing_pk_view RETURNING a
-) INSERT INTO bdr_missing_pk SELECT * FROM foo;
-ERROR:  cannot run UPDATE or DELETE on table bdr_missing_pk because it does not have a PRIMARY KEY
+	DELETE FROM pgactive_missing_pk_view RETURNING a
+) INSERT INTO pgactive_missing_pk SELECT * FROM foo;
+ERROR:  cannot run UPDATE or DELETE on table pgactive_missing_pk because it does not have a PRIMARY KEY
 HINT:  Add a PRIMARY KEY to the table.
 -- success again
-TRUNCATE bdr_missing_pk;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+TRUNCATE pgactive_missing_pk;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
 
 \c :readdb1
-SELECT * FROM bdr_missing_pk;
+SELECT * FROM pgactive_missing_pk;
  a 
 ---
 (0 rows)
@@ -108,25 +108,25 @@ SELECT * FROM bdr_missing_pk;
 -- Direct updates to the catalogs should be permitted, though
 -- not necessarily smart.
 UPDATE pg_class
-SET relname = 'bdr_missing_pk_renamed'
-WHERE relname = 'bdr_missing_pk';
+SET relname = 'pgactive_missing_pk_renamed'
+WHERE relname = 'pgactive_missing_pk';
 SELECT n.nspname as "Schema",
   c.relname as "Name"
 FROM pg_catalog.pg_class c
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind = 'r'
   AND n.nspname !~ '^pg_toast'
-  AND c.relname ~ '^(bdr_missing_pk.*)$'
+  AND c.relname ~ '^(pgactive_missing_pk.*)$'
   AND pg_catalog.pg_table_is_visible(c.oid)
 ORDER BY 1,2;
  Schema |          Name          
 --------+------------------------
- public | bdr_missing_pk_parent
- public | bdr_missing_pk_renamed
+ public | pgactive_missing_pk_parent
+ public | pgactive_missing_pk_renamed
 (2 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -139,24 +139,24 @@ FROM pg_catalog.pg_class c
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind = 'r'
   AND n.nspname !~ '^pg_toast'
-  AND c.relname ~ '^(bdr_missing_pk.*)$'
+  AND c.relname ~ '^(pgactive_missing_pk.*)$'
   AND pg_catalog.pg_table_is_visible(c.oid)
 ORDER BY 1,2;
  Schema |         Name          
 --------+-----------------------
- public | bdr_missing_pk
- public | bdr_missing_pk_parent
+ public | pgactive_missing_pk
+ public | pgactive_missing_pk_parent
 (2 rows)
 
 \c :writedb1
 UPDATE pg_class
-SET relname = 'bdr_missing_pk'
-WHERE relname = 'bdr_missing_pk_renamed';
+SET relname = 'pgactive_missing_pk'
+WHERE relname = 'pgactive_missing_pk_renamed';
 BEGIN;
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 SET LOCAL client_min_messages = warning;
-SELECT bdr.bdr_replicate_ddl_command($$DROP TABLE public.bdr_missing_pk CASCADE;$$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.pgactive_missing_pk CASCADE;$$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)

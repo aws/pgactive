@@ -1,24 +1,24 @@
 -- test for RT-#37869
-SELECT bdr.bdr_replicate_ddl_command($DDL$ 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ 
 CREATE TABLE public.add_column (
     id serial primary key,
     data text
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 INSERT INTO add_column (data) SELECT generate_series(1,100,10);
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.add_column ADD COLUMN other varchar(100); $DDL$);
- bdr_replicate_ddl_command 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.add_column ADD COLUMN other varchar(100); $DDL$);
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -40,8 +40,8 @@ SELECT id, data, other FROM add_column ORDER BY id;
 (10 rows)
 
 UPDATE add_column SET other = 'foobar'; 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -62,54 +62,54 @@ SELECT id, data, other FROM add_column ORDER BY id;
  10 | 91   | foobar
 (10 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ 
 DROP TABLE public.add_column
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
--- We allow BDR nodes sending out changes for postgres logical replication
+-- We allow pgactive nodes sending out changes for postgres logical replication
 -- subscribers.
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE PUBLICATION mypub FOR ALL TABLES;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
--- We do not allow BDR nodes receiving changes from postgres logical
+-- We do not allow pgactive nodes receiving changes from postgres logical
 -- replication publishers.
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
 $DDL$);
-ERROR:  CREATE SUBSCRIPTION is not supported when BDR is active
+ERROR:  CREATE SUBSCRIPTION is not supported when pgactive is active
 CONTEXT:  during replay of DDL statement: 
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
 $DDL$);
-ERROR:  ALTER SUBSCRIPTION is not supported when BDR is active
+ERROR:  ALTER SUBSCRIPTION is not supported when pgactive is active
 CONTEXT:  during replay of DDL statement: 
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP PUBLICATION mypub;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 -- We do not allow external logical replication extensions to be created when
--- BDR is active.
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+-- pgactive is active.
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE EXTENSION pglogical;
 $DDL$);
-ERROR:  cannot create an external logical replication extension when BDR is active
+ERROR:  cannot create an external logical replication extension when pgactive is active
 CONTEXT:  during replay of DDL statement: 
 CREATE EXTENSION pglogical;
 

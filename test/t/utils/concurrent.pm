@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
 # Shared test code that doesn't relate directly to simple
-# BDR node management.
+# pgactive node management.
 #
 package utils::concurrent;
 
@@ -15,9 +15,9 @@ use PostgreSQL::Test::Utils;
 use Test::More;
 use utils::nodemanagement qw(
     :DEFAULT
-    $bdr_test_dbname
+    $pgactive_test_dbname
     copy_transform_postgresqlconf
-    start_bdr_init_copy
+    start_pgactive_init_copy
     wait_detach_completion
     );
 
@@ -72,7 +72,7 @@ sub concurrent_safe_psql {
         my ($stdout, $stderr) = ('','');
         my $handle = IPC::Run::start(
             [
-                'psql', '-v', 'ON_ERROR_STOP=1', $node->connstr($bdr_test_dbname), '-f', '-'
+                'psql', '-v', 'ON_ERROR_STOP=1', $node->connstr($pgactive_test_dbname), '-f', '-'
             ],
             '1>', \$stdout, '2>', \$stderr, '<', \$query,
             IPC::Run::timeout($timeout, exception => $timeout_exc)
@@ -100,7 +100,7 @@ sub concurrent_safe_psql {
 }
 
 #
-# Run multiple node joins using bdr.bdr_join_group concurrently,
+# Run multiple node joins using pgactive.pgactive_join_group concurrently,
 # returning when all are complete.
 #
 # The concurrent equivalent of initandstart_logicaljoin_node .
@@ -111,8 +111,8 @@ sub concurrent_joins_logical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         initandstart_node($node);
-        BAIL_OUT("no BDR extension found in db '$bdr_test_dbname'")
-            if ($node->safe_psql($bdr_test_dbname, "select 1 from pg_extension where extname = 'bdr'") ne 1);
+        BAIL_OUT("no pgactive extension found in db '$pgactive_test_dbname'")
+            if ($node->safe_psql($pgactive_test_dbname, "select 1 from pg_extension where extname = 'pgactive'") ne 1);
     }
 
     my @node_queries;
@@ -120,7 +120,7 @@ sub concurrent_joins_logical {
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
-        my $join_query = generate_bdr_logical_join_query($node, $upstream_node);
+        my $join_query = generate_pgactive_logical_join_query($node, $upstream_node);
         push @node_queries, [$node, $join_query];
     }
 
@@ -131,8 +131,8 @@ sub concurrent_joins_logical {
     # Now we have to wait for the nodes to actually join...
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     # and verify
@@ -144,7 +144,7 @@ sub concurrent_joins_logical {
 }
 
 #
-# Run multiple node joins using bdr_init_copy concurrently,
+# Run multiple node joins using pgactive_init_copy concurrently,
 # returning when all are complete.
 #
 # The concurrent equivalent of initandstart_physicaljoin_node .
@@ -153,13 +153,13 @@ sub concurrent_joins_physical {
     my @nodes   = @_;
     my @handles;
 
-    # Start bdr_init_copy for each node we're asked to join.
+    # Start pgactive_init_copy for each node we're asked to join.
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
         my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
+        my $handle = start_pgactive_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
 
@@ -170,7 +170,7 @@ sub concurrent_joins_physical {
         # Did it exit normally?
         #
         # Return value here is that of $!, see "perldoc perlvar"
-        is($handle->full_result(0), 0, "bdr_init_copy for node " . $node->name . " started ok");
+        is($handle->full_result(0), 0, "pgactive_init_copy for node " . $node->name . " started ok");
     }
 
     # wait for Pg to come up
@@ -181,11 +181,11 @@ sub concurrent_joins_physical {
                 1, "node " . $node->name . " came up within $timeout seconds");
     }
 
-    # wait for BDR to come up
+    # wait for pgactive to come up
     foreach my $join_node (@nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -204,7 +204,7 @@ sub concurrent_detach {
     foreach my $detach_node (@nodes) {
         my $node = @{$detach_node}[0];
         my $upstream_node = @{$detach_node}[1];
-        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+        my $detach_query = "SELECT pgactive.pgactive_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
 
@@ -219,9 +219,9 @@ sub concurrent_detach {
     }
     
     foreach my $detach_node (@nodes) {
-        push my @bdr_detach_nodes,@{$detach_node}[0];
+        push my @pgactive_detach_nodes,@{$detach_node}[0];
         my $upstream_node = @{$detach_node}[1];
-        check_detach_status(\@bdr_detach_nodes, $upstream_node);
+        check_detach_status(\@pgactive_detach_nodes, $upstream_node);
     }
 }
 
@@ -240,7 +240,7 @@ sub pgbench_start {
     push @cmd, '-c', $kwargs{'clients'} if defined $kwargs{'clients'};
     push @cmd, '-s', $kwargs{'scale'} if defined $kwargs{'scale'};
 
-    push @cmd, '-d', $node->connstr($bdr_test_dbname);
+    push @cmd, '-d', $node->connstr($pgactive_test_dbname);
 
     my ($stdout, $stderr) = ('','');
     return IPC::Run::start( [@cmd], '2>', \$stderr, '>', \$stdout );
@@ -287,21 +287,21 @@ sub concurrent_join_detach {
 
 sub concurrent_join_detach_logical {
     my $upstream_node = shift;
-    my ($join_nodes,$bdr_detach_nodes)   = @_;
+    my ($join_nodes,$pgactive_detach_nodes)   = @_;
     my @node_queries;
     
     # Collect all queries required to be executed concurrently
-    foreach my $node (@{$bdr_detach_nodes}) {
-        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+    foreach my $node (@{$pgactive_detach_nodes}) {
+        my $detach_query = "SELECT pgactive.pgactive_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
     foreach my $node (@{$join_nodes}) {
         initandstart_node($node);
-        BAIL_OUT("no BDR extension found in db '$bdr_test_dbname'")
-            if ($node->safe_psql($bdr_test_dbname, "select 1 from pg_extension where extname = 'bdr'") ne 1);
+        BAIL_OUT("no pgactive extension found in db '$pgactive_test_dbname'")
+            if ($node->safe_psql($pgactive_test_dbname, "select 1 from pg_extension where extname = 'pgactive'") ne 1);
     }
     foreach my $node (@{$join_nodes}) {
-        my $join_query = generate_bdr_logical_join_query($node, $upstream_node);
+        my $join_query = generate_pgactive_logical_join_query($node, $upstream_node);
         push @node_queries, [$node, $join_query];
     }
     
@@ -310,15 +310,15 @@ sub concurrent_join_detach_logical {
         BAIL_OUT("one or more node join queries failed to execute");
     }
     # Wait for detach completion and verify
-    foreach my $node (@{$bdr_detach_nodes}) {
+    foreach my $node (@{$pgactive_detach_nodes}) {
         wait_detach_completion($node, $upstream_node);
     }
-    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
+    check_detach_status(\@{$pgactive_detach_nodes}, $upstream_node);
     
     # Now we have to wait for the nodes to actually join...
     foreach my $node (@{$join_nodes}) {
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     }
 
     # and verify
@@ -329,21 +329,21 @@ sub concurrent_join_detach_logical {
 
 sub concurrent_join_detach_physical {
     my $upstream_node = shift;
-    my ($join_nodes,$bdr_detach_nodes)   = @_;
+    my ($join_nodes,$pgactive_detach_nodes)   = @_;
     my @node_queries;
     my @handles;
     
     # Collect all queries/cmds required to be executed concurrently
-    foreach my $node (@{$bdr_detach_nodes}) {
-        my $detach_query = "SELECT bdr.bdr_detach_nodes(ARRAY['" . $node->name . "']);";
+    foreach my $node (@{$pgactive_detach_nodes}) {
+        my $detach_query = "SELECT pgactive.pgactive_detach_nodes(ARRAY['" . $node->name . "']);";
         push @node_queries, [$upstream_node, $detach_query];
     }
 
-    # Start bdr_init_copy for each node we're asked to joini.
+    # Start pgactive_init_copy for each node we're asked to joini.
     foreach my $node (@{$join_nodes}) {
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
         my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
+        my $handle = start_pgactive_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
 
@@ -359,17 +359,17 @@ sub concurrent_join_detach_physical {
         # Did it exit normally?
         #
         # Return value here is that of $!, see "perldoc perlvar"
-        is($handle->full_result(0), 0, "bdr_init_copy for node " . $node->name . " started ok");
+        is($handle->full_result(0), 0, "pgactive_init_copy for node " . $node->name . " started ok");
     }
 
 
     # Wait for detach completion and verify
-    foreach my $node (@{$bdr_detach_nodes}) {
+    foreach my $node (@{$pgactive_detach_nodes}) {
         wait_detach_completion($node, $upstream_node);
     }
 
     # and validate
-    check_detach_status(\@{$bdr_detach_nodes}, $upstream_node);
+    check_detach_status(\@{$pgactive_detach_nodes}, $upstream_node);
     
     # wait for Pg to come up
     my $timeout = 60;
@@ -378,10 +378,10 @@ sub concurrent_join_detach_physical {
             1, "node " . $node->name . " came up within $timeout seconds");
     }
 
-    # wait for BDR to come up
+    # wait for pgactive to come up
     foreach my $node (@{$join_nodes}) {
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -400,24 +400,24 @@ sub concurrent_joins_logical_physical {
     foreach my $join_node (@{$join_nodes_logical}) {
         my $node = @{$join_node}[0];
         initandstart_node($node);
-        BAIL_OUT("no BDR extension found in db '$bdr_test_dbname'")
-            if ($node->safe_psql($bdr_test_dbname, "select 1 from pg_extension where extname = 'bdr'") ne 1);
+        BAIL_OUT("no pgactive extension found in db '$pgactive_test_dbname'")
+            if ($node->safe_psql($pgactive_test_dbname, "select 1 from pg_extension where extname = 'pgactive'") ne 1);
     }
 
     foreach my $join_node (@{$join_nodes_logical}) {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
-        my $join_query = generate_bdr_logical_join_query($node, $upstream_node);
+        my $join_query = generate_pgactive_logical_join_query($node, $upstream_node);
         push @node_queries, [$node, $join_query];
     }
 
-    # Start bdr_init_copy for each node we're asked to join.
+    # Start pgactive_init_copy for each node we're asked to join.
     foreach my $join_node (@{$join_nodes_physical}) {
         my $node = @{$join_node}[0];
         my $upstream_node = @{$join_node}[1];
         my $new_conf_file = copy_transform_postgresqlconf( $node, $upstream_node );
         my $timeout = IPC::Run::timeout($PostgreSQL::Test::Utils::timeout_default, exception=>"Timed out");
-        my $handle = start_bdr_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
+        my $handle = start_pgactive_init_copy($node, $upstream_node, $new_conf_file, [$timeout]);
         push @handles, [$handle,$node];
     }
     
@@ -433,7 +433,7 @@ sub concurrent_joins_logical_physical {
         # Did it exit normally?
         #
         # Return value here is that of $!, see "perldoc perlvar"
-        is($handle->full_result(0), 0, "bdr_init_copy for node " . $node->name . " started ok");
+        is($handle->full_result(0), 0, "pgactive_init_copy for node " . $node->name . " started ok");
     }
 
     # wait for Pg to come up
@@ -446,11 +446,11 @@ sub concurrent_joins_logical_physical {
     
     my @join_nodes;
     push @join_nodes , @{$join_nodes_physical} , @{$join_nodes_logical};
-    # wait for BDR to come up
+    # wait for pgactive to come up
     foreach my $join_node (@join_nodes) {
         my $node = @{$join_node}[0];
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
         $node->_update_pid(1);
     }
 
@@ -468,13 +468,13 @@ sub concurrent_joins_logical_physical {
 sub concurrent_inserts {
     my ($upstream_node,$table_name,$inserts,@nodes) = @_;
     my @node_queries;
-    $upstream_node->safe_psql( $bdr_test_dbname,
-        qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
-    $upstream_node->safe_psql($bdr_test_dbname,"TRUNCATE TABLE $table_name");
+    $upstream_node->safe_psql( $pgactive_test_dbname,
+        qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+    $upstream_node->safe_psql($pgactive_test_dbname,"TRUNCATE TABLE $table_name");
     foreach my $node (@nodes) {
         my $node_name = $node->name();
-        $node->safe_psql( $bdr_test_dbname,
-            qq[SELECT bdr.bdr_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+        $node->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
         my $insert_query = "INSERT INTO public.$table_name(node_name) SELECT '$node_name' FROM generate_series(1,$inserts)";
         push @node_queries, [$node, $insert_query];
     }

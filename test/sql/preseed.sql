@@ -3,7 +3,7 @@
  * cloned. The results are checked, after the clone, in preseed_check.sql.
  */
 
-SELECT current_setting('bdrtest.origdb') AS origdb
+SELECT current_setting('pgactivetest.origdb') AS origdb
 \gset
 \c :origdb
 

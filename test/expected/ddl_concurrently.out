@@ -1,16 +1,16 @@
 \c regression
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.concurrently_test (
 	id integer not null primary key
 );
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -27,27 +27,27 @@ Indexes:
 
 -- Fails: ddl rep not skipped
 DROP INDEX CONCURRENTLY concurrently_test_pkey;
-ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
 -- Fails: ddl rep not skipped
 CREATE INDEX CONCURRENTLY named_index ON concurrently_test(id);
-ERROR:  CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when BDR is active; concurrently_test is a regular table
+ERROR:  CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when pgactive is active; concurrently_test is a regular table
 -- Fails: drop the constraint
-SET bdr.skip_ddl_replication = on;
+SET pgactive.skip_ddl_replication = on;
 DROP INDEX CONCURRENTLY concurrently_test_pkey;
 ERROR:  cannot drop index concurrently_test_pkey because constraint concurrently_test_pkey on table concurrently_test requires it
 HINT:  You can drop constraint concurrently_test_pkey on table concurrently_test instead.
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 -- Fails: no direct DDL
 ALTER TABLE public.concurrently_test
 DROP CONSTRAINT concurrently_test_pkey;
-ERROR:  Direct DDL commands are not supported while BDR is active
-HINT:  Use bdr.bdr_replicate_ddl_command(...)
+ERROR:  Direct DDL commands are not supported while pgactive is active
+HINT:  Use pgactive.pgactive_replicate_ddl_command(...)
 -- succeeds
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.concurrently_test
 DROP CONSTRAINT concurrently_test_pkey;
 $DDL$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
@@ -58,17 +58,17 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
 (0 rows)
 
 -- We can create a new index
-SET bdr.skip_ddl_replication = on;
+SET pgactive.skip_ddl_replication = on;
 CREATE INDEX CONCURRENTLY named_index ON concurrently_test(id);
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test_pkey') AND relkind = 'i' ORDER BY relname;
    relname   
 -------------
  named_index
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -80,17 +80,17 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
 ---------
 (0 rows)
 
-SET bdr.skip_ddl_replication = on;
+SET pgactive.skip_ddl_replication = on;
 CREATE INDEX CONCURRENTLY named_index ON concurrently_test(id);
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test_pkey') AND relkind = 'i' ORDER BY relname;
    relname   
 -------------
  named_index
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -99,7 +99,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 -- Fails, no skip ddl rep
 DROP INDEX CONCURRENTLY named_index;
-ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
 SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test_pkey') AND relkind = 'i' ORDER BY relname;
    relname   
 -------------
@@ -107,16 +107,16 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
 (1 row)
 
 -- ok
-SET bdr.skip_ddl_replication = on;
+SET pgactive.skip_ddl_replication = on;
 DROP INDEX CONCURRENTLY named_index;
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test_pkey') AND relkind = 'i' ORDER BY relname;
  relname 
 ---------
 (0 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 -----------------------
  
  
@@ -130,9 +130,9 @@ SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test
 (1 row)
 
 -- Have to drop on each node
-SET bdr.skip_ddl_replication = on;
+SET pgactive.skip_ddl_replication = on;
 DROP INDEX CONCURRENTLY named_index;
-RESET bdr.skip_ddl_replication;
+RESET pgactive.skip_ddl_replication;
 SELECT relname FROM pg_class WHERE relname IN ('named_index', 'concurrently_test_pkey') AND relkind = 'i' ORDER BY relname;
  relname 
 ---------

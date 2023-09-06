@@ -5,8 +5,8 @@ CREATE TABLE add_column (
 );
 INSERT INTO add_column (data) SELECT generate_series(1,100,10);
 ALTER TABLE add_column ADD COLUMN other varchar(100);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -28,8 +28,8 @@ SELECT id, data, other FROM add_column ORDER BY id;
 (10 rows)
 
 UPDATE add_column SET other = 'foobar';
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -51,17 +51,17 @@ SELECT id, data, other FROM add_column ORDER BY id;
 (10 rows)
 
 DROP TABLE add_column;
--- We allow BDR nodes sending out changes for postgres logical replication
+-- We allow pgactive nodes sending out changes for postgres logical replication
 -- subscribers.
 CREATE PUBLICATION mypub FOR ALL TABLES;
--- We do not allow BDR nodes receiving changes from postgres logical
+-- We do not allow pgactive nodes receiving changes from postgres logical
 -- replication publishers.
 CREATE SUBSCRIPTION mysub CONNECTION '' PUBLICATION mypub;
-ERROR:  CREATE SUBSCRIPTION is not supported when BDR is active
+ERROR:  CREATE SUBSCRIPTION is not supported when pgactive is active
 ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
-ERROR:  ALTER SUBSCRIPTION is not supported when BDR is active
+ERROR:  ALTER SUBSCRIPTION is not supported when pgactive is active
 DROP PUBLICATION mypub;
 -- We do not allow external logical replication extensions to be created when
--- BDR is active.
+-- pgactive is active.
 CREATE EXTENSION pglogical;
-ERROR:  cannot create an external logical replication extension when BDR is active
+ERROR:  cannot create an external logical replication extension when pgactive is active

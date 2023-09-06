@@ -1,16 +1,16 @@
-SELECT * FROM public.bdr_regress_variables()
+SELECT * FROM public.pgactive_regress_variables()
 \gset
 
 \c :writedb1
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.origin_filter (
    id integer primary key not null,
    n1 integer not null
 );
 $DDL$);
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- Simulate a write from some unknown peer node by defining a replication
 -- origin and using it in our session. We must not forward the writes generated
@@ -35,7 +35,7 @@ SELECT pg_replication_origin_xact_setup('1/1', current_timestamp);
 INSERT INTO public.origin_filter(id, n1) values (4, 4);
 COMMIT;
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 SELECT * FROM origin_filter ORDER BY id;
 
@@ -49,10 +49,10 @@ SELECT * FROM origin_filter ORDER BY id;
 
 SELECT pg_replication_origin_session_is_setup();
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
     DROP TABLE public.origin_filter;
 $DDL$);
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 SELECT pg_replication_origin_drop('demo_origin');

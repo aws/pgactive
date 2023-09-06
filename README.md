@@ -1,4 +1,4 @@
-## PostgreSQL Bi-Directional Replication (BDR)
+## pgactive: Active-Active Replication Extension for PostgreSQL
 
 ## Security
 

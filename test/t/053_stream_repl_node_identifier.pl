@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
-# Test if a streaming standby to a BDR node gets BDR node identifier getter
-# function from the BDR node.
+# Test if a streaming standby to a pgactive node gets pgactive node identifier getter
+# function from the pgactive node.
 use strict;
 use warnings;
 use lib 'test/t/';
@@ -13,8 +13,8 @@ use IPC::Run;
 use Test::More;
 use utils::nodemanagement;
 
-# Create an upstream node and bring up bdr
-my $nodes = make_bdr_group(2,'node_');
+# Create an upstream node and bring up pgactive
+my $nodes = make_pgactive_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
 
 # Take backup
@@ -29,12 +29,12 @@ $node_0_standby->start;
 # Wait for standby catchup
 $node_0->wait_for_catchup($node_0_standby);
 
-my $query = qq[SELECT * FROM bdr._bdr_node_identifier_getter_private();];
+my $query = qq[SELECT * FROM pgactive._pgactive_node_identifier_getter_private();];
 
-my $node_0_res = $node_0->safe_psql($bdr_test_dbname, $query);
-my $node_0_standby_res = $node_0_standby->safe_psql($bdr_test_dbname, $query);
+my $node_0_res = $node_0->safe_psql($pgactive_test_dbname, $query);
+my $node_0_standby_res = $node_0_standby->safe_psql($pgactive_test_dbname, $query);
 
 is($node_0_res, $node_0_standby_res,
-   "BDR node identifier getter function is available on standby");
+   "pgactive node identifier getter function is available on standby");
 
 done_testing();

@@ -6,8 +6,8 @@ WHERE e.extname ~ '^(pg_trgm)$'
 ORDER BY 1;
 -- create nonexistant extension
 CREATE EXTENSION pg_trgm;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -21,8 +21,8 @@ SELECT * from list_extension;
 
 -- drop and recreate using CINE
 DROP EXTENSION pg_trgm;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -34,8 +34,8 @@ SELECT * from list_extension;
 (0 rows)
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
@@ -50,8 +50,8 @@ SELECT * from list_extension;
 -- CINE existing extension
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 NOTICE:  extension "pg_trgm" already exists, skipping
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)

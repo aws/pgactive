@@ -1,55 +1,55 @@
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.test_read_only (
                 data text
         );
 $$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)
 
 -- set all nodes ro
-SELECT bdr.bdr_set_node_read_only(node_name, true) FROM bdr.bdr_nodes;
- bdr_set_node_read_only 
+SELECT pgactive.pgactive_set_node_read_only(node_name, true) FROM pgactive.pgactive_nodes;
+ pgactive_set_node_read_only 
 ------------------------
  
  
 (2 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
 
 -- errors
 CREATE TABLE readonly_test_shoulderror(a int);
-ERROR:  cannot run CREATE TABLE on read-only BDR node
-SELECT bdr.bdr_replicate_ddl_command($$
+ERROR:  cannot run CREATE TABLE on read-only pgactive node
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
         );
 $$);
-ERROR:  cannot run CREATE TABLE on read-only BDR node
+ERROR:  cannot run CREATE TABLE on read-only pgactive node
 CONTEXT:  during replay of DDL statement: 
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
         );
 
 INSERT INTO public.test_read_only VALUES('foo');
-ERROR:  INSERT may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  INSERT may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 UPDATE public.test_read_only SET data = 'foo';
-ERROR:  UPDATE may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  UPDATE may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 DELETE FROM public.test_read_only;
-ERROR:  DELETE may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  DELETE may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 COPY public.test_read_only FROM '/tmp/nosuch.csv';
-ERROR:  cannot run COPY FROM on read-only BDR node
+ERROR:  cannot run COPY FROM on read-only pgactive node
 WITH cte AS (
 	INSERT INTO public.test_read_only VALUES('foo') RETURNING *
 )
 SELECT * FROM cte;
-ERROR:  SELECT INTO may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  SELECT INTO may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 -- Must be empty still
 SELECT * FROM public.test_read_only;
  data 
@@ -75,29 +75,29 @@ SELECT * FROM cte;
 \c regression
 -- errors
 CREATE TABLE test(a int);
-ERROR:  cannot run CREATE TABLE on read-only BDR node
-SELECT bdr.bdr_replicate_ddl_command($$
+ERROR:  cannot run CREATE TABLE on read-only pgactive node
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.test (
                 data text
         );
 $$);
-ERROR:  cannot run CREATE TABLE on read-only BDR node
+ERROR:  cannot run CREATE TABLE on read-only pgactive node
 CONTEXT:  during replay of DDL statement: 
         CREATE TABLE public.test (
                 data text
         );
 
 INSERT INTO public.test_read_only VALUES('foo');
-ERROR:  INSERT may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  INSERT may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 UPDATE public.test_read_only SET data = 'foo';
-ERROR:  UPDATE may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  UPDATE may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 DELETE FROM public.test_read_only;
-ERROR:  DELETE may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  DELETE may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 WITH cte AS (
 	INSERT INTO public.test_read_only VALUES('foo') RETURNING *
 )
 SELECT * FROM cte;
-ERROR:  SELECT INTO may only affect UNLOGGED or TEMPORARY tables on read-only BDR node; test_read_only is a regular table
+ERROR:  SELECT INTO may only affect UNLOGGED or TEMPORARY tables on read-only pgactive node; test_read_only is a regular table
 -- success
 CREATE TEMP TABLE test_read_only_temp (
         data text
@@ -116,24 +116,24 @@ SELECT * FROM cte;
 
 \c postgres
 -- set all nodes rw
-SELECT bdr.bdr_set_node_read_only(node_name, false) FROM bdr.bdr_nodes;
- bdr_set_node_read_only 
+SELECT pgactive.pgactive_set_node_read_only(node_name, false) FROM pgactive.pgactive_nodes;
+ pgactive_set_node_read_only 
 ------------------------
  
  
 (2 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
 ----------------------------------------
  
 (1 row)
 
 -- cleanup
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         DROP TABLE public.test_read_only;
 $$);
- bdr_replicate_ddl_command 
+ pgactive_replicate_ddl_command 
 ---------------------------
  
 (1 row)

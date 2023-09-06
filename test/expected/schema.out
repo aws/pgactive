@@ -1,50 +1,50 @@
 --
--- BDR tables' attributes must never change with schema changes.
+-- pgactive tables' attributes must never change with schema changes.
 -- Only new attributes can be appended and only if nullable.
 --
 select attrelid::regclass::text, attnum, attname, attisdropped, atttypid::regtype, attnotnull
 from pg_attribute
-where attrelid = ANY (ARRAY['bdr.bdr_nodes', 'bdr.bdr_connections', 'bdr.bdr_queued_drops', 'bdr.bdr_queued_commands', 'bdr.bdr_global_locks']::regclass[])
+where attrelid = ANY (ARRAY['pgactive.pgactive_nodes', 'pgactive.pgactive_connections', 'pgactive.pgactive_queued_drops', 'pgactive.pgactive_queued_commands', 'pgactive.pgactive_global_locks']::regclass[])
   and attnum >= 1
 order by attrelid, attnum;
         attrelid         | attnum |        attname        | attisdropped |         atttypid         | attnotnull 
 -------------------------+--------+-----------------------+--------------+--------------------------+------------
- bdr.bdr_connections     |      1 | conn_sysid            | f            | text                     | t
- bdr.bdr_connections     |      2 | conn_timeline         | f            | oid                      | t
- bdr.bdr_connections     |      3 | conn_dboid            | f            | oid                      | t
- bdr.bdr_connections     |      4 | conn_origin_sysid     | f            | text                     | t
- bdr.bdr_connections     |      5 | conn_origin_timeline  | f            | oid                      | t
- bdr.bdr_connections     |      6 | conn_origin_dboid     | f            | oid                      | t
- bdr.bdr_connections     |      7 | conn_dsn              | f            | text                     | t
- bdr.bdr_connections     |      8 | conn_apply_delay      | f            | integer                  | f
- bdr.bdr_connections     |      9 | conn_replication_sets | f            | text[]                   | f
- bdr.bdr_global_locks    |      1 | locktype              | f            | text                     | t
- bdr.bdr_global_locks    |      2 | owning_sysid          | f            | text                     | t
- bdr.bdr_global_locks    |      3 | owning_timeline       | f            | oid                      | t
- bdr.bdr_global_locks    |      4 | owning_datid          | f            | oid                      | t
- bdr.bdr_global_locks    |      5 | owner_created_lock_at | f            | pg_lsn                   | t
- bdr.bdr_global_locks    |      6 | acquired_sysid        | f            | text                     | t
- bdr.bdr_global_locks    |      7 | acquired_timeline     | f            | oid                      | t
- bdr.bdr_global_locks    |      8 | acquired_datid        | f            | oid                      | t
- bdr.bdr_global_locks    |      9 | acquired_lock_at      | f            | pg_lsn                   | f
- bdr.bdr_global_locks    |     10 | state                 | f            | text                     | t
- bdr.bdr_nodes           |      1 | node_sysid            | f            | text                     | t
- bdr.bdr_nodes           |      2 | node_timeline         | f            | oid                      | t
- bdr.bdr_nodes           |      3 | node_dboid            | f            | oid                      | t
- bdr.bdr_nodes           |      4 | node_status           | f            | "char"                   | t
- bdr.bdr_nodes           |      5 | node_name             | f            | text                     | t
- bdr.bdr_nodes           |      6 | node_local_dsn        | f            | text                     | f
- bdr.bdr_nodes           |      7 | node_init_from_dsn    | f            | text                     | f
- bdr.bdr_nodes           |      8 | node_read_only        | f            | boolean                  | f
- bdr.bdr_nodes           |      9 | node_seq_id           | f            | smallint                 | f
- bdr.bdr_queued_commands |      1 | lsn                   | f            | pg_lsn                   | t
- bdr.bdr_queued_commands |      2 | queued_at             | f            | timestamp with time zone | t
- bdr.bdr_queued_commands |      3 | perpetrator           | f            | text                     | t
- bdr.bdr_queued_commands |      4 | command_tag           | f            | text                     | t
- bdr.bdr_queued_commands |      5 | command               | f            | text                     | t
- bdr.bdr_queued_commands |      6 | search_path           | f            | text                     | f
- bdr.bdr_queued_drops    |      1 | lsn                   | f            | pg_lsn                   | t
- bdr.bdr_queued_drops    |      2 | queued_at             | f            | timestamp with time zone | t
- bdr.bdr_queued_drops    |      3 | dropped_objects       | f            | bdr.dropped_object[]     | t
+ pgactive.pgactive_connections     |      1 | conn_sysid            | f            | text                     | t
+ pgactive.pgactive_connections     |      2 | conn_timeline         | f            | oid                      | t
+ pgactive.pgactive_connections     |      3 | conn_dboid            | f            | oid                      | t
+ pgactive.pgactive_connections     |      4 | conn_origin_sysid     | f            | text                     | t
+ pgactive.pgactive_connections     |      5 | conn_origin_timeline  | f            | oid                      | t
+ pgactive.pgactive_connections     |      6 | conn_origin_dboid     | f            | oid                      | t
+ pgactive.pgactive_connections     |      7 | conn_dsn              | f            | text                     | t
+ pgactive.pgactive_connections     |      8 | conn_apply_delay      | f            | integer                  | f
+ pgactive.pgactive_connections     |      9 | conn_replication_sets | f            | text[]                   | f
+ pgactive.pgactive_global_locks    |      1 | locktype              | f            | text                     | t
+ pgactive.pgactive_global_locks    |      2 | owning_sysid          | f            | text                     | t
+ pgactive.pgactive_global_locks    |      3 | owning_timeline       | f            | oid                      | t
+ pgactive.pgactive_global_locks    |      4 | owning_datid          | f            | oid                      | t
+ pgactive.pgactive_global_locks    |      5 | owner_created_lock_at | f            | pg_lsn                   | t
+ pgactive.pgactive_global_locks    |      6 | acquired_sysid        | f            | text                     | t
+ pgactive.pgactive_global_locks    |      7 | acquired_timeline     | f            | oid                      | t
+ pgactive.pgactive_global_locks    |      8 | acquired_datid        | f            | oid                      | t
+ pgactive.pgactive_global_locks    |      9 | acquired_lock_at      | f            | pg_lsn                   | f
+ pgactive.pgactive_global_locks    |     10 | state                 | f            | text                     | t
+ pgactive.pgactive_nodes           |      1 | node_sysid            | f            | text                     | t
+ pgactive.pgactive_nodes           |      2 | node_timeline         | f            | oid                      | t
+ pgactive.pgactive_nodes           |      3 | node_dboid            | f            | oid                      | t
+ pgactive.pgactive_nodes           |      4 | node_status           | f            | "char"                   | t
+ pgactive.pgactive_nodes           |      5 | node_name             | f            | text                     | t
+ pgactive.pgactive_nodes           |      6 | node_local_dsn        | f            | text                     | f
+ pgactive.pgactive_nodes           |      7 | node_init_from_dsn    | f            | text                     | f
+ pgactive.pgactive_nodes           |      8 | node_read_only        | f            | boolean                  | f
+ pgactive.pgactive_nodes           |      9 | node_seq_id           | f            | smallint                 | f
+ pgactive.pgactive_queued_commands |      1 | lsn                   | f            | pg_lsn                   | t
+ pgactive.pgactive_queued_commands |      2 | queued_at             | f            | timestamp with time zone | t
+ pgactive.pgactive_queued_commands |      3 | perpetrator           | f            | text                     | t
+ pgactive.pgactive_queued_commands |      4 | command_tag           | f            | text                     | t
+ pgactive.pgactive_queued_commands |      5 | command               | f            | text                     | t
+ pgactive.pgactive_queued_commands |      6 | search_path           | f            | text                     | f
+ pgactive.pgactive_queued_drops    |      1 | lsn                   | f            | pg_lsn                   | t
+ pgactive.pgactive_queued_drops    |      2 | queued_at             | f            | timestamp with time zone | t
+ pgactive.pgactive_queued_drops    |      3 | dropped_objects       | f            | pgactive.dropped_object[]     | t
 (37 rows)
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-# bdr_pgbench.sh is a sample script illustrating how pgbench can be run with
-# BDR. It is intended for development and testing purposes, not for production
-# uses. Idea is to help developers to automate pgbench + BDR for testing
-# features or measuring performance etc. Note that bdr_pgbench.sh needs both
-# postgres and BDR source code trees to be present. It also has many other nuts
+# pgactive_pgbench.sh is a sample script illustrating how pgbench can be run with
+# pgactive. It is intended for development and testing purposes, not for production
+# uses. Idea is to help developers to automate pgbench + pgactive for testing
+# features or measuring performance etc. Note that pgactive_pgbench.sh needs both
+# postgres and pgactive source code trees to be present. It also has many other nuts
 # and bolts to tune. Therefore, it is highly recommended to closely look at the
 # script, understand it and change it to taste.
 
 # Usage:
-# sh bdr_pgbench.sh PGSRC=/path/to/postgres/source/code BDRSRC=/path/to/bdr/source/code RESULTS=/path/to/bdr_pgbench.sh/results/
+# sh pgactive_pgbench.sh PGSRC=/path/to/postgres/source/code pgactiveSRC=/path/to/pgactive/source/code RESULTS=/path/to/pgactive_pgbench.sh/results/
 
 set -e -u
 
@@ -25,11 +25,11 @@ else
 	echo "Value of PGSRC is $PGSRC"
 fi
 
-if [ -z "$BDRSRC" ]; then
-	echo "BDRSRC is not set"
+if [ -z "$pgactiveSRC" ]; then
+	echo "pgactiveSRC is not set"
 	exit 1
 else
-	echo "Value of BDRSRC is $BDRSRC"
+	echo "Value of pgactiveSRC is $pgactiveSRC"
 fi
 
 if [ -z "$RESULTS" ]; then
@@ -46,14 +46,14 @@ PGBIN=$PGSRC/inst/bin
 # Clean any remains of previous runs
 rm -rf $PGSRC/inst
 
-# First node in BDR group
+# First node in pgactive group
 WHALE=whale
 WHALE_H=localhost
 WHALE_P=7432
 WHALE_DB=$WHALE
 WHALE_SC=$WHALE
 
-# Second node in BDR group
+# Second node in pgactive group
 PANDA=panda
 PANDA_H=localhost
 PANDA_P=7432
@@ -71,7 +71,7 @@ echo "Building pg source code at $PGSRC"
 cd $PGSRC
 sh configure --prefix=$PWD/inst/ CFLAGS="-O2" > $RESULTS/install.log && make -j8 install > $RESULTS/install.log 2>&1
 
-# Install contrib modules required for BDR tests
+# Install contrib modules required for pgactive tests
 make -C contrib/btree_gist install
 make -C contrib/cube install
 make -C contrib/hstore install
@@ -80,48 +80,48 @@ make -C contrib/pg_trgm install
 # Initialize pg instance
 $PGBIN/initdb -D $PGBIN/data
 
-# Build BDR source code
-echo "Building BDR source code at $BDRSRC"
-cd $BDRSRC
+# Build pgactive source code
+echo "Building pgactive source code at $pgactiveSRC"
+cd $pgactiveSRC
 PATH=$PGBIN:$PATH ./configure
 make -j8 install
 cd $PGSRC
 
-# BDR-cize pg instance
+# pgactive-cize pg instance
 cat << EOF >> $PGBIN/data/postgresql.conf
-shared_preload_libraries = 'bdr'
+shared_preload_libraries = 'pgactive'
 track_commit_timestamp = on
 wal_level = 'logical'
 port=7432
-bdr.skip_ddl_replication = false
+pgactive.skip_ddl_replication = false
 EOF
 
 # Start pg instance
 $PGBIN/pg_ctl -D $PGBIN/data -l $RESULTS/server.log start
 
-# BDR-cize nodes
-echo "BDR-cizing node $WHALE"
+# pgactive-cize nodes
+echo "pgactive-cizing node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P postgres -c "CREATE DATABASE $WHALE_DB" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION bdr" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_create_group(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION pgactive" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_create_group(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
-echo "BDR-cizing node $PANDA"
+echo "pgactive-cizing node $PANDA"
 $PGBIN/psql -h $PANDA_H -p $PANDA_P postgres -c "CREATE DATABASE $PANDA_DB" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION bdr" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_join_group(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION pgactive" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_join_group(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 # Initialize pgbench
 echo "Setting up pgbench on node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE SCHEMA $WHALE_SC; ALTER DATABASE $WHALE_DB SET search_path=$WHALE_SC,pg_catalog;" >> $RESULTS/check.log 2>&1
 $PGBIN/pgbench  -q -i -s $SCALE -h $WHALE_H -p $WHALE_P $WHALE_DB  >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 if [ "$RUNMODE" = "parallel" ]; then
     echo "Setting up pgbench on node $PANDA"
 	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE SCHEMA $PANDA_SC; ALTER DATABASE $PANDA_DB SET search_path=$PANDA_SC,pg_catalog;" >> $RESULTS/check.log 2>&1
 	$PGBIN/pgbench -q -i -s $SCALE -h $PANDA_H -p $PANDA_P $PANDA_DB >> $RESULTS/check.log 2>&1
-	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+	$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 fi
 
 # Run pgbench
@@ -149,11 +149,11 @@ for i in `seq 1 $NUM_RUNS`; do
 	done
 done
 
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL, NULL);" >> $RESULTS/check.log 2>&1
 
-# Detach a node away from BDR group, to hit data differ error.
-#$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT bdr.bdr_detach_nodes(ARRAY['$WHALE']);" >> $RESULTS/check.log 2>&1
+# Detach a node away from pgactive group, to hit data differ error.
+#$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_detach_nodes(ARRAY['$WHALE']);" >> $RESULTS/check.log 2>&1
 #$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE TABLE foo (elefanto int);" >> $RESULTS/check.log 2>&1
 #$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "INSERT INTO foo SELECT * FROM generate_series(1, 100);" >> $RESULTS/check.log 2>&1
 
@@ -165,7 +165,7 @@ DECLARE
     cnt bigint;
     hsh bigint;
 BEGIN
-	FOR relid IN SELECT t.relid FROM pg_stat_user_tables t WHERE schemaname NOT IN ('bdr') ORDER BY schemaname, relname
+	FOR relid IN SELECT t.relid FROM pg_stat_user_tables t WHERE schemaname NOT IN ('pgactive') ORDER BY schemaname, relname
     LOOP
         EXECUTE 'SELECT count(*), sum(hashtext((t.*)::text)) FROM ' || relid::regclass::text || ' t' INTO cnt, hsh;
         RAISE NOTICE '%: %, %', relid::regclass::text, cnt, hsh;
@@ -199,5 +199,5 @@ echo "Check $RESULTS for more details"
 
 # You may want the results to stay for analysis.
 
-# Get back to BDR source directory
-cd $BDRSRC
+# Get back to pgactive source directory
+cd $pgactiveSRC

@@ -1,7 +1,7 @@
-Note that the bdr_dump tool is nothing but pg_dump of core postgres plus
+Note that the pgactive_dump tool is nothing but pg_dump of core postgres plus
 additional changes stored in <PG Version>.patch file.
 
-While porting BDR to higher postgres versions or refreshing pg_dump source:
+While porting pgactive to higher postgres versions or refreshing pg_dump source:
 
 1. Copy pg_dump source code files from postgres src/bin/pg_dump directory to
 src/compat/PG_VERSION/pg_dump directory.
@@ -10,23 +10,23 @@ src/compat/PG_VERSION/pg_dump directory.
 
 3. Copy src/fe_utils/string_utils.c from postgres source code to
 compat/PG_VERSION/pg_dump directory. string_utils.c file is needed by pg_dump
-to make pg_dump a self-reliant component while compiling BDR source code.
+to make pg_dump a self-reliant component while compiling pgactive source code.
 
 4. Add the commit hash of postgres in the section "Following table shows commit hash of pg_dump source"
 
 XXX: It might be worth doing this a bit differently - either a dedicated tool
-for BDR or a compile-time script that pulls in the pg_dump code from postgres
-source directory and applies the diff builds (but a caveat here - BDR will lose
-self-reliance, meaning, one can't build BDR source code without postgres source
+for pgactive or a compile-time script that pulls in the pg_dump code from postgres
+source directory and applies the diff builds (but a caveat here - pgactive will lose
+self-reliance, meaning, one can't build pgactive source code without postgres source
 code specified) or we might as well push this diff to upstream pg_dump (but a
 caveat here - it's a bit hard to build the case and even if we do so, no
-backporting) or understand if we need this diff at all for BDR. But that's for
+backporting) or understand if we need this diff at all for pgactive. But that's for
 another day.
 
 Changes are required for supporting CREATE SERVER and CREATE USER
-MAPPING for BDR, otherwise pg_restore will fail as these objects will
+MAPPING for pgactive, otherwise pg_restore will fail as these objects will
 be present on the joining node. Another way of achieving the same without
-changing pg_dump code is to let BDR clean up these objects before restore
+changing pg_dump code is to let pgactive clean up these objects before restore
 so that they will be recreated by pg_restore. But there's a problem here
 if restore fails for some reason, these will be missing and dump on next run won't work.
 
