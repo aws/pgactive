@@ -12,14 +12,14 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	);
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 COMMIT;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -28,7 +28,7 @@ INSERT INTO test (id, ts) VALUES ('row', '1970-07-21 12:00:00');
 INSERT INTO test (id) VALUES ('broken');
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -45,7 +45,7 @@ SELECT id FROM test ORDER BY ts;
 DELETE FROM test WHERE id = 'row';
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -66,7 +66,7 @@ SELECT id FROM test ORDER BY ts;
 DELETE FROM test WHERE id = 'broken';
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -86,7 +86,7 @@ BEGIN;
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.test;$$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

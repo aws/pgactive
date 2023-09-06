@@ -11,7 +11,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON grant_tes
 GRANT USAGE, UPDATE ON grant_test.test_tbl_a_seq TO nonsuper;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -43,7 +43,7 @@ SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test FROM PUBLIC, nonsuper;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -71,7 +71,7 @@ SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test TO nonsuper WITH GRANT OPTION;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -104,7 +104,7 @@ REVOKE TRIGGER, INSERT, UPDATE, DELETE, REFERENCES, TRUNCATE ON grant_test.test_
 REVOKE ALL PRIVILEGES ON grant_test.test_tbl_a_seq FROM nonsuper;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -136,7 +136,7 @@ GRANT USAGE ON TYPE grant_test.test_type TO nonsuper;
 GRANT ALL PRIVILEGES ON DOMAIN grant_test.test_domain TO nonsuper WITH GRANT OPTION;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -182,7 +182,7 @@ REVOKE ALL PRIVILEGES ON TYPE grant_test.test_type FROM nonsuper;
 REVOKE USAGE ON DOMAIN grant_test.test_domain FROM nonsuper;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

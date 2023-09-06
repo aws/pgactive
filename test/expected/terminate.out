@@ -15,7 +15,7 @@ END;
 $$;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -34,7 +34,7 @@ END;
 $$;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -52,7 +52,7 @@ SELECT wait_for_nworkers(2);
 
 BEGIN; SET LOCAL pgactive.skip_ddl_replication = true; SELECT pgactive._pgactive_pause_worker_management_private(true); COMMIT;
  _pgactive_pause_worker_management_private 
---------------------------------------
+-------------------------------------------
  
 (1 row)
 
@@ -68,7 +68,7 @@ SELECT n.node_name, pgactive.pgactive_terminate_workers(node_sysid, node_timelin
   FROM pgactive.pgactive_nodes n
   WHERE (node_sysid, node_timeline, node_dboid) <> pgactive.pgactive_get_local_nodeid();
  node_name | pgactive_terminate_workers 
------------+-----------------------
+-----------+----------------------------
  node-pg   | t
 (1 row)
 
@@ -92,7 +92,7 @@ SELECT wait_for_nworkers(1);
 -- as they launch.
 BEGIN; SET LOCAL pgactive.skip_ddl_replication = true; SELECT pgactive._pgactive_pause_worker_management_private(false); COMMIT;
  _pgactive_pause_worker_management_private 
---------------------------------------
+-------------------------------------------
  
 (1 row)
 
@@ -110,7 +110,7 @@ SELECT pg_sleep(10);
 
 BEGIN; SET LOCAL pgactive.skip_ddl_replication = true; SELECT pgactive._pgactive_pause_worker_management_private(true); COMMIT;
  _pgactive_pause_worker_management_private 
---------------------------------------
+-------------------------------------------
  
 (1 row)
 
@@ -126,7 +126,7 @@ SELECT n.node_name, pgactive.pgactive_terminate_workers(node_sysid, node_timelin
   FROM pgactive.pgactive_nodes n
   WHERE (node_sysid, node_timeline, node_dboid) <> pgactive.pgactive_get_local_nodeid();
  node_name | pgactive_terminate_workers 
------------+-----------------------
+-----------+----------------------------
  node-pg   | t
 (1 row)
 
@@ -154,7 +154,7 @@ SELECT wait_for_nwalsenders(1);
 -- OK, let them come back up
 BEGIN; SET LOCAL pgactive.skip_ddl_replication = true; SELECT pgactive._pgactive_pause_worker_management_private(false); COMMIT;
  _pgactive_pause_worker_management_private 
---------------------------------------
+-------------------------------------------
  
 (1 row)
 

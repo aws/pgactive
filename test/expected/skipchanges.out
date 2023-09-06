@@ -3,7 +3,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_replication(id integer not null primary key, atlsn pg_lsn default pg_current_wal_insert_lsn());
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -51,7 +51,7 @@ SELECT pgactive.pgactive_skip_changes(n.node_sysid, n.node_timeline, n.node_dboi
 FROM pgactive.pgactive_nodes n
 WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != pgactive.pgactive_get_local_nodeid();
  pgactive_skip_changes 
-------------------
+-----------------------
  
 (1 row)
 

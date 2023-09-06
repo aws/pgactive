@@ -12,7 +12,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	);
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -20,7 +20,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	ALTER TABLE public.toasted ALTER COLUMN data SET STORAGE EXTERNAL;
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -33,7 +33,7 @@ UPDATE toasted SET other = 'foo2';
 UPDATE toasted SET other = 'foo3', data = '-'||data;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -48,7 +48,7 @@ SELECT * FROM toasted ORDER BY id;
 \copy toasted from stdin with csv
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -69,7 +69,7 @@ BEGIN;
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.toasted;$$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

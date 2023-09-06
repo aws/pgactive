@@ -2,31 +2,31 @@
 \c postgres
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SCHEMA normalschema; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SCHEMA "strange.schema-IS"; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.switcheroo(id serial primary key, data text); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE normalschema.sometbl_normalschema(); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE "strange.schema-IS".sometbl_strangeschema(); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -39,7 +39,7 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('switcheroo');
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -54,7 +54,7 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('switcheroo');
 -- empty replication set (just 'all')
 SELECT pgactive.pgactive_set_table_replication_sets('switcheroo', '{}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -79,19 +79,19 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('"strange.schema-IS".
 -- configure a couple
 SELECT pgactive.pgactive_set_table_replication_sets('switcheroo', '{fascinating, is-it-not}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 SELECT * FROM pgactive.pgactive_set_table_replication_sets('normalschema.sometbl_normalschema', '{a}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 SELECT * FROM pgactive.pgactive_set_table_replication_sets('"strange.schema-IS".sometbl_strangeschema', '{a}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -115,7 +115,7 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('"strange.schema-IS".
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -143,7 +143,7 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('"strange.schema-IS".
 -- configure a couple
 SELECT pgactive.pgactive_set_table_replication_sets('switcheroo', NULL);
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -155,7 +155,7 @@ SELECT * FROM pgactive.pgactive_get_table_replication_sets('switcheroo');
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -207,25 +207,25 @@ PL/pgSQL function pgactive.pgactive_set_table_replication_sets(regclass,text[]) 
 \c postgres
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.switcheroo; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE normalschema.sometbl_normalschema; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE "strange.schema-IS".sometbl_strangeschema; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -238,49 +238,49 @@ SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c postgres
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.settest_1(data text primary key); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-default');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-no-sets');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{unknown-set}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-no-replicate-unknown-set');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{for-node-2}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-not-replicate-empty-again');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{unknown-set,for-node-2}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
 INSERT INTO settest_1(data) VALUES ('should-replicate-via-for-node-2-even-though-unknown');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_1', '{unknown-set,important,for-node-2}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -299,7 +299,7 @@ SELECT * FROM settest_1 ORDER BY data;
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -316,7 +316,7 @@ SELECT * FROM settest_1 ORDER BY data;
 \c postgres
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.settest_1; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -325,14 +325,14 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.settest_1
  */
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.settest_2(data text primary key); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 -- Test 1: ensure that inserts are replicated while update/delete are filtered
 SELECT pgactive.pgactive_set_table_replication_sets('settest_2', '{for-node-2-insert}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -354,7 +354,7 @@ INSERT INTO settest_2(data) VALUES ('repl-update--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-update--insert-#2-then-delete');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_2', '{for-node-2-update}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -377,7 +377,7 @@ WHERE set_name = 'for-node-2-update';
 -- insert before filtering
 SELECT pgactive.pgactive_set_table_replication_sets('settest_2', NULL);
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -385,7 +385,7 @@ INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#1-then-update');
 INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#2-then-delete');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_2', '{for-node-2-delete}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -399,7 +399,7 @@ INSERT INTO settest_2(data) VALUES ('repl-delete--insert-#3');
 SELECT pgactive.pgactive_set_table_replication_sets('settest_2',
     '{for-node-2-insert,for-node-2-update,for-node-2-delete}');
  pgactive_set_table_replication_sets 
---------------------------------
+-------------------------------------
  
 (1 row)
 
@@ -425,7 +425,7 @@ SELECT * FROM settest_2 ORDER BY data;
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -447,19 +447,19 @@ SELECT * FROM settest_2 ORDER BY data;
 TRUNCATE pgactive.pgactive_replication_set_config;
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.settest_2; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP SCHEMA normalschema; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP SCHEMA "strange.schema-IS"; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

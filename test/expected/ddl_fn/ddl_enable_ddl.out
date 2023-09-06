@@ -6,7 +6,7 @@ HINT:  See the 'DDL replication' chapter of the documentation.
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.create_ok (id integer) $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -18,7 +18,7 @@ HINT:  See the 'DDL replication' chapter of the documentation.
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.create_ok $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -26,13 +26,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.create_ok
 -- otherwise they'll get pointlessly verbose.
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER DATABASE regression RESET pgactive.skip_ddl_replication $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER DATABASE postgres RESET pgactive.skip_ddl_replication $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

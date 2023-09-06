@@ -1,39 +1,39 @@
 \c regression
 SELECT pgactive.pgactive_is_apply_paused();
  pgactive_is_apply_paused 
----------------------
+--------------------------
  f
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command('CREATE TABLE public.pause_test(x text primary key);');
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 INSERT INTO pause_test(x) VALUES ('before pause');
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
 \c postgres
 SELECT pgactive.pgactive_is_apply_paused();
  pgactive_is_apply_paused 
----------------------
+--------------------------
  f
 (1 row)
 
 SELECT pgactive.pgactive_apply_pause();
  pgactive_apply_pause 
------------------
+----------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_is_apply_paused();
  pgactive_is_apply_paused 
----------------------
+--------------------------
  t
 (1 row)
 
@@ -59,7 +59,7 @@ SELECT pg_sleep(1);
 -- Pause state is preserved across sessions
 SELECT pgactive.pgactive_is_apply_paused();
  pgactive_is_apply_paused 
----------------------
+--------------------------
  t
 (1 row)
 
@@ -72,7 +72,7 @@ SELECT x FROM pause_test;
 
 SELECT pgactive.pgactive_apply_resume();
  pgactive_apply_resume 
-------------------
+-----------------------
  
 (1 row)
 
@@ -85,7 +85,7 @@ BEGIN;
 SET LOCAL statement_timeout = '60s';
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

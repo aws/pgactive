@@ -127,7 +127,7 @@ CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON test_trigger_tabl
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON test_trigger_table FOR EACH ROW EXECUTE PROCEDURE test_trigger_fn();
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -153,7 +153,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TRIGGER test_trigger_fn_trg1 ON test_trigger_table RENAME TO test_trigger_fn_trg;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -177,7 +177,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table DISABLE TRIGGER test_trigger_fn_trg;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -201,7 +201,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table DISABLE TRIGGER ALL;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -225,7 +225,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -249,7 +249,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table ENABLE TRIGGER USER;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -273,7 +273,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -297,7 +297,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 ALTER TABLE test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -321,7 +321,7 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 DROP TRIGGER test_trigger_fn_trg2 ON test_trigger_table;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -349,7 +349,7 @@ DROP TABLE test_trigger_table;
 DROP FUNCTION test_trigger_fn();
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

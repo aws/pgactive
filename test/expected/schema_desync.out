@@ -9,7 +9,7 @@ CREATE TABLE public.desync (
 );
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -24,7 +24,7 @@ Indexes:
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -59,7 +59,7 @@ BEGIN;
 SET LOCAL statement_timeout = '2s';
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -86,7 +86,7 @@ BEGIN;
 SET LOCAL statement_timeout = '2s';
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -107,7 +107,7 @@ SELECT * FROM desync ORDER BY id;
 INSERT INTO desync(id, n1) VALUES (3, 3);
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -116,7 +116,7 @@ BEGIN;
 SET LOCAL statement_timeout = '10s';
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -139,7 +139,7 @@ COMMIT;
 -- So now this side should apply too
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -148,7 +148,7 @@ BEGIN;
 SET LOCAL statement_timeout = '10s';
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -176,7 +176,7 @@ SELECT * FROM desync ORDER BY id;
 DELETE FROM desync;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -256,7 +256,7 @@ BEGIN;
 SET LOCAL statement_timeout = '2s';
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 

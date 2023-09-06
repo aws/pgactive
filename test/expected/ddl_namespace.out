@@ -11,7 +11,7 @@ CREATE FUNCTION test_schema_1.abc_func() RETURNS void
        AS $$ BEGIN END; $$ LANGUAGE plpgsql;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -28,7 +28,7 @@ INSERT INTO test_schema_1.abc DEFAULT VALUES;
 INSERT INTO test_schema_1.abc DEFAULT VALUES;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -52,7 +52,7 @@ SELECT * FROM test_schema_1.abc_view;
 ALTER SCHEMA test_schema_1 RENAME TO test_schema_renamed;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -75,7 +75,7 @@ drop cascades to view test_schema_renamed.abc_view
 drop cascades to function test_schema_renamed.abc_func()
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

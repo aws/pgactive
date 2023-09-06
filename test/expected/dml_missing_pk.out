@@ -12,7 +12,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	CREATE VIEW public.pgactive_missing_pk_view AS SELECT * FROM public.pgactive_missing_pk;
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -20,7 +20,7 @@ COMMIT;
 INSERT INTO pgactive_missing_pk SELECT generate_series(1, 10);
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -94,7 +94,7 @@ HINT:  Add a PRIMARY KEY to the table.
 TRUNCATE pgactive_missing_pk;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -119,15 +119,15 @@ WHERE c.relkind = 'r'
   AND c.relname ~ '^(pgactive_missing_pk.*)$'
   AND pg_catalog.pg_table_is_visible(c.oid)
 ORDER BY 1,2;
- Schema |          Name          
---------+------------------------
+ Schema |            Name             
+--------+-----------------------------
  public | pgactive_missing_pk_parent
  public | pgactive_missing_pk_renamed
 (2 rows)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -142,8 +142,8 @@ WHERE c.relkind = 'r'
   AND c.relname ~ '^(pgactive_missing_pk.*)$'
   AND pg_catalog.pg_table_is_visible(c.oid)
 ORDER BY 1,2;
- Schema |         Name          
---------+-----------------------
+ Schema |            Name            
+--------+----------------------------
  public | pgactive_missing_pk
  public | pgactive_missing_pk_parent
 (2 rows)
@@ -157,7 +157,7 @@ RESET pgactive.skip_ddl_replication;
 SET LOCAL client_min_messages = warning;
 SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.pgactive_missing_pk CASCADE;$$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

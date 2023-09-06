@@ -15,7 +15,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	);
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -31,7 +31,7 @@ VALUES ('(1,2)', 'a=>1,b=>2'),
        (NULL, NULL);
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -53,7 +53,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 UPDATE contrib_dml SET fixed = '(1,2,3,4)', variable = 'a=>NULL,b=>1' WHERE id = 1;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -75,7 +75,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 UPDATE contrib_dml SET fixed = cube_enlarge(fixed, 1, 1), variable = variable || 'x=>99' WHERE '1' <@ fixed;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -97,7 +97,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 DELETE FROM contrib_dml WHERE id = 2;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -118,7 +118,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 DELETE FROM contrib_dml WHERE id < 4;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -137,7 +137,7 @@ SELECT id, fixed, variable FROM contrib_dml ORDER BY id;
 TRUNCATE contrib_dml;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -152,7 +152,7 @@ BEGIN;
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.contrib_dml;$$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

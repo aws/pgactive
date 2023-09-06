@@ -1,19 +1,19 @@
 \c postgres
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_src_tbl(a serial, b varchar(100), c date, primary key (a,c)); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE VIEW public.test_view AS SELECT * FROM public.test_src_tbl WHERE a > 1; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -54,7 +54,7 @@ SELECT * FROM test_view;
 INSERT INTO test_src_tbl (b,c) VALUES('a', '2014-01-01'), ('b', '2014-02-02'), ('c', '2014-03-03');
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -69,7 +69,7 @@ SELECT * FROM test_view;
 UPDATE test_view SET b = a || b;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -91,14 +91,14 @@ SELECT * FROM test_view;
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER VIEW public.test_view  ALTER COLUMN c SET DEFAULT '2000-01-01'; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 INSERT INTO test_view(b) VALUES('y2k');
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -122,13 +122,13 @@ SELECT * FROM test_view;
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER VIEW public.test_view RENAME TO renamed_test_view; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -136,7 +136,7 @@ SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 INSERT INTO renamed_test_view(b) VALUES('d');
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -162,13 +162,13 @@ SELECT * FROM renamed_test_view;
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP VIEW public.renamed_test_view; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -177,7 +177,7 @@ SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d renamed_test_view
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE VIEW public.test_view AS SELECT * FROM public.test_src_tbl; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -185,13 +185,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE VIEW public.test_vie
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_src_tbl CASCADE; $DDL$);
 NOTICE:  drop cascades to view public.test_view
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

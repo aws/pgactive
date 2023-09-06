@@ -19,7 +19,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   CREATE TABLE public.foo(id integer PRIMARY KEY, bar integer);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -47,7 +47,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   ALTER TABLE foo ADD COLUMN baz integer;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -57,7 +57,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   ALTER TABLE foo DROP COLUMN bar;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

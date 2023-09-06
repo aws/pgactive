@@ -1,6 +1,6 @@
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -8,7 +8,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_tbl(pk int primary key, dropping_col1 text, dropping_col2 text);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -16,13 +16,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD COLUMN col1 text;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -42,13 +42,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD COLUMN col2 text;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -83,13 +83,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl DROP COLUMN dropping_col1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -109,13 +109,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl DROP COLUMN dropping_col2;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -134,13 +134,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col1 SET NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -159,13 +159,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col2 SET NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -184,13 +184,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col1 DROP NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -209,13 +209,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col2 DROP NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -234,13 +234,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col1 SET DEFAULT 'abc';
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -259,13 +259,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col2 SET DEFAULT 'abc';
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -284,13 +284,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col1 DROP DEFAULT;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -309,13 +309,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col2 DROP DEFAULT;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -334,13 +334,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD CONSTRAINT test_const CHECK (true);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -361,13 +361,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ADD CONSTRAINT test_const1 CHECK (true);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -389,13 +389,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl DROP CONSTRAINT test_const;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -416,13 +416,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl DROP CONSTRAINT test_const1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -441,7 +441,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col1 SET NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -449,7 +449,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE UNIQUE INDEX test_idx ON public.test_tbl(col1);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -457,13 +457,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl REPLICA IDENTITY USING INDEX test_idx;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -483,7 +483,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN col2 SET NOT NULL;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -491,7 +491,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE UNIQUE INDEX test_idx1 ON public.test_tbl(col2);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -499,13 +499,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl REPLICA IDENTITY USING INDEX test_idx1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -526,7 +526,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl REPLICA IDENTITY DEFAULT;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -534,7 +534,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP INDEX public.test_idx;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -542,13 +542,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP INDEX public. test_idx1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -567,7 +567,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE UNIQUE INDEX test_idx ON public.test_tbl(col1);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -575,13 +575,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl REPLICA IDENTITY USING INDEX test_idx;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -589,7 +589,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP INDEX public.test_idx;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -619,13 +619,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl OWNER TO test_user;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -644,13 +644,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl RENAME COLUMN col1 TO foobar;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -690,13 +690,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl RENAME CONSTRAINT test_tbl_pkey TO test_ddl_pk;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -715,13 +715,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.test_tbl;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -731,7 +731,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_tbl(id int);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -739,7 +739,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN id SET STATISTICS 10;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -753,7 +753,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN id SET STATISTICS 0;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -765,7 +765,7 @@ $DDL$);
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -780,7 +780,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 ALTER TABLE public.test_tbl ALTER COLUMN id SET STATISTICS -1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -792,7 +792,7 @@ $DDL$);
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -807,7 +807,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.test_tbl;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -817,7 +817,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_inh_root (id int primary key, val1 varchar, val2 int);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -825,7 +825,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_inh_chld1 (child1col int) INHERITS (public.test_inh_root);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -833,7 +833,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.test_inh_chld2 () INHERITS (public.test_inh_chld1);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -843,7 +843,7 @@ INSERT INTO public.test_inh_chld1(id, val1, val2, child1col)
 SELECT x, x::text, x%4+1, x*2 FROM generate_series(11,20) x;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -979,7 +979,7 @@ HINT:  See the 'DDL replication' chapter of the documentation.
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -1156,7 +1156,7 @@ SELECT * FROM public.test_inh_chld2;
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -1213,7 +1213,7 @@ INSERT INTO public.test_inh_root(id, val1, val2) VALUES (200, 'root', 1);
 INSERT INTO public.test_inh_chld1(id, val1, val2, child1col) VALUES (200, 'child', 0, 0);
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -1270,7 +1270,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.test_inh_chld2;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -1278,7 +1278,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.test_inh_chld1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -1286,7 +1286,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.test_inh_root;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

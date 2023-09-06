@@ -1,7 +1,7 @@
 \c postgres
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  f
 (1 row)
 
@@ -14,32 +14,32 @@ WARNING:  secondary unique constraint(s) exist on replicated table(s)
 DETAIL:  Table public.some_local_tbl has secondary unique constraint some_local_tbl_key_key. This may cause unhandled replication conflicts.
 HINT:  Drop the secondary unique constraint(s), change the table(s) to UNLOGGED if they don't need to be replicated, or exclude the table(s) from the active replication set(s).
  pgactive_create_group 
-------------------
+-----------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  t
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_node_ready();
  pgactive_wait_for_node_ready 
--------------------------
+------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  t
 (1 row)
 
 \c regression
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  f
 (1 row)
 
@@ -51,13 +51,13 @@ SELECT pgactive.pgactive_join_group(
 	replication_sets := ARRAY['default', 'important', 'for-node-2', 'for-node-2-insert', 'for-node-2-update', 'for-node-2-delete']
 	);
  pgactive_join_group 
-----------------
+---------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  t
 (1 row)
 
@@ -67,14 +67,14 @@ ERROR:  database with oid=16385 is not configured for pgactive or pgactive is st
 SET client_min_messages = 'ERROR';
 SELECT pgactive.pgactive_wait_for_node_ready();
  pgactive_wait_for_node_ready 
--------------------------
+------------------------------
  
 (1 row)
 
 RESET client_min_messages;
 SELECT pgactive.pgactive_is_active_in_db();
  pgactive_is_active_in_db 
----------------------
+--------------------------
  t
 (1 row)
 
@@ -86,10 +86,10 @@ SELECT owner_replorigin, (owner_sysid, owner_timeline, owner_dboid) = pgactive.p
 
 -- Make sure we see two slots and two active connections
 SELECT plugin, slot_type, database, active FROM pg_replication_slots;
- plugin | slot_type |  database  | active 
---------+-----------+------------+--------
- pgactive    | logical   | postgres   | t
- pgactive    | logical   | regression | t
+  plugin  | slot_type |  database  | active 
+----------+-----------+------------+--------
+ pgactive | logical   | postgres   | t
+ pgactive | logical   | regression | t
 (2 rows)
 
 SELECT count(*) FROM pg_stat_replication;
@@ -161,7 +161,7 @@ SELECT
 FROM pgactive.pgactive_get_global_locks_info();
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -187,7 +187,7 @@ SELECT
 $f$;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -208,7 +208,7 @@ SELECT * FROM ddl_info;
 -- and so we know it won't break things when run on a 2.0 cluster.
 SELECT pgactive.pgactive_assign_seq_ids_post_upgrade();
  pgactive_assign_seq_ids_post_upgrade 
----------------------------------
+--------------------------------------
  
 (1 row)
 
@@ -219,8 +219,8 @@ SELECT
   pgactive.pgactive_node_status_to_char(pgactive.pgactive_node_status_from_char(c::"char")) AS roundtrip_char
 FROM (VALUES ('b'),('i'),('c'),('o'),('r'),('k')) x(c)
 ORDER BY c;
- status_char |               status_str                | roundtrip_char 
--------------+-----------------------------------------+----------------
+ status_char |                  status_str                  | roundtrip_char 
+-------------+----------------------------------------------+----------------
  b           | pgactive_NODE_STATUS_BEGINNING_INIT          | b
  c           | pgactive_NODE_STATUS_CATCHUP                 | c
  i           | pgactive_NODE_STATUS_COPYING_INITIAL_DATA    | i

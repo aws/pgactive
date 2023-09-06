@@ -19,8 +19,8 @@ SET log_statement = 'all';
 ERROR:  no commands may be run on the pgactive supervisor database
 -- We actually did connect
 SELECT current_database();
- current_database 
-------------------
+   current_database    
+-----------------------
  pgactive_supervisordb
 (1 row)
 

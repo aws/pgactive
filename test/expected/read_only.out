@@ -5,21 +5,21 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
         );
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 -- set all nodes ro
 SELECT pgactive.pgactive_set_node_read_only(node_name, true) FROM pgactive.pgactive_nodes;
  pgactive_set_node_read_only 
-------------------------
+-----------------------------
  
  
 (2 rows)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -118,14 +118,14 @@ SELECT * FROM cte;
 -- set all nodes rw
 SELECT pgactive.pgactive_set_node_read_only(node_name, false) FROM pgactive.pgactive_nodes;
  pgactive_set_node_read_only 
-------------------------
+-----------------------------
  
  
 (2 rows)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -134,7 +134,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
         DROP TABLE public.test_read_only;
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

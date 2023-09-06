@@ -12,7 +12,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE SEQUENCE public.dummy_seq;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -43,7 +43,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE SEQUENCE public.dummy_seq2;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -51,7 +51,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.seqvalues (id bigint);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -71,7 +71,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE UNIQUE INDEX ON public.seqvalues(id);
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -91,7 +91,7 @@ SELECT last_value FROM dummy_seq2;
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -128,7 +128,7 @@ SELECT count(id) FROM seqvalues;
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

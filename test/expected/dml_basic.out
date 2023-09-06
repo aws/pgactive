@@ -13,7 +13,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($$
 	);
 $$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -27,7 +27,7 @@ VALUES (5, 'foo', '1 minute'::interval),
        (1, NULL, NULL);
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -47,7 +47,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 UPDATE basic_dml SET other = '4', data = NULL, something = '3 days'::interval WHERE id = 4;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -67,7 +67,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 UPDATE basic_dml SET other = id, data = data || id::text;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -87,7 +87,7 @@ UPDATE basic_dml SET other = id, something = something - '10 seconds'::interval 
 UPDATE basic_dml SET other = id, something = something + '10 seconds'::interval WHERE id > 3;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -107,7 +107,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 DELETE FROM basic_dml WHERE id = 2;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -126,7 +126,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 DELETE FROM basic_dml WHERE id < 4;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -143,7 +143,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 TRUNCATE basic_dml;
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -158,7 +158,7 @@ SELECT id, other, data, something FROM basic_dml ORDER BY id;
 \COPY basic_dml FROM STDIN WITH CSV
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -177,7 +177,7 @@ BEGIN;
 RESET pgactive.skip_ddl_replication;
 SELECT pgactive.pgactive_replicate_ddl_command($$DROP TABLE public.basic_dml;$$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

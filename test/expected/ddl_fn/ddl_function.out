@@ -9,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE  STRICT;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -30,7 +30,7 @@ $DDL$);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER FUNCTION public.test_fn(varchar, integer) SECURITY DEFINER CALLED ON NULL INPUT VOLATILE ROWS 1 COST 1; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -57,7 +57,7 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -78,7 +78,7 @@ $DDL$);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP FUNCTION public.test_fn(varchar, integer); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -102,7 +102,7 @@ END;
 $$ LANGUAGE plpgsql;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -129,13 +129,13 @@ ORDER BY t.tgname;
 $$;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_trigger_table (f1 integer, f2 text); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -143,7 +143,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON public.test_trigger_table FOR EACH STATEMENT WHEN (True) EXECUTE PROCEDURE public.test_trigger_fn(); 
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -151,13 +151,13 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON public.test_trigger_table FOR EACH ROW EXECUTE PROCEDURE public.test_trigger_fn(); 
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -182,13 +182,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TRIGGER test_trigger_fn_trg1 ON public.test_trigger_table RENAME TO test_trigger_fn_trg; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -211,13 +211,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER test_trigger_fn_trg; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -240,13 +240,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table DISABLE TRIGGER ALL; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -269,13 +269,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -298,13 +298,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE TRIGGER USER; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -327,13 +327,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -356,13 +356,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -385,13 +385,13 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TRIGGER test_trigger_fn_trg2 ON public.test_trigger_table; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -418,19 +418,19 @@ HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 CONTEXT:  during replay of DDL statement:  DROP FUNCTION public.test_trigger_fn(); 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_trigger_table; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP FUNCTION public.test_trigger_fn(); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 

@@ -7,20 +7,20 @@ WHERE e.extname ~ '^(pg_trgm)$'
 ORDER BY 1;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 -- create nonexistant extension
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE EXTENSION pg_trgm SCHEMA public; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -34,13 +34,13 @@ SELECT * from list_extension;
 -- drop and recreate using CINE
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP EXTENSION pg_trgm; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -52,13 +52,13 @@ SELECT * from list_extension;
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -74,14 +74,14 @@ SELECT * from list_extension;
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public; $DDL$);
 NOTICE:  extension "pg_trgm" already exists, skipping
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 \set VERBOSITY default
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -94,13 +94,13 @@ SELECT * from list_extension;
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP EXTENSION pg_trgm; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP VIEW public.list_extension; $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

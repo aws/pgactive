@@ -6,20 +6,20 @@ CREATE TABLE public.add_column (
 );
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 INSERT INTO add_column (data) SELECT generate_series(1,100,10);
 SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.add_column ADD COLUMN other varchar(100); $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -42,7 +42,7 @@ SELECT id, data, other FROM add_column ORDER BY id;
 UPDATE add_column SET other = 'foobar'; 
 SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  pgactive_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+---------------------------------------------
  
 (1 row)
 
@@ -66,7 +66,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP TABLE public.add_column
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -76,7 +76,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE PUBLICATION mypub FOR ALL TABLES;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 
@@ -100,7 +100,7 @@ SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 DROP PUBLICATION mypub;
 $DDL$);
  pgactive_replicate_ddl_command 
----------------------------
+--------------------------------
  
 (1 row)
 

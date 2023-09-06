@@ -6,7 +6,7 @@ SELECT pgactive.pgactive_acquire_global_lock('');
 ERROR:  unknown lock type 
 SELECT pgactive.pgactive_acquire_global_lock(NULL);
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -17,7 +17,7 @@ SET LOCAL pgactive.skip_ddl_replication = true;
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 WARNING:  pgactive.skip_ddl_replication is set, ignoring explicit pgactive.pgactive_acquire_global_lock(...) call
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -38,7 +38,7 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('write_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -65,7 +65,7 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -92,7 +92,7 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -104,7 +104,7 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('write_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -131,14 +131,14 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
 SAVEPOINT ddllock;
 SELECT pgactive.pgactive_acquire_global_lock('write_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
@@ -161,7 +161,7 @@ SELECT * FROM ddl_info;
 
 SELECT pgactive.pgactive_acquire_global_lock('write_lock');
  pgactive_acquire_global_lock 
--------------------------
+------------------------------
  
 (1 row)
 
