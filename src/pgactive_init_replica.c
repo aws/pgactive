@@ -1267,7 +1267,7 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 		 * we're joining we acquire the DDL lock on the target when we update
 		 * our nodes entry to 'r'eady state. When peers see our node go ready
 		 * they'll start counting it in tallies, so we must have full
-		 * bi-directional communication. The new nodes row will be immediately
+		 * active-active communication. The new nodes row will be immediately
 		 * followed by a DDL lock release message generated when its tx
 		 * commits.
 		 *

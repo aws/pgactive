@@ -1,7 +1,7 @@
 /*
  * pgactive_locks.h
  *
- * BiDirectionalReplication
+ * Active-active Replication
  *
  * Copyright (c) 2014-2015, PostgreSQL Global Development Group
  *

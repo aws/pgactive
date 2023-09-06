@@ -55,19 +55,21 @@ $node_1->safe_psql($pgactive_test_dbname,
 wait_for_apply($node_1, $node_0);
 
 # Wait for standby catchup
-$node_0->wait_for_catchup($node_0_standby);
+$node_0->wait_for_catchup($node_0_standby, 'replay', $node_0->lsn('flush'));
 
 # Make sure all pgactive nodes and standby connected to a pgactive node get all changes
 # occurred on all of the pgactive nodes.
 my $query = qq[SELECT COUNT(*) FROM fruits;];
 my $expected = 2;
 my $node_0_res = $node_0->safe_psql($pgactive_test_dbname, $query);
-my $node_0_standby_res = $node_0_standby->safe_psql($pgactive_test_dbname, $query);
 my $node_1_res = $node_1->safe_psql($pgactive_test_dbname, $query);
 
 is($node_0_res, $expected, "pgactive node node_0 has all the data");
-is($node_0_standby_res, $expected, "standby connected to pgactive node node_0 has all the data");
 is($node_1_res, $expected, "pgactive node node_1 has all the data");
+
+$node_0_standby->poll_query_until($pgactive_test_dbname,
+  qq[SELECT COUNT(*) = 2 FROM fruits;])
+  or die "timed out waitinf for standby to receive all the data from primary";
 
 my $pgport = $node_0->port;
 my $pghost = $node_0->host;
@@ -141,7 +143,7 @@ $node_1->safe_psql($pgactive_test_dbname,
 wait_for_apply_with_peer_name($node_1, 'node_0');
 
 $expected = 4;
-$node_0_standby_res = $node_0_standby->safe_psql($pgactive_test_dbname, $query);
+my $node_0_standby_res = $node_0_standby->safe_psql($pgactive_test_dbname, $query);
 $node_1_res = $node_1->safe_psql($pgactive_test_dbname, $query);
 
 is($node_0_standby_res, $expected, "pgactive node a.k.a new primary after failover has all the data");

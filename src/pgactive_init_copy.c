@@ -144,7 +144,7 @@ static char *create_restore_point(PGconn *conn, char *restore_point_name);
 static void create_pgactive_nid_getter_function(PGconn *conn,
 												char *dbname,
 												uint64 nid);
-
+static void reset_pgactive_nid_shmem(PGconn *conn);
 static void initialize_replication_slot(PGconn *conn,
 										NodeInfo * ni,
 										Oid dboid,
@@ -1365,6 +1365,28 @@ create_restore_point(PGconn *conn, char *restore_point_name)
 }
 
 /*
+ * Reset pgactive node identifier shared memory.
+ */
+static void
+reset_pgactive_nid_shmem(PGconn *conn)
+{
+	PQExpBuffer query = createPQExpBuffer();
+	PGresult   *res;
+
+	print_msg(VERBOSITY_NORMAL,
+			  _("Resetting pgactive node identifier shared memory\n"));
+
+	appendPQExpBufferStr(query, "SELECT pgactive._pgactive_nid_shmem_reset_all_private();");
+
+	res = PQexec(conn, query->data);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		die(_("Could not reset pgactive node identifier shared memory %s: %s\n"),
+			PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	PQclear(res);
+	destroyPQExpBuffer(query);
+}
+
+/*
  * Create pgactive node identifier getter function on local node.
  */
 static void
@@ -1425,6 +1447,9 @@ pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	PQExpBuffer query = createPQExpBuffer();
 	PQExpBuffer repsets = createPQExpBuffer();
 	PGresult   *res;
+
+	/* Reset pgactive node identifier shared memory first. */
+	reset_pgactive_nid_shmem(conn);
 
 	/* Ceate pgactive node identifier getter function on node. */
 	create_pgactive_nid_getter_function(conn, dbname, nid);

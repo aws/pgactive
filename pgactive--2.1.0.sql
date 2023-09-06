@@ -971,7 +971,7 @@ BEGIN
     --
     -- pgactive_init_copy might've created a node entry in catchup mode already, in
     -- which case we can skip this.
-    SELECT node_status FROM pgactive_nodes
+    SELECT * FROM pgactive_nodes
     WHERE node_sysid = localid.sysid
       AND node_timeline = localid.timeline
       AND node_dboid = localid.dboid
@@ -2197,6 +2197,16 @@ REVOKE ALL ON FUNCTION check_file_system_mount_points(text, text) FROM public;
 
 COMMENT ON FUNCTION check_file_system_mount_points(text, text) IS
 'Checks if given paths are on same file system mount points.';
+
+CREATE FUNCTION _pgactive_nid_shmem_reset_all_private()
+RETURNS void
+AS 'MODULE_PATHNAME','pgactive_nid_shmem_reset_all'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION _pgactive_nid_shmem_reset_all_private() FROM public;
+
+COMMENT ON FUNCTION _pgactive_nid_shmem_reset_all_private() IS
+'Resets pgactive node identifier shared memory.';
 
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
