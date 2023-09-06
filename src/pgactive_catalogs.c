@@ -74,8 +74,8 @@ pgactive_nodes_get_local_status(const pgactiveNodeId * const node, bool missing_
 
 	/*
 	 * Determine if pgactive is present on this DB. The output plugin can be
-	 * started on a db that doesn't actually have pgactive active, but we don't
-	 * want to allow that.
+	 * started on a db that doesn't actually have pgactive active, but we
+	 * don't want to allow that.
 	 *
 	 * Check for a pgactive schema.
 	 */
@@ -244,11 +244,11 @@ pgactive_nodes_set_local_attrs(pgactiveNodeStatus status, pgactiveNodeStatus old
 	Datum		values[6];
 	char		sysid_str[33];
 	bool		tx_started = false;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
-	Assert(status != pgactive_NODE_STATUS_NONE); /* Cannot pass \0 */
+	Assert(status != pgactive_NODE_STATUS_NONE);	/* Cannot pass \0 */
 	/* Cannot have replication apply state set in this tx */
 	Assert(replorigin_session_origin == InvalidRepOriginId);
 
@@ -447,7 +447,7 @@ pgactive_read_connection_configs()
 	char		sysid_str[33];
 	Datum		values[3];
 	Oid			types[3] = {TEXTOID, OIDOID, OIDOID};
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -616,7 +616,7 @@ pgactive_get_all_local_dsn()
 	char		sysid_str[33];
 	Datum		values[1];
 	Oid			types[1] = {TEXTOID};
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -752,7 +752,7 @@ pgactive_get_connection_config(const pgactiveNodeId * const node, bool missing_o
 pgactiveConnectionConfig *
 pgactive_get_my_connection_config(bool missing_ok)
 {
-	pgactiveNodeId	ni;
+	pgactiveNodeId ni;
 
 	pgactive_make_my_nodeid(&ni);
 
@@ -831,7 +831,7 @@ stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
 						   char *timeline_str, Size timeline_str_size,
 						   char *dboid_str, Size dboid_str_size)
 {
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 	return stringify_node_identity(sysid_str, sysid_str_size, timeline_str,
@@ -952,7 +952,7 @@ pgactive_remote_node_seq_id(void)
 	bool		isnull;
 	char		sysid_str[33];
 	Oid			schema_oid;
-	pgactiveNodeId  *node;
+	pgactiveNodeId *node;
 	bool		tx_started = false;
 	int			node_seq_id;
 
@@ -973,13 +973,13 @@ pgactive_remote_node_seq_id(void)
 
 	/*
 	 * Determine if pgactive is present on this DB. The output plugin can be
-	 * started on a db that doesn't actually have pgactive active, but we don't
-	 * want to allow that.
+	 * started on a db that doesn't actually have pgactive active, but we
+	 * don't want to allow that.
 	 *
 	 * Check for a pgactive schema.
 	 */
 	schema_oid = pgactiveGetSysCacheOid1(NAMESPACENAME, Anum_pg_namespace_oid,
-									CStringGetDatum("pgactive"));
+										 CStringGetDatum("pgactive"));
 	if (schema_oid == InvalidOid)
 	{
 		ereport(ERROR,

@@ -332,8 +332,8 @@ pgactive_get_remote_dboid(const char *conninfo_db)
  */
 PGconn *
 pgactive_connect(const char *conninfo,
-			Name appname,
-			pgactiveNodeId * remote_node)
+				 Name appname,
+				 pgactiveNodeId * remote_node)
 {
 	PGconn	   *streamConn;
 	PGconn	   *conn;
@@ -474,8 +474,8 @@ pgactive_connect(const char *conninfo,
  */
 static void
 pgactive_create_slot(PGconn *streamConn, Name slot_name,
-				char *remote_ident, RepOriginId *replication_identifier,
-				char **snapshot)
+					 char *remote_ident, RepOriginId *replication_identifier,
+					 char **snapshot)
 {
 	StringInfoData query;
 	PGresult   *res;
@@ -535,7 +535,7 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 	uint16		worker_generation;
 	uint16		worker_idx;
 	Oid			dboid;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 	char		mystatus;
 
 	Assert(IsBackgroundWorker);
@@ -613,9 +613,9 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 
 	/*
 	 * We unregister per-db/apply worker when local node_status is killed or
-	 * no row exists for the node in pgactive_nodes. This can happen after a node
-	 * is detached or pgactive is removed from local node. Unregistering the worker
-	 * prevents subsequent worker fail-and-restart cycles.
+	 * no row exists for the node in pgactive_nodes. This can happen after a
+	 * node is detached or pgactive is removed from local node. Unregistering
+	 * the worker prevents subsequent worker fail-and-restart cycles.
 	 */
 	if (mystatus == pgactive_NODE_STATUS_KILLED)
 	{
@@ -633,8 +633,8 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 	}
 
 	/*
-	 * Ensure pgactive extension is up to date and get the name of the database
-	 * this background is connected to.
+	 * Ensure pgactive extension is up to date and get the name of the
+	 * database this background is connected to.
 	 */
 	pgactive_executor_always_allow_writes(true);
 	StartTransactionCommand();
@@ -739,15 +739,15 @@ pgactive_error_nodeids_must_differ(const pgactiveNodeId * const nodeid)
  */
 PGconn *
 pgactive_establish_connection_and_slot(const char *dsn,
-								  const char *application_name_suffix, Name out_slot_name,
-								  pgactiveNodeId * out_nodeid,
-								  RepOriginId *out_replication_identifier, char **out_snapshot)
+									   const char *application_name_suffix, Name out_slot_name,
+									   pgactiveNodeId * out_nodeid,
+									   RepOriginId *out_replication_identifier, char **out_snapshot)
 {
 	PGconn	   *streamConn;
 	bool		tx_started = false;
 	NameData	appname;
 	char	   *remote_repident_name;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -755,8 +755,8 @@ pgactive_establish_connection_and_slot(const char *dsn,
 			 pgactive_get_my_cached_node_name(), application_name_suffix);
 
 	/*
-	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like connection
-	 * failure.
+	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like
+	 * connection failure.
 	 */
 	streamConn = pgactive_connect(dsn, &appname, out_nodeid);
 
@@ -785,15 +785,15 @@ pgactive_establish_connection_and_slot(const char *dsn,
 		/*
 		 * Slot doesn't exist, create it.
 		 *
-		 * The per-db worker will create slots when we first init pgactive, but new
-		 * workers added afterwards are expected to create their own slots at
-		 * connect time; that's when this runs.
+		 * The per-db worker will create slots when we first init pgactive,
+		 * but new workers added afterwards are expected to create their own
+		 * slots at connect time; that's when this runs.
 		 */
 
 		/* create local replication identifier and a remote slot */
 		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
 		pgactive_create_slot(streamConn, out_slot_name, remote_repident_name,
-						out_replication_identifier, out_snapshot);
+							 out_replication_identifier, out_snapshot);
 	}
 
 	pfree(remote_repident_name);
@@ -809,9 +809,9 @@ pgactive_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource sou
 		return true;
 
 	/*
-	 * Only set pgactive.do_not_replicate if configured via startup packet from the
-	 * client application. This prevents possibly unsafe accesses to the
-	 * replication identifier state in postmaster context, etc.
+	 * Only set pgactive.do_not_replicate if configured via startup packet
+	 * from the client application. This prevents possibly unsafe accesses to
+	 * the replication identifier state in postmaster context, etc.
 	 */
 	if (source != PGC_S_CLIENT)
 		return false;
@@ -1345,7 +1345,7 @@ pgactive_apply_resume(PG_FUNCTION_ARGS)
 	 */
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 
 		if (w->worker_type == pgactive_WORKER_APPLY)
 		{
@@ -1398,7 +1398,7 @@ pgactive_get_local_nodeid(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		sysid_str[33];
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -1428,7 +1428,7 @@ pgactive_parse_slot_name_sql(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
-	pgactiveNodeId	remote;
+	pgactiveNodeId remote;
 	Oid			local_dboid;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
@@ -1462,7 +1462,7 @@ pgactive_parse_replident_name_sql(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	char		remote_sysid_str[33];
-	pgactiveNodeId	remote;
+	pgactiveNodeId remote;
 	Oid			local_dboid;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
@@ -1490,7 +1490,7 @@ pgactive_parse_replident_name_sql(PG_FUNCTION_ARGS)
 Datum
 pgactive_format_slot_name_sql(PG_FUNCTION_ARGS)
 {
-	pgactiveNodeId	remote;
+	pgactiveNodeId remote;
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Oid			local_dboid = PG_GETARG_OID(3);
 	const char *replication_name = NameStr(*PG_GETARG_NAME(4));
@@ -1515,7 +1515,7 @@ pgactive_format_slot_name_sql(PG_FUNCTION_ARGS)
 Datum
 pgactive_format_replident_name_sql(PG_FUNCTION_ARGS)
 {
-	pgactiveNodeId	remote;
+	pgactiveNodeId remote;
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	Oid			local_dboid = PG_GETARG_OID(3);
 	const char *replication_name = NameStr(*PG_GETARG_NAME(4));
@@ -1548,7 +1548,7 @@ pgactive_format_replident_name_sql(PG_FUNCTION_ARGS)
  */
 int
 pgactive_parse_version(const char *pgactive_version_str,
-				  int *o_major, int *o_minor, int *o_rev, int *o_subrev)
+					   int *o_major, int *o_minor, int *o_rev, int *o_subrev)
 {
 	int			nparsed,
 				major,
@@ -1589,7 +1589,7 @@ pgactive_skip_changes(PG_FUNCTION_ARGS)
 	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	XLogRecPtr	upto_lsn = PG_GETARG_LSN(3);
 	RepOriginId nodeid;
-	pgactiveNodeId	myid,
+	pgactiveNodeId myid,
 				remote;
 
 	remote.timeline = PG_GETARG_OID(1);
@@ -1597,7 +1597,10 @@ pgactive_skip_changes(PG_FUNCTION_ARGS)
 
 	pgactive_make_my_nodeid(&myid);
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (!pgactive_skip_ddl_replication)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
@@ -1660,8 +1663,8 @@ pgactive_skip_changes(PG_FUNCTION_ARGS)
 		while (pgactive_get_worker_pid_byid(&remote, pgactive_WORKER_APPLY) != 0)
 		{
 			(void) pgactiveWaitLatch(&MyProc->procLatch,
-								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-								500L, PG_WAIT_EXTENSION);
+									 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+									 500L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}
@@ -1698,7 +1701,7 @@ static int
 pgactive_get_worker_pid_byid(const pgactiveNodeId * const node, pgactiveWorkerType worker_type)
 {
 	int			pid = 0;
-	pgactiveWorker  *worker;
+	pgactiveWorker *worker;
 
 	/*
 	 * Right now there can only be one worker for any given remote, so we
@@ -1728,7 +1731,7 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 		Datum		values[pgactive_GET_WORKERS_PID_COLS] = {0};
 		bool		nulls[pgactive_GET_WORKERS_PID_COLS] = {0};
 		uint64		sysid = 0;	/* keep compiler quiet */
@@ -1833,7 +1836,10 @@ pgactive_pause_worker_management(PG_FUNCTION_ARGS)
 {
 	bool		pause = PG_GETARG_BOOL(0);
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pause && !pgactive_skip_ddl_replication)
 		elog(ERROR, "this function is for internal test use only");
 
@@ -2067,9 +2073,9 @@ get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	bool		isnull[3];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
-	pgactiveNodeId	target;
+	pgactiveNodeId target;
 	char	   *sysid_str = text_to_cstring(PG_GETARG_TEXT_PP(0));
-	pgactiveWorker  *worker;
+	pgactiveWorker *worker;
 	bool		lock_acquired = false;
 	TransactionId xid = InvalidTransactionId;
 	TimestampTz committs = 0;
@@ -2225,7 +2231,7 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 #define GET_REPLICATION_LAG_INFO_COLS	7
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	int			i;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 	char		local_sysid_str[33];
 
 	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
@@ -2241,7 +2247,7 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
 		bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
 		pgactiveWalsenderWorker *ws;

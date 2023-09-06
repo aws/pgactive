@@ -43,7 +43,7 @@ pgactive_process_remote_message(StringInfo s)
 	bool		transactional;
 	int			msg_type;
 	XLogRecPtr	lsn;
-	pgactiveNodeId	origin_node;
+	pgactiveNodeId origin_node;
 
 	transactional = pq_getmsgbyte(s);
 	lsn = pq_getmsgint64(s);
@@ -88,7 +88,7 @@ done:
 void
 pgactive_prepare_message(StringInfo s, pgactiveMessageType message_type)
 {
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 

@@ -94,8 +94,8 @@ pgactive_wait_for_slots_confirmed_flush_lsn(PG_FUNCTION_ARGS)
 			break;
 
 		(void) pgactiveWaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-							1000L, PG_WAIT_EXTENSION);
+								 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								 1000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 	} while (1);

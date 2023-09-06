@@ -72,7 +72,7 @@ typedef struct
 {
 	MemoryContext context;
 
-	pgactiveNodeId	remote_node;
+	pgactiveNodeId remote_node;
 
 	bool		allow_binary_protocol;
 	bool		allow_sendrecv_protocol;
@@ -327,9 +327,9 @@ pgactive_ensure_node_ready(pgactiveOutputData * data)
 
 			/*
 			 * We used to refuse to create a slot before/during apply of base
-			 * backup. Now we have pgactive.do_not_replicate set DoNotReplicateId
-			 * when restoring so it's safe to do so since we can't replicate
-			 * the backup to peers anymore.
+			 * backup. Now we have pgactive.do_not_replicate set
+			 * DoNotReplicateId when restoring so it's safe to do so since we
+			 * can't replicate the backup to peers anymore.
 			 *
 			 * Locally originated changes will still be replayed to peers (but
 			 * we should set readonly mode to prevent them entirely).
@@ -375,7 +375,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 
 	/* parse where the connection has to be from */
 	pgactive_parse_slot_name(NameStr(MyReplicationSlot->data.name),
-						&data->remote_node, &local_dboid);
+							 &data->remote_node, &local_dboid);
 
 	/* parse options passed in by the client */
 
@@ -421,15 +421,15 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 
 			/* parse list */
 			pgactive_parse_identifier_list_arr(elem,
-										  &data->replication_sets,
-										  &data->num_replication_sets);
+											   &data->replication_sets,
+											   &data->num_replication_sets);
 
 			Assert(data->num_replication_sets >= 0);
 
 			/* validate elements */
 			for (i = 0; i < data->num_replication_sets; i++)
 				pgactive_validate_replication_set_name(data->replication_sets[i],
-												  true);
+													   true);
 
 			/* make it bsearch()able */
 			qsort(data->replication_sets, data->num_replication_sets,
@@ -486,10 +486,10 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 	 *
 	 * We must prevent slot creation before the pgactive extension is created,
 	 * otherwise the event trigger for DDL replication will record the
-	 * extension's creation in pgactive.pgactive_queued_commands and the slot position
-	 * will be before then, causing CREATE EXTENSION to be replayed. Since the
-	 * other end already has the pgactive extension (obviously) this will cause
-	 * replay to fail.
+	 * extension's creation in pgactive.pgactive_queued_commands and the slot
+	 * position will be before then, causing CREATE EXTENSION to be replayed.
+	 * Since the other end already has the pgactive extension (obviously) this
+	 * will cause replay to fail.
 	 *
 	 * TODO: Should really test for the extension its self, but this is faster
 	 * and easier...
@@ -691,29 +691,29 @@ should_forward_changeset(LogicalDecodingContext *ctx,
 		return false;
 
 	/*
-	 * We do not let the pgactive output plugin replicate changes that came from
-	 * pgactive peers to avoid replication loops. We used to check the replication
-	 * origin name to determine whether the changes came from peer pgactive nodes
-	 * or non-pgactive nodes. The commit 76a88a0ba23b874 introduced a shared hash
-	 * table to track all pgactive replication origin names. We used this hash
-	 * table to filter out changes from peer pgactive nodes and to forward changes
-	 * from non-pgactive nodes. However, we determined a severe performance
-	 * bottleneck with the hash table lookup. A simple use-case that revealed
-	 * this bottleneck is - on a 2 node pgactive group, bulk loaded data on node 1,
-	 * upon applying the changes received from node 1, the logical walsender
-	 * on node 2 corresponding to node 1 was performing a hash table lookup
-	 * for every decoded change. Due to this, frequent look up the walsender
-	 * was consuming ~100% CPU and any simple DML on node 2 was taking days to
-	 * reach node 1.
+	 * We do not let the pgactive output plugin replicate changes that came
+	 * from pgactive peers to avoid replication loops. We used to check the
+	 * replication origin name to determine whether the changes came from peer
+	 * pgactive nodes or non-pgactive nodes. The commit 76a88a0ba23b874
+	 * introduced a shared hash table to track all pgactive replication origin
+	 * names. We used this hash table to filter out changes from peer pgactive
+	 * nodes and to forward changes from non-pgactive nodes. However, we
+	 * determined a severe performance bottleneck with the hash table lookup.
+	 * A simple use-case that revealed this bottleneck is - on a 2 node
+	 * pgactive group, bulk loaded data on node 1, upon applying the changes
+	 * received from node 1, the logical walsender on node 2 corresponding to
+	 * node 1 was performing a hash table lookup for every decoded change. Due
+	 * to this, frequent look up the walsender was consuming ~100% CPU and any
+	 * simple DML on node 2 was taking days to reach node 1.
 	 *
 	 * To avoid the performance bottleneck, we do two things - 1) We disallow
-	 * a pgactive node pulling in changes from any non-pgactive/external logical
-	 * replication solutions. 2) We removed the shared hash table completely.
-	 * With these things, a pgactive node doesn't have to look for any replication
-	 * origin names to determine non-pgactive changes. Because, every change that
-	 * comes with a valid origin_id is essentially from pgactive peers, and can
-	 * safely be filtered out i.e. not forward further to avoid replication
-	 * loops.
+	 * a pgactive node pulling in changes from any non-pgactive/external
+	 * logical replication solutions. 2) We removed the shared hash table
+	 * completely. With these things, a pgactive node doesn't have to look for
+	 * any replication origin names to determine non-pgactive changes.
+	 * Because, every change that comes with a valid origin_id is essentially
+	 * from pgactive peers, and can safely be filtered out i.e. not forward
+	 * further to avoid replication loops.
 	 */
 	return false;
 }
@@ -741,8 +741,8 @@ should_forward_change(LogicalDecodingContext *ctx, pgactiveOutputData * data,
 
 	if (!r->computed_repl_valid)
 		pgactive_heap_compute_replication_settings(r,
-											  data->num_replication_sets,
-											  data->replication_sets);
+												   data->num_replication_sets,
+												   data->replication_sets);
 
 	/* Check whether the current action is configured to be replicated */
 	switch (change)
@@ -794,8 +794,8 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 
 	/*
 	 * pgactive 1.0 sent the commit start lsn here, but that has issues with
-	 * progress tracking; see pgactive_apply for details. Instead send LSN of end
-	 * of commit + 1 so that's what gets recorded in replication origins.
+	 * progress tracking; see pgactive_apply for details. Instead send LSN of
+	 * end of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
 #if PG_VERSION_NUM >= 150000
@@ -816,7 +816,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 		 * converted into the (sysid, tlid, dboid) that uniquely identifies
 		 * the node globally so that can be sent.
 		 */
-		pgactiveNodeId	origin;
+		pgactiveNodeId origin;
 
 		pgactive_fetch_sysid_via_node_id(txn->origin_id, &origin);
 

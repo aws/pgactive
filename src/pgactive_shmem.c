@@ -31,7 +31,7 @@ pgactiveWorkerControl *pgactiveWorkerCtl = NULL;
 pgactiveWorkerType pgactive_worker_type = pgactive_WORKER_EMPTY_SLOT;
 
 /* This worker's block within pgactiveWorkerCtl - only valid in pgactive workers */
-pgactiveWorker  *pgactive_worker_slot = NULL;
+pgactiveWorker *pgactive_worker_slot = NULL;
 
 static bool worker_slot_free_at_rel;
 
@@ -55,9 +55,9 @@ pgactive_shmem_init(void)
 	pgactive_max_workers = max_worker_processes + max_wal_senders;
 
 	/*
-	 * For pgactive there can be at most ceil(max_worker_processes / 2) databases,
-	 * because for every connection we need a perdb worker and a apply
-	 * process.
+	 * For pgactive there can be at most ceil(max_worker_processes / 2)
+	 * databases, because for every connection we need a perdb worker and a
+	 * apply process.
 	 */
 	pgactive_max_databases = (max_worker_processes / 2) + 1;
 
@@ -159,8 +159,8 @@ pgactive_worker_shmem_startup(void)
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 	pgactiveWorkerCtl = ShmemInitStruct("pgactive_worker",
-								   pgactive_worker_shmem_size(),
-								   &found);
+										pgactive_worker_shmem_size(),
+										&found);
 	if (!found)
 	{
 		/* Must be in postmaster its self */
@@ -177,15 +177,15 @@ pgactive_worker_shmem_startup(void)
 		pgactiveWorkerCtl->in_init_exec_dump_restore = false;
 
 		/*
-		 * The postmaster keeps track of a generation number for pgactive workers
-		 * and increments it at each restart.
+		 * The postmaster keeps track of a generation number for pgactive
+		 * workers and increments it at each restart.
 		 *
 		 * Background workers aren't unregistered when the postmaster restarts
 		 * and clears shared memory, so after a restart the supervisor and
 		 * per-db workers have no idea what workers are/aren't running, nor
-		 * any way to control them. To make a clean pgactive restart possible the
-		 * workers registered before the restart need to find out about the
-		 * restart and terminate.
+		 * any way to control them. To make a clean pgactive restart possible
+		 * the workers registered before the restart need to find out about
+		 * the restart and terminate.
 		 *
 		 * To make that possible we pass the generation number to the worker
 		 * in its main argument, and also set it in shared memory. The two
@@ -233,7 +233,7 @@ pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type, uint32 *ctl_idx)
 	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *new_entry = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *new_entry = &pgactiveWorkerCtl->slots[i];
 
 		if (new_entry->worker_type == pgactive_WORKER_EMPTY_SLOT)
 		{
@@ -299,7 +299,7 @@ pgactive_worker_shmem_free(pgactiveWorker * worker, BackgroundWorkerHandle *hand
 void
 pgactive_worker_shmem_acquire(pgactiveWorkerType worker_type, uint32 worker_idx, bool free_at_rel)
 {
-	pgactiveWorker  *worker;
+	pgactiveWorker *worker;
 
 	/* can't acquire if we already have one */
 	Assert(pgactive_worker_type == pgactive_WORKER_EMPTY_SLOT);
@@ -355,7 +355,7 @@ pgactive_worker_shmem_release(void)
 pgactiveWorker *
 pgactive_worker_get_entry(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type)
 {
-	pgactiveWorker  *worker = NULL;
+	pgactiveWorker *worker = NULL;
 	int			i;
 
 	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));

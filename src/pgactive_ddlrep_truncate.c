@@ -126,18 +126,18 @@ pgactive_create_truncate_trigger(char *schemaname, char *relname, Oid relid)
 
 	/*
 	 * The trigger was created with a 'n'ormal dependency on
-	 * pgactive.pgactive_queue_truncate(), which will cause DROP EXTENSION pgactive to fail
-	 * with something like:
+	 * pgactive.pgactive_queue_truncate(), which will cause DROP EXTENSION
+	 * pgactive to fail with something like:
 	 *
 	 * trigger truncate_trigger_26908 on table sometable depends on function
 	 * pgactive.pgactive_queue_truncate()
 	 *
-	 * We want the trigger to pgactive dropped if EITHER the pgactive extension is
-	 * dropped (thus so is pgactive.pgactive_queue_truncate()) OR if the table the
-	 * trigger is attached to is dropped, so we want an automatic dependency
-	 * on the target table. CreateTrigger doesn't offer this directly and we'd
-	 * rather not cause an API break by adding a param, so just twiddle the
-	 * created dependency.
+	 * We want the trigger to pgactive dropped if EITHER the pgactive
+	 * extension is dropped (thus so is pgactive.pgactive_queue_truncate()) OR
+	 * if the table the trigger is attached to is dropped, so we want an
+	 * automatic dependency on the target table. CreateTrigger doesn't offer
+	 * this directly and we'd rather not cause an API break by adding a param,
+	 * so just twiddle the created dependency.
 	 */
 
 	procaddr.classId = ProcedureRelationId;
@@ -304,8 +304,9 @@ pgactive_queue_truncate(PG_FUNCTION_ARGS)
 			 "pgactive_queue_truncate");
 
 	/*
-	 * If the trigger comes from DDL executed by pgactive_replicate_ddl_command,
-	 * don't queue it as it would insert duplicate commands into the queue.
+	 * If the trigger comes from DDL executed by
+	 * pgactive_replicate_ddl_command, don't queue it as it would insert
+	 * duplicate commands into the queue.
 	 */
 	if (in_pgactive_replicate_ddl_command)
 		PG_RETURN_VOID();		/* XXX return type? */
@@ -320,7 +321,7 @@ pgactive_queue_truncate(PG_FUNCTION_ARGS)
 	/* Make sure the list change survives the trigger call. */
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	pgactive_truncated_tables = lappend_oid(pgactive_truncated_tables,
-									   RelationGetRelid(tdata->tg_relation));
+											RelationGetRelid(tdata->tg_relation));
 	MemoryContextSwitchTo(oldcontext);
 
 	PG_RETURN_VOID();

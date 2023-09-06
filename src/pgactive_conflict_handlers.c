@@ -80,35 +80,35 @@ pgactive_conflict_handlers_init(void)
 	Oid			schema_oid = get_namespace_oid("pgactive", false);
 
 	pgactive_conflict_handler_table_oid = get_relname_relid("pgactive_conflict_handlers",
-													   schema_oid);
+															schema_oid);
 
 	if (pgactive_conflict_handler_table_oid == InvalidOid)
 		elog(ERROR, "cache lookup failed for relation pgactive.pgactive_conflict_handlers");
 
 	pgactive_conflict_handler_type_oid =
 		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								PointerGetDatum("pgactive_conflict_type"),
-								ObjectIdGetDatum(schema_oid));
+									 PointerGetDatum("pgactive_conflict_type"),
+									 ObjectIdGetDatum(schema_oid));
 
 	pgactive_conflict_handler_action_oid =
 		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								PointerGetDatum("pgactive_conflict_handler_action"),
-								ObjectIdGetDatum(schema_oid));
+									 PointerGetDatum("pgactive_conflict_handler_action"),
+									 ObjectIdGetDatum(schema_oid));
 
 	pgactive_conflict_handler_action_ignore_oid =
 		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								pgactive_conflict_handler_action_oid,
-								CStringGetDatum("IGNORE"));
+									 pgactive_conflict_handler_action_oid,
+									 CStringGetDatum("IGNORE"));
 
 	pgactive_conflict_handler_action_row_oid =
 		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								pgactive_conflict_handler_action_oid,
-								CStringGetDatum("ROW"));
+									 pgactive_conflict_handler_action_oid,
+									 CStringGetDatum("ROW"));
 
 	pgactive_conflict_handler_action_skip_oid =
 		pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-								pgactive_conflict_handler_action_oid,
-								CStringGetDatum("SKIP"));
+									 pgactive_conflict_handler_action_oid,
+									 CStringGetDatum("SKIP"));
 }
 
 /*
@@ -205,7 +205,8 @@ pgactive_create_conflict_handler(PG_FUNCTION_ARGS)
 	pgactive_conflict_handlers_check_handler_fun(rel, proc_oid);
 
 	/*
-	 * build up arguments for the INSERT INTO pgactive.pgactive_conflict_handlers
+	 * build up arguments for the INSERT INTO
+	 * pgactive.pgactive_conflict_handlers
 	 */
 
 	argtypes[0] = REGCLASSOID;
@@ -378,7 +379,8 @@ pgactive_drop_conflict_handler(PG_FUNCTION_ARGS)
 	PushActiveSnapshot(GetTransactionSnapshot());
 
 	/*
-	 * get the pgactive.pgactive_conflict_handlers row oid to remove the dependency
+	 * get the pgactive.pgactive_conflict_handlers row oid to remove the
+	 * dependency
 	 */
 	ret = SPI_execute_with_args(conflict_handlers_get_tbl_oid_sql, 2, argtypes,
 								values, nulls, false, 0);
@@ -694,9 +696,9 @@ pgactive_conflict_handlers_event_type_name(pgactiveConflictType event_type)
  */
 HeapTuple
 pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local,
-							  const HeapTuple remote, const char *command_tag,
-							  pgactiveConflictType event_type,
-							  uint64 timeframe, bool *skip)
+								   const HeapTuple remote, const char *command_tag,
+								   pgactiveConflictType event_type,
+								   uint64 timeframe, bool *skip)
 {
 	size_t		i;
 	Datum		retval;
@@ -720,8 +722,8 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 	pgactive_get_conflict_handlers(rel);
 
 	event_oid = pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
-										pgactive_conflict_handler_type_oid,
-										CStringGetDatum(event));
+											 pgactive_conflict_handler_type_oid,
+											 CStringGetDatum(event));
 
 	for (i = 0; i < rel->conflict_handlers_len; ++i)
 	{

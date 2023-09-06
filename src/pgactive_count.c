@@ -146,8 +146,8 @@ pgactive_count_shmem_startup(void)
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 	pgactiveCountCtl = ShmemInitStruct("pgactive_count",
-								  pgactive_count_shmem_size(),
-								  &found);
+									   pgactive_count_shmem_size(),
+									   &found);
 	if (!found)
 	{
 		/* initialize */

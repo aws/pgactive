@@ -112,7 +112,7 @@ pgactive_nodecache_initialize()
 	ctl.hcxt = CacheMemoryContext;
 
 	pgactiveNodeCacheHash = hash_create("pgactive node cache", 128, &ctl,
-								   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+										HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/*
 	 * Watch for invalidation events. XXX: This breaks if the table is dropped
@@ -125,8 +125,8 @@ pgactive_nodecache_initialize()
 
 static pgactiveNodeInfo *
 pgactive_nodecache_lookup(const pgactiveNodeId * const nodeid,
-					 bool missing_ok,
-					 bool only_cache_lookup)
+						  bool missing_ok,
+						  bool only_cache_lookup)
 {
 	pgactiveNodeInfo *entry,
 			   *nodeinfo;
@@ -231,7 +231,7 @@ pgactive_nodecache_lookup(const pgactiveNodeId * const nodeid,
 const char *
 pgactive_local_node_name(bool only_cache_lookup)
 {
-	pgactiveNodeId	nodeid;
+	pgactiveNodeId nodeid;
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
@@ -246,7 +246,7 @@ pgactive_local_node_name(bool only_cache_lookup)
 bool
 pgactive_local_node_read_only(void)
 {
-	pgactiveNodeId	nodeid;
+	pgactiveNodeId nodeid;
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
@@ -261,7 +261,7 @@ pgactive_local_node_read_only(void)
 char
 pgactive_local_node_status(void)
 {
-	pgactiveNodeId	nodeid;
+	pgactiveNodeId nodeid;
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
@@ -280,7 +280,7 @@ pgactive_local_node_status(void)
 int32
 pgactive_local_node_seq_id(void)
 {
-	pgactiveNodeId	nodeid;
+	pgactiveNodeId nodeid;
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
@@ -301,8 +301,8 @@ pgactive_local_node_seq_id(void)
  */
 const char *
 pgactive_nodeid_name(const pgactiveNodeId * const node,
-				bool missing_ok,
-				bool only_cache_lookup)
+					 bool missing_ok,
+					 bool only_cache_lookup)
 {
 	pgactiveNodeInfo *nodeinfo;
 	char	   *node_name;
@@ -334,7 +334,7 @@ pgactive_nodeid_name(const pgactiveNodeId * const node,
 void
 pgactive_setup_my_cached_node_names()
 {
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	Assert(IsTransactionState());
 	pgactive_make_my_nodeid(&myid);

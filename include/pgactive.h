@@ -255,7 +255,7 @@ typedef struct pgactiveApplyWorker
 	 * Identification for the remote db we're connecting to; used to find the
 	 * appropriate pgactive.connections row, etc.
 	 */
-	pgactiveNodeId	remote_node;
+	pgactiveNodeId remote_node;
 
 	/*
 	 * If not InvalidXLogRecPtr, stop replay at this point and exit.
@@ -273,8 +273,8 @@ typedef struct pgactiveApplyWorker
 	 * The apply worker's latch from the PROC array, for use from other
 	 * backends
 	 *
-	 * Must only be accessed with the pgactive worker shmem control segment lock
-	 * held.
+	 * Must only be accessed with the pgactive worker shmem control segment
+	 * lock held.
 	 */
 	Latch	   *proclatch;
 
@@ -310,8 +310,8 @@ typedef struct pgactivePerdbWorker
 	 * The perdb worker's latch from the PROC array, for use from other
 	 * backends
 	 *
-	 * Must only be accessed with the pgactive worker shmem control segment lock
-	 * held.
+	 * Must only be accessed with the pgactive worker shmem control segment
+	 * lock held.
 	 */
 	Latch	   *proclatch;
 
@@ -328,7 +328,7 @@ typedef struct pgactiveWalsenderWorker
 	struct ReplicationSlot *slot;
 
 	/* Identification for the remote the connection comes from. */
-	pgactiveNodeId	remote_node;
+	pgactiveNodeId remote_node;
 
 	/* last sent transaction id */
 	TransactionId last_sent_xact_id;
@@ -485,7 +485,7 @@ typedef struct pgactiveWorkerControl
 	/* Latch for the supervisor worker */
 	Latch	   *supervisor_latch;
 	/* Array members, of size pgactive_max_workers */
-	pgactiveWorker	slots[FLEXIBLE_ARRAY_MEMBER];
+	pgactiveWorker slots[FLEXIBLE_ARRAY_MEMBER];
 }			pgactiveWorkerControl;
 
 extern pgactiveWorkerControl * pgactiveWorkerCtl;
@@ -511,7 +511,7 @@ extern Oid	pgactiveSupervisorDbOid;
 typedef struct pgactiveNodeInfo
 {
 	/* hash key */
-	pgactiveNodeId	id;
+	pgactiveNodeId id;
 
 	/* is this entry valid */
 	bool		valid;
@@ -572,7 +572,7 @@ typedef struct pgactiveApplyConflict
 	TimestampTz local_conflict_time;
 	const char *object_schema;	/* unused if apply_error */
 	const char *object_name;	/* unused if apply_error */
-	pgactiveNodeId	remote_node;
+	pgactiveNodeId remote_node;
 	TransactionId remote_txid;
 	TimestampTz remote_commit_time;
 	XLogRecPtr	remote_commit_lsn;
@@ -581,7 +581,7 @@ typedef struct pgactiveApplyConflict
 	bool		local_tuple_null;
 	Datum		local_tuple;	/* composite */
 	TransactionId local_tuple_xmin;
-	pgactiveNodeId	local_tuple_origin_node;	/* sysid 0 if unknown */
+	pgactiveNodeId local_tuple_origin_node; /* sysid 0 if unknown */
 	TimestampTz local_commit_time;
 	bool		remote_tuple_null;
 	Datum		remote_tuple;	/* composite */
@@ -592,14 +592,14 @@ extern void pgactive_conflict_logging_startup(void);
 extern void pgactive_conflict_logging_cleanup(void);
 
 extern pgactiveApplyConflict * pgactive_make_apply_conflict(pgactiveConflictType conflict_type,
-												  pgactiveConflictResolution resolution,
-												  TransactionId remote_txid,
-												  pgactiveRelation * conflict_relation,
-												  struct TupleTableSlot *local_tuple,
-												  RepOriginId local_tuple_origin_id,
-												  struct TupleTableSlot *remote_tuple,
-												  TimestampTz local_commit_ts,
-												  struct ErrorData *apply_error);
+															pgactiveConflictResolution resolution,
+															TransactionId remote_txid,
+															pgactiveRelation * conflict_relation,
+															struct TupleTableSlot *local_tuple,
+															RepOriginId local_tuple_origin_id,
+															struct TupleTableSlot *remote_tuple,
+															TimestampTz local_commit_ts,
+															struct ErrorData *apply_error);
 
 extern void pgactive_conflict_log_serverlog(pgactiveApplyConflict * conflict);
 extern void pgactive_conflict_log_table(pgactiveApplyConflict * conflict);
@@ -634,16 +634,16 @@ extern void pgactive_maintain_schema(bool update_extensions);
 extern void pgactive_shmem_init(void);
 
 extern pgactiveWorker * pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type,
-										  uint32 *ctl_idx);
+													uint32 *ctl_idx);
 extern void pgactive_worker_shmem_free(pgactiveWorker * worker, BackgroundWorkerHandle *handle);
 extern void pgactive_worker_shmem_acquire(pgactiveWorkerType worker_type,
-									 uint32 worker_idx,
-									 bool free_at_rel);
+										  uint32 worker_idx,
+										  bool free_at_rel);
 extern void pgactive_worker_shmem_release(void);
 
 extern bool pgactive_is_pgactive_activated_db(Oid dboid);
 extern pgactiveWorker * pgactive_worker_get_entry(const pgactiveNodeId * nodeid,
-										pgactiveWorkerType worker_type);
+												  pgactiveWorkerType worker_type);
 
 /* forbid commands we do not support currently (or never will) */
 extern void init_pgactive_commandfilter(void);
@@ -657,8 +657,8 @@ extern void pgactive_start_truncate(void);
 extern void pgactive_finish_truncate(void);
 
 extern void pgactive_capture_ddl(Node *parsetree, const char *queryString,
-							ProcessUtilityContext context, ParamListInfo params,
-							DestReceiver *dest, CommandTag completionTag);
+								 ProcessUtilityContext context, ParamListInfo params,
+								 DestReceiver *dest, CommandTag completionTag);
 
 extern void pgactive_locks_shmem_init(void);
 extern void pgactive_locks_check_dml(void);
@@ -691,11 +691,11 @@ extern Datum pgactive_connections_changed(PG_FUNCTION_ARGS);
 
 /* Information functions */
 extern int	pgactive_parse_version(const char *pgactive_version_str, int *o_major,
-							  int *o_minor, int *o_rev, int *o_subrev);
+								   int *o_minor, int *o_rev, int *o_subrev);
 
 /* manipulation of pgactive catalogs */
 extern pgactiveNodeStatus pgactive_nodes_get_local_status(const pgactiveNodeId * const node,
-												bool missing_ok);
+														  bool missing_ok);
 extern pgactiveNodeInfo * pgactive_nodes_get_local_info(const pgactiveNodeId * const node);
 extern void pgactive_pgactive_node_free(pgactiveNodeInfo * node);
 extern void pgactive_nodes_set_local_status(pgactiveNodeStatus status, pgactiveNodeStatus oldstatus);
@@ -706,8 +706,8 @@ extern int	pgactive_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *pgactive_nodeid_name(const pgactiveNodeId * const node,
-								   bool missing_ok,
-								   bool only_cache_lookup);
+										bool missing_ok,
+										bool only_cache_lookup);
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -722,7 +722,7 @@ extern void
 
 extern void
 			pgactive_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
-						  const char *copyfrom_query, const char *copyto_query);
+							   const char *copyfrom_query, const char *copyto_query);
 
 /* local node info cache (pgactive_nodecache.c) */
 extern void pgactive_nodecache_invalidate(void);
@@ -739,18 +739,18 @@ extern const char *pgactive_get_my_cached_remote_name(const pgactiveNodeId * con
 
 /* helpers shared by multiple worker types */
 extern struct pg_conn *pgactive_connect(const char *conninfo, Name appname,
-								   pgactiveNodeId * out_nodeid);
+										pgactiveNodeId * out_nodeid);
 
 extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
-														 const char *application_name_suffix,
-														 Name out_slot_name,
-														 pgactiveNodeId * out_nodeid,
-														 RepOriginId *out_replication_identifier,
-														 char **out_snapshot);
+															  const char *application_name_suffix,
+															  Name out_slot_name,
+															  pgactiveNodeId * out_nodeid,
+															  RepOriginId *out_replication_identifier,
+															  char **out_snapshot);
 
 extern PGconn *pgactive_connect_nonrepl(const char *connstring,
-								   const char *appnamesuffix,
-								   bool report_fatal);
+										const char *appnamesuffix,
+										bool report_fatal);
 
 /* Helper for PG_ENSURE_ERROR_CLEANUP to close a PGconn */
 extern void pgactive_cleanup_conn_close(int code, Datum offset);
@@ -759,9 +759,9 @@ extern void pgactive_cleanup_conn_close(int code, Datum offset);
 extern pgactiveRelation * pgactive_table_open(Oid reloid, LOCKMODE lockmode);
 extern void pgactive_table_close(pgactiveRelation * rel, LOCKMODE lockmode);
 extern void pgactive_heap_compute_replication_settings(
-												  pgactiveRelation * rel,
-												  int num_replication_sets,
-												  char **replication_sets);
+													   pgactiveRelation * rel,
+													   int num_replication_sets,
+													   char **replication_sets);
 extern void pgactiveRelcacheHashInvalidateCallback(Datum arg, Oid relid);
 
 extern void pgactive_parse_relation_options(const char *label, pgactiveRelation * rel);
@@ -771,11 +771,11 @@ extern void pgactive_parse_database_options(const char *label, bool *is_active);
 extern void pgactive_conflict_handlers_init(void);
 
 extern HeapTuple pgactive_conflict_handlers_resolve(pgactiveRelation * rel,
-											   const HeapTuple local,
-											   const HeapTuple remote,
-											   const char *command_tag,
-											   pgactiveConflictType event_type,
-											   uint64 timeframe, bool *skip);
+													const HeapTuple local,
+													const HeapTuple remote,
+													const char *command_tag,
+													pgactiveConflictType event_type,
+													uint64 timeframe, bool *skip);
 
 /* replication set stuff */
 void		pgactive_validate_replication_set_name(const char *name, bool allow_implicit);
@@ -784,7 +784,7 @@ void		pgactive_validate_replication_set_name(const char *name, bool allow_implic
 
 typedef struct remote_node_info
 {
-	pgactiveNodeId	nodeid;
+	pgactiveNodeId nodeid;
 	char	   *sysid_str;
 	char	   *variant;
 	char	   *version;
@@ -813,7 +813,7 @@ extern void free_remote_node_info(remote_node_info * ri);
 extern void pgactive_ensure_ext_installed(PGconn *pgconn);
 
 extern void pgactive_test_remote_connectback_internal(PGconn *conn,
-												 struct remote_node_info *ri, const char *my_dsn);
+													  struct remote_node_info *ri, const char *my_dsn);
 
 /*
  * Global to identify the type of pgactive worker the current process is. Primarily
@@ -870,7 +870,10 @@ typedef struct pgactiveNodeIdentifier
 
 typedef struct pgactiveNodeIdentifierControl
 {
-	/* Must hold this lock when writing to pgactiveNodeIdentifierControl members */
+	/*
+	 * Must hold this lock when writing to pgactiveNodeIdentifierControl
+	 * members
+	 */
 	LWLockId	lock;
 	pgactiveNodeIdentifier nids[FLEXIBLE_ARRAY_MEMBER];
 }			pgactiveNodeIdentifierControl;
@@ -891,13 +894,13 @@ extern bool is_pgactive_nid_getter_function_alter_rename(RenameStmt *stmt);
 #if PG_VERSION_NUM >= 120000
 static inline int
 pgactiveWaitLatch(Latch *latch, int wakeEvents, long timeout,
-			 uint32 wait_event_info)
+				  uint32 wait_event_info)
 {
 	return WaitLatch(latch, wakeEvents, timeout, wait_event_info);
 }
 static inline int
 pgactiveWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
-					 long timeout, uint32 wait_event_info)
+						  long timeout, uint32 wait_event_info)
 {
 	return WaitLatchOrSocket(latch, wakeEvents, sock, timeout,
 							 wait_event_info);
@@ -907,7 +910,7 @@ pgactiveWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
 
 static inline int
 pgactiveWaitLatch(Latch *latch, int wakeEvents, long timeout,
-			 uint32 wait_event_info)
+				  uint32 wait_event_info)
 {
 	int			events;
 	int			rc;
@@ -930,7 +933,7 @@ pgactiveWaitLatch(Latch *latch, int wakeEvents, long timeout,
 
 static inline int
 pgactiveWaitLatchOrSocket(Latch *latch, int wakeEvents, pgsocket sock,
-					 long timeout, uint32 wait_event_info)
+						  long timeout, uint32 wait_event_info)
 {
 	int			events;
 	int			rc;

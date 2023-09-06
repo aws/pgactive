@@ -5,7 +5,7 @@
 
 typedef enum pgactiveMessageType
 {
-	pgactive_MESSAGE_START,			/* pgactive started */
+	pgactive_MESSAGE_START,		/* pgactive started */
 	/* DDL locking */
 	pgactive_MESSAGE_ACQUIRE_LOCK,
 	pgactive_MESSAGE_RELEASE_LOCK,

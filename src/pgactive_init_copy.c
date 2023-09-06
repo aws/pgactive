@@ -142,8 +142,8 @@ static void initialize_replication_identifier(PGconn *conn,
 
 static char *create_restore_point(PGconn *conn, char *restore_point_name);
 static void create_pgactive_nid_getter_function(PGconn *conn,
-										   char *dbname,
-										   uint64 nid);
+												char *dbname,
+												uint64 nid);
 
 static void initialize_replication_slot(PGconn *conn,
 										NodeInfo * ni,
@@ -153,8 +153,8 @@ static void initialize_replication_slot(PGconn *conn,
 static bool extension_exists(PGconn *conn, const char *extname);
 
 static void pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
-						   char *local_connstr, char *replication_sets,
-						   int apply_delay, char *dbname, uint64 nid);
+								char *local_connstr, char *replication_sets,
+								int apply_delay, char *dbname, uint64 nid);
 static RemoteInfo * get_remote_info(char *connstr);
 
 static void initialize_data_dir(char *data_dir, char *connstr,
@@ -458,8 +458,8 @@ main(int argc, char **argv)
 	/*
 	 * Initialize remote node.
 	 *
-	 * The remote might have multiple pgactive-enabled DBs, so we need to perform
-	 * setup for each one.
+	 * The remote might have multiple pgactive-enabled DBs, so we need to
+	 * perform setup for each one.
 	 */
 	for (i = 0; i < remote_info->numdbs; i++)
 	{
@@ -469,7 +469,10 @@ main(int argc, char **argv)
 		char	   *db_remote_connstr = get_connstr(remote_connstr, dbname,
 													NULL, NULL, NULL);
 
-		/* Generate new identifier for local node i.e. pgactive-enabled database. */
+		/*
+		 * Generate new identifier for local node i.e. pgactive-enabled
+		 * database.
+		 */
 		node_info.nids[i] = GenerateNodeIdentifier();
 		print_msg(VERBOSITY_NORMAL,
 				  _("Generated new pgactive node identifier " UINT64_FORMAT " for database %s\n"),
@@ -549,8 +552,9 @@ main(int argc, char **argv)
 	WriteConfFile(recoveryconfcontents);
 
 	/*
-	 * Start local node with pgactive disabled, and wait until it starts accepting
-	 * connections which means it has caught up to the restore point.
+	 * Start local node with pgactive disabled, and wait until it starts
+	 * accepting connections which means it has caught up to the restore
+	 * point.
 	 *
 	 * Note that pg_ctl won't return nonzero if postmaster starts then
 	 * immediately exits due to issues like port conflicts. We'll detect that
@@ -589,8 +593,8 @@ main(int argc, char **argv)
 		remove_unwanted_data(local_conn);
 
 		/*
-		 * Local node should have got the pgactive extension created as part its
-		 * catchup via physical replication with remote node above.
+		 * Local node should have got the pgactive extension created as part
+		 * its catchup via physical replication with remote node above.
 		 */
 		if (!extension_exists(local_conn, "pgactive"))
 			die(_("Could not find pgactive extension created on local node\n"));
@@ -599,16 +603,19 @@ main(int argc, char **argv)
 		local_conn = NULL;
 	}
 
-	/* Stop Postgres so we can reset system id and start it with pgactive loaded. */
+	/*
+	 * Stop Postgres so we can reset system id and start it with pgactive
+	 * loaded.
+	 */
 	pg_ctl_ret = run_pg_ctl("stop");
 	if (pg_ctl_ret != 0)
 		die(_("postgres stop after restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 	wait_postmaster_shutdown();
 
 	/*
-	 * Start the node again, now with pgactive active so that we can join the node
-	 * to the pgactive cluster. This is final start, so don't log to to special log
-	 * file anymore.
+	 * Start the node again, now with pgactive active so that we can join the
+	 * node to the pgactive cluster. This is final start, so don't log to to
+	 * special log file anymore.
 	 */
 	print_msg(VERBOSITY_NORMAL,
 			  _("Initializing pgactive on the local node:\n"));
@@ -651,8 +658,8 @@ main(int argc, char **argv)
 		print_msg(VERBOSITY_VERBOSE,
 				  _(" %s: replication sets: %s\n"), dbname, replication_sets);
 		pgactive_node_start(local_conn, node_name, db_remote_connstr,
-					   db_local_connstr, replication_sets, apply_delay,
-					   dbname, node_info.nids[i]);
+							db_local_connstr, replication_sets, apply_delay,
+							dbname, node_info.nids[i]);
 
 		PQfinish(local_conn);
 		local_conn = NULL;
@@ -925,7 +932,7 @@ initialize_replication_slot(PGconn *conn, NodeInfo * ni, Oid dboid, uint64 nid)
 	NameData	slotname;
 	PQExpBuffer query = createPQExpBuffer();
 	PGresult   *res;
-	pgactiveNodeId	node;
+	pgactiveNodeId node;
 
 	/* dboids are the same, because we just cloned... */
 	node.sysid = nid;
@@ -1223,8 +1230,8 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 	/*
 	 * There's no need to protect against join concurrency here by taking the
 	 * global DDL lock. The only check we need is done later, when we assign
-	 * node_seq_id and mark the node ready - and that's done by pgactive_init_copy
-	 * after the node is started up.
+	 * node_seq_id and mark the node ready - and that's done by
+	 * pgactive_init_copy after the node is started up.
 	 *
 	 * There's no risk of loss of transactions if a peer node is down at this
 	 * point. We only have to basebackup the immediate upstream, and we'll
@@ -1375,8 +1382,8 @@ create_pgactive_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 			  dbname);
 
 	/*
-	 * Setup the environment. We need to tell pgactive via GUC to allow us create
-	 * getter function.
+	 * Setup the environment. We need to tell pgactive via GUC to allow us
+	 * create getter function.
 	 */
 	res = PQexec(conn, setup_query);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
@@ -1412,8 +1419,8 @@ create_pgactive_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 
 static void
 pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
-			   char *local_connstr, char *replication_sets, int apply_delay,
-			   char *dbname, uint64 nid)
+					char *local_connstr, char *replication_sets, int apply_delay,
+					char *dbname, uint64 nid)
 {
 	PQExpBuffer query = createPQExpBuffer();
 	PQExpBuffer repsets = createPQExpBuffer();
@@ -1429,8 +1436,8 @@ pgactive_node_start(PGconn *conn, char *node_name, char *remote_connstr,
 	printfPQExpBuffer(repsets, "{%s}", replication_sets);
 
 	/*
-	 * Add the node to the cluster. We already created pgactive node identifier
-	 * getter function on the node above, so skip it.
+	 * Add the node to the cluster. We already created pgactive node
+	 * identifier getter function on the node above, so skip it.
 	 */
 	printfPQExpBuffer(query, "SELECT pgactive.pgactive_join_group(%s, %s, %s, "
 					  "replication_sets := %s, apply_delay := %d, "

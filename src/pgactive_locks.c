@@ -361,8 +361,8 @@ pgactive_locks_shmem_startup(void)
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 	pgactive_locks_ctl = ShmemInitStruct("pgactive_locks",
-									pgactive_locks_shmem_size(),
-									&found);
+										 pgactive_locks_shmem_size(),
+										 &found);
 	if (!found)
 	{
 		memset(pgactive_locks_ctl, 0, pgactive_locks_shmem_size());
@@ -403,8 +403,9 @@ pgactive_locks_addwaiter(PGPROC *proc)
 	 * The waiter list shouldn't be huge, and compared to the expense of a DDL
 	 * lock it's cheap to check if we're already registered. After all, we're
 	 * just adding ourselves to a wait-notification list. slist has no guard
-	 * against adding a cycle, and we'd infinite-loop in pgactive_locks_on_unlock
-	 * otherwise. See 2ndQuadrant/pgactive-private#130.
+	 * against adding a cycle, and we'd infinite-loop in
+	 * pgactive_locks_on_unlock otherwise. See
+	 * 2ndQuadrant/pgactive-private#130.
 	 */
 	slist_foreach(iter, &pgactive_my_locks_database->waiters)
 	{
@@ -613,7 +614,7 @@ pgactive_locks_startup(void)
 		const char *state;
 		RepOriginId node_id;
 		pgactiveLockType lock_type;
-		pgactiveNodeId	locker_id;
+		pgactiveNodeId locker_id;
 
 		heap_deform_tuple(tuple, RelationGetDescr(rel),
 						  values, isnull);
@@ -706,10 +707,10 @@ pgactive_locks_set_nnodes(int nnodes)
 		 * and we only count ready nodes in the node count, it should only be
 		 * possible for the node count to increase when the DDL lock is held.
 		 *
-		 * If there are older pgactive nodes that don't take the DDL lock before
-		 * joining this protection doesn't apply, so we can only warn about
-		 * it. Unless there's a lock acquisition in progress (which we don't
-		 * actually know from here) it's harmless anyway.
+		 * If there are older pgactive nodes that don't take the DDL lock
+		 * before joining this protection doesn't apply, so we can only warn
+		 * about it. Unless there's a lock acquisition in progress (which we
+		 * don't actually know from here) it's harmless anyway.
 		 *
 		 * A corresponding nodecount decrease without the DDL lock held is
 		 * normal. Node detach doesn't take the DDL lock, but it's careful to
@@ -718,7 +719,8 @@ pgactive_locks_set_nnodes(int nnodes)
 		 * FIXME: there's a race here where we could release the lock before
 		 * applying the final changes for the node in the perdb worker. We
 		 * should really perform this test and update when we see the new
-		 * pgactive.pgactive_nodes row arrive instead. See 2ndQuadrant/pgactive-private#97.
+		 * pgactive.pgactive_nodes row arrive instead. See
+		 * 2ndQuadrant/pgactive-private#97.
 		 */
 		ereport(WARNING,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
@@ -738,7 +740,7 @@ pgactive_locks_set_nnodes(int nnodes)
  */
 bool
 pgactive_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
-						  const pgactiveNodeId * const origin, StringInfo message)
+							   const pgactiveNodeId * const origin, StringInfo message)
 {
 	bool		handled = true;
 
@@ -760,7 +762,7 @@ pgactive_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	}
 	else if (msg_type == pgactive_MESSAGE_RELEASE_LOCK)
 	{
-		pgactiveNodeId	peer;
+		pgactiveNodeId peer;
 
 		/* locks are node-wide, so no node name */
 		pgactive_getmsg_nodeid(message, &peer, false);
@@ -768,7 +770,7 @@ pgactive_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	}
 	else if (msg_type == pgactive_MESSAGE_CONFIRM_LOCK)
 	{
-		pgactiveNodeId	peer;
+		pgactiveNodeId peer;
 		int			lock_type;
 
 		/* locks are node-wide, so no node name */
@@ -783,7 +785,7 @@ pgactive_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 	}
 	else if (msg_type == pgactive_MESSAGE_DECLINE_LOCK)
 	{
-		pgactiveNodeId	peer;
+		pgactiveNodeId peer;
 		int			lock_type;
 
 		/* locks are node-wide, so no node name */
@@ -830,7 +832,7 @@ pgactive_locks_process_message(int msg_type, bool transactional, XLogRecPtr lsn,
 static void
 pgactive_lock_holder_xact_callback(XactEvent event, void *arg)
 {
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	Assert(arg == NULL);
 	Assert(!IspgactiveApplyWorker());
@@ -971,7 +973,11 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 	Assert(lock_type == pgactive_LOCK_DDL || lock_type == pgactive_LOCK_WRITE);
 
 	/* shouldn't be called with ddl locking disabled */
-	/* replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for now */
+
+	/*
+	 * replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for
+	 * now
+	 */
 	Assert(!pgactive_skip_ddl_replication);
 
 	pgactive_locks_find_my_database(false);
@@ -997,7 +1003,10 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 	 */
 	if (!this_xact_acquired_lock)
 	{
-		/* replace pgactive_permit_ddl_locking by !pgactive_skip_ddl_replication for now */
+		/*
+		 * replace pgactive_permit_ddl_locking by
+		 * !pgactive_skip_ddl_replication for now
+		 */
 		if (pgactive_skip_ddl_replication)
 		{
 			ereport(ERROR,
@@ -1046,7 +1055,7 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 	/* check whether the lock can actually be acquired */
 	if (!this_xact_acquired_lock && pgactive_my_locks_database->lockcount > 0)
 	{
-		pgactiveNodeId	holder,
+		pgactiveNodeId holder,
 					myid;
 
 		pgactive_make_my_nodeid(&myid);
@@ -1071,7 +1080,8 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 
 	/*
 	 * There should be nobody waiting to be notified if the DDL lock isn't
-	 * held, and now we hold pgactive_locks_ctl->lock and know the lock is free.
+	 * held, and now we hold pgactive_locks_ctl->lock and know the lock is
+	 * free.
 	 */
 	Assert(slist_is_empty(&pgactive_my_locks_database->waiters));
 
@@ -1085,9 +1095,9 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 
 	/*
 	 * NB: We need to setup the shmem state as if we'd have already acquired
-	 * the lock before we release the LWLock on pgactive_locks_ctl->lock. Otherwise
-	 * concurrent transactions could acquire the lock, and we wouldn't send a
-	 * release message when we fail to fully acquire the lock.
+	 * the lock before we release the LWLock on pgactive_locks_ctl->lock.
+	 * Otherwise concurrent transactions could acquire the lock, and we
+	 * wouldn't send a release message when we fail to fully acquire the lock.
 	 *
 	 * This means that if we're called in a subtransaction that aborts the
 	 * outer transaction will still hold the stronger lock.
@@ -1190,8 +1200,8 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 		LWLockRelease(pgactive_locks_ctl->lock);
 
 		(void) pgactiveWaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-							10000L, PG_WAIT_EXTENSION);
+								 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								 10000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 	}
@@ -1217,7 +1227,10 @@ pgactive_acquire_global_lock(PG_FUNCTION_ARGS)
 {
 	char	   *mode = text_to_cstring(PG_GETARG_TEXT_P(0));
 
-	/* replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for
+	 * now
+	 */
 	if (pgactive_skip_ddl_replication)
 		ereport(WARNING,
 				(errmsg("pgactive.skip_ddl_replication is set, ignoring explicit pgactive.pgactive_acquire_global_lock(...) call")));
@@ -1234,7 +1247,7 @@ pgactive_acquire_global_lock(PG_FUNCTION_ARGS)
 static bool
 check_is_my_origin_node(const pgactiveNodeId * const peer)
 {
-	pgactiveNodeId	session_origin_node;
+	pgactiveNodeId session_origin_node;
 	MemoryContext old_ctx;
 
 	Assert(!IsTransactionState());
@@ -1255,7 +1268,7 @@ check_is_my_origin_node(const pgactiveNodeId * const peer)
 static bool
 check_is_my_node(const pgactiveNodeId * const node)
 {
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 	return pgactive_nodeid_eq(node, &myid);
@@ -1334,8 +1347,8 @@ cancel_conflicting_transactions(void)
 				waittime = 1000000;
 
 			(void) pgactiveWaitLatch(&MyProc->procLatch,
-								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-								waittime, PG_WAIT_EXTENSION);
+									 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+									 waittime, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}
@@ -1404,7 +1417,7 @@ pgactive_process_acquire_ddl_lock(const pgactiveNodeId * const node, pgactiveLoc
 {
 	StringInfoData s;
 	const char *lock_name = pgactive_lock_type_to_name(lock_type);
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 	MemoryContext old_ctx = CurrentMemoryContext;
 
 	pgactive_make_my_nodeid(&myid);
@@ -1566,7 +1579,7 @@ pgactive_process_acquire_ddl_lock(const pgactiveNodeId * const node, pgactiveLoc
 		Snapshot	snap;
 		HeapTuple	tuple;
 		bool		found = false;
-		pgactiveNodeId	replay_node;
+		pgactiveNodeId replay_node;
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_DEBUG),
 			 LOCKTRACE "prior lesser lock from same lock holder, upgrading the global lock locally");
@@ -1681,7 +1694,7 @@ pgactive_process_acquire_ddl_lock(const pgactiveNodeId * const node, pgactiveLoc
 	}
 	else
 	{
-		pgactiveNodeId	replay_node;
+		pgactiveNodeId replay_node;
 
 		LWLockRelease(pgactive_locks_ctl->lock);
 decline:
@@ -1740,7 +1753,7 @@ void
 pgactive_locks_node_detached(pgactiveNodeId * node)
 {
 	bool		peer_holds_lock = false;
-	pgactiveNodeId	owner;
+	pgactiveNodeId owner;
 
 	pgactive_locks_find_my_database(false);
 
@@ -1803,8 +1816,8 @@ pgactive_locks_release_local_ddl_lock(const pgactiveNodeId * const lock)
 	pgactive_locks_find_my_database(false);
 
 	/*
-	 * Remove row from pgactive_locks *before* releasing the in memory lock. If we
-	 * crash we'll replay the event again.
+	 * Remove row from pgactive_locks *before* releasing the in memory lock.
+	 * If we crash we'll replay the event again.
 	 */
 	StartTransactionCommand();
 	snap = RegisterSnapshot(GetLatestSnapshot());
@@ -1929,7 +1942,7 @@ pgactive_locks_release_local_ddl_lock(const pgactiveNodeId * const lock)
  */
 void
 pgactive_process_confirm_ddl_lock(const pgactiveNodeId * const origin, const pgactiveNodeId * const lock,
-							 pgactiveLockType lock_type)
+								  pgactiveLockType lock_type)
 {
 	Latch	   *latch;
 
@@ -1974,7 +1987,7 @@ pgactive_process_confirm_ddl_lock(const pgactiveNodeId * const origin, const pga
  */
 void
 pgactive_process_decline_ddl_lock(const pgactiveNodeId * const origin, const pgactiveNodeId * const lock,
-							 pgactiveLockType lock_type)
+								  pgactiveLockType lock_type)
 {
 	Latch	   *latch;
 
@@ -2031,8 +2044,8 @@ pgactive_process_request_replay_confirm(const pgactiveNodeId * const node, XLogR
 	/*
 	 * This is crash safe even though we don't update the replication origin
 	 * and FlushDatabaseBuffers() before replying. The message written to WAL
-	 * by pgactive_send_message will not get decoded and sent by walsenders until
-	 * it is flushed to disk.
+	 * by pgactive_send_message will not get decoded and sent by walsenders
+	 * until it is flushed to disk.
 	 */
 	pgactive_send_message(&s, false);
 }
@@ -2046,7 +2059,7 @@ pgactive_send_confirm_lock(void)
 	Snapshot	snap;
 	HeapTuple	tuple;
 
-	pgactiveNodeId	replay;
+	pgactiveNodeId replay;
 	StringInfoData s;
 	bool		found = false;
 	MemoryContext old_ctx;
@@ -2073,15 +2086,15 @@ pgactive_send_confirm_lock(void)
 
 	pgactive_send_nodeid(&s, &replay, false);
 	pq_sendint(&s, pgactive_my_locks_database->lock_type, 4);
-	pgactive_send_message(&s, true); /* transactional */
+	pgactive_send_message(&s, true);	/* transactional */
 
 	/*
 	 * Update state of lock. Do so in the same xact that confirms the lock.
 	 * That way we're safe against crashes.
 	 *
 	 * This is safe even though we don't force a synchronous commit, because
-	 * the message written to WAL by pgactive_send_message will not get decoded and
-	 * sent by walsenders until it is flushed.
+	 * the message written to WAL by pgactive_send_message will not get
+	 * decoded and sent by walsenders until it is flushed.
 	 */
 	/* Scan for a matching lock whose state needs to be updated */
 	snap = RegisterSnapshot(GetLatestSnapshot());
@@ -2301,15 +2314,18 @@ pgactive_locks_check_dml(void)
 {
 	bool		lock_held_by_peer;
 
-	/* replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for
+	 * now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
 	pgactive_locks_find_my_database(false);
 
 	/*
-	 * The pgactive is still starting up and hasn't loaded locks, wait for it. The
-	 * statement_timeout will kill us if necessary.
+	 * The pgactive is still starting up and hasn't loaded locks, wait for it.
+	 * The statement_timeout will kill us if necessary.
 	 */
 	while (!pgactive_my_locks_database->locked_and_loaded)
 	{
@@ -2372,8 +2388,8 @@ pgactive_locks_check_dml(void)
 				break;
 
 			(void) pgactiveWaitLatch(&MyProc->procLatch,
-								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-								10000L, PG_WAIT_EXTENSION);
+									 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+									 10000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}
@@ -2442,7 +2458,7 @@ pgactive_get_global_locks_info(PG_FUNCTION_ARGS)
 {
 #define pgactive_DDL_LOCK_INFO_NFIELDS 13
 	pgactiveLocksDBState state;
-	pgactiveNodeId	locknodeid,
+	pgactiveNodeId locknodeid,
 				myid;
 	char		sysid_str[33];
 	Datum		values[pgactive_DDL_LOCK_INFO_NFIELDS];

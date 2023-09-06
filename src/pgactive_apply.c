@@ -76,7 +76,7 @@ Oid			QueuedDDLCommandsRelid = InvalidOid;
 Oid			QueuedDropsRelid = InvalidOid;
 
 /* Global apply worker state */
-pgactiveNodeId	origin;
+pgactiveNodeId origin;
 bool		started_transaction = false;
 
 /* During apply, holds xid of remote transaction */
@@ -297,7 +297,7 @@ process_remote_begin(StringInfo s)
 	{
 		char	   *remote_ident;
 		MemoryContext old_ctx;
-		pgactiveNodeId	my_nodeid;
+		pgactiveNodeId my_nodeid;
 
 		pgactive_make_my_nodeid(&my_nodeid);
 
@@ -405,8 +405,8 @@ process_remote_begin(StringInfo s)
 			}
 
 			(void) pgactiveWaitLatch(&MyProc->procLatch,
-								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-								delay_ms, PG_WAIT_EXTENSION);
+									 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+									 delay_ms, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 		}
@@ -473,14 +473,14 @@ process_remote_commit(StringInfo s)
 		   || replorigin_session_origin_lsn == commit_lsn); /* pgactive 1.0 msg */
 
 	/*
-	 * pgactive 1.0 used to send the start-of-commit lsn (commit_lsn) in BEGIN, not
-	 * the position of the end of the commit record, and we might have used
-	 * that in the replorigin settings if that's all we had.
+	 * pgactive 1.0 used to send the start-of-commit lsn (commit_lsn) in
+	 * BEGIN, not the position of the end of the commit record, and we might
+	 * have used that in the replorigin settings if that's all we had.
 	 *
-	 * That's wrong; we're supposed to use end-of-commit + 1. But with pgactive 1.0
-	 * we don't have that information. To protect against replaying the same
-	 * commit again, report that we've flushed at least 1 byte past
-	 * start-of-commit.
+	 * That's wrong; we're supposed to use end-of-commit + 1. But with
+	 * pgactive 1.0 we don't have that information. To protect against
+	 * replaying the same commit again, report that we've flushed at least 1
+	 * byte past start-of-commit.
 	 */
 	if (replorigin_session_origin_lsn == commit_lsn)
 		replorigin_session_origin_lsn += 1;
@@ -769,9 +769,9 @@ process_remote_insert(StringInfo s)
 		if (log_update)
 		{
 			apply_conflict = pgactive_make_apply_conflict(
-													 pgactiveConflictType_InsertInsert, resolution,
-													 replication_origin_xid, rel, oldslot, local_node_id,
-													 newslot, local_ts, NULL /* no error */ );
+														  pgactiveConflictType_InsertInsert, resolution,
+														  replication_origin_xid, rel, oldslot, local_node_id,
+														  newslot, local_ts, NULL /* no error */ );
 
 			pgactive_conflict_log_serverlog(apply_conflict);
 
@@ -857,7 +857,7 @@ process_remote_insert(StringInfo s)
 	 * replication is wanted
 	 */
 	if (!prev_pgactive_skip_ddl_replication && (RelationGetRelid(rel->rel) == QueuedDDLCommandsRelid ||
-										   RelationGetRelid(rel->rel) == QueuedDropsRelid))
+												RelationGetRelid(rel->rel) == QueuedDropsRelid))
 	{
 		HeapTuple	ht;
 		LockRelId	lockid = rel->rel->rd_lockInfo.lockRelId;
@@ -1073,9 +1073,9 @@ process_remote_update(StringInfo s)
 		if (log_update)
 		{
 			apply_conflict = pgactive_make_apply_conflict(
-													 pgactiveConflictType_UpdateUpdate, resolution,
-													 replication_origin_xid, rel, oldslot, local_node_id,
-													 newslot, local_ts, NULL /* no error */ );
+														  pgactiveConflictType_UpdateUpdate, resolution,
+														  replication_origin_xid, rel, oldslot, local_node_id,
+														  newslot, local_ts, NULL /* no error */ );
 
 			pgactive_conflict_log_serverlog(apply_conflict);
 
@@ -1151,9 +1151,9 @@ process_remote_update(StringInfo s)
 		ExecStoreHeapTuple(remote_tuple, newslot, true);
 
 		user_tuple = pgactive_conflict_handlers_resolve(rel, NULL,
-												   remote_tuple, "UPDATE",
-												   pgactiveConflictType_UpdateDelete,
-												   0, &skip);
+														remote_tuple, "UPDATE",
+														pgactiveConflictType_UpdateDelete,
+														0, &skip);
 
 		pgactive_count_update_conflict();
 
@@ -1166,8 +1166,8 @@ process_remote_update(StringInfo s)
 
 
 		apply_conflict = pgactive_make_apply_conflict(
-												 pgactiveConflictType_UpdateDelete, resolution, replication_origin_xid,
-												 rel, NULL, InvalidRepOriginId, newslot, 0, NULL /* no error */ );
+													  pgactiveConflictType_UpdateDelete, resolution, replication_origin_xid,
+													  rel, NULL, InvalidRepOriginId, newslot, 0, NULL /* no error */ );
 
 		pgactive_conflict_log_serverlog(apply_conflict);
 
@@ -1362,9 +1362,9 @@ process_remote_delete(StringInfo s)
 		 * trigger to return new tuple here (it's DELETE vs DELETE after all).
 		 */
 		user_tuple = pgactive_conflict_handlers_resolve(rel, NULL,
-												   remote_tuple, "DELETE",
-												   pgactiveConflictType_DeleteDelete,
-												   0, &skip);
+														remote_tuple, "DELETE",
+														pgactiveConflictType_DeleteDelete,
+														0, &skip);
 
 		/* DELETE vs DELETE can't return new tuple. */
 		if (user_tuple)
@@ -1372,11 +1372,11 @@ process_remote_delete(StringInfo s)
 					(errmsg("DELETE vs DELETE handler returned a row which isn't allowed")));
 
 		apply_conflict = pgactive_make_apply_conflict(
-												 pgactiveConflictType_DeleteDelete,
-												 skip ? pgactiveConflictResolution_ConflictTriggerSkipChange :
-												 pgactiveConflictResolution_DefaultSkipChange,
-												 replication_origin_xid, rel, NULL, InvalidRepOriginId,
-												 oldslot, 0, NULL /* no error */ );
+													  pgactiveConflictType_DeleteDelete,
+													  skip ? pgactiveConflictResolution_ConflictTriggerSkipChange :
+													  pgactiveConflictResolution_DefaultSkipChange,
+													  replication_origin_xid, rel, NULL, InvalidRepOriginId,
+													  oldslot, 0, NULL /* no error */ );
 
 		pgactive_conflict_log_serverlog(apply_conflict);
 		pgactive_conflict_log_table(apply_conflict);
@@ -1420,11 +1420,11 @@ get_local_tuple_origin(HeapTuple tuple, TimestampTz *commit_ts, RepOriginId *nod
  */
 static void
 pgactive_conflict_last_update_wins(RepOriginId local_node_id,
-							  RepOriginId remote_node_id,
-							  TimestampTz local_ts,
-							  TimestampTz remote_ts,
-							  bool *perform_update, bool *log_update,
-							  pgactiveConflictResolution * resolution)
+								   RepOriginId remote_node_id,
+								   TimestampTz local_ts,
+								   TimestampTz remote_ts,
+								   bool *perform_update, bool *log_update,
+								   pgactiveConflictResolution * resolution)
 {
 	int			cmp;
 
@@ -1559,11 +1559,11 @@ check_apply_update(pgactiveConflictType conflict_type,
 								 &secs, &microsecs);
 
 		*new_tuple = pgactive_conflict_handlers_resolve(rel, local_tuple, remote_tuple,
-												   conflict_type == pgactiveConflictType_InsertInsert ?
-												   "INSERT" : "UPDATE",
-												   conflict_type,
-												   labs(secs) * 1000000 + labs(microsecs),
-												   &skip);
+														conflict_type == pgactiveConflictType_InsertInsert ?
+														"INSERT" : "UPDATE",
+														conflict_type,
+														labs(secs) * 1000000 + labs(microsecs),
+														&skip);
 
 		if (skip)
 		{
@@ -1589,11 +1589,11 @@ check_apply_update(pgactiveConflictType conflict_type,
 
 	/* Use last update wins conflict handling. */
 	pgactive_conflict_last_update_wins(local_node_id,
-								  replorigin_session_origin,
-								  local_ts,
-								  replorigin_session_origin_timestamp,
-								  perform_update, log_update,
-								  resolution);
+									   replorigin_session_origin,
+									   local_ts,
+									   replorigin_session_origin_timestamp,
+									   perform_update, log_update,
+									   resolution);
 }
 
 static void
@@ -1604,7 +1604,7 @@ queued_command_error_callback(void *arg)
 
 void
 pgactive_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
-						bool tx_just_started)
+							 bool tx_just_started)
 {
 	List	   *commands;
 	ListCell   *command_i;
@@ -1755,8 +1755,8 @@ process_queued_ddl_command(HeapTuple cmdtup, bool tx_just_started)
 	if (isnull)
 	{
 		/*
-		 * Older pgactive versions didn't have search_path and we can't UPDATE old
-		 * rows, so there will be nulls. Those prior versions also forced
+		 * Older pgactive versions didn't have search_path and we can't UPDATE
+		 * old rows, so there will be nulls. Those prior versions also forced
 		 * search_path to '' so we can safely assume as much.
 		 */
 		search_path = "";
@@ -2252,10 +2252,11 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 		{
 			/*
 			 * Theoretically we could fill DEFAULTs for NOT NULL local columns
-			 * here too, at least with pgactive.ignore_mismatched_rows enabled. See
-			 * pglogical's `fill_missing_defaults` for how. But it's not meant
-			 * to be necessary anyway, so we don't. The user can recover by
-			 * ALTERing the table to be NULLable with a non-replicated DDL.
+			 * here too, at least with pgactive.ignore_mismatched_rows
+			 * enabled. See pglogical's `fill_missing_defaults` for how. But
+			 * it's not meant to be necessary anyway, so we don't. The user
+			 * can recover by ALTERing the table to be NULLable with a
+			 * non-replicated DDL.
 			 */
 			elog(WARNING, "cannot right-pad mismatched attributes; attno %u is missing in remote data and local attribute is not-dropped and not nullable",
 				 i);
@@ -2491,13 +2492,13 @@ pgactive_send_feedback(PGconn *conn, XLogRecPtr recvpos, int64 now, bool force)
 
 	replybuf[len] = 'r';
 	len += 1;
-	pgactive_sendint64(recvpos, &replybuf[len]); /* write */
+	pgactive_sendint64(recvpos, &replybuf[len]);	/* write */
 	len += 8;
 	pgactive_sendint64(flushpos, &replybuf[len]);	/* flush */
 	len += 8;
 	pgactive_sendint64(writepos, &replybuf[len]);	/* apply */
 	len += 8;
-	pgactive_sendint64(now, &replybuf[len]); /* sendTime */
+	pgactive_sendint64(now, &replybuf[len]);	/* sendTime */
 	len += 8;
 	replybuf[len] = false;		/* replyRequested */
 	len += 1;
@@ -2583,8 +2584,8 @@ pgactive_apply_reload_config()
 
 	/* Fetch our config from the DB */
 	new_apply_config = pgactive_get_connection_config(
-												 &pgactive_apply_worker->remote_node,
-												 false);
+													  &pgactive_apply_worker->remote_node,
+													  false);
 
 	Assert(pgactive_nodeid_eq(&new_apply_config->remote_node, &pgactive_apply_worker->remote_node));
 
@@ -2593,8 +2594,8 @@ pgactive_apply_reload_config()
 	 * we would be using replication sets and apply delay from the remote node
 	 * instead of the local one.
 	 *
-	 * Note: this is slightly hacky and we should probably use the pgactive_nodes
-	 * for this instead.
+	 * Note: this is slightly hacky and we should probably use the
+	 * pgactive_nodes for this instead.
 	 */
 	if (!new_apply_config->origin_is_my_id)
 	{
@@ -2671,9 +2672,9 @@ pgactive_apply_work(PGconn *streamConn)
 		 * background process goes away immediately in an emergency.
 		 */
 		rc = pgactiveWaitLatchOrSocket(&MyProc->procLatch,
-								  WL_SOCKET_READABLE | WL_LATCH_SET |
-								  WL_TIMEOUT | WL_POSTMASTER_DEATH,
-								  fd, 1000L, PG_WAIT_EXTENSION);
+									   WL_SOCKET_READABLE | WL_LATCH_SET |
+									   WL_TIMEOUT | WL_POSTMASTER_DEATH,
+									   fd, 1000L, PG_WAIT_EXTENSION);
 
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
@@ -2784,8 +2785,8 @@ pgactive_apply_work(PGconn *streamConn)
 					reply_requested = pq_getmsgbyte(&s);
 
 					pgactive_send_feedback(streamConn, endpos,
-									  GetCurrentTimestamp(),
-									  reply_requested);
+										   GetCurrentTimestamp(),
+										   reply_requested);
 				}
 				/* other message types are purposefully ignored */
 			}
@@ -2794,13 +2795,13 @@ pgactive_apply_work(PGconn *streamConn)
 
 		/* confirm all writes at once */
 		pgactive_send_feedback(streamConn, last_received,
-						  GetCurrentTimestamp(), false);
+							   GetCurrentTimestamp(), false);
 
 		/*
-		 * If the user has paused replication with pgactive_apply_pause(), we wait
-		 * on our procLatch until pg_pgactive_apply_resume() unsets the flag in
-		 * shmem. We don't pause until the end of the current transaction, to
-		 * avoid sleeping with locks held.
+		 * If the user has paused replication with pgactive_apply_pause(), we
+		 * wait on our procLatch until pg_pgactive_apply_resume() unsets the
+		 * flag in shmem. We don't pause until the end of the current
+		 * transaction, to avoid sleeping with locks held.
 		 *
 		 * Sleep for 5 minutes before re-checking. We shouldn't really need to
 		 * since we set the proc latch on resume, but it doesn't hurt to be
@@ -2809,8 +2810,8 @@ pgactive_apply_work(PGconn *streamConn)
 		while (pgactiveWorkerCtl->pause_apply && !IsTransactionState())
 		{
 			rc = pgactiveWaitLatch(&MyProc->procLatch,
-							  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-							  300000L, PG_WAIT_EXTENSION);
+								   WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								   300000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 
 			if (rc & WL_LATCH_SET)
@@ -2927,7 +2928,7 @@ pgactive_apply_main(Datum main_arg)
 
 	/* Make the replication connection to the remote end */
 	streamConn = pgactive_establish_connection_and_slot(pgactive_apply_config->dsn,
-												   query.data, &slot_name, &origin, &replication_identifier, NULL);
+														query.data, &slot_name, &origin, &replication_identifier, NULL);
 
 
 	/* initialize stat subsystem, our id won't change further */

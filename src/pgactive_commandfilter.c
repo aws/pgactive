@@ -106,7 +106,10 @@ error_on_persistent_rv(RangeVar *rv,
 static void
 error_unsupported_command(const char *cmdtag)
 {
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -137,7 +140,10 @@ filter_CreateStmt(Node *parsetree,
 
 	stmt = (CreateStmt *) parsetree;
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -204,7 +210,10 @@ filter_AlterTableStmt(Node *parsetree,
 	Oid			relid;
 	LOCKMODE	lockmode;
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -504,7 +513,10 @@ filter_CreateTableAs(Node *parsetree)
 
 	stmt = (CreateTableAsStmt *) parsetree;
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -659,7 +671,8 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 	 * here so don't delete it from this list if you update it. Make sure to
 	 * check other callsites of PreventCommandIfReadOnly too.
 	 *
-	 * pgactive handles plannable statements in pgactiveExecutorStart, not here.
+	 * pgactive handles plannable statements in pgactiveExecutorStart, not
+	 * here.
 	 */
 	switch (nodeTag(parsetree))
 	{
@@ -753,7 +766,10 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 static void
 pgactive_commandfilter_dbname(const char *dbname)
 {
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -773,7 +789,10 @@ prevent_drop_extension_pgactive(DropStmt *stmt)
 	ListCell   *cell;
 	Oid			pgactive_oid;
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	if (pgactive_skip_ddl_replication)
 		return;
 
@@ -826,22 +845,22 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 #if PG_VERSION_NUM >= 150000
 static void
 pgactive_commandfilter(PlannedStmt *pstmt,
-				  const char *queryString,
-				  bool readOnlyTree,
-				  ProcessUtilityContext context,
-				  ParamListInfo params,
-				  QueryEnvironment *queryEnv,
-				  DestReceiver *dest,
-				  QueryCompletion *qc)
+					   const char *queryString,
+					   bool readOnlyTree,
+					   ProcessUtilityContext context,
+					   ParamListInfo params,
+					   QueryEnvironment *queryEnv,
+					   DestReceiver *dest,
+					   QueryCompletion *qc)
 #else
 static void
 pgactive_commandfilter(PlannedStmt *pstmt,
-				  const char *queryString,
-				  ProcessUtilityContext context,
-				  ParamListInfo params,
-				  QueryEnvironment *queryEnv,
-				  DestReceiver *dest,
-				  char *completionTag)
+					   const char *queryString,
+					   ProcessUtilityContext context,
+					   ParamListInfo params,
+					   QueryEnvironment *queryEnv,
+					   DestReceiver *dest,
+					   char *completionTag)
 #endif
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -854,8 +873,8 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 	pgactiveLockType lock_type = pgactive_LOCK_WRITE;
 
 	/*
-	 * Only pgactive can create/drop/alter pgactive node identifier getter function on
-	 * local node i.e. no replication to other pgactive members.
+	 * Only pgactive can create/drop/alter pgactive node identifier getter
+	 * function on local node i.e. no replication to other pgactive members.
 	 */
 	switch (nodeTag(parsetree))
 	{
@@ -965,8 +984,8 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 	 * Extension contents aren't individually replicated. While postgres sets
 	 * creating_extension for create/alter extension, it doesn't set it for
 	 * drop extension. To ensure we don't replicate anything for drop
-	 * extension, we use pgactive_in_extension that was set when pgactive first sees
-	 * drop extension.
+	 * extension, we use pgactive_in_extension that was set when pgactive
+	 * first sees drop extension.
 	 */
 	if (creating_extension || pgactive_in_extension)
 		goto done;
@@ -989,10 +1008,10 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 			 stmt->kind == TRANS_STMT_PREPARE))
 		{
 			/*
-			 * It's unsafe to let pgactive_replicate_ddl_command run transaction
-			 * control commands via SPI that might end the current xact, since
-			 * it's being called from the fmgr/executor who'll expect a valid
-			 * transaction context on return.
+			 * It's unsafe to let pgactive_replicate_ddl_command run
+			 * transaction control commands via SPI that might end the current
+			 * xact, since it's being called from the fmgr/executor who'll
+			 * expect a valid transaction context on return.
 			 */
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -1012,8 +1031,8 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 		if (pgactive_local_node_read_only()
 
 		/*
-		 * replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for
-		 * now
+		 * replace pgactive_permit_unsafe_commands by
+		 * pgactive_skip_ddl_replication for now
 		 */
 			&& !pgactive_skip_ddl_replication
 			&& !allowed_on_read_only_node(parsetree, &tag))
@@ -1118,9 +1137,9 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 	}
 
 	/*
-	 * We stop people from creating a DB named pgactive_SUPERVISOR_DBNAME if the
-	 * pgactive extension is installed because we reserve that name, even if pgactive
-	 * isn't actually active.
+	 * We stop people from creating a DB named pgactive_SUPERVISOR_DBNAME if
+	 * the pgactive extension is installed because we reserve that name, even
+	 * if pgactive isn't actually active.
 	 *
 	 */
 	switch (nodeTag(parsetree))
@@ -1223,8 +1242,9 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 
 				/*
 				 * Only allow CONCURRENTLY when not wrapped in
-				 * pgactive.replicate_ddl_command; see 2ndQuadrant/pgactive-private#124
-				 * for details and linked issues.
+				 * pgactive.replicate_ddl_command; see
+				 * 2ndQuadrant/pgactive-private#124 for details and linked
+				 * issues.
 				 *
 				 * We can permit it but not replicate it otherwise. To ensure
 				 * that users aren't confused, only permit it when
@@ -1282,18 +1302,19 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 
 			/*
 			 * We disallow a pgactive node from being a subscriber in postgres
-			 * logical replication when pgactive is active. Technically, pgactive has
-			 * nothing to do with postgres logical replication, however, we
-			 * disallow subscriptions on a pgactive node for now to not have any
-			 * possible data divergence issues and conflicts on nodes within
-			 * the pgactive group. For instance, when a pgactive node pulls in changes
-			 * from a non-pgactive publisher using postgres logical replication,
-			 * then, the node can easily diverge from the other nodes in pgactive
-			 * group, and may cause conflicts.
+			 * logical replication when pgactive is active. Technically,
+			 * pgactive has nothing to do with postgres logical replication,
+			 * however, we disallow subscriptions on a pgactive node for now
+			 * to not have any possible data divergence issues and conflicts
+			 * on nodes within the pgactive group. For instance, when a
+			 * pgactive node pulls in changes from a non-pgactive publisher
+			 * using postgres logical replication, then, the node can easily
+			 * diverge from the other nodes in pgactive group, and may cause
+			 * conflicts.
 			 *
-			 * However, we have no problem if a pgactive node is a publisher in
-			 * postgres logical replication. Meaning, a non-pgactive node can still
-			 * pull in changes from a pgactive node.
+			 * However, we have no problem if a pgactive node is a publisher
+			 * in postgres logical replication. Meaning, a non-pgactive node
+			 * can still pull in changes from a pgactive node.
 			 *
 			 * XXX: We might have to leave all of these to the user and allow
 			 * subscriptions on pgactive nodes.
@@ -1389,8 +1410,8 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 			/*
 			 * DROP INDEX CONCURRENTLY is currently only safe when run outside
 			 * pgactive.replicate_ddl_command, and only with
-			 * pgactive.skip_ddl_replication set. See 2ndQuadrant/pgactive-private#124
-			 * and linked issues.
+			 * pgactive.skip_ddl_replication set. See
+			 * 2ndQuadrant/pgactive-private#124 and linked issues.
 			 */
 			{
 				DropStmt   *stmt = (DropStmt *) parsetree;
@@ -1489,8 +1510,8 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 			 */
 
 			/*
-			 * replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication
-			 * for now
+			 * replace pgactive_permit_unsafe_commands by
+			 * pgactive_skip_ddl_replication for now
 			 */
 			if (!pgactive_skip_ddl_replication)
 				elog(ERROR, "unrecognized node type: %d", (int) nodeTag(parsetree));
@@ -1499,7 +1520,11 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 
 	/* now lock other nodes in the pgactive flock against ddl */
 	affects_only_nonpermanent = statement_affects_only_nonpermanent(parsetree);
-	/* replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for now */
+
+	/*
+	 * replace pgactive_skip_ddl_locking by pgactive_skip_ddl_replication for
+	 * now
+	 */
 	if (!pgactive_skip_ddl_replication && !affects_only_nonpermanent
 		&& lock_type != pgactive_LOCK_NOLOCK)
 		pgactive_acquire_ddl_lock(lock_type);
@@ -1552,8 +1577,8 @@ done:
 			 * To avoid replicating commands inside create/alter/drop
 			 * extension, we have to set global state that reentrant calls to
 			 * ProcessUtility_hook will see so they can skip the command -
-			 * pgactive_in_extension. We also need to know to unset it when this
-			 * outer invocation of ProcessUtility_hook ends.
+			 * pgactive_in_extension. We also need to know to unset it when
+			 * this outer invocation of ProcessUtility_hook ends.
 			 */
 		case T_DropStmt:
 			if (((DropStmt *) parsetree)->removeType != OBJECT_EXTENSION)
@@ -1569,8 +1594,8 @@ done:
 			}
 
 			/*
-			 * When we are here with pgactive_in_extension true, it means that we
-			 * entered create/alter/drop extension previously, but the
+			 * When we are here with pgactive_in_extension true, it means that
+			 * we entered create/alter/drop extension previously, but the
 			 * extension script file is having one or more of alter extension
 			 * ... drop function/drop extension statements. However, postgres
 			 * fails with "ERROR: nested CREATE EXTENSION is not supported" or

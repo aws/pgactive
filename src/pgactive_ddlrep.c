@@ -194,8 +194,8 @@ pgactive_replicate_ddl_command(PG_FUNCTION_ARGS)
  */
 void
 pgactive_capture_ddl(Node *parsetree, const char *queryString,
-				ProcessUtilityContext context, ParamListInfo params,
-				DestReceiver *dest, CommandTag completionTag)
+					 ProcessUtilityContext context, ParamListInfo params,
+					 DestReceiver *dest, CommandTag completionTag)
 {
 	ListCell   *lc;
 	StringInfoData si;
@@ -206,8 +206,8 @@ pgactive_capture_ddl(Node *parsetree, const char *queryString,
 	initStringInfo(&si);
 
 	/*
-	 * If the call comes from DDL executed by pgactive_replicate_ddl_command, don't
-	 * queue it as it would insert duplicate commands into the queue.
+	 * If the call comes from DDL executed by pgactive_replicate_ddl_command,
+	 * don't queue it as it would insert duplicate commands into the queue.
 	 */
 	if (in_pgactive_replicate_ddl_command)
 		return;

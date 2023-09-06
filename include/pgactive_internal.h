@@ -67,7 +67,7 @@ typedef struct pgactiveNodeId
 /* A configured pgactive connection from pgactive_connections */
 typedef struct pgactiveConnectionConfig
 {
-	pgactiveNodeId	remote_node;
+	pgactiveNodeId remote_node;
 
 	/*
 	 * If the origin_ id fields are set then they must refer to our node,
@@ -81,8 +81,8 @@ typedef struct pgactiveConnectionConfig
 	char	   *dsn;
 
 	/*
-	 * pgactive_nodes.node_name, palloc'd in same memory context as this struct.
-	 * Could be NULL if we're talking to an old pgactive.
+	 * pgactive_nodes.node_name, palloc'd in same memory context as this
+	 * struct. Could be NULL if we're talking to an old pgactive.
 	 */
 	char	   *node_name;
 
@@ -94,7 +94,7 @@ typedef struct pgactiveConnectionConfig
 
 extern void pgactive_error_nodeids_must_differ(const pgactiveNodeId * const other_nodeid);
 extern pgactiveConnectionConfig * pgactive_get_connection_config(const pgactiveNodeId * nodeid,
-													   bool missing_ok);
+																 bool missing_ok);
 extern pgactiveConnectionConfig * pgactive_get_my_connection_config(bool missing_ok);
 
 extern void pgactive_free_connection_config(pgactiveConnectionConfig * cfg);
@@ -108,7 +108,7 @@ extern void pgactive_parse_slot_name(const char *name, pgactiveNodeId * remote, 
 extern void pgactive_parse_replident_name(const char *name, pgactiveNodeId * remote, Oid *local_dboid);
 
 extern int	pgactive_find_other_exec(const char *argv0, const char *target,
-								uint32 *version, char *retpath);
+									 uint32 *version, char *retpath);
 
 extern uint64 GenerateNodeIdentifier(void);
 

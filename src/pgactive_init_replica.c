@@ -86,7 +86,7 @@ pgactive_get_remote_lsn(PGconn *conn)
 
 static void
 pgactive_get_remote_ext_version(PGconn *pgconn, char **default_version,
-						   char **installed_version)
+								char **installed_version)
 {
 	PGresult   *res;
 
@@ -239,7 +239,7 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	char	   *l_servername;
 
 	if (pgactive_find_other_exec(my_exec_path, pgactive_DUMP_CMD, &bin_version,
-							&pgactive_dump_path[0]) < 0)
+								 &pgactive_dump_path[0]) < 0)
 	{
 		elog(ERROR, "pgactive node init failed to find " pgactive_DUMP_CMD
 			 " relative to binary %s",
@@ -254,7 +254,7 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	}
 
 	if (pgactive_find_other_exec(my_exec_path, pgactive_RESTORE_CMD, &bin_version,
-							&pgactive_restore_path[0]) < 0)
+								 &pgactive_restore_path[0]) < 0)
 	{
 		elog(ERROR, "pgactive node init failed to find " pgactive_RESTORE_CMD
 			 " relative to binary %s",
@@ -395,7 +395,8 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 			"SET LOCAL search_path = pgactive, pg_catalog;\n"
 
 		/*
-		 * remove for now "SET LOCAL pgactive.permit_unsafe_ddl_commands = on;\n"
+		 * remove for now "SET LOCAL pgactive.permit_unsafe_ddl_commands =
+		 * on;\n"
 		 */
 			"SET LOCAL pgactive.skip_ddl_replication = on;\n"
 			"LOCK TABLE pgactive.pgactive_nodes IN EXCLUSIVE MODE;\n"
@@ -420,8 +421,8 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 
 		/* Copy remote pgactive_nodes entries to the local node. */
 		pgactive_copytable(remote_conn, local_conn,
-					  "COPY (SELECT * FROM pgactive.pgactive_nodes) TO stdout",
-					  "COPY pgactive.pgactive_nodes FROM stdin");
+						   "COPY (SELECT * FROM pgactive.pgactive_nodes) TO stdout",
+						   "COPY pgactive.pgactive_nodes FROM stdin");
 
 		/* Copy the local entry to remote node. */
 		initStringInfo(&query);
@@ -434,7 +435,7 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 						 sysid_str, local_node->id.timeline, local_node->id.dboid);
 
 		pgactive_copytable(local_conn, remote_conn,
-					  query.data, "COPY pgactive.pgactive_nodes FROM stdin");
+						   query.data, "COPY pgactive.pgactive_nodes FROM stdin");
 
 		/*
 		 * Copy remote connections to the local node.
@@ -443,8 +444,8 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 		 * because it triggers the connect-back process on the remote node(s).
 		 */
 		pgactive_copytable(remote_conn, local_conn,
-					  "COPY (SELECT * FROM pgactive.pgactive_connections) TO stdout",
-					  "COPY pgactive.pgactive_connections FROM stdin");
+						   "COPY (SELECT * FROM pgactive.pgactive_connections) TO stdout",
+						   "COPY pgactive.pgactive_connections FROM stdin");
 
 		/* Save changes. */
 		res = PQexec(remote_conn, "COMMIT");
@@ -510,9 +511,9 @@ pgactive_insert_remote_conninfo(PGconn *conn, pgactiveConnectionConfig * myconfi
 					   types, &values[0], NULL, NULL, 0);
 
 	/*
-	 * pgactive._pgactive_join_node_private() must correctly handle unique violations.
-	 * Otherwise init that resumes after slot creation, when we're waiting for
-	 * inbound slots, will fail.
+	 * pgactive._pgactive_join_node_private() must correctly handle unique
+	 * violations. Otherwise init that resumes after slot creation, when we're
+	 * waiting for inbound slots, will fail.
 	 */
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		elog(ERROR, "unable to update remote pgactive.pgactive_connections: %s",
@@ -550,7 +551,7 @@ pgactive_init_make_other_slots()
 		pgactiveConnectionConfig *cfg = lfirst(lc);
 		PGconn	   *conn;
 		NameData	slot_name;
-		pgactiveNodeId	remote,
+		pgactiveNodeId remote,
 					myid;
 		RepOriginId replication_identifier;
 		char	   *snapshot;
@@ -565,7 +566,7 @@ pgactive_init_make_other_slots()
 		}
 
 		conn = pgactive_establish_connection_and_slot(cfg->dsn, "mkslot", &slot_name,
-												 &remote, &replication_identifier, &snapshot);
+													  &remote, &replication_identifier, &snapshot);
 
 		/* Ensure the slot points to the node the conn info says it should */
 		if (!pgactive_nodeid_eq(&cfg->remote_node, &remote))
@@ -609,7 +610,7 @@ pgactive_init_wait_for_slot_creation()
 	ListCell   *next,
 			   *prev = NULL;
 #endif
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -659,10 +660,10 @@ pgactive_init_wait_for_slot_creation()
 	/*
 	 * Wait for each slot to reach consistent point.
 	 *
-	 * This works by checking for pgactive_WORKER_WALSENDER in the worker array.
-	 * The reason for checking this way is that the worker structure for
-	 * pgactive_WORKER_WALSENDER is setup from startup_cb which is called after the
-	 * consistent point was reached.
+	 * This works by checking for pgactive_WORKER_WALSENDER in the worker
+	 * array. The reason for checking this way is that the worker structure
+	 * for pgactive_WORKER_WALSENDER is setup from startup_cb which is called
+	 * after the consistent point was reached.
 	 */
 	while (true)
 	{
@@ -682,7 +683,7 @@ pgactive_init_wait_for_slot_creation()
 			LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 			for (slotoff = 0; slotoff < pgactive_max_workers; slotoff++)
 			{
-				pgactiveWorker  *w = &pgactiveWorkerCtl->slots[slotoff];
+				pgactiveWorker *w = &pgactiveWorkerCtl->slots[slotoff];
 
 				if (w->worker_type != pgactive_WORKER_WALSENDER)
 					continue;
@@ -856,15 +857,15 @@ static void
 pgactive_wait_for_local_node_ready()
 {
 	pgactiveNodeStatus status = pgactive_NODE_STATUS_NONE;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	pgactive_make_my_nodeid(&myid);
 
 	while (status != pgactive_NODE_STATUS_READY)
 	{
 		(void) pgactiveWaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-							1000L, PG_WAIT_EXTENSION);
+								 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								 1000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 
@@ -960,8 +961,9 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 		{
 			/*
 			 * Even though there's no init_replica worker, the local
-			 * pgactive.pgactive_nodes table has an entry for our (sysid,dbname) and it
-			 * isn't status=r (checked above), this should never happen
+			 * pgactive.pgactive_nodes table has an entry for our
+			 * (sysid,dbname) and it isn't status=r (checked above), this
+			 * should never happen
 			 */
 			ereport(ERROR,
 					(errmsg("pgactive.pgactive_nodes row with " pgactive_NODEID_FORMAT_WITHNAME " exists and has status=%c, but has init_from_dsn set to NULL",
@@ -1044,9 +1046,9 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 				 * and re-creating the db.
 				 *
 				 * To avoid that We need to be able to run pg_restore --clean,
-				 * and that needs a way to exclude the pgactive schema, the pgactive
-				 * extension, and their dependencies like plpgsql. (TODO patch
-				 * pg_restore for that)
+				 * and that needs a way to exclude the pgactive schema, the
+				 * pgactive extension, and their dependencies like plpgsql.
+				 * (TODO patch pg_restore for that)
 				 */
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
@@ -1065,7 +1067,7 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			char	   *init_snapshot = NULL;
 			PGconn	   *init_repl_conn = NULL;
 			NameData	slot_name;
-			pgactiveNodeId	remote;
+			pgactiveNodeId remote;
 			RepOriginId repnodeid;
 
 			elog(INFO, "initializing node");
@@ -1087,9 +1089,9 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 * changes from that node. It'll be used in catchup mode.
 			 */
 			init_repl_conn = pgactive_establish_connection_and_slot(
-															   local_node->init_from_dsn,
-															   "init", &slot_name,
-															   &remote, &repnodeid, &init_snapshot);
+																	local_node->init_from_dsn,
+																	"init", &slot_name,
+																	&remote, &repnodeid, &init_snapshot);
 
 			elog(INFO, "connected to target node " pgactive_NODEID_FORMAT_WITHNAME
 				 " with snapshot %s",
@@ -1127,8 +1129,8 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			pfree(init_snapshot);
 
 			/*
-			 * Copy the state (pgactive_nodes and pgactive_connections) over from the
-			 * init node to our node.
+			 * Copy the state (pgactive_nodes and pgactive_connections) over
+			 * from the init node to our node.
 			 */
 			elog(DEBUG1, "syncing pgactive_nodes and pgactive_connections");
 			pgactive_sync_nodes(nonrepl_init_conn, local_node);
@@ -1155,9 +1157,10 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 * directly.
 			 *
 			 * Note that while we create slots on the peers, they don't have
-			 * pgactive_connections or pgactive_nodes entries for us yet, so we aren't
-			 * counted in DDL locking votes. We aren't replaying from the
-			 * peers yet so we won't see DDL lock requests or replies.
+			 * pgactive_connections or pgactive_nodes entries for us yet, so
+			 * we aren't counted in DDL locking votes. We aren't replaying
+			 * from the peers yet so we won't see DDL lock requests or
+			 * replies.
 			 */
 			pgactive_init_make_other_slots();
 
@@ -1224,9 +1227,9 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 
 		/*
 		 * It is now safe to start apply workers, as we've finished catchup.
-		 * Doing so ensures that we will replay our own pgactive.pgactive_nodes changes
-		 * from the target node and also makes sure we stay more up-to-date,
-		 * reducing slot lag on other nodes.
+		 * Doing so ensures that we will replay our own
+		 * pgactive.pgactive_nodes changes from the target node and also makes
+		 * sure we stay more up-to-date, reducing slot lag on other nodes.
 		 *
 		 * We now start seeing DDL lock requests from peers, but they still
 		 * don't expect us to reply or really know about us yet.
@@ -1239,8 +1242,8 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 		 * other nodes to do the same when the new nodes and connections rows
 		 * are replicated to them.
 		 *
-		 * We're still staying out of DDL locking. Our pgactive_nodes entry on the
-		 * peer is still in 'i' state and won't be counted in DDL locking
+		 * We're still staying out of DDL locking. Our pgactive_nodes entry on
+		 * the peer is still in 'i' state and won't be counted in DDL locking
 		 * quorum votes. To make sure we don't throw off voting we must ensure
 		 * that we do not reply to DDL locking requests received from peers
 		 * past this point. (TODO XXX FIXME)
@@ -1260,9 +1263,9 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 
 		/*
 		 * To make sure that we don't cause issues with any concurrent DDL
-		 * locking operation that may be in progress on the pgactive group we're
-		 * joining we acquire the DDL lock on the target when we update our
-		 * nodes entry to 'r'eady state. When peers see our node go ready
+		 * locking operation that may be in progress on the pgactive group
+		 * we're joining we acquire the DDL lock on the target when we update
+		 * our nodes entry to 'r'eady state. When peers see our node go ready
 		 * they'll start counting it in tallies, so we must have full
 		 * bi-directional communication. The new nodes row will be immediately
 		 * followed by a DDL lock release message generated when its tx
@@ -1341,7 +1344,7 @@ static void
 pgactive_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 {
 	uint32		worker_shmem_idx;
-	pgactiveWorker  *worker;
+	pgactiveWorker *worker;
 	pgactiveApplyWorker *catchup_worker;
 
 	elog(DEBUG1, "registering pgactive apply catchup worker for " pgactive_NODEID_FORMAT_WITHNAME " to lsn %X/%X",
@@ -1409,8 +1412,8 @@ pgactive_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn)
 		while (bgw_status == BGWH_STARTED && bgw_pid == prev_bgw_pid)
 		{
 			(void) pgactiveWaitLatch(&MyProc->procLatch,
-								WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-								1000L, PG_WAIT_EXTENSION);
+									 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+									 1000L, PG_WAIT_EXTENSION);
 			ResetLatch(&MyProc->procLatch);
 			CHECK_FOR_INTERRUPTS();
 

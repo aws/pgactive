@@ -76,18 +76,18 @@ pgactive_conflict_logging_startup()
 
 	pgactiveConflictTypeOid =
 		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								CStringGetDatum("pgactive_conflict_type"),
-								ObjectIdGetDatum(schema_oid));
+									 CStringGetDatum("pgactive_conflict_type"),
+									 ObjectIdGetDatum(schema_oid));
 
 	pgactiveConflictResolutionOid =
 		pgactiveGetSysCacheOid2Error(TYPENAMENSP, Anum_pg_type_oid,
-								CStringGetDatum("pgactive_conflict_resolution"),
-								ObjectIdGetDatum(schema_oid));
+									 CStringGetDatum("pgactive_conflict_resolution"),
+									 ObjectIdGetDatum(schema_oid));
 
 	pgactiveConflictHistorySeqId =
 		pgactiveGetSysCacheOid2Error(RELNAMENSP, Anum_pg_class_oid,
-								CStringGetDatum("pgactive_conflict_history_id_seq"),
-								ObjectIdGetDatum(schema_oid));
+									 CStringGetDatum("pgactive_conflict_history_id_seq"),
+									 ObjectIdGetDatum(schema_oid));
 
 	CommitTransactionCommand();
 }
@@ -133,7 +133,7 @@ pgactive_conflict_type_get_datum(pgactiveConflictType conflict_type)
 	}
 	Assert(enumname != NULL);
 	conflict_type_oid = pgactiveGetSysCacheOid2(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-										   pgactiveConflictTypeOid, CStringGetDatum(enumname));
+												pgactiveConflictTypeOid, CStringGetDatum(enumname));
 	if (conflict_type_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "pgactive.pgactive_conflict_type failed", enumname);
@@ -184,7 +184,7 @@ pgactive_conflict_resolution_get_datum(pgactiveConflictResolution conflict_resol
 	char	   *enumname = pgactive_conflict_resolution_get_name(conflict_resolution);
 
 	conflict_resolution_oid = pgactiveGetSysCacheOid2(ENUMTYPOIDNAME, Anum_pg_enum_oid,
-												 pgactiveConflictResolutionOid, CStringGetDatum(enumname));
+													  pgactiveConflictResolutionOid, CStringGetDatum(enumname));
 	if (conflict_resolution_oid == InvalidOid)
 		elog(ERROR, "syscache lookup for enum %s of type "
 			 "pgactive.pgactive_conflict_resolution failed", enumname);
@@ -339,7 +339,7 @@ row_to_stringinfo(StringInfo s, Datum composite)
 
 static void
 pgactive_conflict_strtodatum(bool *nulls, Datum *values, int idx,
-						const char *in_str)
+							 const char *in_str)
 {
 	if (in_str == NULL)
 	{
@@ -374,7 +374,7 @@ pgactive_conflict_log_table(pgactiveApplyConflict * conflict)
 	char		local_sysid[SYSID_DIGITS];
 	char		remote_sysid[SYSID_DIGITS];
 	char		origin_sysid[SYSID_DIGITS];
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 	ResultRelInfo *relinfo = makeNode(ResultRelInfo);
 
 	pgactive_make_my_nodeid(&myid);
@@ -433,11 +433,11 @@ pgactive_conflict_log_table(pgactiveApplyConflict * conflict)
 		pgactive_conflict_resolution_get_datum(conflict->conflict_resolution);
 
 	values[attno] = pgactive_conflict_row_to_json(conflict->local_tuple,
-											 conflict->local_tuple_null, &nulls[attno]);
+												  conflict->local_tuple_null, &nulls[attno]);
 	attno++;
 
 	values[attno] = pgactive_conflict_row_to_json(conflict->remote_tuple,
-											 conflict->remote_tuple_null, &nulls[attno]);
+												  conflict->remote_tuple_null, &nulls[attno]);
 	attno++;
 
 	if (conflict->local_tuple_xmin != InvalidTransactionId)
@@ -510,9 +510,9 @@ pgactive_conflict_log_table(pgactiveApplyConflict * conflict)
 
 		/* Set schema and table name based on the error, not arg values */
 		pgactive_conflict_strtodatum(nulls, values, object_schema_attno,
-								edata->schema_name);
+									 edata->schema_name);
 		pgactive_conflict_strtodatum(nulls, values, object_name_attno,
-								edata->table_name);
+									 edata->table_name);
 
 		/* note: do NOT free the errordata, it's the caller's responsibility */
 	}
@@ -556,8 +556,9 @@ pgactive_conflict_log_table(pgactiveApplyConflict * conflict)
 	Assert(attno == pgactive_CONFLICT_HISTORY_COLS);
 
 	/*
-	 * Construct a pgactive.pgactive_conflict_history tuple from the conflict info we've
-	 * been passed and insert it into pgactive.pgactive_conflict_history.
+	 * Construct a pgactive.pgactive_conflict_history tuple from the conflict
+	 * info we've been passed and insert it into
+	 * pgactive.pgactive_conflict_history.
 	 */
 	log_rel = table_open(pgactiveConflictHistoryRelId, RowExclusiveLock);
 
@@ -646,14 +647,14 @@ pgactive_conflict_log_serverlog(pgactiveApplyConflict * conflict)
  */
 pgactiveApplyConflict *
 pgactive_make_apply_conflict(pgactiveConflictType conflict_type,
-						pgactiveConflictResolution resolution,
-						TransactionId remote_txid,
-						pgactiveRelation * conflict_relation,
-						TupleTableSlot *local_tuple,
-						RepOriginId local_tuple_origin_id,
-						TupleTableSlot *remote_tuple,
-						TimestampTz local_commit_ts,
-						ErrorData *apply_error)
+							 pgactiveConflictResolution resolution,
+							 TransactionId remote_txid,
+							 pgactiveRelation * conflict_relation,
+							 TupleTableSlot *local_tuple,
+							 RepOriginId local_tuple_origin_id,
+							 TupleTableSlot *remote_tuple,
+							 TimestampTz local_commit_ts,
+							 ErrorData *apply_error)
 {
 	MemoryContext old_context;
 	pgactiveApplyConflict *conflict;
@@ -685,7 +686,7 @@ pgactive_make_apply_conflict(pgactiveConflictType conflict_type,
 	}
 
 	pgactive_fetch_sysid_via_node_id(replorigin_session_origin,
-								&conflict->remote_node);
+									 &conflict->remote_node);
 	conflict->remote_commit_time = replorigin_session_origin_timestamp;
 	conflict->remote_txid = remote_txid;
 	conflict->remote_commit_lsn = replorigin_session_origin_lsn;
@@ -713,7 +714,7 @@ pgactive_make_apply_conflict(pgactiveConflictType conflict_type,
 	if (local_tuple_origin_id != InvalidRepOriginId)
 	{
 		pgactive_fetch_sysid_via_node_id(local_tuple_origin_id,
-									&conflict->local_tuple_origin_node);
+										 &conflict->local_tuple_origin_node);
 	}
 	else
 	{

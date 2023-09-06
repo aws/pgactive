@@ -57,7 +57,7 @@ pgactive_register_perdb_worker(Oid dboid)
 	BackgroundWorker bgw = {0};
 	BgwHandleStatus status;
 	pid_t		pid;
-	pgactiveWorker  *worker;
+	pgactiveWorker *worker;
 	pgactivePerdbWorker *perdb;
 	unsigned int worker_slot_number;
 	uint32		worker_arg;
@@ -70,8 +70,8 @@ pgactive_register_perdb_worker(Oid dboid)
 		 dbname, dboid);
 
 	worker = pgactive_worker_shmem_alloc(
-									pgactive_WORKER_PERDB,
-									&worker_slot_number
+										 pgactive_WORKER_PERDB,
+										 &worker_slot_number
 		);
 
 	perdb = &worker->data.perdb;
@@ -121,13 +121,13 @@ pgactive_register_perdb_worker(Oid dboid)
 	 *
 	 * Steps that can otherwise lead to the race condition are:
 	 *
-	 * 1. Supervisor registers per-db worker while holding pgactiveWorkerCtl->lock
-	 * in pgactive_supervisor_rescan_dbs().
+	 * 1. Supervisor registers per-db worker while holding
+	 * pgactiveWorkerCtl->lock in pgactive_supervisor_rescan_dbs().
 	 *
-	 * 2. Started per-db worker needs pgactiveWorkerCtl->lock to update database
-	 * oid in its shared memory slot and thus adds itself to lock's wait
-	 * queue. Unless per-db worker updates database oid, supervisor cannot
-	 * consider it started in find_perdb_worker_slot().
+	 * 2. Started per-db worker needs pgactiveWorkerCtl->lock to update
+	 * database oid in its shared memory slot and thus adds itself to lock's
+	 * wait queue. Unless per-db worker updates database oid, supervisor
+	 * cannot consider it started in find_perdb_worker_slot().
 	 *
 	 * 3. Supervisor releases the lock, but a waiter other than per-db worker
 	 * acquires the lock. Meanwhile, the supervisor adds itself to the lock's
@@ -137,10 +137,10 @@ pgactive_register_perdb_worker(Oid dboid)
 	 * and fails to find the first per-db worker in find_perdb_worker_slot()
 	 * as it hasn't yet got a chance to update database oid in the shared
 	 * memory slot. This makes supervisor register another per-db worker for
-	 * the same pgactive-enabled database causing multiple per-db workers (and so
-	 * multiple apply workers - each per-db worker starts an apply worker) to
-	 * coexist. These multiple per-db workers don't let nodes joining the pgactive
-	 * group to come out from catchup state to ready state.
+	 * the same pgactive-enabled database causing multiple per-db workers (and
+	 * so multiple apply workers - each per-db worker starts an apply worker)
+	 * to coexist. These multiple per-db workers don't let nodes joining the
+	 * pgactive group to come out from catchup state to ready state.
 	 *
 	 * We fix this race condition by making supervisor register per-db worker,
 	 * wait until postmaster starts it, give it a chance to update database
@@ -164,8 +164,8 @@ pgactive_register_perdb_worker(Oid dboid)
 		LWLockRelease(pgactiveWorkerCtl->lock);
 
 		(void) pgactiveWaitLatch(&MyProc->procLatch,
-							WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-							100L, PG_WAIT_EXTENSION);
+								 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								 100L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 
@@ -220,18 +220,18 @@ pgactive_supervisor_rescan_dbs()
 	StartTransactionCommand();
 
 	/*
-	 * Scan pg_shseclabel looking for entries for pg_database with the pgactive
-	 * label provider. We'll find all labels for the pgactive provider,
-	 * irrespective of value.
+	 * Scan pg_shseclabel looking for entries for pg_database with the
+	 * pgactive label provider. We'll find all labels for the pgactive
+	 * provider, irrespective of value.
 	 *
 	 * The only index present isn't much use for this scan and using it makes
 	 * us set up more keys, so do a heap scan.
 	 *
 	 * The lock taken on pg_shseclabel must be strong enough to conflict with
-	 * the lock taken be pgactive.pgactive_connection_add(...) to ensure that any
-	 * transactions adding new labels have committed and cleaned up before we
-	 * read it. Otherwise a race between the supervisor latch being set in a
-	 * commit hook and the tuples actually becoming visible is possible.
+	 * the lock taken be pgactive.pgactive_connection_add(...) to ensure that
+	 * any transactions adding new labels have committed and cleaned up before
+	 * we read it. Otherwise a race between the supervisor latch being set in
+	 * a commit hook and the tuples actually becoming visible is possible.
 	 */
 	secrel = table_open(SharedSecLabelRelationId, RowShareLock);
 
@@ -248,8 +248,8 @@ pgactive_supervisor_rescan_dbs()
 	scan = systable_beginscan(secrel, InvalidOid, false, NULL, 2, &skey[0]);
 
 	/*
-	 * We need to scan the shmem segment that tracks pgactive workers and possibly
-	 * modify it, so lock it.
+	 * We need to scan the shmem segment that tracks pgactive workers and
+	 * possibly modify it, so lock it.
 	 *
 	 * We have to take an exclusive lock in case we need to modify it,
 	 * otherwise we'd be faced with a lock upgrade.
@@ -283,9 +283,9 @@ pgactive_supervisor_rescan_dbs()
 		 * Check if we have a per-db worker for this db oid already and if we
 		 * don't, start one.
 		 *
-		 * This is O(n^2) for n pgactive-enabled DBs; to be more scalable we could
-		 * accumulate and sort the oids, then do a single scan of the shmem
-		 * segment. But really, if you have that many DBs this cost is
+		 * This is O(n^2) for n pgactive-enabled DBs; to be more scalable we
+		 * could accumulate and sort the oids, then do a single scan of the
+		 * shmem segment. But really, if you have that many DBs this cost is
 		 * nothing.
 		 */
 		if (find_perdb_worker_slot(sec->objoid, NULL) == -1)
@@ -408,7 +408,7 @@ check_for_multiple_perdb_workers(void)
 
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 
 		/* unused slot */
 		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
@@ -498,13 +498,13 @@ pgactive_supervisor_worker_main(Datum main_arg)
 
 	/*
 	 * Unfortunately we currently can't access shared catalogs like
-	 * pg_shseclabel (where we store information about which database use pgactive)
-	 * without being connected to a database. Only shared & nailed catalogs
-	 * can be accessed before being connected to a database - and
+	 * pg_shseclabel (where we store information about which database use
+	 * pgactive) without being connected to a database. Only shared & nailed
+	 * catalogs can be accessed before being connected to a database - and
 	 * pg_shseclabel is not one of those.
 	 *
-	 * Instead we have a database pgactive_SUPERVISOR_DBNAME that's supposed to be
-	 * empty which we just use to read pg_shseclabel. Not pretty, but it
+	 * Instead we have a database pgactive_SUPERVISOR_DBNAME that's supposed
+	 * to be empty which we just use to read pg_shseclabel. Not pretty, but it
 	 * works. (The need for this goes away in 9.5 with the new oid-based
 	 * alternative bgworker api).
 	 *
@@ -577,8 +577,8 @@ pgactive_supervisor_worker_main(Datum main_arg)
 		 * down the track, so might as well keep it alive...
 		 */
 		rc = pgactiveWaitLatch(&MyProc->procLatch,
-						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-						  timeout, PG_WAIT_EXTENSION);
+							   WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							   timeout, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 

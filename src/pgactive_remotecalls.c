@@ -72,9 +72,9 @@ pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool
 					 pgactive_get_my_cached_node_name(), appnamesuffix);
 
 	/*
-	 * Test to see if there's an entry in the remote's pgactive.pgactive_nodes for our
-	 * system identifier. If there is, that'll tell us what stage of startup
-	 * we are up to and let us resume an incomplete start.
+	 * Test to see if there's an entry in the remote's pgactive.pgactive_nodes
+	 * for our system identifier. If there is, that'll tell us what stage of
+	 * startup we are up to and let us resume an incomplete start.
 	 */
 	nonrepl_conn = PQconnectdb(dsn.data);
 	if (PQstatus(nonrepl_conn) != CONNECTION_OK && report_fatal)
@@ -147,7 +147,7 @@ free_remote_node_info(remote_node_info * ri)
  */
 void
 pgactive_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
-			  const char *copyfrom_query, const char *copyto_query)
+				   const char *copyfrom_query, const char *copyto_query)
 {
 	PGresult   *copyfrom_result;
 	PGresult   *copyto_result;
@@ -259,13 +259,13 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	PQclear(res);
 
 	/*
-	 * Even though we should be able to get it from pgactive_version_num, always
-	 * parse the pgactive version so that the parse code gets sanity checked, and
-	 * so that we notice if the remote version is too old to have
+	 * Even though we should be able to get it from pgactive_version_num,
+	 * always parse the pgactive version so that the parse code gets sanity
+	 * checked, and so that we notice if the remote version is too old to have
 	 * pgactive_version_num.
 	 */
 	parsed_version_num = pgactive_parse_version(ri->version, NULL, NULL,
-										   NULL, NULL);
+												NULL, NULL);
 
 	if (ri->version_num != parsed_version_num)
 		elog(WARNING, "parsed pgactive version %d from string %s != returned pgactive version %d",
@@ -339,7 +339,7 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 		ri->node_status = PQgetvalue(res, 0, 0)[0];
 	}
 	else
-		elog(ERROR, "got more than one pgactive.pgactive_nodes row matching local nodeid");	/* shouldn't happen */
+		elog(ERROR, "got more than one pgactive.pgactive_nodes row matching local nodeid"); /* shouldn't happen */
 
 	PQclear(res);
 
@@ -453,7 +453,7 @@ pgactive_test_replication_connection(PG_FUNCTION_ARGS)
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
 	NameData	appname;
-	pgactiveNodeId	remote;
+	pgactiveNodeId remote;
 	Datum		values[3];
 	bool		isnull[3];
 	char		sysid_str[33];
@@ -482,7 +482,7 @@ pgactive_test_replication_connection(PG_FUNCTION_ARGS)
 
 void
 pgactive_test_remote_connectback_internal(PGconn *conn,
-									 struct remote_node_info *ri, const char *my_dsn)
+										  struct remote_node_info *ri, const char *my_dsn)
 {
 	PGresult   *res;
 	const char *mydsn_values[1];
@@ -512,8 +512,8 @@ pgactive_test_remote_connectback_internal(PGconn *conn,
 	PQclear(res);
 
 	/*
-	 * Acquire pgactive_get_remote_nodeinfo's results from running it on the remote
-	 * node to connect back to us.
+	 * Acquire pgactive_get_remote_nodeinfo's results from running it on the
+	 * remote node to connect back to us.
 	 */
 	res = PQexecParams(conn, "SELECT sysid, timeline, dboid, variant, version, "
 					   "       version_num, min_remote_version_num, is_superuser "

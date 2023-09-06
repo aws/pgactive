@@ -66,7 +66,7 @@ static void pg_pgactive_xact_callback(XactEvent event, void *arg);
 static void pgactive_spi_exec(const char *cmd, int ret);
 static bool get_pgactive_nid_getter_function_dependency(void);
 static bool is_pgactive_nid_getter_function_in_stmt(ObjectType objtype,
-											   Node *object);
+													Node *object);
 
 static bool
 get_pgactive_nid_getter_function_dependency(void)
@@ -124,14 +124,14 @@ pgactive_generate_node_identifier(PG_FUNCTION_ARGS)
 
 	/*
 	 * Clear the node id in cache because it can happen that the previous
-	 * attempt to generate node identifier, or join a node to pgactive group may
-	 * have failed.
+	 * attempt to generate node identifier, or join a node to pgactive group
+	 * may have failed.
 	 */
 	pgactive_nid_shmem_reset(MyDatabaseId);
 
 	/*
-	 * Generate pgactive node identifier using similar logic that Postgres uses to
-	 * generate system_identifier.
+	 * Generate pgactive node identifier using similar logic that Postgres
+	 * uses to generate system_identifier.
 	 */
 	nid = GenerateNodeIdentifier();
 
@@ -341,7 +341,7 @@ is_pgactive_nid_getter_function_drop(DropStmt *stmt)
 		Node	   *object = lfirst(lc);
 
 		if (is_pgactive_nid_getter_function_in_stmt(stmt->removeType,
-											   object))
+													object))
 			return true;
 	}
 
@@ -379,7 +379,7 @@ bool
 is_pgactive_nid_getter_function_alter_owner(AlterOwnerStmt *stmt)
 {
 	return is_pgactive_nid_getter_function_in_stmt(stmt->objectType,
-											  stmt->object);
+												   stmt->object);
 }
 
 /*
@@ -390,7 +390,7 @@ bool
 is_pgactive_nid_getter_function_alter_rename(RenameStmt *stmt)
 {
 	return is_pgactive_nid_getter_function_in_stmt(stmt->renameType,
-											  stmt->object);
+												   stmt->object);
 }
 
 static bool
@@ -447,8 +447,8 @@ pgactive_nid_shmem_startup(void)
 
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 	pgactiveNodeIdentifierCtl = ShmemInitStruct("pgactive_nid",
-										   pgactive_nid_shmem_size(),
-										   &found);
+												pgactive_nid_shmem_size(),
+												&found);
 	if (!found)
 	{
 		memset(pgactiveNodeIdentifierCtl, 0, pgactive_nid_shmem_size());

@@ -281,7 +281,7 @@ pipe_read_line(char *cmd, char *line, int maxsize)
  */
 int
 pgactive_find_other_exec(const char *argv0, const char *target,
-					uint32 *version, char *retpath)
+						 uint32 *version, char *retpath)
 {
 	char		cmd[MAXPGPATH];
 	char		line[100];

@@ -105,7 +105,7 @@ pgactive_relcache_initialize()
 	ctl.hcxt = CacheMemoryContext;
 
 	pgactiveRelcacheHash = hash_create("pgactive relation cache", 128, &ctl,
-								  HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+									   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
 	CacheRegisterRelcacheCallback(pgactiveRelcacheHashInvalidateCallback,
@@ -114,7 +114,7 @@ pgactive_relcache_initialize()
 
 void
 pgactive_validate_replication_set_name(const char *name,
-								  bool allow_implicit)
+									   bool allow_implicit)
 {
 	const char *cp;
 
@@ -376,8 +376,8 @@ replset_lookup(Relation rel, const char *cname)
  */
 void
 pgactive_heap_compute_replication_settings(pgactiveRelation * r,
-									  int conf_num_replication_sets,
-									  char **conf_replication_sets)
+										   int conf_num_replication_sets,
+										   char **conf_replication_sets)
 {
 	int			i;
 

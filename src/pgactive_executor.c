@@ -505,24 +505,28 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
 		goto done;
 
-	/* replace pgactive_permit_unsafe_commands by pgactive_skip_ddl_replication for now */
+	/*
+	 * replace pgactive_permit_unsafe_commands by
+	 * pgactive_skip_ddl_replication for now
+	 */
 	read_only_node = pgactive_local_node_read_only() && !pgactive_skip_ddl_replication;
 
 	/* check for concurrent global DDL locks */
 	pgactive_locks_check_dml();
 
 	/*
-	 * Are we in pgactive.replicate_ddl_command? If so, it's not safe to do DML,
-	 * since this will basically do statement based replication that'll mess
-	 * up volatile functions etc. If we skipped replicating it as rows and
-	 * just replicated statements, we'd get wrong sequences and so on.
+	 * Are we in pgactive.replicate_ddl_command? If so, it's not safe to do
+	 * DML, since this will basically do statement based replication that'll
+	 * mess up volatile functions etc. If we skipped replicating it as rows
+	 * and just replicated statements, we'd get wrong sequences and so on.
 	 *
 	 * We can't just ignore the DML and leave it in the command string, then
 	 * replicate its effects with rows, either. Otherwise DDL like this would
 	 * break:
 	 *
-	 * pgactive.replicate_ddl_command($$ ALTER TABLE foo ADD COLUMN bar ...; UPDATE
-	 * foo SET bar = baz WHERE ...; ALTER TABLE foo DROP COLUMN baz; $$);
+	 * pgactive.replicate_ddl_command($$ ALTER TABLE foo ADD COLUMN bar ...;
+	 * UPDATE foo SET bar = baz WHERE ...; ALTER TABLE foo DROP COLUMN baz;
+	 * $$);
 	 *
 	 * ... because we'd apply the DROP COLUMN before we replicated the rows,
 	 * since we execute a DDL string as a single operation. Then row apply

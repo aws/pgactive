@@ -78,7 +78,7 @@ pgactive_dbcache_initialize()
 	ctl.hcxt = CacheMemoryContext;
 
 	pgactiveDatabaseCacheHash = hash_create("pgactive database cache", 128, &ctl,
-									   HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+											HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 
 	/* Watch for invalidation events. */
 	CacheRegisterSyscacheCallback(DATABASEOID, pgactive_dbcache_invalidate_entry, (Datum) 0);

@@ -82,7 +82,7 @@ find_perdb_worker_slot(Oid dboid, pgactiveWorker * *worker_found)
 
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 
 		if (w->worker_type == pgactive_WORKER_PERDB)
 		{
@@ -120,7 +120,7 @@ find_apply_worker_slot(const pgactiveNodeId * const remote, pgactiveWorker * *wo
 
 	for (i = 0; i < pgactive_max_workers; i++)
 	{
-		pgactiveWorker  *w = &pgactiveWorkerCtl->slots[i];
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
 
 		if (w->worker_type == pgactive_WORKER_APPLY)
 		{
@@ -149,7 +149,7 @@ pgactive_perdb_xact_callback(XactEvent event, void *arg)
 			if (xacthook_connections_changed)
 			{
 				int			slotno;
-				pgactiveWorker  *w;
+				pgactiveWorker *w;
 
 				xacthook_connections_changed = false;
 
@@ -246,7 +246,7 @@ pgactive_maintain_db_workers(void)
 	Datum		values[pgactive_CON_Q_NARGS];
 	char		sysid_str[33];
 	char		our_status;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 	List	   *detached_nodes = NIL;
 	List	   *nodes_to_forget = NIL;
 	List	   *rep_origin_to_remove = NIL;
@@ -326,7 +326,7 @@ pgactive_maintain_db_workers(void)
 		 * everything using that slot.
 		 */
 		HeapTuple	tuple;
-		pgactiveNodeId  *node;
+		pgactiveNodeId *node;
 		char	   *node_sysid_s;
 		MemoryContext oldcontext;
 
@@ -362,14 +362,14 @@ pgactive_maintain_db_workers(void)
 	 */
 	foreach(lcdetached, detached_nodes)
 	{
-		pgactiveNodeId  *node = lfirst(lcdetached);
+		pgactiveNodeId *node = lfirst(lcdetached);
 		bool		found_alive = false;
 		int			slotoff;
 
 		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 		for (slotoff = 0; slotoff < pgactive_max_workers; slotoff++)
 		{
-			pgactiveWorker  *w = &pgactiveWorkerCtl->slots[slotoff];
+			pgactiveWorker *w = &pgactiveWorkerCtl->slots[slotoff];
 			bool		kill_proc = false;
 
 			/* unused slot */
@@ -530,13 +530,17 @@ pgactive_maintain_db_workers(void)
 
 	PopActiveSnapshot();
 	SPI_finish();
-	/* The node cache needs to be invalidated as pgactive_nodes may have changed */
+
+	/*
+	 * The node cache needs to be invalidated as pgactive_nodes may have
+	 * changed
+	 */
 	pgactive_nodecache_invalidate();
 	CommitTransactionCommand();
 
 	foreach(lcforget, nodes_to_forget)
 	{
-		pgactiveNodeId  *node = lfirst(lcforget);
+		pgactiveNodeId *node = lfirst(lcforget);
 
 		/*
 		 * If this node held the global DDL lock, purge it. We can no longer
@@ -662,11 +666,11 @@ pgactive_maintain_db_workers(void)
 		HeapTuple	tuple;
 		uint32		slot;
 		uint32		worker_arg;
-		pgactiveWorker  *worker;
+		pgactiveWorker *worker;
 		pgactiveApplyWorker *apply;
 		Datum		temp_datum;
 		bool		isnull;
-		pgactiveNodeId	target;
+		pgactiveNodeId target;
 		char	   *tmp_sysid;
 		bool		origin_is_my_id;
 		pgactiveNodeStatus node_status;
@@ -814,7 +818,11 @@ pgactive_maintain_db_workers(void)
 
 	PopActiveSnapshot();
 	SPI_finish();
-	/* The node cache needs to be invalidated as pgactive_nodes may have changed */
+
+	/*
+	 * The node cache needs to be invalidated as pgactive_nodes may have
+	 * changed
+	 */
 	pgactive_nodecache_invalidate();
 	CommitTransactionCommand();
 
@@ -870,7 +878,7 @@ check_params_are_same(void)
 			empty_list = false;
 
 			conn = pgactive_connect_nonrepl(dsn,
-									   "pgactivenodeinfo", false);
+											"pgactivenodeinfo", false);
 
 			if (PQstatus(conn) != CONNECTION_OK)
 				continue;
@@ -945,7 +953,7 @@ pgactive_perdb_worker_main(Datum main_arg)
 	int			rc = 0;
 	pgactivePerdbWorker *perdb;
 	StringInfoData si;
-	pgactiveNodeId	myid;
+	pgactiveNodeId myid;
 
 	is_perdb_worker = true;
 
@@ -969,8 +977,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 
 	/*
 	 * It's necessary to acquire a lock here so that a concurrent
-	 * pgactive_perdb_xact_callback can't try to set our latch at the same time as
-	 * we write to it.
+	 * pgactive_perdb_xact_callback can't try to set our latch at the same
+	 * time as we write to it.
 	 *
 	 * There's no per-worker lock, so we just take the lock on the whole
 	 * segment.
@@ -992,8 +1000,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 		pgactiveNodeInfo *local_node;
 
 		/*
-		 * Check the local pgactive.pgactive_nodes table to see if there's an entry for
-		 * our node.
+		 * Check the local pgactive.pgactive_nodes table to see if there's an
+		 * entry for our node.
 		 *
 		 * Note that we don't have to explicitly SPI_finish(...) on error
 		 * paths; that's taken care of for us.
@@ -1064,8 +1072,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 		 * committed txn changes but died before setting the latch.
 		 */
 		rc = pgactiveWaitLatch(&MyProc->procLatch,
-						  WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
-						  180000L, PG_WAIT_EXTENSION);
+							   WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+							   180000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
 
