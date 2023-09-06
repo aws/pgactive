@@ -1,13 +1,13 @@
-AC_INIT([BDR], [bdr-next], [pgsql-bugs@postgresql.org], [bdr], [http://2ndquadrant.com/en/resources/bdr/])
+AC_INIT([pgactive], [pgactive-next], [pgsql-bugs@postgresql.org], [pgactive], [http://2ndquadrant.com/en/resources/pgactive/])
 AC_COPYRIGHT([Copyright (c) 1996-2015, PostgreSQL Global Development Group])
 
 AC_SUBST(configure_args, [$ac_configure_args])
 
-AC_ARG_ENABLE([bdr],
-  [AS_HELP_STRING([--enable-bdr],
+AC_ARG_ENABLE([pgactive],
+  [AS_HELP_STRING([--enable-pgactive],
     [enable full bi-directional replication for patched PostgreSQL 9.4 or stock PostgreSQL 9.6 [yes/no/auto] @<:@default=auto@:>@])],
   [],
-  [enable_bdr=auto])
+  [enable_pgactive=auto])
 
 AC_PROG_SED
 
@@ -32,8 +32,8 @@ fi
 AC_MSG_NOTICE([building against PostgreSQL $version_num])
 # Even though Makefile.global defines MAJORVERSION for this, we need access to it
 # before we include Makefile.global in our own Makefile, so set it directly.
-BDR_PG_MAJORVERSION="$version_num"
-AC_SUBST(BDR_PG_MAJORVERSION)
+pgactive_PG_MAJORVERSION="$version_num"
+AC_SUBST(pgactive_PG_MAJORVERSION)
 
 # add includedir to prerequisites, so tests for headers can succeed
 CPPFLAGS="-I$($PG_CONFIG --includedir-server) $CFLAGS"
@@ -57,9 +57,9 @@ AC_CHECK_HEADERS(
 AC_ARG_VAR([PATH], [PATH for target PostgreSQL install pg_config])
 
 AC_MSG_NOTICE([building with PostgreSQL $version_num])
-BDR_PGVERCOMPAT_INCDIR="compat/$version_num"
+pgactive_PGVERCOMPAT_INCDIR="compat/$version_num"
 
-AC_SUBST(BDR_PGVERCOMPAT_INCDIR)
+AC_SUBST(pgactive_PGVERCOMPAT_INCDIR)
 
 
 # check whether we're building inside the source tree.
@@ -73,6 +73,6 @@ AC_SUBST(vpath_build)
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Makefile.global])
 AC_CONFIG_FILES([test/run_tests], [chmod +x test/run_tests])
-AC_CONFIG_HEADERS([include/bdr_config_generated.h])
-AH_TOP([/* Do not include directly, use bdr_config.h instead. */])
+AC_CONFIG_HEADERS([include/pgactive_config_generated.h])
+AH_TOP([/* Do not include directly, use pgactive_config.h instead. */])
 AC_OUTPUT

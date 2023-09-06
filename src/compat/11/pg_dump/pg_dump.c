@@ -352,7 +352,7 @@ main(int argc, char **argv)
 		 */
 		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
 		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
-		{"bdr-init-node", no_argument, &dopt.bdr_init_node, 1},
+		{"pgactive-init-node", no_argument, &dopt.pgactive_init_node, 1},
 		{"column-inserts", no_argument, &dopt.column_inserts, 1},
 		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
 		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
@@ -8871,7 +8871,7 @@ shouldPrintColumn(DumpOptions *dopt, TableInfo *tbinfo, int colno)
 {
 	if (dopt->binary_upgrade)
 		return true;
-	if (dopt->bdr_init_node)
+	if (dopt->pgactive_init_node)
 		return true;
 	if (tbinfo->attisdropped[colno])
 		return false;
@@ -16225,15 +16225,15 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			destroyPQExpBuffer(q2);
 		}
 
-		/* Some of the binary compatibility is needed for bdr as well. */
-		if (dopt->bdr_init_node && tbinfo->relkind == RELKIND_RELATION)
+		/* Some of the binary compatibility is needed for pgactive as well. */
+		if (dopt->pgactive_init_node && tbinfo->relkind == RELKIND_RELATION)
 		{
 			for (j = 0; j < tbinfo->numatts; j++)
 			{
 				if (!tbinfo->attisdropped[j])
 					continue;
 
-				appendPQExpBufferStr(q, "\n-- For BDR init, recreate dropped column.\n");
+				appendPQExpBufferStr(q, "\n-- For pgactive init, recreate dropped column.\n");
 				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
 									 "SET attlen = %d, "
 									 "attalign = '%c', attbyval = false\n"

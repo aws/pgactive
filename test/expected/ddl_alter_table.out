@@ -1,8 +1,8 @@
 CREATE TABLE test_tbl(pk int primary key, dropping_col1 text, dropping_col2 text);
 ALTER TABLE test_tbl ADD COLUMN col1 text;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -19,9 +19,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ADD COLUMN col2 text;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -39,13 +39,13 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ADD COLUMN col3_fail timestamptz NOT NULL DEFAULT now();
-ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl is a regular table
+ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl is a regular table
 ALTER TABLE test_tbl ADD COLUMN serial_col_node1 SERIAL;
-ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl is a regular table
+ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl is a regular table
 ALTER TABLE test_tbl DROP COLUMN dropping_col1;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -62,9 +62,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl DROP COLUMN dropping_col2;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -80,9 +80,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col1 SET NOT NULL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -98,9 +98,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col2 SET NOT NULL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -116,9 +116,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col1 DROP NOT NULL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -134,9 +134,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col2 DROP NOT NULL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -152,9 +152,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col1 SET DEFAULT 'abc';
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -170,9 +170,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col2 SET DEFAULT 'abc';
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -188,9 +188,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col1 DROP DEFAULT;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -206,9 +206,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ALTER COLUMN col2 DROP DEFAULT;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -224,9 +224,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl ADD CONSTRAINT test_const CHECK (true);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -244,9 +244,9 @@ Check constraints:
     "test_const" CHECK (true)
 
 ALTER TABLE test_tbl ADD CONSTRAINT test_const1 CHECK (true);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -265,9 +265,9 @@ Check constraints:
     "test_const1" CHECK (true)
 
 ALTER TABLE test_tbl DROP CONSTRAINT test_const;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -285,9 +285,9 @@ Check constraints:
     "test_const1" CHECK (true)
 
 ALTER TABLE test_tbl DROP CONSTRAINT test_const1;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -305,9 +305,9 @@ Indexes:
 ALTER TABLE test_tbl ALTER COLUMN col1 SET NOT NULL;
 CREATE UNIQUE INDEX test_idx ON test_tbl(col1);
 ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -326,9 +326,9 @@ Indexes:
 ALTER TABLE test_tbl ALTER COLUMN col2 SET NOT NULL;
 CREATE UNIQUE INDEX test_idx1 ON test_tbl(col2);
 ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx1;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -348,9 +348,9 @@ Indexes:
 ALTER TABLE test_tbl REPLICA IDENTITY DEFAULT;
 DROP INDEX test_idx;
 DROP INDEX test_idx1;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -367,9 +367,9 @@ Indexes:
 
 CREATE UNIQUE INDEX test_idx ON test_tbl(col1);
 ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -397,9 +397,9 @@ Indexes:
 
 CREATE USER test_user;
 ALTER TABLE test_tbl OWNER TO test_user;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -415,9 +415,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl RENAME COLUMN col1 TO foobar;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -454,9 +454,9 @@ Indexes:
     "test_tbl_pkey" PRIMARY KEY, btree (pk)
 
 ALTER TABLE test_tbl RENAME CONSTRAINT test_tbl_pkey TO test_ddl_pk;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -472,9 +472,9 @@ Indexes:
     "test_ddl_pk" PRIMARY KEY, btree (pk)
 
 DROP TABLE test_tbl;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -495,9 +495,9 @@ ALTER TABLE test_tbl ALTER COLUMN id SET STATISTICS 0;
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  id     | integer |           |          |         | plain   | 0            | 
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -515,9 +515,9 @@ ALTER TABLE test_tbl ALTER COLUMN id SET STATISTICS -1;
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  id     | integer |           |          |         | plain   |              | 
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -538,9 +538,9 @@ INSERT INTO test_inh_root(id, val1, val2)
 SELECT x, x::text, x%4 FROM generate_series(1,10) x;
 INSERT INTO test_inh_chld1(id, val1, val2, child1col)
 SELECT x, x::text, x%4+1, x*2 FROM generate_series(11,20) x;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -654,14 +654,14 @@ SELECT * FROM test_inh_chld2;
 ----+------+------+-----------
 (0 rows)
 
-SET bdr.skip_ddl_replication = true;
+SET pgactive.skip_ddl_replication = true;
 ALTER TABLE test_inh_root ADD CONSTRAINT idchk CHECK (id > 0);
 ALTER TABLE ONLY test_inh_chld1 ALTER COLUMN id SET DEFAULT 1;
 ALTER TABLE ONLY test_inh_root DROP CONSTRAINT idchk;
-RESET bdr.skip_ddl_replication;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+RESET pgactive.skip_ddl_replication;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -782,17 +782,17 @@ SELECT * FROM test_inh_chld2;
 
 -- Should fail with an ERROR
 ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
-ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_inh_chld1 is a regular table
+ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_inh_chld1 is a regular table
 -- Will also fail with an ERROR
-SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
-ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_inh_chld1 is a regular table
+SELECT pgactive.pgactive_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
+ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_inh_chld1 is a regular table
 CONTEXT:  during replay of DDL statement: ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
 -- Will be permitted
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = true;
-SELECT bdr.bdr_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
-ERROR:  bdr_replicate_ddl_command execution attempt rejected by configuration
-DETAIL:  bdr.skip_ddl_replication is true.
+SET LOCAL pgactive.skip_ddl_replication = true;
+SELECT pgactive.pgactive_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
+ERROR:  pgactive_replicate_ddl_command execution attempt rejected by configuration
+DETAIL:  pgactive.skip_ddl_replication is true.
 HINT:  See the 'DDL replication' chapter of the documentation.
 COMMIT;
 SELECT * FROM test_inh_root;
@@ -840,9 +840,9 @@ SELECT * FROM test_inh_chld2;
 ----+------+------+-----------
 (0 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -897,9 +897,9 @@ ERROR:  cannot run UPDATE or DELETE on table test_inh_chld1 because it does not 
 HINT:  Add a PRIMARY KEY to the table.
 INSERT INTO test_inh_root(id, val1, val2) VALUES (200, 'root', 1);
 INSERT INTO test_inh_chld1(id, val1, val2, child1col) VALUES (200, 'child', 0, 0);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 

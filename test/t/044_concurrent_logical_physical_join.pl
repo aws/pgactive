@@ -16,9 +16,9 @@ use Test::More;
 use utils::nodemanagement;
 use utils::concurrent;
 
-# Create an upstream node and bring up bdr
+# Create an upstream node and bring up pgactive
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
-initandstart_bdr_group($node_a);
+initandstart_pgactive_group($node_a);
 my $upstream_node = $node_a;
 
 note "Concurrent logical and pysical join\n";
@@ -33,9 +33,9 @@ stop_nodes([$node_a]);
 
 SKIP: {
 # TODO: node_q hangs in catch up state never reaching ready state thus gets
-# stuck in bdr.bdr_wait_for_node_ready(). This is because node_q's per-db
+# stuck in pgactive.pgactive_wait_for_node_ready(). This is because node_q's per-db
 # worker fails to find replication identifier for node_a on it
-# (bdr_locks_startup() -> bdr_fetch_node_id_via_sysid() ->
+# (pgactive_locks_startup() -> pgactive_fetch_node_id_via_sysid() ->
 # replorigin_by_name()) and restarts continuously. Note that node_a holds
 # global DDL lock as it is an upstream node for node_p. Skip this test case for
 # now and fix it after a bit more deeper understanding.

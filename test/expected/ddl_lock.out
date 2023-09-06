@@ -2,22 +2,22 @@
 -- other peer up. Can't do catchup write-mode tests with only two nodes.
 --
 -- (More complex tests will be done in TAP framework)
-SELECT bdr.bdr_acquire_global_lock('');
+SELECT pgactive.pgactive_acquire_global_lock('');
 ERROR:  unknown lock type 
-SELECT bdr.bdr_acquire_global_lock(NULL);
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock(NULL);
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('bogus');
+SELECT pgactive.pgactive_acquire_global_lock('bogus');
 ERROR:  unknown lock type bogus
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = true;
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
-WARNING:  bdr.skip_ddl_replication is set, ignoring explicit bdr.bdr_acquire_global_lock(...) call
- bdr_acquire_global_lock 
--------------------------
+SET LOCAL pgactive.skip_ddl_replication = true;
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
+WARNING:  pgactive.skip_ddl_replication is set, ignoring explicit pgactive.pgactive_acquire_global_lock(...) call
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -36,9 +36,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('write_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('write_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -63,9 +63,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -90,9 +90,9 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -102,9 +102,9 @@ SELECT * FROM ddl_info;
                 0 | t          | ddl_lock  | acquire_acquired | f             |                 |                   |         1 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('write_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('write_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -129,16 +129,16 @@ SELECT * FROM ddl_info;
                   | f          |           | nolock     | t             | f               | f                 |         0 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
 SAVEPOINT ddllock;
-SELECT bdr.bdr_acquire_global_lock('write_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('write_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 
@@ -152,16 +152,16 @@ ROLLBACK TO SAVEPOINT ddllock;
 -- We really should go back to 'ddl_lock' mode, but we actually
 -- stay in 'write_lock' mode here. Even if the acquire of write
 -- mode fails (or is not completed yet) above.
--- BUG 2ndQuadrant/bdr-private#77
+-- BUG 2ndQuadrant/pgactive-private#77
 SELECT * FROM ddl_info;
  owner_replorigin | is_my_node | lock_mode  |    lock_state    | owner_pid_set | owner_pid_is_me | fully_owned_by_me | lockcount | npeers | npeers_confirmed | npeers_declined | npeers_replayed | has_replay_upto 
 ------------------+------------+------------+------------------+---------------+-----------------+-------------------+-----------+--------+------------------+-----------------+-----------------+-----------------
                 0 | t          | write_lock | acquire_acquired | f             |                 |                   |         1 |      1 |                0 |               0 |               0 | f
 (1 row)
 
-SELECT bdr.bdr_acquire_global_lock('write_lock');
- bdr_acquire_global_lock 
--------------------------
+SELECT pgactive.pgactive_acquire_global_lock('write_lock');
+ pgactive_acquire_global_lock 
+------------------------------
  
 (1 row)
 

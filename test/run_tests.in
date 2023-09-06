@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This is a wrapper to allow BDR to run pg_regress etc with a custom
+# This is a wrapper to allow pgactive to run pg_regress etc with a custom
 # config file, the needed extensions installed, etc. It works around the
 # lack of needed pg_regress features in 9.4.
 #

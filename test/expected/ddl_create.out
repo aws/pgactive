@@ -1,7 +1,7 @@
 CREATE TABLE test_tbl_simple_create(val int);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -19,9 +19,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer |           |          |         | plain   |              | 
 
 DROP TABLE test_tbl_simple_create;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -29,9 +29,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_simple_create
 CREATE UNLOGGED TABLE test_tbl_unlogged(val int);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -51,9 +51,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer |           |          |         | plain   |              | 
 
 CREATE TABLE test_tbl_simple_pk(val int PRIMARY KEY);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -75,9 +75,9 @@ Indexes:
     "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
 
 DROP TABLE test_tbl_simple_pk;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -85,9 +85,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_simple_pk
 CREATE TABLE test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1));
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -111,9 +111,9 @@ Indexes:
     "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
 
 DROP TABLE test_tbl_combined_pk;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -121,9 +121,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_combined_pk
 CREATE TABLE test_tbl_serial(val SERIAL);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -141,9 +141,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
 DROP TABLE test_tbl_serial;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -151,9 +151,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_serial
 CREATE TABLE test_tbl_serial(val SERIAL);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -171,9 +171,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
 
 CREATE TABLE test_tbl_serial_pk(val SERIAL PRIMARY KEY);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -195,9 +195,9 @@ Indexes:
     "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
 
 DROP TABLE test_tbl_serial_pk;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -205,9 +205,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \c regression
 \d+ test_tbl_serial_pk
 CREATE TABLE test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1));
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -233,9 +233,9 @@ Indexes:
 CREATE TABLE test_tbl_create_index (val int, val2 int);
 CREATE UNIQUE INDEX test1_idx ON test_tbl_create_index(val);
 CREATE INDEX test2_idx ON test_tbl_create_index (lower(val2::text));
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -262,9 +262,9 @@ Indexes:
 
 DROP INDEX test1_idx;
 DROP INDEX test2_idx;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -285,9 +285,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 CREATE INDEX test1_idx ON test_tbl_create_index(val, val2);
 CREATE INDEX test2_idx ON test_tbl_create_index USING gist (val, UPPER(val2::text));
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -314,10 +314,10 @@ Indexes:
 
 DROP INDEX test1_idx;
 DROP INDEX CONCURRENTLY test2_idx;
-ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -341,12 +341,12 @@ Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
 CREATE INDEX CONCURRENTLY test1_idx ON test_tbl_create_index(val, val2);
-ERROR:  CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl_create_index is a regular table
+ERROR:  CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl_create_index is a regular table
 CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON test_tbl_create_index (lower(val2::text));
-ERROR:  CREATE INDEX CONCURRENTLY without bdr.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when BDR is active; test_tbl_create_index is a regular table
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+ERROR:  CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl_create_index is a regular table
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -370,14 +370,14 @@ Indexes:
     "test2_idx" gist (val, upper(val2::text))
 
 DROP INDEX CONCURRENTLY test1_idx;
-ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
 DROP INDEX CONCURRENTLY test2_idx;
-ERROR:  DROP INDEX CONCURRENTLY is not supported without bdr.skip_ddl_replication set
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
 DROP TABLE test_tbl_create_index;
 CREATE TABLE test_simple_create_with_arrays_tbl(val int[], val1 text[]);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -399,9 +399,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 DROP TABLE test_simple_create_with_arrays_tbl;
 CREATE TYPE test_t AS ENUM('a','b','c');
 CREATE TABLE test_simple_create_with_enums_tbl(val test_t, val1 test_t);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -422,9 +422,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 DROP TABLE test_simple_create_with_enums_tbl;
 DROP TYPE test_t;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -445,9 +445,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 CREATE TYPE test_t AS (f1 text, f2 float, f3 integer);
 CREATE TABLE test_simple_create_with_composites_tbl(val test_t, val1 test_t);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -468,9 +468,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 DROP TABLE test_simple_create_with_composites_tbl;
 DROP TYPE test_t;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -502,9 +502,9 @@ CREATE TABLE test_tbl_inh_chld3(f1 text) INHERITS (test_tbl_inh_parent, test_tbl
 NOTICE:  merging multiple inherited definitions of column "f1"
 NOTICE:  merging multiple inherited definitions of column "f2"
 NOTICE:  merging column "f1" with inherited definition
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -581,9 +581,9 @@ CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO test_tbl_inh_parent
 CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO test_tbl_inh_parent
           WHERE (f1 LIKE '%2%') DO INSTEAD
           INSERT INTO test_tbl_inh_chld2 VALUES (NEW.*);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -636,9 +636,9 @@ NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table test_tbl_inh_chld1
 drop cascades to table test_tbl_inh_chld2
 drop cascades to table test_tbl_inh_chld3
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -653,14 +653,14 @@ SHOW default_with_oids;
 (1 row)
 
 CREATE TABLE tbl_with_oids() WITH oids;
-ERROR:  tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with pgactive
 CREATE TABLE tbl_without_oids() WITHOUT oids;
 DROP TABLE tbl_without_oids;
 CREATE TABLE tbl_without_oids();
 DROP TABLE tbl_without_oids;
 SET default_with_oids = true;
 CREATE TABLE tbl_with_oids() WITH OIDS;
-ERROR:  tables WITH OIDs are not supported with bdr
+ERROR:  tables WITH OIDs are not supported with pgactive
 CREATE TABLE tbl_without_oids() WITHOUT oids;
 DROP TABLE tbl_without_oids;
 SET default_with_oids = false;
@@ -676,9 +676,9 @@ Indexes:
     "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
 Options: fillfactor=75
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -711,9 +711,9 @@ CREATE AGGREGATE test_cnt (*) (
    sfunc = int8inc, stype = int8,
    initcond = '0'
 );
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -739,9 +739,9 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 DROP AGGREGATE test_avg(int4);
 DROP AGGREGATE test_sum(int4);
 DROP AGGREGATE test_cnt(*);
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -769,9 +769,9 @@ create aggregate test_aggfstr(integer,integer,text) (
    sfunc = aggf_trans, stype = aggtype[],
    initcond = '{}'
 );
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -794,9 +794,9 @@ DROP AGGREGATE test_aggfstr(integer,integer,text);
 DROP FUNCTION aggf_trans(aggtype[],integer,integer,text);
 DROP FUNCTION aggfns_trans(aggtype[],integer,integer,text);
 DROP TYPE aggtype;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -829,9 +829,9 @@ CREATE OPERATOR #@# (
    leftarg = int8,		-- right unary
    procedure = factorial
 );
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -899,9 +899,9 @@ DROP OPERATOR #@#(int8,none);
 --------+------+---------------+----------------+-------------+-------------
 (0 rows)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 

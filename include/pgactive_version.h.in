@@ -1,0 +1,8 @@
+#define pgactive_VERSION "2.1.0-RC1"
+#define pgactive_VERSION_NUM 20100
+#define pgactive_MIN_REMOTE_VERSION_NUM 20100
+#define pgactive_VERSION_DATE ""
+#define pgactive_VERSION_GITHASH ""
+#define pgactive_VERSION_STR pgactive_VERSION"-"pgactive_VERSION_DATE"-"pgactive_VERSION_GITHASH
+
+#define pgactive_VARIANT "pgactive"

@@ -14,11 +14,11 @@ GRANT ALL ON SCHEMA public TO nonsuper;
 
 \c postgres
 CREATE EXTENSION btree_gist;
-CREATE EXTENSION bdr;
+CREATE EXTENSION pgactive;
 
 \c regression
 CREATE EXTENSION btree_gist;
-CREATE EXTENSION bdr;
+CREATE EXTENSION pgactive;
 
--- DDL lock state before BDR comes up
-SELECT * FROM bdr.bdr_get_global_locks_info();
+-- DDL lock state before pgactive comes up
+SELECT * FROM pgactive.pgactive_get_global_locks_info();

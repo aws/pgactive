@@ -1,13 +1,13 @@
 --  ALTER TABLE public.DROP COLUMN (pk column)
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SERIAL); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SERIAL); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -31,15 +31,15 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
  integer |     1 |       1 | 2147483647 |         1 | no      |     1
 Owned by: public.test.test_id
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test  DROP COLUMN test_id; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test  DROP COLUMN test_id; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -54,22 +54,22 @@ SELECT relname, relkind FROM pg_class WHERE relname = 'test_test_id_seq';
 ---------+---------
 (0 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
 -- ADD CONSTRAINT PRIMARY KEY
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SERIAL NOT NULL); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test (test_id SERIAL NOT NULL); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -80,15 +80,15 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 ---------+---------+-----------+----------+---------------------------------------+---------+--------------+-------------
  test_id | integer |           | not null | nextval('test_test_id_seq'::regclass) | plain   |              | 
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER TABLE public.test ADD CONSTRAINT test_pkey PRIMARY KEY (test_id); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER TABLE public.test ADD CONSTRAINT test_pkey PRIMARY KEY (test_id); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -101,29 +101,29 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 Indexes:
     "test_pkey" PRIMARY KEY, btree (test_id)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
 \c postgres
 -- normal sequence
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq increment 10; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq increment 10; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -140,51 +140,51 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 --------+-------+---------+---------------------+-----------+---------+-------
  bigint |     1 |       1 | 9223372036854775807 |        10 | no      |     1
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq increment by 10; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq increment by 10; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq minvalue 0; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq minvalue 0; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq maxvalue 1000000; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq maxvalue 1000000; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq restart; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq restart; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq cache 10; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq cache 10; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq cycle; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq cycle; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq RENAME TO renamed_test_seq; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SEQUENCE public.test_seq RENAME TO renamed_test_seq; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -204,61 +204,61 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
  bigint |     1 |       0 | 1000000 |        10 | yes     |    10
 
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.renamed_test_seq; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP SEQUENCE public.renamed_test_seq; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
 \d+ renamed_test_seq;
 \c regression
 \d+ renamed_test_seq
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SEQUENCE public.test_seq; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
 -- DESTINATION COLUMN TYPE REQUIRED BIGINT
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE IF EXISTS public.test_tbl; $DDL$);
 NOTICE:  table "test_tbl" does not exist, skipping
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a int DEFAULT pgactive.pgactive_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
 \d+ test_tbl
-                                                       Table "public.test_tbl"
- Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
---------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
- b      | text    |           |          |                                                    | extended |              | 
+                                                            Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |                           Default                            | Storage  | Stats target | Description 
+--------+---------+-----------+----------+--------------------------------------------------------------+----------+--------------+-------------
+ a      | integer |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text    |           |          |                                                              | extended |              | 
 
 \c postgres
 \d+ test_tbl
-                                                       Table "public.test_tbl"
- Column |  Type   | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
---------+---------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | integer |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
- b      | text    |           |          |                                                    | extended |              | 
+                                                            Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |                           Default                            | Storage  | Stats target | Description 
+--------+---------+-----------+----------+--------------------------------------------------------------+----------+--------------+-------------
+ a      | integer |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text    |           |          |                                                              | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
 ERROR:  integer out of range
@@ -268,44 +268,44 @@ SELECT count(*) FROM test_tbl;
      0
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT bdr.bdr_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl (a bigint DEFAULT pgactive.pgactive_snowflake_id_nextval('public.test_seq'),b text); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
 \d+ test_tbl
-                                                       Table "public.test_tbl"
- Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
---------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
- b      | text   |           |          |                                                    | extended |              | 
+                                                            Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable |                           Default                            | Storage  | Stats target | Description 
+--------+--------+-----------+----------+--------------------------------------------------------------+----------+--------------+-------------
+ a      | bigint |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text   |           |          |                                                              | extended |              | 
 
 \c postgres
 \d+ test_tbl
-                                                       Table "public.test_tbl"
- Column |  Type  | Collation | Nullable |                      Default                       | Storage  | Stats target | Description 
---------+--------+-----------+----------+----------------------------------------------------+----------+--------------+-------------
- a      | bigint |           |          | bdr.bdr_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
- b      | text   |           |          |                                                    | extended |              | 
+                                                            Table "public.test_tbl"
+ Column |  Type  | Collation | Nullable |                           Default                            | Storage  | Stats target | Description 
+--------+--------+-----------+----------+--------------------------------------------------------------+----------+--------------+-------------
+ a      | bigint |           |          | pgactive.pgactive_snowflake_id_nextval('test_seq'::regclass) | plain    |              | 
+ b      | text   |           |          |                                                              | extended |              | 
 
 INSERT INTO test_tbl(b) VALUES('abc');
 SELECT count(*) FROM test_tbl;
@@ -314,16 +314,16 @@ SELECT count(*) FROM test_tbl;
      1
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SEQUENCE public.test_seq CASCADE; $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP SEQUENCE public.test_seq CASCADE; $DDL$);
 NOTICE:  drop cascades to default value for column a of table public.test_tbl
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 

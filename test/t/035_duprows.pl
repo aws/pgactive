@@ -21,17 +21,17 @@ use utils::nodemanagement;
 use Test::More;
 
 my $query = q[
-select coalesce(node_name, bdr.bdr_get_local_node_name()) AS origin_node_name, x
+select coalesce(node_name, pgactive.pgactive_get_local_node_name()) AS origin_node_name, x
 from t
-cross join lateral bdr.bdr_xact_replication_origin(xmin) ro(originid)
+cross join lateral pgactive.pgactive_xact_replication_origin(xmin) ro(originid)
 left join pg_replication_origin on (roident = originid)
-cross join lateral bdr.bdr_parse_replident_name(roname)
-left join bdr.bdr_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node_sysid, node_timeline, node_dboid)
+cross join lateral pgactive.pgactive_parse_replident_name(roname)
+left join pgactive.pgactive_nodes on (remote_sysid, remote_timeline, remote_dboid) = (node_sysid, node_timeline, node_dboid)
 order by x;
 ];
 
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
-initandstart_bdr_group($node_a);
+initandstart_pgactive_group($node_a);
 
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
@@ -42,18 +42,18 @@ my @nodes = ($node_a, $node_b);
 exec_ddl($node_a, q[CREATE TABLE public.t(x text);]);
 
 # Make sure everything caught up by forcing another lock
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
+$node_a->safe_psql($pgactive_test_dbname, q[SELECT pgactive.pgactive_acquire_global_lock('write_lock')]);
 
 for my $node (@nodes) {
-  $node->safe_psql($bdr_test_dbname, q[INSERT INTO t(x) VALUES (bdr.bdr_get_local_node_name())]);
+  $node->safe_psql($pgactive_test_dbname, q[INSERT INTO t(x) VALUES (pgactive.pgactive_get_local_node_name())]);
 }
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
+$node_a->safe_psql($pgactive_test_dbname, q[SELECT pgactive.pgactive_acquire_global_lock('write_lock')]);
 
 my $expected = q[node_a|node_a
 node_b|node_b];
 
-is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'results node A before restart B');
-is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B before restart B');
+is($node_a->safe_psql($pgactive_test_dbname, $query), $expected, 'results node A before restart B');
+is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'results node B before restart B');
 
 #
 # We've stored the end of the commit record of the last replayed xact into the
@@ -64,31 +64,31 @@ is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B befo
 # START_REPLICATION instead of the further-ahead LSN stored on the upstream
 # slot.
 #
-# Prior to BDR 2.0 and d96d8bb5, we used to store the commit start lsn on
+# Prior to pgactive 2.0 and d96d8bb5, we used to store the commit start lsn on
 # our replication origin. So we'd ask to replay the last commit again
 # in this situation and get a duplicate commit.
 #
 $node_b->stop('immediate');
 $node_b->start;
 
-is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'results node A after restart B');
-is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B after restart B');
+is($node_a->safe_psql($pgactive_test_dbname, $query), $expected, 'results node A after restart B');
+is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'results node B after restart B');
 
 $node_a->stop;
-is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'results node B during restart A');
+is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'results node B during restart A');
 $node_a->start;
 # to make sure a is ready for queries again:
 sleep(10);
 
 note "taking final DDL lock";
-$node_a->safe_psql($bdr_test_dbname, q[SELECT bdr.bdr_acquire_global_lock('write_lock')]);
+$node_a->safe_psql($pgactive_test_dbname, q[SELECT pgactive.pgactive_acquire_global_lock('write_lock')]);
 note "done, checking final state";
 
 $expected = q[node_a|node_a
 node_b|node_b];
 
-is($node_a->safe_psql($bdr_test_dbname, $query), $expected, 'final results node A');
-is($node_b->safe_psql($bdr_test_dbname, $query), $expected, 'final results node B');
+is($node_a->safe_psql($pgactive_test_dbname, $query), $expected, 'final results node A');
+is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'final results node B');
 
 $node_a->stop;
 $node_b->stop;

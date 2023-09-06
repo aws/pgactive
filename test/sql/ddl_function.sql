@@ -55,7 +55,7 @@ $$;
 CREATE TABLE test_trigger_table (f1 integer, f2 text);
 CREATE TRIGGER test_trigger_fn_trg1 BEFORE INSERT OR DELETE ON test_trigger_table FOR EACH STATEMENT WHEN (True) EXECUTE PROCEDURE test_trigger_fn();
 CREATE TRIGGER test_trigger_fn_trg2 AFTER UPDATE OF f1 ON test_trigger_table FOR EACH ROW EXECUTE PROCEDURE test_trigger_fn();
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 -- We can't use \d+ here because tgisinternal triggers have names with the oid
 -- appended, and that varies run-to-run. Use a custom query.
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
@@ -63,49 +63,49 @@ SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TRIGGER test_trigger_fn_trg1 ON test_trigger_table RENAME TO test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table DISABLE TRIGGER test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table DISABLE TRIGGER ALL;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table ENABLE TRIGGER test_trigger_fn_trg2;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table ENABLE TRIGGER USER;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table ENABLE ALWAYS TRIGGER test_trigger_fn_trg;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 ALTER TABLE test_trigger_table ENABLE REPLICA TRIGGER test_trigger_fn_trg2;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c postgres
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 
 DROP TRIGGER test_trigger_fn_trg2 ON test_trigger_table;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
 \c regression
 SELECT * FROM showtrigstate('test_trigger_table'::regclass);
@@ -115,7 +115,7 @@ DROP FUNCTION test_trigger_fn();
 
 DROP TABLE test_trigger_table;
 DROP FUNCTION test_trigger_fn();
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 \d+ test_trigger_table
 \c postgres
 \d+ test_trigger_table

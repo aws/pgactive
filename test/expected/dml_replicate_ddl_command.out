@@ -1,39 +1,39 @@
 -- complex datatype handling
-SELECT * FROM public.bdr_regress_variables()
+SELECT * FROM public.pgactive_regress_variables()
 \gset
 \c :writedb1
 -- Make sure we properly guard against mixing DDL and DML in
--- bdr.replicate_ddl_command
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+-- pgactive.replicate_ddl_command
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   CREATE TABLE public.foo(id integer PRIMARY KEY, bar integer);
   INSERT INTO public.foo(id, bar) VALUES (1, 42);
 $DDL$);
-ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
-HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.
+ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside pgactive.replicate_ddl_command
+HINT:  Split up scripts, putting DDL in pgactive.replicate_ddl_command and DML as normal statements.
 CONTEXT:  during replay of DDL statement: 
   CREATE TABLE public.foo(id integer PRIMARY KEY, bar integer);
   INSERT INTO public.foo(id, bar) VALUES (1, 42);
 
 -- Create it properly now
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   CREATE TABLE public.foo(id integer PRIMARY KEY, bar integer);
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
 INSERT INTO foo(id, bar) VALUES (1, 42);
 -- and check for guard against UPDATE too.  This is a known-pathalogical case
 -- that'll break replication.
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   SET LOCAL search_path = 'public';
   ALTER TABLE foo ADD COLUMN baz integer;
   UPDATE foo SET baz = bar;
   ALTER TABLE foo DROP COLUMN bar;
 $DDL$);
-ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside bdr.replicate_ddl_command
-HINT:  Split up scripts, putting DDL in bdr.replicate_ddl_command and DML as normal statements.
+ERROR:  row-data-modifying statements INSERT, UPDATE and DELETE are not permitted inside pgactive.replicate_ddl_command
+HINT:  Split up scripts, putting DDL in pgactive.replicate_ddl_command and DML as normal statements.
 CONTEXT:  during replay of DDL statement: 
   SET LOCAL search_path = 'public';
   ALTER TABLE foo ADD COLUMN baz integer;
@@ -42,22 +42,22 @@ CONTEXT:  during replay of DDL statement:
 
 -- Do it right
 BEGIN;
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   SET LOCAL search_path = 'public';
   ALTER TABLE foo ADD COLUMN baz integer;
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
 UPDATE foo SET baz = bar;
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
   SET LOCAL search_path = 'public';
   ALTER TABLE foo DROP COLUMN bar;
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 

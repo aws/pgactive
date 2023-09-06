@@ -6,7 +6,7 @@
 #
 # Verify that the remaining 2 nodes are consistent after detach of the 3rd node.
 #
-# This test exercises a BDR behaviour where, if one node goes down while its
+# This test exercises a pgactive behaviour where, if one node goes down while its
 # peers have replayed up to different points on the lost node, we cannot
 # re-sync from the furthest-ahead peer.
 #
@@ -21,16 +21,16 @@ use threads;
 use Test::More;
 use utils::nodemanagement;
 
-# Create an upstream node and bring up bdr
+# Create an upstream node and bring up pgactive
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
-initandstart_bdr_group($node_a);
+initandstart_pgactive_group($node_a);
 my $upstream_node = $node_a;
 
-# Join a new node to first node using bdr_join_group and apply delay
+# Join a new node to first node using pgactive_join_group and apply delay
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 my $delay = 1000; # ms
 initandstart_node($node_b);
-bdr_logical_join( $node_b, $upstream_node,apply_delay=>$delay );
+pgactive_logical_join( $node_b, $upstream_node,apply_delay=>$delay );
 check_join_status( $node_b,$upstream_node);
 
 my $node_c = PostgreSQL::Test::Cluster->new('node_c');
@@ -51,7 +51,7 @@ initandstart_logicaljoin_node($node_c,$node_a);
 # TODO: add a blocking-mode DDL lock acquisition function so we can avoid this
 # and save users the hassle. See #59, #60
 #
-$node_b->poll_query_until($bdr_test_dbname,"select NOT EXISTS (SELECT * from bdr.bdr_global_locks);");
+$node_b->poll_query_until($pgactive_test_dbname,"select NOT EXISTS (SELECT * from pgactive.pgactive_global_locks);");
 
 # Create a test table
 my $table_name = "delaytest";
@@ -59,22 +59,22 @@ my $value = 1;
 create_table($node_a,$table_name);	
 
 # We can't INSERT until the DDL lock for CREATE TABLE is clear
-$node_b->poll_query_until($bdr_test_dbname,"select NOT EXISTS (SELECT * from bdr.bdr_global_locks);");
+$node_b->poll_query_until($pgactive_test_dbname,"select NOT EXISTS (SELECT * from pgactive.pgactive_global_locks);");
 
 # INSERT some changes into C
 #
 # This change will replicate immediately to node A, and on a delay to node B
 # due to B's configuration.
 #
-$node_c->safe_psql($bdr_test_dbname,qq(INSERT INTO $table_name VALUES($value)));
+$node_c->safe_psql($pgactive_test_dbname,qq(INSERT INTO $table_name VALUES($value)));
 wait_for_apply($node_c, $node_a);
 
 # Check changes are replayed on node_b and not on node_a
 
-is($node_a->safe_psql($bdr_test_dbname,"SELECT id FROM $table_name"),
+is($node_a->safe_psql($pgactive_test_dbname,"SELECT id FROM $table_name"),
     $value, "Changes replayed to node_a");
 
-is($node_b->safe_psql($bdr_test_dbname,"SELECT id FROM $table_name"),
+is($node_b->safe_psql($pgactive_test_dbname,"SELECT id FROM $table_name"),
     '', "Changes not replayed to node_b due to apply delay");
 
 # Detach node_c before the change can replay to b
@@ -85,13 +85,13 @@ wait_for_apply($node_a, $node_b);
 wait_for_apply($node_b, $node_a);
 
 TODO: {
-    # Right now, BDR doesn't know how to connect to the furthest-ahead
+    # Right now, pgactive doesn't know how to connect to the furthest-ahead
     # surviving peer of a lost node and catch up using it. When that's
-    # implemented as part of BDR extended HA work, this test should
+    # implemented as part of pgactive extended HA work, this test should
     # start passing.
     #
-    local $TODO = "BDR EHA: we should copy C's changes from A to B";
-    is($node_b->safe_psql($bdr_test_dbname,"SELECT id FROM $table_name"),
+    local $TODO = "pgactive EHA: we should copy C's changes from A to B";
+    is($node_b->safe_psql($pgactive_test_dbname,"SELECT id FROM $table_name"),
         $value, "Changes from node_c recovered on node_b via node_a");
 }
 

@@ -1,0 +1,34 @@
+/* include/pgactive_config_generated.h.in.  Generated from configure.in by autoheader.  */
+
+/* Do not include directly, use pgactive_config.h instead. */
+
+/* Define to 1 if you have the <access/committs.h> header file. */
+#undef HAVE_ACCESS_COMMITTS_H
+
+/* Define to 1 if you have the <access/commit_ts.h> header file. */
+#undef HAVE_ACCESS_COMMIT_TS_H
+
+/* Define to 1 if you have the <replication/origin.h> header file. */
+#undef HAVE_REPLICATION_ORIGIN_H
+
+/* Define to 1 if you have the <replication/replication_identifier.h> header
+   file. */
+#undef HAVE_REPLICATION_REPLICATION_IDENTIFIER_H
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION

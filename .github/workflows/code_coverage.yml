@@ -1,4 +1,4 @@
-name: BDR code coverage CI
+name: pgactive code coverage CI
 on:
   workflow_dispatch:
 jobs:
@@ -17,10 +17,10 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: Checkout BDR
+      - name: Checkout pgactive
         uses: actions/checkout@v3
         with:
-          path: bdr
+          path: pgactive
 
       - name: Checkout Postgres
         run: |
@@ -33,32 +33,32 @@ jobs:
           sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests --enable-coverage CFLAGS="-ggdb3 -O0"
           make -j4 install
 
-          # Install extensions required for BDR tests
+          # Install extensions required for pgactive tests
           make -C contrib/btree_gist install
           make -C contrib/cube install
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
 
-      - name: Build BDR
+      - name: Build pgactive
         run: |
-            cd bdr
+            cd pgactive
             PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
             sh configure
             make PROFILE="-Wall -Wmissing-prototypes -Werror=maybe-uninitialized -Werror" -j4 all install
 
-      - name: Run BDR core tests
+      - name: Run pgactive core tests
         run: |
-          cd bdr
+          cd pgactive
           make regress_check
 
-      - name: Show BDR core tests diff
+      - name: Show pgactive core tests diff
         if: ${{ failure() }}
         run: |
-          cat bdr/test/regression.diffs
+          cat pgactive/test/regression.diffs
 
-      - name: Run BDR extended tests
+      - name: Run pgactive extended tests
         run: |
-          cd bdr
+          cd pgactive
           make PROVE_FLAGS="--timer -v" prove_check
 
       - name: Upload test artifacts
@@ -67,8 +67,8 @@ jobs:
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
-            bdr/test/regression.diffs
-            bdr/test/tmp_check/log
+            pgactive/test/regression.diffs
+            pgactive/test/tmp_check/log
           retention-days: 7
 
       - name: Collect code coverage info
@@ -77,12 +77,12 @@ jobs:
           # The steps to run code coverage are referred from
           # https://www.postgresql.org/message-id/CAB7nPqQkUyN_A88Rw4iAaYax%3Dm4DwNPwoScBVyb3ihmfks8uDg%40mail.gmail.com
           # and https://www.postgresql.org/docs/current/regress-coverage.html
-          cd bdr
+          cd pgactive
           make coverage-html abs_top_srcdir=$(pwd)
           /usr/bin/lcov --gcov-tool /usr/bin/gcov -q --no-external -c -i -d . -d ./ -o lcov_base.info
           /usr/bin/lcov --gcov-tool /usr/bin/gcov -q --no-external -c -d . -d ./ -o lcov_test.info
           rm -rf coverage
-          /usr/bin/genhtml --legend -o coverage-${{ matrix.version }} --title='BDR on ${{ matrix.version }}' --num-spaces=4  lcov_base.info lcov_test.info
+          /usr/bin/genhtml --legend -o coverage-${{ matrix.version }} --title='pgactive on ${{ matrix.version }}' --num-spaces=4  lcov_base.info lcov_test.info
 
           # Clean up steps. They are here as demonstration for developers
           # running code coverage indvidually.
@@ -95,5 +95,5 @@ jobs:
         with:
           name: code-coverage-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
-            bdr/coverage-${{ matrix.version }}
+            pgactive/coverage-${{ matrix.version }}
           retention-days: 7

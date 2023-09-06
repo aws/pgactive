@@ -1,44 +1,44 @@
 \c regression
-SELECT bdr.bdr_is_apply_paused();
- bdr_is_apply_paused 
----------------------
+SELECT pgactive.pgactive_is_apply_paused();
+ pgactive_is_apply_paused 
+--------------------------
  f
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command('CREATE TABLE public.pause_test(x text primary key);');
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command('CREATE TABLE public.pause_test(x text primary key);');
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
 INSERT INTO pause_test(x) VALUES ('before pause');
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
 \c postgres
-SELECT bdr.bdr_is_apply_paused();
- bdr_is_apply_paused 
----------------------
+SELECT pgactive.pgactive_is_apply_paused();
+ pgactive_is_apply_paused 
+--------------------------
  f
 (1 row)
 
-SELECT bdr.bdr_apply_pause();
- bdr_apply_pause 
------------------
+SELECT pgactive.pgactive_apply_pause();
+ pgactive_apply_pause 
+----------------------
  
 (1 row)
 
-SELECT bdr.bdr_is_apply_paused();
- bdr_is_apply_paused 
----------------------
+SELECT pgactive.pgactive_is_apply_paused();
+ pgactive_is_apply_paused 
+--------------------------
  t
 (1 row)
 
 -- It's necessary to wait for a latch timeout on apply workers
--- until bdr_apply_pause gets taught to set their latches.
+-- until pgactive_apply_pause gets taught to set their latches.
 SELECT pg_sleep(6);
  pg_sleep 
 ----------
@@ -57,9 +57,9 @@ SELECT pg_sleep(1);
 (1 row)
 
 -- Pause state is preserved across sessions
-SELECT bdr.bdr_is_apply_paused();
- bdr_is_apply_paused 
----------------------
+SELECT pgactive.pgactive_is_apply_paused();
+ pgactive_is_apply_paused 
+--------------------------
  t
 (1 row)
 
@@ -70,9 +70,9 @@ SELECT x FROM pause_test;
  before pause
 (1 row)
 
-SELECT bdr.bdr_apply_resume();
- bdr_apply_resume 
-------------------
+SELECT pgactive.pgactive_apply_resume();
+ pgactive_apply_resume 
+-----------------------
  
 (1 row)
 
@@ -83,9 +83,9 @@ INSERT INTO pause_test(x) VALUES ('after resume');
 -- resume to take effect well before then.
 BEGIN;
 SET LOCAL statement_timeout = '60s';
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 

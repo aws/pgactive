@@ -17,18 +17,18 @@ use utils::concurrent;
 
 my $pgbench_scale = 1;
 
-# Create an upstream node and bring up bdr
+# Create an upstream node and bring up pgactive
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 initandstart_node($node_a);
-# We must init pgbench before we bring up BDR at the moment,
+# We must init pgbench before we bring up pgactive at the moment,
 # since we don't support transparent DDL replication yet...
 pgbench_init($node_a, $pgbench_scale);
-create_bdr_group($node_a);
+create_pgactive_group($node_a);
 
 TODO: {
     # seems to hang during init, likely due to snapbuild bugs
-    # 2ndQuadrant/bdr-private#67
-    todo_skip 'logical join under write load hangs due to probable BDR bug', 8;
+    # 2ndQuadrant/pgactive-private#67
+    todo_skip 'logical join under write load hangs due to probable pgactive bug', 8;
     note "Logical join node under write load\n";
     join_under_write_load('logical',$node_a, PostgreSQL::Test::Cluster->new('node_b'), $pgbench_scale);
 }

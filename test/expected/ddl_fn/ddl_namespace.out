@@ -1,5 +1,5 @@
 \c postgres
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE SCHEMA test_schema_1
        CREATE UNIQUE INDEX abc_a_idx ON abc (a)
 
@@ -11,23 +11,23 @@ CREATE SCHEMA test_schema_1
               b int UNIQUE
        );
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE FUNCTION test_schema_1.abc_func() RETURNS void
        AS $$ BEGIN END; $$ LANGUAGE plpgsql;
 $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -42,9 +42,9 @@ SELECT COUNT(*) FROM pg_class WHERE relnamespace =
 INSERT INTO test_schema_1.abc DEFAULT VALUES;
 INSERT INTO test_schema_1.abc DEFAULT VALUES;
 INSERT INTO test_schema_1.abc DEFAULT VALUES;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -65,15 +65,15 @@ SELECT * FROM test_schema_1.abc_view;
  4 |  
 (3 rows)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ ALTER SCHEMA test_schema_1 RENAME TO test_schema_renamed; $DDL$);
- bdr_replicate_ddl_command 
----------------------------
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ ALTER SCHEMA test_schema_1 RENAME TO test_schema_renamed; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 
@@ -86,25 +86,25 @@ SELECT COUNT(*) FROM pg_class WHERE relnamespace =
 (1 row)
 
 \set VERBOSITY terse
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SCHEMA test_schema_renamed; $DDL$); -- fail, already exists
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SCHEMA test_schema_renamed; $DDL$); -- fail, already exists
 ERROR:  schema "test_schema_renamed" already exists
-SELECT bdr.bdr_replicate_ddl_command($DDL$ CREATE SCHEMA IF NOT EXISTS test_schema_renamed; $DDL$); -- ok with notice
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE SCHEMA IF NOT EXISTS test_schema_renamed; $DDL$); -- ok with notice
 NOTICE:  schema "test_schema_renamed" already exists, skipping
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$ DROP SCHEMA test_schema_renamed CASCADE; $DDL$);
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP SCHEMA test_schema_renamed CASCADE; $DDL$);
 NOTICE:  drop cascades to 3 other objects
- bdr_replicate_ddl_command 
----------------------------
+ pgactive_replicate_ddl_command 
+--------------------------------
  
 (1 row)
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
- bdr_wait_for_slots_confirmed_flush_lsn 
-----------------------------------------
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
  
 (1 row)
 

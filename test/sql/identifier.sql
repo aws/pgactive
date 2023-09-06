@@ -2,88 +2,88 @@
 
 -- No real way to test the sysid, so ignore it
 SELECT timeline = 0, dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
-FROM bdr.bdr_get_local_nodeid();
+FROM pgactive.pgactive_get_local_nodeid();
 
 SELECT current_database() = 'postgres';
 
 -- Test probing for remote node information. Note that local node and remote
 -- node having different node identifiers (r.sysid = l.sysid false) as each
--- database gets unique BDR node identifier.
+-- database gets unique pgactive node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
 	r.dboid = (SELECT oid FROM pg_database WHERE datname = 'regression'),
-	variant = bdr.bdr_variant(),
-	version = bdr.bdr_version(),
-	version_num = bdr.bdr_version_num(),
-	min_remote_version_num = bdr.bdr_min_remote_version_num(),
+	variant = pgactive.pgactive_variant(),
+	version = pgactive.pgactive_version(),
+	version_num = pgactive.pgactive_version_num(),
+	min_remote_version_num = pgactive.pgactive_min_remote_version_num(),
 	is_superuser = 't'
-FROM bdr.bdr_get_remote_nodeinfo('dbname=regression') r,
-     bdr.bdr_get_local_nodeid() l;
+FROM pgactive.pgactive_get_remote_nodeinfo('dbname=regression') r,
+     pgactive.pgactive_get_local_nodeid() l;
 
--- bdr.bdr_get_remote_nodeinfo can also be used to probe the local dsn
+-- pgactive.pgactive_get_remote_nodeinfo can also be used to probe the local dsn
 -- and make sure it works.
 SELECT
     r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
-FROM bdr.bdr_get_remote_nodeinfo('dbname='||current_database()) r;
+FROM pgactive.pgactive_get_remote_nodeinfo('dbname='||current_database()) r;
 
 -- Test probing for replication connection. Note that local node and remote
 -- node having different node identifiers (r.sysid = l.sysid false) as each
--- database gets unique BDR node identifier.
+-- database gets unique pgactive node identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
 	r.dboid = (SELECT oid FROM pg_database WHERE datname = 'regression')
-FROM bdr.bdr_test_replication_connection('dbname=regression') r,
-     bdr.bdr_get_local_nodeid() l;
+FROM pgactive.pgactive_test_replication_connection('dbname=regression') r,
+     pgactive.pgactive_get_local_nodeid() l;
 
 -- Probing replication connection for the local dsn will work too
 -- even though the identifier is the same.
 SELECT
 	r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
-FROM bdr.bdr_test_replication_connection('dbname='||current_database()) r;
+FROM pgactive.pgactive_test_replication_connection('dbname='||current_database()) r;
 
 -- Verify that parsing slot names then formatting them again produces round-trip
 -- output.
 WITH namepairs(orig, remote_sysid, remote_timeline, remote_dboid, local_dboid, replication_name, formatted)
 AS (
   SELECT
-    s.slot_name, p.*, bdr.bdr_format_slot_name(p.remote_sysid, p.remote_timeline, p.remote_dboid, p.local_dboid, '')
+    s.slot_name, p.*, pgactive.pgactive_format_slot_name(p.remote_sysid, p.remote_timeline, p.remote_dboid, p.local_dboid, '')
   FROM pg_catalog.pg_replication_slots s,
-    LATERAL bdr.bdr_parse_slot_name(s.slot_name) p
+    LATERAL pgactive.pgactive_parse_slot_name(s.slot_name) p
 )
 SELECT orig, formatted
 FROM namepairs
 WHERE orig <> formatted;
 
--- Check the view mapping slot names to bdr nodes. We can't really examine the slot
+-- Check the view mapping slot names to pgactive nodes. We can't really examine the slot
 -- name in the regresschecks, because it changes every run, so make sure we at least
 -- find the expected nodes.
 SELECT count(1) FROM (
     SELECT ns.node_name
-	FROM bdr.bdr_nodes LEFT JOIN bdr.bdr_node_slots ns USING (node_name)
+	FROM pgactive.pgactive_nodes LEFT JOIN pgactive.pgactive_node_slots ns USING (node_name)
 ) q
 WHERE node_name IS NULL;
 
 -- Check to see if we can get the local node name
-SELECT bdr.bdr_get_local_node_name() = 'node-pg';
+SELECT pgactive.pgactive_get_local_node_name() = 'node-pg';
 
--- Verify that creating/altering/dropping of BDR node identifier getter
+-- Verify that creating/altering/dropping of pgactive node identifier getter
 -- function is disallowed.
 
 -- Must fail
-CREATE OR REPLACE FUNCTION bdr._bdr_node_identifier_getter_private()
+CREATE OR REPLACE FUNCTION pgactive._pgactive_node_identifier_getter_private()
 RETURNS numeric AS $$ SELECT '123456'::numeric $$
 LANGUAGE SQL;
 
 -- Must fail
-ALTER FUNCTION bdr._bdr_node_identifier_getter_private STABLE;
+ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private STABLE;
 
 -- Must fail
-ALTER FUNCTION bdr._bdr_node_identifier_getter_private OWNER TO CURRENT_USER;
+ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private OWNER TO CURRENT_USER;
 
 -- Must fail
-ALTER FUNCTION bdr._bdr_node_identifier_getter_private RENAME TO alice;
+ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private RENAME TO alice;
 
 -- Must fail
-DROP FUNCTION bdr._bdr_node_identifier_getter_private()
+DROP FUNCTION pgactive._pgactive_node_identifier_getter_private()

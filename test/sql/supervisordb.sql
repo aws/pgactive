@@ -1,18 +1,18 @@
 \c postgres
 
--- The DB name bdr_supervisordb is reserved by BDR. None
+-- The DB name pgactive_supervisordb is reserved by pgactive. None
 -- of these commands may be permitted.
 
-CREATE DATABASE bdr_supervisordb;
+CREATE DATABASE pgactive_supervisordb;
 
-DROP DATABASE bdr_supervisordb;
+DROP DATABASE pgactive_supervisordb;
 
-ALTER DATABASE bdr_supervisordb RENAME TO someothername;
+ALTER DATABASE pgactive_supervisordb RENAME TO someothername;
 
-ALTER DATABASE regression RENAME TO bdr_supervisordb;
+ALTER DATABASE regression RENAME TO pgactive_supervisordb;
 
 -- We can connect to the supervisor db...
-\c bdr_supervisordb
+\c pgactive_supervisordb
 
 SET log_statement = 'all';
 

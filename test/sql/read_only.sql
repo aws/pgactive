@@ -1,19 +1,19 @@
 \c postgres
 
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.test_read_only (
                 data text
         );
 $$);
 
 -- set all nodes ro
-SELECT bdr.bdr_set_node_read_only(node_name, true) FROM bdr.bdr_nodes;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_set_node_read_only(node_name, true) FROM pgactive.pgactive_nodes;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- errors
 CREATE TABLE readonly_test_shoulderror(a int);
 
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.readonly_test_shoulderror (
                 data text
         );
@@ -51,7 +51,7 @@ SELECT * FROM cte;
 -- errors
 CREATE TABLE test(a int);
 
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         CREATE TABLE public.test (
                 data text
         );
@@ -82,10 +82,10 @@ SELECT * FROM cte;
 
 \c postgres
 -- set all nodes rw
-SELECT bdr.bdr_set_node_read_only(node_name, false) FROM bdr.bdr_nodes;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_set_node_read_only(node_name, false) FROM pgactive.pgactive_nodes;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- cleanup
-SELECT bdr.bdr_replicate_ddl_command($$
+SELECT pgactive.pgactive_replicate_ddl_command($$
         DROP TABLE public.test_read_only;
 $$);

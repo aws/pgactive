@@ -1,11 +1,11 @@
 -- RT#60660
 
-SELECT * FROM public.bdr_regress_variables()
+SELECT * FROM public.pgactive_regress_variables()
 \gset
 
 \c :writedb1
 
-SELECT bdr.bdr_replicate_ddl_command($DDL$
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
 CREATE TABLE public.desync (
    id integer primary key not null,
    n1 integer not null
@@ -14,7 +14,7 @@ $DDL$);
 
 \d desync
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- basic builtin datatypes
 \c :writedb2
@@ -25,7 +25,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- Add a new attribute on this node only
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ADD COLUMN dropme integer;
 COMMIT;
 
@@ -38,12 +38,12 @@ SELECT * FROM desync ORDER BY id;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- Drop the attribute; we're still natts=3, but one is dropped
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync DROP COLUMN dropme;
 COMMIT;
 
@@ -58,7 +58,7 @@ SELECT * FROM desync ORDER BY id;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 \c :writedb2
@@ -72,19 +72,19 @@ SELECT * FROM desync ORDER BY id;
 -- the other side col is dropped (or nullable)
 INSERT INTO desync(id, n1) VALUES (3, 3);
 
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '10s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;
 
 -- Make our side confirm to the remote schema again
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ADD COLUMN dropme integer;
 ALTER TABLE desync DROP COLUMN dropme;
 COMMIT;
@@ -92,12 +92,12 @@ COMMIT;
 \c :writedb1
 
 -- So now this side should apply too
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '10s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- Yay!
@@ -110,7 +110,7 @@ SELECT * FROM desync ORDER BY id;
 
 -- Cleanup
 DELETE FROM desync;
-SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 
 \c :writedb1
 
@@ -120,7 +120,7 @@ SELECT bdr.bdr_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
 -- going to make it not-NULLable anyway, so we can also test rejection of
 -- right-extension of missing remote values.
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ADD COLUMN dropme2 integer;
 ALTER TABLE desync ALTER COLUMN dropme2 SET NOT NULL;
 COMMIT;
@@ -132,7 +132,7 @@ SELECT * FROM desync ORDER BY id;
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 \c :writedb2
@@ -147,7 +147,7 @@ INSERT INTO desync(id, n1) VALUES (5, 5);
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;
@@ -156,7 +156,7 @@ SELECT * FROM desync ORDER BY id;
 -- still be stuck in the other direction because of the pending change from our
 -- side.
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ADD COLUMN dropme2 integer;
 COMMIT;
 
@@ -164,20 +164,20 @@ COMMIT;
 
 -- We don't support autocompletion of DEFAULTs; this won't help
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ALTER COLUMN dropme2 SET DEFAULT 0;
 COMMIT;
 
 -- This must ERROR not ROLLBACK
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 -- but if we drop the NOT NULL constraint temporarily we can
 -- apply the pending change.
 BEGIN;
-SET LOCAL bdr.skip_ddl_replication = on;
+SET LOCAL pgactive.skip_ddl_replication = on;
 ALTER TABLE desync ALTER COLUMN dropme2 DROP NOT NULL;
 COMMIT;
 
@@ -186,7 +186,7 @@ COMMIT;
 -- This must ROLLBACK not ERROR
 BEGIN;
 SET LOCAL statement_timeout = '2s';
-SELECT bdr.bdr_acquire_global_lock('ddl_lock');
+SELECT pgactive.pgactive_acquire_global_lock('ddl_lock');
 ROLLBACK;
 
 SELECT * FROM desync ORDER BY id;

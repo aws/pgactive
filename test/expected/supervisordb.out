@@ -1,27 +1,27 @@
 \c postgres
--- The DB name bdr_supervisordb is reserved by BDR. None
+-- The DB name pgactive_supervisordb is reserved by pgactive. None
 -- of these commands may be permitted.
-CREATE DATABASE bdr_supervisordb;
-ERROR:  BDR extension reserves the database name bdr_supervisordb for its own use
+CREATE DATABASE pgactive_supervisordb;
+ERROR:  pgactive extension reserves the database name pgactive_supervisordb for its own use
 HINT:  Use a different database name.
-DROP DATABASE bdr_supervisordb;
-ERROR:  BDR extension reserves the database name bdr_supervisordb for its own use
+DROP DATABASE pgactive_supervisordb;
+ERROR:  pgactive extension reserves the database name pgactive_supervisordb for its own use
 HINT:  Use a different database name.
-ALTER DATABASE bdr_supervisordb RENAME TO someothername;
-ERROR:  BDR extension reserves the database name bdr_supervisordb for its own use
+ALTER DATABASE pgactive_supervisordb RENAME TO someothername;
+ERROR:  pgactive extension reserves the database name pgactive_supervisordb for its own use
 HINT:  Use a different database name.
-ALTER DATABASE regression RENAME TO bdr_supervisordb;
-ERROR:  BDR extension reserves the database name bdr_supervisordb for its own use
+ALTER DATABASE regression RENAME TO pgactive_supervisordb;
+ERROR:  pgactive extension reserves the database name pgactive_supervisordb for its own use
 HINT:  Use a different database name.
 -- We can connect to the supervisor db...
-\c bdr_supervisordb
+\c pgactive_supervisordb
 SET log_statement = 'all';
-ERROR:  no commands may be run on the BDR supervisor database
+ERROR:  no commands may be run on the pgactive supervisor database
 -- We actually did connect
 SELECT current_database();
- current_database 
-------------------
- bdr_supervisordb
+   current_database    
+-----------------------
+ pgactive_supervisordb
 (1 row)
 
 -- And do read-only work
@@ -33,7 +33,7 @@ SELECT 1;
 
 -- but not do anything interesting
 CREATE TABLE create_fails(id integer);
-ERROR:  no commands may be run on the BDR supervisor database
+ERROR:  no commands may be run on the pgactive supervisor database
 \d
       List of relations
  Schema | Name | Type | Owner 

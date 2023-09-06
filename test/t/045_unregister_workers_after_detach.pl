@@ -13,13 +13,13 @@ use IPC::Run;
 use Test::More;
 use utils::nodemanagement;
 
-# Create an upstream node and bring up bdr
-my $nodes = make_bdr_group(2,'node_');
+# Create an upstream node and bring up pgactive
+my $nodes = make_pgactive_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
 
 # Detach a node from 2 node cluster
 note "Detach node_0 from 2 node cluster\n";
-bdr_detach_nodes([$node_0], $node_1);
+pgactive_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
 my $logstart_0 = get_log_size($node_0);
@@ -40,10 +40,10 @@ SKIP: {
 	ok($result, "unregistering apply worker on node_0 is detected");
 }
 
-# Remove BDR from the detached node
-$node_0->safe_psql($bdr_test_dbname, "select bdr.bdr_remove(true)");
+# Remove pgactive from the detached node
+$node_0->safe_psql($pgactive_test_dbname, "select pgactive.pgactive_remove(true)");
 
-# per-db worker must be unregistered on a node with BDR removed
+# per-db worker must be unregistered on a node with pgactive removed
 $result = find_in_log($node_0,
 	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker due to .*!,
 	$logstart_0);
@@ -58,11 +58,11 @@ SKIP: {
 	ok($result, "unregistering per-db worker on node_0 is detected");
 }
 
-# Remove BDR from node and immediately drop the extension
-$node_1->safe_psql($bdr_test_dbname,
+# Remove pgactive from node and immediately drop the extension
+$node_1->safe_psql($pgactive_test_dbname,
 	q[
-		SELECT bdr.bdr_remove(true);
-		DROP EXTENSION bdr;
+		SELECT pgactive.pgactive_remove(true);
+		DROP EXTENSION pgactive;
 	]);
 
 # Detached node must unregister apply worker
@@ -80,7 +80,7 @@ SKIP: {
 	ok($result, "unregistering apply worker on node_1 is detected");
 }
 
-# per-db worker must be unregistered on a node with BDR removed
+# per-db worker must be unregistered on a node with pgactive removed
 $result = find_in_log($node_1,
 	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker due to .*!,
 	$logstart_1);
