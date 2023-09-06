@@ -43,7 +43,7 @@ $node_b->safe_psql($pgactive_test_dbname, 'SELECT pg_drop_replication_slot(slot_
 exec_ddl($node_a, q[CREATE TABLE public.initialdata (a integer);]);
 $node_a->safe_psql($pgactive_test_dbname, q[INSERT INTO initialdata(a) VALUES (1);]);
 
-$node_a->wait_for_catchup($node_b, 'replay', $node_a->lsn('insert'));
+$node_a->wait_for_catchup($node_b, 'replay', $node_a->lsn('flush'));
 
 $node_b->stop;
 

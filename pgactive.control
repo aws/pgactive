@@ -1,5 +1,5 @@
 # pgactive extension
-comment = 'Bi-directional replication for PostgreSQL'
+comment = 'Active-Active Replication Extension for PostgreSQL'
 default_version = '2.1.0'
 module_pathname = '$libdir/pgactive'
 relocatable = false

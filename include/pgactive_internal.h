@@ -1,7 +1,7 @@
 /*
  * pgactive_internal.h
  *
- * BiDirectionalReplication
+ * Active-active Replication
  *
  * Copyright (c) 2012-2015, PostgreSQL Global Development Group
  *

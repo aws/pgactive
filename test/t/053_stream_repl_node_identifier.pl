@@ -27,7 +27,7 @@ $node_0_standby->init_from_backup($node_0, $backup_name, has_streaming => 1);
 $node_0_standby->start;
 
 # Wait for standby catchup
-$node_0->wait_for_catchup($node_0_standby);
+$node_0->wait_for_catchup($node_0_standby, 'replay', $node_0->lsn('flush'));
 
 my $query = qq[SELECT * FROM pgactive._pgactive_node_identifier_getter_private();];
 

@@ -28,9 +28,11 @@
 
 PGDLLEXPORT Datum pgactive_generate_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_get_node_identifier(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_nid_shmem_reset_all(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_generate_node_identifier);
 PG_FUNCTION_INFO_V1(pgactive_get_node_identifier);
+PG_FUNCTION_INFO_V1(pgactive_nid_shmem_reset_all);
 
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 pgactiveNodeIdentifierControl *pgactiveNodeIdentifierCtl = NULL;
@@ -59,7 +61,7 @@ do { \
 static size_t pgactive_nid_shmem_size(void);
 static void pgactive_nid_shmem_startup(void);
 static void pgactive_nid_shmem_reset(Oid dboid);
-static void pgactive_nid_shmem_reset_all(bool need_lock);
+static void pgactive_nid_shmem_reset_all_guts(bool need_lock);
 static void pgactive_nid_shmem_set(Oid dboid, uint64 nid);
 static uint64 pgactive_nid_shmem_get(Oid dboid);
 static void pg_pgactive_xact_callback(XactEvent event, void *arg);
@@ -453,7 +455,7 @@ pgactive_nid_shmem_startup(void)
 	{
 		memset(pgactiveNodeIdentifierCtl, 0, pgactive_nid_shmem_size());
 		pgactiveNodeIdentifierCtl->lock = &(GetNamedLWLockTranche("pgactive_nid")->lock);
-		pgactive_nid_shmem_reset_all(false);
+		pgactive_nid_shmem_reset_all_guts(false);
 	}
 	LWLockRelease(AddinShmemInitLock);
 }
@@ -495,7 +497,7 @@ pgactive_nid_shmem_reset(Oid dboid)
 }
 
 static void
-pgactive_nid_shmem_reset_all(bool need_lock)
+pgactive_nid_shmem_reset_all_guts(bool need_lock)
 {
 	int			i;
 
@@ -512,6 +514,18 @@ pgactive_nid_shmem_reset_all(bool need_lock)
 
 	if (need_lock)
 		LWLockRelease(pgactiveNodeIdentifierCtl->lock);
+}
+
+/*
+ * User-facing function to reset pgactive node identifier shmem.
+ */
+Datum
+pgactive_nid_shmem_reset_all(PG_FUNCTION_ARGS)
+{
+	if (pgactiveNodeIdentifierCtl != NULL)
+		pgactive_nid_shmem_reset_all_guts(true);
+
+	PG_RETURN_VOID();
 }
 
 static void

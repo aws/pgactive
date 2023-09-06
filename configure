@@ -1306,8 +1306,8 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-pgactive            enable full bi-directional replication for patched
-                          PostgreSQL 9.4 or stock PostgreSQL 9.6 [yes/no/auto]
+  --enable-pgactive       enable full Active-avtive replication 
+                          [yes/no/auto]
                           [default=auto]
 
 Some influential environment variables:
