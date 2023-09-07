@@ -90,10 +90,6 @@ RETURNS VOID
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT;
 
-CREATE VIEW pgactive_list_conflict_handlers(ch_name, ch_type, ch_reloid, ch_fun) AS
-	SELECT ch_name, ch_type, ch_reloid, ch_fun, ch_timeframe
-	  FROM pgactive_conflict_handlers;
-
 CREATE TYPE pgactive_conflict_resolution AS ENUM (
     'conflict_trigger_skip_change',
     'conflict_trigger_returned_tuple',
