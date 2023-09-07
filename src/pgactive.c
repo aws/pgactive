@@ -151,6 +151,7 @@ PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum get_free_disk_space(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum has_required_privs(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_apply_pause);
 PG_FUNCTION_INFO_V1(pgactive_apply_resume);
@@ -175,6 +176,7 @@ PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
 PG_FUNCTION_INFO_V1(get_replication_lag_info);
 PG_FUNCTION_INFO_V1(get_free_disk_space);
 PG_FUNCTION_INFO_V1(check_file_system_mount_points);
+PG_FUNCTION_INFO_V1(has_required_privs);
 
 static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
@@ -2346,6 +2348,18 @@ check_file_system_mount_points(PG_FUNCTION_ARGS)
 
 	/* Compare device IDs of the mount points of the paths */
 	if (buf1.st_dev == buf2.st_dev)
+		PG_RETURN_BOOL(true);
+
+	PG_RETURN_BOOL(false);
+}
+
+/*
+ * Checks if current user has required privileges.
+ */
+Datum
+has_required_privs(PG_FUNCTION_ARGS)
+{
+	if (superuser())
 		PG_RETURN_BOOL(true);
 
 	PG_RETURN_BOOL(false);

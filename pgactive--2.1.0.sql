@@ -2157,6 +2157,16 @@ REVOKE ALL ON FUNCTION _pgactive_nid_shmem_reset_all_private() FROM public;
 COMMENT ON FUNCTION _pgactive_nid_shmem_reset_all_private() IS
 'Resets pgactive node identifier shared memory.';
 
+CREATE FUNCTION has_required_privs()
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION has_required_privs() FROM public;
+
+COMMENT ON FUNCTION has_required_privs() IS
+'Checks if current user has superuser privileges.';
+
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
 RESET search_path;
