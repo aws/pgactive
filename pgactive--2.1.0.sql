@@ -2165,7 +2165,7 @@ LANGUAGE C STRICT;
 REVOKE ALL ON FUNCTION has_required_privs() FROM public;
 
 COMMENT ON FUNCTION has_required_privs() IS
-'Checks if current user has superuser privileges.';
+'Checks if current user has required privileges.';
 
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
