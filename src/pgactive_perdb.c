@@ -628,30 +628,18 @@ pgactive_maintain_db_workers(void)
 
 	ret = SPI_execute_with_args(
 								"SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
-								"  conn_sysid, conn_timeline, conn_dboid, "
-								"  conn_origin_dboid <> 0 AS origin_is_my_id, "
-								"  node_status "
+								"  conn_sysid, conn_timeline, conn_dboid, node_status "
 								"FROM pgactive.pgactive_connections "
 								"    JOIN pgactive.pgactive_nodes ON ("
 								"          conn_sysid = node_sysid AND "
 								"          conn_timeline = node_timeline AND "
 								"          conn_dboid = node_dboid "
 								"    )"
-								"WHERE ( "
-								"         (conn_origin_sysid = '0' AND "
-								"          conn_origin_timeline = 0 AND "
-								"          conn_origin_dboid = 0) "
-								"         OR "
-								"         (conn_origin_sysid = $1 AND "
-								"          conn_origin_timeline = $2 AND "
-								"          conn_origin_dboid = $3) "
-								"      ) AND NOT ( "
+								"WHERE NOT ( "
 								"          conn_sysid = $1 AND "
 								"          conn_timeline = $2 AND "
-								"          conn_dboid = $3"
-								"      ) "
+								"          conn_dboid = $3) "
 								"ORDER BY conn_sysid, conn_timeline, conn_dboid, "
-								"         conn_origin_sysid ASC NULLS LAST, "
 								"         conn_timeline ASC NULLS LAST, "
 								"         conn_dboid ASC NULLS LAST ",
 								pgactive_CON_Q_NARGS, argtypes, values, NULL,
@@ -695,11 +683,7 @@ pgactive_maintain_db_workers(void)
 		Assert(!isnull);
 		target.dboid = DatumGetObjectId(temp_datum);
 
-		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
-								   getattno("origin_is_my_id"),
-								   &isnull);
-		Assert(!isnull);
-		origin_is_my_id = DatumGetBool(temp_datum);
+		origin_is_my_id = false;
 
 		temp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
 								   getattno("node_status"),

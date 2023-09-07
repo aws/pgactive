@@ -12,12 +12,9 @@ order by attrelid, attnum;
  pgactive.pgactive_connections     |      1 | conn_sysid            | f            | text                      | t
  pgactive.pgactive_connections     |      2 | conn_timeline         | f            | oid                       | t
  pgactive.pgactive_connections     |      3 | conn_dboid            | f            | oid                       | t
- pgactive.pgactive_connections     |      4 | conn_origin_sysid     | f            | text                      | t
- pgactive.pgactive_connections     |      5 | conn_origin_timeline  | f            | oid                       | t
- pgactive.pgactive_connections     |      6 | conn_origin_dboid     | f            | oid                       | t
- pgactive.pgactive_connections     |      7 | conn_dsn              | f            | text                      | t
- pgactive.pgactive_connections     |      8 | conn_apply_delay      | f            | integer                   | f
- pgactive.pgactive_connections     |      9 | conn_replication_sets | f            | text[]                    | f
+ pgactive.pgactive_connections     |      4 | conn_dsn              | f            | text                      | t
+ pgactive.pgactive_connections     |      5 | conn_apply_delay      | f            | integer                   | f
+ pgactive.pgactive_connections     |      6 | conn_replication_sets | f            | text[]                    | f
  pgactive.pgactive_global_locks    |      1 | locktype              | f            | text                      | t
  pgactive.pgactive_global_locks    |      2 | owning_sysid          | f            | text                      | t
  pgactive.pgactive_global_locks    |      3 | owning_timeline       | f            | oid                       | t
@@ -46,5 +43,5 @@ order by attrelid, attnum;
  pgactive.pgactive_queued_drops    |      1 | lsn                   | f            | pg_lsn                    | t
  pgactive.pgactive_queued_drops    |      2 | queued_at             | f            | timestamp with time zone  | t
  pgactive.pgactive_queued_drops    |      3 | dropped_objects       | f            | pgactive.dropped_object[] | t
-(37 rows)
+(34 rows)
 
