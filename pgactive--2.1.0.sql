@@ -892,10 +892,10 @@ BEGIN
 
 		-- using pg_file_settings here as pgactive.skip_ddl_replication is SET to on when entering
 		-- the function.
-		SELECT setting::boolean INTO local_skip_ddl_replication_value FROM pg_file_settings
-			WHERE name = 'pgactive.skip_ddl_replication'
-			ORDER BY seqno DESC
-			LIMIT 1;
+		SELECT COALESCE((SELECT setting::boolean
+						 FROM pg_file_settings
+						 WHERE name = 'pgactive.skip_ddl_replication' ORDER BY seqno DESC LIMIT 1),
+						 true) INTO local_skip_ddl_replication_value;
 
 		IF local_skip_ddl_replication_value <> remote_nodeinfo.skip_ddl_replication THEN
 			RAISE USING
