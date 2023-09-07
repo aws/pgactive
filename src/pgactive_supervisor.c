@@ -319,8 +319,8 @@ pgactive_supervisor_rescan_dbs()
  * Create the database the supervisor remains connected
  * to, a DB with no user connections permitted.
  *
- * This is a workaorund for the inability to use pg_shseclabel
- * without a DB connection; see comments in pgactive_supervisor_main
+ * This is a workaround for the inability to use pg_shseclabel
+ * without a DB connection; see comments in pgactive_supervisor_worker_main
  */
 static void
 pgactive_supervisor_createdb()

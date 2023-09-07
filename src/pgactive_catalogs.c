@@ -458,32 +458,18 @@ pgactive_read_connection_configs()
 
 	initStringInfo(&query);
 
-	/*
-	 * Find a connections row specific to this origin node or if none exists,
-	 * the default connection data for that node.
-	 *
-	 * Configurations for all nodes, including the local node, are read.
-	 */
+	/* Configurations for all nodes, including the local node, are read. */
 	appendStringInfo(&query, "SELECT DISTINCT ON (conn_sysid, conn_timeline, conn_dboid) "
 					 "  conn_sysid, conn_timeline, conn_dboid, "
 					 "  conn_dsn, conn_apply_delay, "
-					 "  conn_replication_sets, "
-					 "  conn_origin_dboid <> 0 AS origin_is_my_id, "
-					 "  node_name "
+					 "  conn_replication_sets, node_name "
 					 "FROM pgactive.pgactive_connections "
 					 "INNER JOIN pgactive.pgactive_nodes "
 					 "  ON (conn_sysid = node_sysid AND "
 					 "      conn_timeline = node_timeline AND "
 					 "      conn_dboid = node_dboid) "
-					 "WHERE ((conn_origin_sysid = '0' "
-					 "  AND  conn_origin_timeline = 0 "
-					 "  AND  conn_origin_dboid = 0) "
-					 "   OR (conn_origin_sysid = $1 "
-					 "  AND  conn_origin_timeline = $2 "
-					 "  AND  conn_origin_dboid = $3)) "
-					 "  AND node_status <> " pgactive_NODE_STATUS_KILLED_S " "
+					 "WHERE node_status <> " pgactive_NODE_STATUS_KILLED_S " "
 					 "ORDER BY conn_sysid, conn_timeline, conn_dboid, "
-					 "         conn_origin_sysid ASC NULLS LAST, "
 					 "         conn_timeline ASC NULLS LAST, "
 					 "         conn_dboid ASC NULLS LAST "
 		);
@@ -540,11 +526,7 @@ pgactive_read_connection_configs()
 		Assert(!isnull);
 		cfg->remote_node.dboid = DatumGetObjectId(tmp_datum);
 
-		tmp_datum = SPI_getbinval(tuple, SPI_tuptable->tupdesc,
-								  getattno("origin_is_my_id"),
-								  &isnull);
-		Assert(!isnull);
-		cfg->origin_is_my_id = DatumGetBool(tmp_datum);
+		cfg->origin_is_my_id = false;
 
 
 		cfg->dsn = SPI_getvalue(tuple,

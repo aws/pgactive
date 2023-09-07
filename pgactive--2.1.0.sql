@@ -485,28 +485,10 @@ CREATE TABLE pgactive_connections (
     -- pgactive.pgactive_nodes won't be populated when the pgactive.pgactive_connections row gets
     -- created on the local node.
 
-    -- These fields may later be used by pgactive to override connection settings
-    -- from one node to a particular other node. At the moment their main use
-    -- is for UDR connections, where we must ensure that the connection is only
-    -- made from one particular node.
-    conn_origin_sysid text,
-    conn_origin_timeline oid,
-    conn_origin_dboid oid,
-
-    PRIMARY KEY(conn_sysid, conn_timeline, conn_dboid,
-                conn_origin_sysid, conn_origin_timeline, conn_origin_dboid),
-
-    -- Either a whole origin ID (for an override or UDR entry) or no
-    -- origin ID may be provided.
-    CONSTRAINT origin_all_or_none_null
-        CHECK ((conn_origin_sysid = '0') = (conn_origin_timeline = 0)
-           AND (conn_origin_sysid = '0') = (conn_origin_dboid = 0)),
-
+    PRIMARY KEY(conn_sysid, conn_timeline, conn_dboid),
     conn_dsn text not null,
-
     conn_apply_delay integer
         CHECK (conn_apply_delay >= 0),
-
     conn_replication_sets text[]
 );
 
@@ -516,9 +498,6 @@ COMMENT ON TABLE pgactive_connections IS 'Connection information for nodes in th
 COMMENT ON COLUMN pgactive_connections.conn_sysid IS 'System identifer for the node this entry''s dsn refers to';
 COMMENT ON COLUMN pgactive_connections.conn_timeline IS 'System timeline ID for the node this entry''s dsn refers to';
 COMMENT ON COLUMN pgactive_connections.conn_dboid IS 'System database OID for the node this entry''s dsn refers to';
-COMMENT ON COLUMN pgactive_connections.conn_origin_sysid IS 'If set, ignore this entry unless the local sysid is this';
-COMMENT ON COLUMN pgactive_connections.conn_origin_timeline IS 'If set, ignore this entry unless the local timeline is this';
-COMMENT ON COLUMN pgactive_connections.conn_origin_dboid IS 'If set, ignore this entry unless the local dboid is this';
 COMMENT ON COLUMN pgactive_connections.conn_dsn IS 'A libpq-style connection string specifying how to make a connection to this node from other nodes';
 COMMENT ON COLUMN pgactive_connections.conn_apply_delay IS 'If set, milliseconds to wait before applying each transaction from the remote node. Mainly for debugging. If null, the global default applies.';
 COMMENT ON COLUMN pgactive_connections.conn_replication_sets IS 'Replication sets this connection should participate in, if non-default';
@@ -556,14 +535,6 @@ BEGIN
     LOCK TABLE pgactive.pgactive_connections IN EXCLUSIVE MODE;
     LOCK TABLE pg_catalog.pg_shseclabel IN EXCLUSIVE MODE;
 
-    IF pgactive_variant() <> 'pgactive' THEN
-        RAISE USING
-            MESSAGE = 'full pgactive required but this module is built for '||pgactive_variant(),
-            DETAIL = 'The target node is running something other than full pgactive so you cannot join a pgactive node to it.',
-            HINT = 'Install full pgactive if possible or use the UDR functions.',
-            ERRCODE = 'feature_not_supported';
-    END IF;
-
     -- Assert that the joining node has a pgactive_nodes entry with state = i on this join-target node
     SELECT INTO status
     FROM pgactive.pgactive_nodes
@@ -589,12 +560,10 @@ BEGIN
     BEGIN
         INSERT INTO pgactive.pgactive_connections
         (conn_sysid, conn_timeline, conn_dboid,
-         conn_origin_sysid, conn_origin_timeline, conn_origin_dboid,
          conn_dsn,
          conn_apply_delay, conn_replication_sets)
         VALUES
         (sysid, timeline, dboid,
-         '0', 0, 0,
          node_external_dsn,
          CASE WHEN apply_delay = -1 THEN NULL ELSE apply_delay END,
          replication_sets);
@@ -605,10 +574,7 @@ BEGIN
             conn_replication_sets = replication_sets
         WHERE conn_sysid = sysid
           AND conn_timeline = timeline
-          AND conn_dboid = dboid
-          AND conn_origin_sysid = '0'
-          AND conn_origin_timeline = 0
-          AND conn_origin_dboid = 0;
+          AND conn_dboid = dboid;
     END;
 
     -- Schedule the apply worker launch for commit time
@@ -717,10 +683,7 @@ BEGIN
     PERFORM 1 FROM pgactive_connections
     WHERE conn_sysid = localid.sysid
       AND conn_timeline = localid.timeline
-      AND conn_dboid = localid.dboid
-      AND (conn_origin_sysid = '0'
-           AND conn_origin_timeline = 0
-           AND conn_origin_dboid = 0);
+      AND conn_dboid = localid.dboid;
 
     IF FOUND THEN
         RAISE USING
@@ -1065,14 +1028,6 @@ BEGIN
             ERRCODE = 'invalid_parameter_value';
     END IF;
 
-    IF pgactive_variant() <> 'pgactive' THEN
-        RAISE USING
-            MESSAGE = 'full pgactive required but this module is built for '||pgactive_variant(),
-            DETAIL = 'The local node is not running full pgactive, which is required to use pgactive_join.',
-            HINT = 'Install full pgactive if possible or use the UDR functions.',
-            ERRCODE = 'feature_not_supported';
-    END IF;
-
     PERFORM pgactive._pgactive_begin_join_private(
         caller := '',
         local_node_name := local_node_name,
@@ -1129,11 +1084,9 @@ BEGIN
     -- will catch that for us.
     INSERT INTO pgactive.pgactive_connections (
         conn_sysid, conn_timeline, conn_dboid,
-        conn_origin_sysid, conn_origin_timeline, conn_origin_dboid,
         conn_dsn, conn_apply_delay, conn_replication_sets
     ) VALUES (
         localid.sysid, localid.timeline, localid.dboid,
-        '0', 0, 0,
         node_external_dsn, apply_delay, replication_sets
     );
 

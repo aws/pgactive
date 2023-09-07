@@ -104,6 +104,5 @@ jobs:
             postgres/pgindent.diffs
             pgactive/test/regression.diffs
             pgactive/test/tmp_check/log
-            # Upload pgactive_pgbench.sh results
             $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
