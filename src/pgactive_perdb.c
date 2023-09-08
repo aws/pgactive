@@ -55,7 +55,7 @@ static bool xacthook_connections_changed = false;
 static bool is_perdb_worker = true;
 
 static void check_params_are_same(void);
-static void check_local_node_connectibility(void);
+static void check_local_node_connectability(void);
 
 bool
 IspgactivePerdbWorker(void)
@@ -931,14 +931,14 @@ check_params_are_same(void)
 }
 
 /*
- * Check if the local node is connectible using its node_local_dsn entry from
+ * Check if the local node is connectable using its node_local_dsn entry from
  * pgactive_nodes table. If not, either dsn of the local node is changed and
  * its node_local_dsn entry isn't updated in pgactive_nodes table or we
  * are on a new postgres instance that's restored from a pgactive node. If the
- * local node isn't connectible, we will unregister the pgactive worker.
+ * local node isn't connectable, we will unregister the pgactive worker.
  */
 static void
-check_local_node_connectibility(void)
+check_local_node_connectability(void)
 {
 	List	   *node_local_dsn;
 	char	   *dsn;
@@ -968,7 +968,7 @@ check_local_node_connectibility(void)
 
 	if (PQstatus(conn) != CONNECTION_OK)
 	{
-		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectibility check",
+		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 
 		goto unregister;
@@ -996,7 +996,7 @@ check_local_node_connectibility(void)
 		 * We have connected to ourself i.e. the same postgres instance we are
 		 * on, so just emit a log message and return.
 		 */
-		elog(LOG, "local node " pgactive_NODEID_FORMAT_WITHNAME " is connectibile using its node_local_dsn from pgactive_nodes table",
+		elog(DEBUG1, "local node " pgactive_NODEID_FORMAT_WITHNAME " is connectable using its node_local_dsn from pgactive_nodes table",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 	}
 	else
@@ -1005,7 +1005,7 @@ check_local_node_connectibility(void)
 		 * We have not connected to ourself i.e. the same postgres instance we
 		 * are on, so unregister.
 		 */
-		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectibility check",
+		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 
 		goto unregister;
@@ -1118,7 +1118,7 @@ pgactive_perdb_worker_main(Datum main_arg)
 		PopActiveSnapshot();
 		CommitTransactionCommand();
 
-		check_local_node_connectibility();
+		check_local_node_connectability();
 
 		/*
 		 * Check whether the local node and one remote node have same

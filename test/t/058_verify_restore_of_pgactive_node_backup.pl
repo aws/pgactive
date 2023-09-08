@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
 # This test verifies that the instance restored from backup of pgactive node
-# doesn't try to connect to upstream node, IOW, join pgactive group.
+# doesn't try to connect to upstream node, in other words, join pgactive group.
 #
 use strict;
 use warnings;
@@ -37,9 +37,9 @@ my $logstart_2 = get_log_size($node_2);
 
 # Detached node must unregister apply worker
 my $result = find_in_log($node_2,
-	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to failure in connectibility check!,
+	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to failure in connectability check!,
 	$logstart_2);
-ok($result, "unregistering per-db worker due to failure in connectibility check is detected");
+ok($result, "unregistering per-db worker due to failure in connectability check is detected");
 
 # There mustn't be any pgactive workers on restored instance
 $result = $node_2->safe_psql($pgactive_test_dbname, qq[SELECT COUNT(*) FROM pgactive.pgactive_get_workers_info();]);
