@@ -191,7 +191,7 @@ format_action_description(
 }
 
 static void
-emit_replay_info(struct ActionErrCallbackArg *cbarg, bool is_ddl_or_drop)
+emit_replay_info(struct ActionErrCallbackArg *cbarg)
 {
 	StringInfoData si;
 
@@ -200,7 +200,7 @@ emit_replay_info(struct ActionErrCallbackArg *cbarg, bool is_ddl_or_drop)
 
 	initStringInfo(&si);
 	format_action_description(&si, cbarg->action_name, cbarg->remote_nspname,
-							  cbarg->remote_relname, is_ddl_or_drop);
+							  cbarg->remote_relname, false);
 	cbarg->suppress_output = true;
 	elog(LOG, "TRACE: %s", si.data);
 	cbarg->suppress_output = false;
@@ -346,7 +346,7 @@ process_remote_begin(StringInfo s)
 		pfree(remote_ident);
 	}
 
-	emit_replay_info(&cbarg, false);
+	emit_replay_info(&cbarg);
 
 	/* don't want the overhead otherwise */
 	if (apply_delay > 0)
@@ -462,7 +462,7 @@ process_remote_commit(StringInfo s)
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
-	emit_replay_info(&cbarg, false);
+	emit_replay_info(&cbarg);
 
 	Assert(committime == replorigin_session_origin_timestamp);
 
@@ -615,7 +615,7 @@ process_remote_insert(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	emit_replay_info(&cbarg, false);
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 	if (action != 'N')
@@ -938,7 +938,7 @@ process_remote_update(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	emit_replay_info(&cbarg, false);
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 
@@ -1216,7 +1216,7 @@ process_remote_delete(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	emit_replay_info(&cbarg, false);
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 
