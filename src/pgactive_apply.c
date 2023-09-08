@@ -191,6 +191,23 @@ format_action_description(
 }
 
 static void
+emit_replay_info(struct ActionErrCallbackArg *cbarg)
+{
+	StringInfoData si;
+
+	if (!pgactive_debug_trace_replay)
+		return;
+
+	initStringInfo(&si);
+	format_action_description(&si, cbarg->action_name, cbarg->remote_nspname,
+							  cbarg->remote_relname, false);
+	cbarg->suppress_output = true;
+	elog(LOG, "TRACE: %s", si.data);
+	cbarg->suppress_output = false;
+	pfree(si.data);
+}
+
+static void
 action_error_callback(void *arg)
 {
 	struct ActionErrCallbackArg *action = (struct ActionErrCallbackArg *) arg;
@@ -329,17 +346,7 @@ process_remote_begin(StringInfo s)
 		pfree(remote_ident);
 	}
 
-	if (pgactive_debug_trace_replay)
-	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		format_action_description(&si, "BEGIN", NULL, NULL, false);
-		cbarg.suppress_output = true;
-		elog(LOG, "TRACE: %s", si.data);
-		cbarg.suppress_output = false;
-		pfree(si.data);
-	}
+	emit_replay_info(&cbarg);
 
 	/* don't want the overhead otherwise */
 	if (apply_delay > 0)
@@ -455,17 +462,7 @@ process_remote_commit(StringInfo s)
 	commit_afterend_lsn = pq_getmsgint64(s);	/* end of commit record + 1 */
 	committime = pq_getmsgint64(s);
 
-	if (pgactive_debug_trace_replay)
-	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		format_action_description(&si, "COMMIT", NULL, NULL, false);
-		cbarg.suppress_output = true;
-		elog(LOG, "TRACE: %s", si.data);
-		cbarg.suppress_output = false;
-		pfree(si.data);
-	}
+	emit_replay_info(&cbarg);
 
 	Assert(committime == replorigin_session_origin_timestamp);
 
@@ -618,18 +615,7 @@ process_remote_insert(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (pgactive_debug_trace_replay)
-	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		format_action_description(&si, "INSERT",
-								  cbarg.remote_nspname, cbarg.remote_relname, false);
-		cbarg.suppress_output = true;
-		elog(LOG, "TRACE: %s", si.data);
-		cbarg.suppress_output = false;
-		pfree(si.data);
-	}
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 	if (action != 'N')
@@ -952,18 +938,7 @@ process_remote_update(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (pgactive_debug_trace_replay)
-	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		format_action_description(&si, "UPDATE",
-								  cbarg.remote_nspname, cbarg.remote_relname, false);
-		cbarg.suppress_output = true;
-		elog(LOG, "TRACE: %s", si.data);
-		cbarg.suppress_output = false;
-		pfree(si.data);
-	}
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 
@@ -1241,18 +1216,7 @@ process_remote_delete(StringInfo s)
 
 	rel = read_rel(s, RowExclusiveLock, &cbarg);
 
-	if (pgactive_debug_trace_replay)
-	{
-		StringInfoData si;
-
-		initStringInfo(&si);
-		format_action_description(&si, "DELETE",
-								  cbarg.remote_nspname, cbarg.remote_relname, false);
-		cbarg.suppress_output = true;
-		elog(LOG, "TRACE: %s", si.data);
-		cbarg.suppress_output = false;
-		pfree(si.data);
-	}
+	emit_replay_info(&cbarg);
 
 	action = pq_getmsgbyte(s);
 

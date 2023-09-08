@@ -33,6 +33,8 @@ foreach my $node ($node_0, $node_1)
     $node->safe_psql($pgactive_test_dbname,
         q[ALTER SYSTEM SET pgactive.conflict_logging_include_tuples = on;]);
     $node->safe_psql($pgactive_test_dbname,
+        q[ALTER SYSTEM SET pgactive.debug_trace_replay = on;]);
+    $node->safe_psql($pgactive_test_dbname,
         q[SELECT pg_reload_conf();]);
 }
 

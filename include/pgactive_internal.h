@@ -92,7 +92,6 @@ typedef struct pgactiveConnectionConfig
 	char	   *replication_sets;
 }			pgactiveConnectionConfig;
 
-extern void pgactive_error_nodeids_must_differ(const pgactiveNodeId * const other_nodeid);
 extern pgactiveConnectionConfig * pgactive_get_connection_config(const pgactiveNodeId * nodeid,
 																 bool missing_ok);
 extern pgactiveConnectionConfig * pgactive_get_my_connection_config(bool missing_ok);
