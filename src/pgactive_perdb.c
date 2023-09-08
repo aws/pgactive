@@ -55,6 +55,8 @@ static bool xacthook_connections_changed = false;
 static bool is_perdb_worker = true;
 
 static void check_params_are_same(void);
+static ReplicationSlot *pgactiveSearchNamedReplicationSlot(const char *name,
+														   bool need_lock);
 
 bool
 IspgactivePerdbWorker(void)
@@ -225,6 +227,41 @@ getattno(const char *colname)
 		elog(ERROR, "SPI error while reading %s from pgactive.pgactive_connections", colname);
 
 	return attno;
+}
+
+/*
+ * Search for the named replication slot.
+ *
+ * Return the replication slot if found, otherwise NULL.
+ */
+static ReplicationSlot *
+pgactiveSearchNamedReplicationSlot(const char *name, bool need_lock)
+{
+#if PG_VERSION_NUM < 140000
+	int			i;
+	ReplicationSlot *slot = NULL;
+
+	if (need_lock)
+		LWLockAcquire(ReplicationSlotControlLock, LW_SHARED);
+
+	for (i = 0; i < max_replication_slots; i++)
+	{
+		ReplicationSlot *s = &ReplicationSlotCtl->replication_slots[i];
+
+		if (s->in_use && strcmp(name, NameStr(s->data.name)) == 0)
+		{
+			slot = s;
+			break;
+		}
+	}
+
+	if (need_lock)
+		LWLockRelease(ReplicationSlotControlLock);
+
+	return slot;
+#else
+	return SearchNamedReplicationSlot(name, need_lock);
+#endif
 }
 
 /*
@@ -662,6 +699,8 @@ pgactive_maintain_db_workers(void)
 		char	   *tmp_sysid;
 		bool		origin_is_my_id;
 		pgactiveNodeStatus node_status;
+		ReplicationSlot *replslot;
+		NameData	slotname;
 
 		tuple = SPI_tuptable->vals[i];
 
@@ -739,7 +778,27 @@ pgactive_maintain_db_workers(void)
 			continue;
 		}
 
-		/* We're going to register a new worker for this connection */
+		/*
+		 * We're going to register a new worker for this connection but first
+		 * let's check we also have a corresponding logical replication slot
+		 * for it.
+		 */
+		pgactive_slot_name(&slotname, &target, myid.dboid);
+
+		replslot = pgactiveSearchNamedReplicationSlot(NameStr(slotname), true);
+
+		/*
+		 * If slot does not exist and we're not creating and/or joining then
+		 * skip.
+		 */
+		if (!replslot && our_status == pgactive_NODE_STATUS_READY &&
+			node_status == pgactive_NODE_STATUS_READY)
+		{
+			ereport(LOG, (errmsg("slot %s does not exist for node " pgactive_NODEID_FORMAT ", skipping related apply worker start",
+								 NameStr(slotname), pgactive_NODEID_FORMAT_ARGS(target))));
+			LWLockRelease(pgactiveWorkerCtl->lock);
+			continue;
+		}
 
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
