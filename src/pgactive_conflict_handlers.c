@@ -287,7 +287,7 @@ pgactive_create_conflict_handler(PG_FUNCTION_ARGS)
 	CacheInvalidateRelcacheByRelid(reloid);
 
 	/*
-	 * INSERT to queued_commands for replication if we are not not replaying a
+	 * INSERT to queued_commands for replication if we are not replaying a
 	 * queued command.
 	 */
 	if (replorigin_session_origin == InvalidRepOriginId)
@@ -835,7 +835,7 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			tup_header = DatumGetHeapTupleHeader(val);
 
 			if (HeapTupleHeaderGetTypeId(tup_header) != rel->rel->rd_rel->reltype)
-				elog(ERROR, "Handler %d returned unexpected tuple type %d",
+				elog(ERROR, "handler %d returned unexpected tuple type %d",
 					 rel->conflict_handlers[i].handler_oid,
 					 retdesc->attrs[0].atttypid);
 

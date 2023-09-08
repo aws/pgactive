@@ -706,19 +706,6 @@ unregister:
 }
 
 /*
- * Re-usable common error message
- */
-void
-pgactive_error_nodeids_must_differ(const pgactiveNodeId * const nodeid)
-{
-	ereport(ERROR,
-			(errcode(ERRCODE_INVALID_NAME),
-			 errmsg("system identifier, timeline ID and/or database oid must differ between the nodes"),
-			 errdetail("Both keys are (sysid, timelineid, dboid) = (" UINT64_FORMAT ",%u,%u).",
-					   nodeid->sysid, nodeid->timeline, nodeid->dboid)));
-}
-
-/*
  *----------------------
  * Connect to the pgactive remote end, IDENTIFY_SYSTEM, and CREATE_SLOT if necessary.
  * Generates slot name, replication identifier.
