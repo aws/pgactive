@@ -2172,7 +2172,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 	PGresult   *res;
 	StringInfoData cmd;
 
-	conn = pgactive_connect_nonrepl(dsn->data, "apply_info", false);
+	conn = pgactive_connect_nonrepl(dsn->data, "pgactiveapplyinfo", false);
 
 	/* Make sure pgactive is actually present and active on the remote */
 	pgactive_ensure_ext_installed(conn);

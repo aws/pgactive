@@ -701,7 +701,7 @@ extern void pgactive_pgactive_node_free(pgactiveNodeInfo * node);
 extern void pgactive_nodes_set_local_status(pgactiveNodeStatus status, pgactiveNodeStatus oldstatus);
 extern void pgactive_nodes_set_local_attrs(pgactiveNodeStatus status, pgactiveNodeStatus oldstatus, const int *seq_id);
 extern List *pgactive_read_connection_configs(void);
-extern List *pgactive_get_all_local_dsn(void);
+extern List *pgactive_get_node_local_dsns(bool only_local_node);
 extern int	pgactive_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
