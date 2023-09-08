@@ -583,52 +583,54 @@ pgactive_read_connection_configs()
 }
 
 /*
- * Get the list of local_dsn from pgactive_nodes (excluding current node).
+ * Get the list of node_local_dsn from pgactive_nodes table of all nodes but
+ * excluding local node or only local node.
  */
 List *
-pgactive_get_all_local_dsn()
+pgactive_get_node_local_dsns(bool only_local_node)
 {
 	HeapTuple	tuple;
 	StringInfoData query;
 	int			i;
 	int			ret;
-	List	   *all_local_dsn = NIL;
+	List	   *node_local_dsns = NIL;
 	MemoryContext caller_ctx,
 				saved_ctx;
 	char		sysid_str[33];
-	Datum		values[1];
-	Oid			types[1] = {TEXTOID};
+	Datum		values[3];
+	Oid			types[3] = {TEXTOID, OIDOID, OIDOID};
 	pgactiveNodeId myid;
 
-	pgactive_make_my_nodeid(&myid);
-
 	Assert(IsTransactionState());
+
+	pgactive_make_my_nodeid(&myid);
 
 	/* Save the calling memory context, which we'll allocate results in */
 	caller_ctx = MemoryContextSwitchTo(CurTransactionContext);
 
 	initStringInfo(&query);
 
-	/*
-	 * Find a connections row specific to this origin node or if none exists,
-	 * the default connection data for that node.
-	 *
-	 * Configurations for all nodes, including the local node, are read.
-	 */
-	appendStringInfo(&query, "SELECT node_local_dsn "
-					 "FROM pgactive.pgactive_nodes "
-					 "WHERE node_sysid != $1"
-					 " AND node_status <> " pgactive_NODE_STATUS_KILLED_S " "
-		);
+	if (only_local_node)
+		appendStringInfo(&query, "SELECT node_local_dsn "
+						 "FROM pgactive.pgactive_nodes "
+						 "WHERE (node_sysid, node_timeline, node_dboid) = ($1, $2, $3) "
+						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
+	else
+		appendStringInfo(&query, "SELECT node_local_dsn "
+						 "FROM pgactive.pgactive_nodes "
+						 "WHERE (node_sysid, node_timeline, node_dboid) <> ($1, $2, $3) "
+						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
 
 	values[0] = CStringGetTextDatum(&sysid_str[0]);
+	values[1] = ObjectIdGetDatum(myid.timeline);
+	values[2] = ObjectIdGetDatum(myid.dboid);
 
 	SPI_connect();
 	PushActiveSnapshot(GetTransactionSnapshot());
 
-	ret = SPI_execute_with_args(query.data, 1, types, values, NULL, false, 0);
+	ret = SPI_execute_with_args(query.data, 3, types, values, NULL, false, 0);
 
 	if (ret != SPI_OK_SELECT)
 		elog(ERROR, "SPI error while querying pgactive.pgactive_nodes");
@@ -638,17 +640,14 @@ pgactive_get_all_local_dsn()
 
 	for (i = 0; i < SPI_processed; i++)
 	{
-		char	   *tmp_local_dsn;
+		char	   *tmp;
 
 		tuple = SPI_tuptable->vals[i];
 
-		/*
-		 * Fetch tuple attributes
-		 */
-		tmp_local_dsn = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
-									 getattno("node_local_dsn"));
+		tmp = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
+						   getattno("node_local_dsn"));
 
-		all_local_dsn = lcons(tmp_local_dsn, all_local_dsn);
+		node_local_dsns = lcons(tmp, node_local_dsns);
 
 	}
 
@@ -659,7 +658,7 @@ pgactive_get_all_local_dsn()
 
 	MemoryContextSwitchTo(caller_ctx);
 
-	return all_local_dsn;
+	return node_local_dsns;
 }
 
 void

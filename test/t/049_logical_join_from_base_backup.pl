@@ -27,9 +27,12 @@ my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 $node_b->init_from_backup($node_a, $backup_name);
 $node_b->start;
 
-# Remove the old pgactive traces came to node_b during base backup.
-$node_b->safe_psql($pgactive_test_dbname,
-    q[SELECT * FROM pgactive.pgactive_remove(true);]);
+# Let's get rid of pgactive completely on restored instance
+$node_b->safe_psql($pgactive_test_dbname, qq[SELECT pgactive.pgactive_remove(true);]);
+$node_b->safe_psql($pgactive_test_dbname, qq[DROP EXTENSION pgactive;]);
+
+# Let's restart for pgactive supervisor worker to go away
+$node_b->restart;
 
 # Create some data on upstream node. We do this after base backup is done; just
 # for testing purposes. For pgactive logical join to work, database mustn't contain
@@ -44,6 +47,7 @@ $node_a->safe_psql($pgactive_test_dbname,
 # Logically join node_b (a base backup of node_a) to upstream node node_a. With
 # pgactive generating its own node identifier, this should work.
 note "Logically join node_b (a base backup of node_a) to node_a\n";
+$node_b->safe_psql($pgactive_test_dbname, qq[CREATE EXTENSION pgactive;]);
 pgactive_logical_join($node_b, $upstream_node);
 check_join_status($node_b, $upstream_node);
 

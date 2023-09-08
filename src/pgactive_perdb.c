@@ -57,6 +57,7 @@ static bool is_perdb_worker = true;
 static void check_params_are_same(void);
 static ReplicationSlot *pgactiveSearchNamedReplicationSlot(const char *name,
 														   bool need_lock);
+static void check_local_node_connectability(void);
 
 bool
 IspgactivePerdbWorker(void)
@@ -940,7 +941,7 @@ static void
 check_params_are_same(void)
 {
 	MemoryContext saved_ctx;
-	List	   *all_local_dsn;
+	List	   *node_local_dsns;
 	ListCell   *lc;
 	bool		check_done = false;
 	bool		empty_list = false;
@@ -949,11 +950,11 @@ check_params_are_same(void)
 	{
 		StartTransactionCommand();
 		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-		all_local_dsn = pgactive_get_all_local_dsn();
+		node_local_dsns = pgactive_get_node_local_dsns(false);
 		MemoryContextSwitchTo(saved_ctx);
 		empty_list = true;
 
-		foreach(lc, all_local_dsn)
+		foreach(lc, node_local_dsns)
 		{
 			char	   *dsn = (char *) lfirst(lc);
 			PGconn	   *conn;
@@ -975,7 +976,7 @@ check_params_are_same(void)
 		}
 
 		CommitTransactionCommand();
-		list_free(all_local_dsn);
+		list_free(node_local_dsns);
 
 		if (!check_done && !empty_list)
 		{
@@ -986,6 +987,102 @@ check_params_are_same(void)
 					 errhint("Ensure one remote node is connectable from the local node.")));
 		}
 	}
+}
+
+/*
+ * Check if the local node is connectable using its node_local_dsn entry from
+ * pgactive_nodes table. If not, either dsn of the local node is changed and
+ * its node_local_dsn entry isn't updated in pgactive_nodes table or we
+ * are on a new postgres instance that's restored from a pgactive node. If the
+ * local node isn't connectable, we will unregister the pgactive worker.
+ */
+static void
+check_local_node_connectability(void)
+{
+	List	   *node_local_dsn;
+	char	   *dsn;
+	PGconn	   *conn;
+	char		appsuffix[NAMEDATALEN];
+	StringInfoData cmd;
+	char	   *result;
+	MemoryContext saved_ctx;
+
+	Assert(pgactive_worker_type == pgactive_WORKER_PERDB);
+
+	StartTransactionCommand();
+	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
+	node_local_dsn = pgactive_get_node_local_dsns(true);
+	MemoryContextSwitchTo(saved_ctx);
+
+	Assert(list_length(node_local_dsn) == 1);
+
+	dsn = linitial(node_local_dsn);
+
+	snprintf(appsuffix, NAMEDATALEN,
+			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
+
+	conn = pgactive_connect_nonrepl(dsn,
+									appsuffix,
+									false);
+
+	if (PQstatus(conn) != CONNECTION_OK)
+	{
+		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
+			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+
+		goto unregister;
+	}
+
+	initStringInfo(&cmd);
+	appendStringInfo(&cmd, "SELECT EXISTS ("
+					 "SELECT 1 FROM pg_stat_activity WHERE application_name = '%s:%s');",
+					 pgactive_get_my_cached_node_name(), appsuffix);
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	Assert(SPI_processed == 1);
+	Assert(SPI_tuptable->tupdesc->natts == 1);
+	result = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+
+	if (strcmp(result, "t") == 0)
+	{
+		/*
+		 * We have connected to ourself i.e. the same postgres instance we are
+		 * on, so just emit a log message and return.
+		 */
+		elog(DEBUG1, "local node " pgactive_NODEID_FORMAT_WITHNAME " is connectable using its node_local_dsn from pgactive_nodes table",
+			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+	}
+	else
+	{
+		/*
+		 * We have not connected to ourself i.e. the same postgres instance we
+		 * are on, so unregister.
+		 */
+		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
+			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+
+		goto unregister;
+	}
+
+	PQfinish(conn);
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+	PopActiveSnapshot();
+	CommitTransactionCommand();
+	list_free(node_local_dsn);
+
+	return;
+
+unregister:
+	pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
+	pgactive_worker_slot = NULL;
+	proc_exit(0);				/* unregister */
 }
 
 /*
@@ -1079,6 +1176,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 		SPI_finish();
 		PopActiveSnapshot();
 		CommitTransactionCommand();
+
+		check_local_node_connectability();
 
 		/*
 		 * Check whether the local node and one remote node have same
