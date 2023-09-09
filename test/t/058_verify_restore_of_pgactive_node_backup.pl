@@ -5,6 +5,7 @@
 #
 use strict;
 use warnings;
+use File::Path qw(rmtree);
 use lib 'test/t/';
 use Cwd;
 use Config;
@@ -48,5 +49,22 @@ is($result, '0', "restored node " . $node_2->name() . "doesn't have pgactive wor
 # Let's get rid of pgactive completely on restored instance
 $node_2->safe_psql($pgactive_test_dbname, qq[SELECT pgactive.pgactive_remove(true);]);
 $node_2->safe_psql($pgactive_test_dbname, qq[DROP EXTENSION pgactive;]);
+
+# Stop a node and remove the replication slot
+my $logstart_1 = get_log_size($node_1);
+my $datadir           = $node_1->data_dir;
+my $slot_name = $node_1->safe_psql('postgres',
+	"SELECT slot_name from pg_replication_slots;"
+);
+my $pgactive_replslotdir = "$datadir/pg_replslot/$slot_name";
+$node_1->stop;
+rmtree($pgactive_replslotdir);
+$node_1->start;
+
+# apply worker should not be started
+$result = find_in_log($node_1,
+	qr!LOG: ( [A-Z0-9]+:)? slot .* does not exist for node .*, skipping related apply worker start!,
+	$logstart_1);
+ok($result, "skipping related apply worker start due to missing replication slot");
 
 done_testing();
