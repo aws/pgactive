@@ -44,13 +44,9 @@
 #include "utils/builtins.h"
 #include "utils/pg_lsn.h"
 
-PGDLLEXPORT Datum pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum pgactive_test_replication_connection(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum pgactive_test_remote_connectback(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_node_info(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(pgactive_get_remote_nodeinfo);
-PG_FUNCTION_INFO_V1(pgactive_test_replication_connection);
-PG_FUNCTION_INFO_V1(pgactive_test_remote_connectback);
+PG_FUNCTION_INFO_V1(pgactive_get_node_info);
 
 /*
  * Make standard postgres connection, ERROR on failure.
@@ -204,8 +200,8 @@ pgactive_copytable(PGconn *copyfrom_conn, PGconn *copyto_conn,
 }
 
 /*
- * The implementation guts of pgactive_get_remote_nodeinfo, callable with
- * a pre-existing connection.
+ * The implementation guts of pgactive_get_node_info, callable with a
+ * pre-existing connection.
  */
 void
 pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
@@ -367,20 +363,126 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	PQclear(res);
 }
 
-Datum
-pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS)
+static void
+pgactive_test_remote_connectback_internal(PGconn *conn,
+										  struct remote_node_info *ri,
+										  const char *my_dsn)
 {
-	const char *remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
+	PGresult   *res;
+	const char *mydsn_values[1];
+	Oid			mydsn_types[1] = {TEXTOID};
+
+	mydsn_values[0] = my_dsn;
+
+	/*
+	 * Ask the remote to connect back to us in replication mode, then discard
+	 * the results.
+	 */
+	res = PQexecParams(conn, "SELECT * FROM "
+					   "pgactive._pgactive_get_node_info_private($1);",
+					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		/* TODO clone remote error to local */
+		ereport(ERROR,
+				(errmsg("connection from remote back to local failed"),
+				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
+	}
+
+	Assert(PQnfields(res) == 18);
+
+	if (PQntuples(res) != 1)
+		elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
+
+	ri->sysid_str = pstrdup(PQgetvalue(res, 0, 0));
+	if (sscanf(ri->sysid_str, UINT64_FORMAT, &ri->nodeid.sysid) != 1)
+		elog(ERROR, "could not parse remote sysid %s", ri->sysid_str);
+
+	ri->nodeid.timeline = DatumGetObjectId(
+										   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
+	ri->nodeid.dboid = DatumGetObjectId(
+										DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
+
+	ri->variant = pstrdup(PQgetvalue(res, 0, 3));
+	ri->version = pstrdup(PQgetvalue(res, 0, 4));
+	ri->version_num = atoi(PQgetvalue(res, 0, 5));
+	ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 6));
+	ri->is_superuser = DatumGetBool(
+									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
+	ri->node_status =
+		PQgetisnull(res, 0, 8) ? '\0' : PQgetvalue(res, 0, 8)[0];
+	ri->node_name = pstrdup(PQgetvalue(res, 0, 9));
+	ri->dbname = pstrdup(PQgetvalue(res, 0, 10));
+	ri->dbsize = DatumGetInt64(
+							   DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 11))));
+	ri->indexessize = DatumGetInt64(
+									DirectFunctionCall1(int8in, CStringGetDatum(PQgetvalue(res, 0, 12))));
+	ri->max_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 13))));
+	ri->skip_ddl_replication = DatumGetBool(
+											DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 14))));
+	ri->cur_nodes = DatumGetInt32(
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 15))));
+	ri->datcollate =
+		PQgetisnull(res, 0, 16) ? NULL : pstrdup(PQgetvalue(res, 0, 16));
+	ri->datctype =
+		PQgetisnull(res, 0, 17) ? NULL : pstrdup(PQgetvalue(res, 0, 17));
+
+	PQclear(res);
+}
+
+Datum
+pgactive_get_node_info(PG_FUNCTION_ARGS)
+{
+	char	   *dsn;
 	Datum		values[18];
 	bool		isnull[18];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
+	NameData	appname;
+	pgactiveNodeId node;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	conn = pgactive_connect_nonrepl(remote_node_dsn, "pgactivenodeinfo", true);
+	if (PG_ARGISNULL(0))
+		PG_RETURN_NULL();
+
+	dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
+
+	if (PG_ARGISNULL(1))
+	{
+		/*
+		 * Verify that we can make a replication connection to the node
+		 * identified by dsn so that pg_hba.conf issues get caught early.
+		 */
+		snprintf(NameStr(appname), NAMEDATALEN,
+				 "pgactiveverifyreplicationconnection");
+		conn = pgactive_connect(dsn, &appname, &node);
+		PQfinish(conn);
+
+		/*
+		 * Establish a non-replication connection to the the node identified
+		 * by dsn to get the required info.
+		 */
+		conn = pgactive_connect_nonrepl(dsn, "pgactivelocalnodeinfo", true);
+	}
+	else
+	{
+		char	   *remote_dsn = text_to_cstring(PG_GETARG_TEXT_P(1));
+
+		/*
+		 * When remote_dsn is specified establish a non-replication connection
+		 * to a remote node and use that connection to connect back to the
+		 * local node in both replication and non-replication modes. This is
+		 * used during setup to make sure the local node is useable. Then, it
+		 * reports the same data as pgactive_get_node_info, but it's reported
+		 * about the local node via the remote node.
+		 */
+		conn = pgactive_connect_nonrepl(remote_dsn, "pgactiveremotenodeinfo", true);
+	}
 
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
@@ -391,7 +493,11 @@ pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 		struct remote_node_info ri;
 
 		memset(&ri, 0, sizeof(ri));
-		pgactive_get_remote_nodeinfo_internal(conn, &ri);
+
+		if (PG_ARGISNULL(1))
+			pgactive_get_remote_nodeinfo_internal(conn, &ri);
+		else
+			pgactive_test_remote_connectback_internal(conn, &ri, dsn);
 
 		Assert(ri.sysid_str != NULL);
 		values[0] = CStringGetTextDatum(ri.sysid_str);
@@ -424,241 +530,6 @@ pgactive_get_remote_nodeinfo(PG_FUNCTION_ARGS)
 			isnull[17] = true;
 		else
 			values[17] = CStringGetTextDatum(ri.datctype);
-
-		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
-
-		free_remote_node_info(&ri);
-	}
-	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-								PointerGetDatum(&conn));
-
-	PQfinish(conn);
-
-	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
-}
-
-/*
- * Test a given dsn as a replication connection, appending the replication
- * parameter, and return the node identity information from IDENTIFY SYSTEM.
- *
- * This can be used safely against the local_dsn, as it does not enforce
- * that the local node ID differ from the identity on the other end.
- */
-Datum
-pgactive_test_replication_connection(PG_FUNCTION_ARGS)
-{
-	const char *conninfo = text_to_cstring(PG_GETARG_TEXT_P(0));
-	char	   *servername;
-	TupleDesc	tupleDesc;
-	HeapTuple	returnTuple;
-	PGconn	   *conn;
-	NameData	appname;
-	pgactiveNodeId remote;
-	Datum		values[3];
-	bool		isnull[3];
-	char		sysid_str[33];
-
-	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
-
-	memset(values, 0, sizeof(values));
-	memset(isnull, 0, sizeof(isnull));
-
-	snprintf(NameStr(appname), NAMEDATALEN, "pgactive test connection");
-	servername = get_connect_string(conninfo);
-	conn = pgactive_connect((servername == NULL ? conninfo : servername), &appname, &remote);
-	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, remote.sysid);
-
-	values[0] = CStringGetTextDatum(sysid_str);
-	values[1] = ObjectIdGetDatum(remote.timeline);
-	values[2] = ObjectIdGetDatum(remote.dboid);
-
-	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
-
-	PQfinish(conn);
-
-	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
-}
-
-void
-pgactive_test_remote_connectback_internal(PGconn *conn,
-										  struct remote_node_info *ri, const char *my_dsn)
-{
-	PGresult   *res;
-	const char *mydsn_values[1];
-	Oid			mydsn_types[1] = {TEXTOID};
-
-	mydsn_values[0] = my_dsn;
-
-	/* Make sure pgactive is actually present and active on the remote */
-	pgactive_ensure_ext_installed(conn);
-
-	/*
-	 * Ask the remote to connect back to us in replication mode, then discard
-	 * the results.
-	 */
-	res = PQexecParams(conn, "SELECT sysid, timeline, dboid "
-					   "FROM pgactive.pgactive_test_replication_connection($1)",
-					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
-
-	if (PQresultStatus(res) != PGRES_TUPLES_OK)
-	{
-		/* TODO clone remote error to local */
-		ereport(ERROR,
-				(errmsg("connection from remote back to local in replication mode failed"),
-				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
-	}
-
-	PQclear(res);
-
-	/*
-	 * Acquire pgactive_get_remote_nodeinfo's results from running it on the
-	 * remote node to connect back to us.
-	 */
-	res = PQexecParams(conn, "SELECT sysid, timeline, dboid, variant, version, "
-					   "       version_num, min_remote_version_num, is_superuser "
-					   "FROM pgactive.pgactive_get_remote_nodeinfo($1)",
-					   1, mydsn_types, mydsn_values, NULL, NULL, 0);
-
-	if (PQresultStatus(res) != PGRES_TUPLES_OK)
-	{
-		/* TODO clone remote error to local */
-		ereport(ERROR,
-				(errmsg("connection from remote back to local failed"),
-				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
-	}
-
-	Assert(PQnfields(res) == 8);
-
-	if (PQntuples(res) != 1)
-		elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
-
-	ri->sysid_str = NULL;
-	ri->nodeid.sysid = 0;
-	ri->nodeid.timeline = 0;
-	ri->nodeid.dboid = InvalidOid;
-	ri->variant = NULL;
-	ri->version = NULL;
-	ri->version_num = 0;
-	ri->min_remote_version_num = 0;
-	ri->is_superuser = true;
-
-	if (!PQgetisnull(res, 0, 0))
-	{
-		ri->sysid_str = pstrdup(PQgetvalue(res, 0, 0));
-
-		if (sscanf(ri->sysid_str, UINT64_FORMAT, &ri->nodeid.sysid) != 1)
-			elog(ERROR, "could not parse sysid %s", ri->sysid_str);
-	}
-
-	if (!PQgetisnull(res, 0, 1))
-	{
-		ri->nodeid.timeline = DatumGetObjectId(
-											   DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 1))));
-	}
-
-	if (!PQgetisnull(res, 0, 2))
-	{
-		ri->nodeid.dboid = DatumGetObjectId(
-											DirectFunctionCall1(oidin, CStringGetDatum(PQgetvalue(res, 0, 2))));
-	}
-
-	if (PQgetisnull(res, 0, 3))
-		elog(ERROR, "variant should never be null");
-	ri->variant = pstrdup(PQgetvalue(res, 0, 3));
-
-	if (!PQgetisnull(res, 0, 4))
-		ri->version = pstrdup(PQgetvalue(res, 0, 4));
-
-	if (!PQgetisnull(res, 0, 5))
-		ri->version_num = atoi(PQgetvalue(res, 0, 5));
-
-	if (!PQgetisnull(res, 0, 6))
-		ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 6));
-
-	if (!PQgetisnull(res, 0, 7))
-		ri->is_superuser = DatumGetBool(
-										DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
-
-	PQclear(res);
-}
-
-/*
- * Establish a connection to a remote node and use that connection to connect
- * back to the local node in both replication and non-replication modes.
- *
- * This is used during setup to make sure the local node is useable.
- *
- * Reports the same data as pgactive_get_remote_nodeinfo, but it's reported
- * about the local node via the remote node.
- */
-Datum
-pgactive_test_remote_connectback(PG_FUNCTION_ARGS)
-{
-	const char *remote_node_dsn;
-	const char *my_dsn;
-	const char *remote_servername;
-	const char *servername;
-	Datum		values[8];
-	bool		isnull[8];
-	TupleDesc	tupleDesc;
-	HeapTuple	returnTuple;
-	PGconn	   *conn;
-
-	memset(values, 0, sizeof(values));
-	memset(isnull, 0, sizeof(isnull));
-
-	remote_node_dsn = text_to_cstring(PG_GETARG_TEXT_P(0));
-	my_dsn = text_to_cstring(PG_GETARG_TEXT_P(1));
-
-	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
-
-	remote_servername = get_connect_string(remote_node_dsn);
-	conn = pgactive_connect_nonrepl((remote_servername == NULL ? remote_node_dsn : remote_servername), "pgactiveconnectback", true);
-
-	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-							PointerGetDatum(&conn));
-	{
-		struct remote_node_info ri;
-
-		memset(&ri, 0, sizeof(ri));
-		servername = get_connect_string(my_dsn);
-		pgactive_test_remote_connectback_internal(conn, &ri, (servername == NULL ? my_dsn : servername));
-
-		if (ri.sysid_str != NULL)
-			values[0] = CStringGetTextDatum(ri.sysid_str);
-		else
-			isnull[0] = true;
-
-		values[1] = ObjectIdGetDatum(ri.nodeid.timeline);
-
-		if (ri.nodeid.dboid != InvalidOid)
-			values[2] = ObjectIdGetDatum(ri.nodeid.dboid);
-		else
-			isnull[2] = true;
-
-		if (ri.variant != NULL)
-			values[3] = CStringGetTextDatum(ri.variant);
-		else
-			isnull[3] = true;
-
-		if (ri.version != NULL)
-			values[4] = CStringGetTextDatum(ri.version);
-		else
-			isnull[4] = true;
-
-		if (ri.version_num != 0)
-			values[5] = Int32GetDatum(ri.version_num);
-		else
-			isnull[5] = true;
-
-		if (ri.min_remote_version_num != 0)
-			values[6] = Int32GetDatum(ri.min_remote_version_num);
-		else
-			isnull[6] = true;
-
-		values[7] = BoolGetDatum(ri.is_superuser);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 

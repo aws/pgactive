@@ -812,9 +812,6 @@ extern void free_remote_node_info(remote_node_info * ri);
 
 extern void pgactive_ensure_ext_installed(PGconn *pgconn);
 
-extern void pgactive_test_remote_connectback_internal(PGconn *conn,
-													  struct remote_node_info *ri, const char *my_dsn);
-
 /*
  * Global to identify the type of pgactive worker the current process is. Primarily
  * useful for assertions and debugging.

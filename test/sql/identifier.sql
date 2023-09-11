@@ -6,9 +6,10 @@ FROM pgactive.pgactive_get_local_nodeid();
 
 SELECT current_database() = 'postgres';
 
--- Test probing for remote node information. Note that local node and remote
--- node having different node identifiers (r.sysid = l.sysid false) as each
--- database gets unique pgactive node identifier.
+-- Test probing for replication connection and get node information of a given
+-- dsn. Note that local node and remote node having different node identifiers
+-- (r.sysid = l.sysid false) as each database gets unique pgactive node
+-- identifier.
 SELECT
 	r.sysid = l.sysid,
 	r.timeline = l.timeline,
@@ -18,30 +19,12 @@ SELECT
 	version_num = pgactive.pgactive_version_num(),
 	min_remote_version_num = pgactive.pgactive_min_remote_version_num(),
 	is_superuser = 't'
-FROM pgactive.pgactive_get_remote_nodeinfo('dbname=regression') r,
+FROM pgactive._pgactive_get_node_info_private('dbname=regression') r,
      pgactive.pgactive_get_local_nodeid() l;
 
--- pgactive.pgactive_get_remote_nodeinfo can also be used to probe the local dsn
--- and make sure it works.
 SELECT
     r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
-FROM pgactive.pgactive_get_remote_nodeinfo('dbname='||current_database()) r;
-
--- Test probing for replication connection. Note that local node and remote
--- node having different node identifiers (r.sysid = l.sysid false) as each
--- database gets unique pgactive node identifier.
-SELECT
-	r.sysid = l.sysid,
-	r.timeline = l.timeline,
-	r.dboid = (SELECT oid FROM pg_database WHERE datname = 'regression')
-FROM pgactive.pgactive_test_replication_connection('dbname=regression') r,
-     pgactive.pgactive_get_local_nodeid() l;
-
--- Probing replication connection for the local dsn will work too
--- even though the identifier is the same.
-SELECT
-	r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
-FROM pgactive.pgactive_test_replication_connection('dbname='||current_database()) r;
+FROM pgactive._pgactive_get_node_info_private('dbname='||current_database()) r;
 
 -- Verify that parsing slot names then formatting them again produces round-trip
 -- output.
