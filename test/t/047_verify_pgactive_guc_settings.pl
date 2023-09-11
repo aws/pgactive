@@ -194,6 +194,18 @@ $result = !find_in_log($node_0,
 	$logstart_0);
 ok($result, "No error out as soon as local node can connect to one remote node to compare with");
 
+# Check that generic error for connection failure is emitted
+$node_0->append_conf('postgresql.conf', qq(pgactive.debug_trace_connection_errors = false));
+$node_0->reload;
+
+# Must not use safe_psql since we expect an error here
+($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
+($psql_ret, $psql_stdout, $psql_stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q[SELECT * FROM pgactive.pgactive_get_remote_nodeinfo('dbname=unknown');]);
+like($psql_stderr, qr/.*FATAL.*could not connect to the server in non-replication mode: connection failed/,
+     "generic error for connection failure is detected");
+
 $node_0->stop;
 $node_1->stop;
 

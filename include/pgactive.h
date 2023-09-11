@@ -456,6 +456,7 @@ extern char *pgactive_extra_apply_connection_options;
 extern int	pgactive_init_node_parallel_jobs;
 extern int	pgactive_max_nodes;
 extern bool pgactive_permit_node_identifier_getter_function_creation;
+extern bool pgactive_debug_trace_connection_errors;
 
 static const char *const pgactive_default_apply_connection_options =
 "connect_timeout=30 "
@@ -961,4 +962,23 @@ extern void destroy_temp_dump_dir(int code, Datum arg);
 
 extern int	find_apply_worker_slot(const pgactiveNodeId * const remote,
 								   pgactiveWorker * *worker_found);
+
+/*
+ * Emit a generic connection failure message based on GUC setting to help not
+ * emit sensitive info like hostname/hostaddress, username, password etc. of
+ * the connection string used for establishing connection. Note that this
+ * function is supposed to be used for connection failures only i.e., for
+ * PQstatus(conn) != CONNECTION_OK cases after PQconnectdb or its friends.
+ */
+static inline char *
+GetPQerrorMessage(const PGconn *conn)
+{
+	Assert(PQstatus(conn) != CONNECTION_OK);
+
+	if (pgactive_debug_trace_connection_errors)
+		return PQerrorMessage(conn);
+	else
+		return "connection failed";
+}
+
 #endif							/* pgactive_H */

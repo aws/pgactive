@@ -201,6 +201,7 @@ sub pgactive_update_postgresql_conf {
             pgactive.max_nodes = 20
             pgactive.ddl_lock_acquire_timeout = $lock_acquire_timeout
             lock_timeout = $lock_acquire_timeout
+            pgactive.debug_trace_connection_errors = true
     ));
 }
 
