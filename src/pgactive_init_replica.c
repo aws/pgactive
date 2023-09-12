@@ -45,6 +45,7 @@
 
 #include "postmaster/bgworker.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/fork_process.h"
 
 #include "storage/latch.h"
 #include "storage/lwlock.h"
@@ -57,10 +58,9 @@
 #include "utils/snapmgr.h"
 #include "pgstat.h"
 
-
 char	   *pgactive_temp_dump_directory = NULL;
 
-static void pgactive_execute_command(const char *cmd);
+static void pgactive_execute_command(const char *cmd, char *cmdargv[]);
 static void pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot);
 static void pgactive_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn);
 
@@ -166,56 +166,85 @@ pgactive_ensure_ext_installed(PGconn *pgconn)
  * postmaster will just start the per-db worker again.
  */
 static void
-pgactive_execute_command(const char *cmd)
+pgactive_execute_command(const char *cmd, char *cmdargv[])
 {
-	int			rc;
+	pid_t		pid;
+	int			exitstatus;
 
-	elog(LOG, "pgactive executing command \"%s\"", cmd);
+#ifdef WIN32
 
-	pgstat_report_wait_start(PG_WAIT_EXTENSION);
-	rc = system(cmd);
-	pgstat_report_wait_end();
-
-	if (rc != 0)
-	{
-		/*
-		 * If either the shell itself, or a called command, died on a signal,
-		 * abort the per-db worker.  We do this because system() ignores
-		 * SIGINT and SIGQUIT while waiting; so a signal is very likely
-		 * something that should have interrupted us too.  Also die if the
-		 * shell got a hard "command not found" type of error.  If we
-		 * overreact it's no big deal, the postmaster will just start the
-		 * per-db worker again.
-		 */
-		if (WIFEXITED(rc))
-		{
-			ereport(FATAL,
-					(errmsg("command failed with exit code %d",
-							WEXITSTATUS(rc)),
-					 errdetail("The failed command was: %s", cmd)));
-		}
-		else if (WIFSIGNALED(rc))
-		{
-#if defined(WIN32)
-			ereport(FATAL,
-					(errmsg("command was terminated by exception 0x%X",
-							WTERMSIG(rc)),
-					 errhint("See C include file \"ntstatus.h\" for a description of the hexadecimal value."),
-					 errdetail("The failed command was: %s", cmd)));
-#else
-			ereport(FATAL,
-					(errmsg("command was terminated by signal %d: %s",
-							WTERMSIG(rc), pg_strsignal(WTERMSIG(rc))),
-					 errdetail("The failed command was: %s", cmd)));
+	/*
+	 * TODO: on Windows we should be using CreateProcessEx instead of fork()
+	 * and exec(). We should add an abstraction for this to port/ eventually,
+	 * so this code doesn't have to care about the platform.
+	 */
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("init_replica isn't supported on Windows yet")));
 #endif
-		}
-		else
+
+	pid = fork_process();
+
+	if (pid == 0)				/* child */
+	{
+		if (execv(cmd, cmdargv) < 0)
 		{
-			ereport(FATAL,
-					(errmsg("command exited with unrecognized status %d", rc),
-					 errdetail("The failed command was: %s", cmd)));
+			ereport(LOG,
+					(errmsg("could not execute command \"%s\": %m",
+							cmd)));
+			/* We're already in the child process here, can't return */
+			exit(1);
 		}
 	}
+
+	if (pid < 0)
+	{
+		/* in parent, fork failed */
+		ereport(ERROR,
+				(errmsg("could not fork new process to execute command \"%s\" for init_replica: %m",
+						cmd)));
+	}
+
+	/* in parent, successful fork */
+	ereport(LOG,
+			(errmsg("waiting for process %d to execute command \"%s\" for init_replica",
+					(int) pid, cmd)));
+
+	while (1)
+	{
+		pid_t		res;
+
+		res = waitpid(pid, &exitstatus, WNOHANG);
+
+		if (res == pid)
+			break;
+		else if (res == -1 && errno != EINTR)
+			elog(FATAL, "error in waitpid() while waiting for process %d",
+				 pid);
+
+		(void) pgactiveWaitLatch(&MyProc->procLatch,
+								 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+								 1000L, PG_WAIT_EXTENSION);
+		ResetLatch(&MyProc->procLatch);
+		CHECK_FOR_INTERRUPTS();
+	}
+
+	if (exitstatus != 0)
+	{
+		if (WIFEXITED(exitstatus))
+			elog(FATAL, "process %d to execute command \"%s\" for init_replica exited with exit code %d",
+				 pid, cmd, WEXITSTATUS(exitstatus));
+		if (WIFSIGNALED(exitstatus))
+			elog(FATAL, "process %d to execute command \"%s\" for init_replica exited due to signal %d",
+				 pid, cmd, WTERMSIG(exitstatus));
+
+		elog(FATAL, "process %d to execute command \"%s\" for init_replica exited for an unknown reason with exit code %d",
+			 pid, cmd, exitstatus);
+	}
+
+	ereport(LOG,
+			(errmsg("successfully executed command \"%s\" for init_replica",
+					cmd)));
 }
 
 /*
@@ -233,10 +262,14 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	char		pgactive_restore_path[MAXPGPATH];
 	StringInfo	origin_dsn = makeStringInfo();
 	StringInfo	local_dsn = makeStringInfo();
-	StringInfo	cmd = makeStringInfo();
 	uint32		bin_version;
 	char	   *o_servername;
 	char	   *l_servername;
+	char	   *cmdargv[20];
+	int			cmdargc;
+	char		arg_jobs[12];
+	char		arg_tmp1[MAXPGPATH];
+	char		arg_tmp2[MAXPGPATH];
 
 	if (pgactive_find_other_exec(my_exec_path, pgactive_DUMP_CMD, &bin_version,
 								 &pgactive_dump_path[0]) < 0)
@@ -322,46 +355,48 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 				 tmpdir, strerror(save_errno));
 	}
 
-	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
-	pgactiveWorkerCtl->in_init_exec_dump_restore = true;
-	LWLockRelease(pgactiveWorkerCtl->lock);
-
 	PG_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 							CStringGetDatum(tmpdir));
 	{
 		/* Get contents from remote node with pg_dump */
-		appendStringInfo(cmd,
-						 "%s -T \"pgactive.pgactive_nodes\" -T \"pgactive.pgactive_connections\" "
-						 "--pgactive-init-node --jobs=%d --snapshot=%s "
-						 "--format=directory --file=%s \"%s\"",
-						 pgactive_dump_path,
-						 pgactive_init_node_parallel_jobs,
-						 snapshot,
-						 tmpdir,
-						 origin_dsn->data);
+		snprintf(arg_jobs, sizeof(arg_jobs), "--jobs=%d", pgactive_init_node_parallel_jobs);
+		snprintf(arg_tmp1, sizeof(arg_tmp1), "--snapshot=%s", snapshot);
+		snprintf(arg_tmp2, sizeof(arg_tmp2), "--file=%s", tmpdir);
 
-		pgactive_execute_command(cmd->data);
-		resetStringInfo(cmd);
+		cmdargc = 0;
+		cmdargv[cmdargc++] = pgactive_dump_path;
+		cmdargv[cmdargc++] = "-T \"pgactive.pgactive_nodes\"";
+		cmdargv[cmdargc++] = "-T \"pgactive.pgactive_connections\"";
+		cmdargv[cmdargc++] = "--pgactive-init-node";
+		cmdargv[cmdargc++] = arg_jobs;
+		cmdargv[cmdargc++] = arg_tmp1;
+		cmdargv[cmdargc++] = "--format=directory";
+		cmdargv[cmdargc++] = arg_tmp2;
+		cmdargv[cmdargc++] = origin_dsn->data;
+		cmdargv[cmdargc++] = NULL;
+
+		pgactive_execute_command(pgactive_dump_path, cmdargv);
 
 		/*
 		 * Restore contents from remote node on to local node with pg_restore.
 		 */
-		appendStringInfo(cmd,
-						 "%s --exit-on-error --jobs=%d --format=directory "
-						 "--dbname=\"%s\" %s",
-						 pgactive_restore_path,
-						 pgactive_init_node_parallel_jobs,
-						 local_dsn->data,
-						 tmpdir);
 
-		pgactive_execute_command(cmd->data);
+		snprintf(arg_jobs, sizeof(arg_jobs), "--jobs=%d", pgactive_init_node_parallel_jobs);
+		snprintf(arg_tmp1, sizeof(arg_tmp1), "--dbname=%s", local_dsn->data);
+
+		cmdargc = 0;
+		cmdargv[cmdargc++] = pgactive_restore_path;
+		cmdargv[cmdargc++] = "--exit-on-error";
+		cmdargv[cmdargc++] = arg_jobs;
+		cmdargv[cmdargc++] = "--format=directory";
+		cmdargv[cmdargc++] = arg_tmp1;
+		cmdargv[cmdargc++] = tmpdir;
+		cmdargv[cmdargc++] = NULL;
+
+		pgactive_execute_command(pgactive_restore_path, cmdargv);
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 								PointerGetDatum(tmpdir));
-
-	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
-	pgactiveWorkerCtl->in_init_exec_dump_restore = false;
-	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	/* Destroy temporary directory we used for storing pg_dump. */
 	destroy_temp_dump_dir(0, CStringGetDatum(tmpdir));
@@ -370,8 +405,6 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	pfree(origin_dsn);
 	pfree(local_dsn->data);
 	pfree(local_dsn);
-	pfree(cmd->data);
-	pfree(cmd);
 }
 
 /*

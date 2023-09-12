@@ -56,8 +56,11 @@ is($timedout, 1, 'Logical node join timed out while node down');
 
 # Node join will proceed until it gets to catchup mode, where it can't create
 # slots on its peers. At this point it'll get stuck until the peer comes up.
-is($new_node->safe_psql($pgactive_test_dbname, "SELECT node_status FROM pgactive.pgactive_nodes WHERE node_name = '$new_node_name'"), 'c',
-    "pgactive.pgactive_nodes still in status 'c'");
+my $node_name = $new_node->name();
+my $query =
+	qq[SELECT node_status = 'c' FROM pgactive.pgactive_nodes WHERE node_name = '$node_name';];
+$new_node->poll_query_until($pgactive_test_dbname, $query)
+	or die "Timed out while waiting for logical node join status to be 'c' while an another pgactive node is down";
 
 # If we bring the offline node back online, join should be able to proceed
 $offline_node->start;
@@ -100,8 +103,11 @@ is($timedout, 1, 'Physical node join timed out while node down');
 # it'll ignore the node for things like pg_ctl stop.
 $new_physical_join_node->_update_pid(1);
 
-is($new_physical_join_node->safe_psql($pgactive_test_dbname, "SELECT node_status FROM pgactive.pgactive_nodes WHERE node_name = '" . $new_physical_join_node->name . "'"), 'c',
-    "pgactive.pgactive_nodes still in status 'c'");
+$node_name = $new_physical_join_node->name();
+$query =
+	qq[SELECT node_status = 'c' FROM pgactive.pgactive_nodes WHERE node_name = '$node_name';];
+$new_physical_join_node->poll_query_until($pgactive_test_dbname, $query)
+	or die "Timed out while waiting for physical node join status to be 'c' while an another pgactive node is down";
 
 # TODO: do more work on offline node here
 

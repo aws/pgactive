@@ -481,8 +481,6 @@ typedef struct pgactiveWorkerControl
 	bool		is_supervisor_restart;
 	/* Pause worker management (used in testing) */
 	bool		worker_management_paused;
-	/* Is local node restoring dump of remote node? */
-	bool		in_init_exec_dump_restore;
 	/* Latch for the supervisor worker */
 	Latch	   *supervisor_latch;
 	/* Array members, of size pgactive_max_workers */
