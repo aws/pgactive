@@ -408,8 +408,9 @@ LANGUAGE C;
 COMMENT ON FUNCTION pgactive_min_remote_version_num() IS
 'The oldest pgactive version that this pgactive extension can exchange data with';
 
-CREATE FUNCTION pgactive_get_remote_nodeinfo (
-	dsn text,
+CREATE FUNCTION _pgactive_get_node_info_private (
+	local_dsn text,
+  remote_dsn text DEFAULT NULL,
   sysid OUT text,
   timeline OUT oid,
   dboid OUT oid,
@@ -429,47 +430,13 @@ CREATE FUNCTION pgactive_get_remote_nodeinfo (
   datcollate OUT text,
   datctype OUT text)
 RETURNS record
-AS 'MODULE_PATHNAME'
+AS 'MODULE_PATHNAME','pgactive_get_node_info'
 LANGUAGE C;
 
-REVOKE ALL ON FUNCTION pgactive_get_remote_nodeinfo(text) FROM public;
+REVOKE ALL ON FUNCTION _pgactive_get_node_info_private(text, text) FROM public;
 
-COMMENT ON FUNCTION pgactive_get_remote_nodeinfo(text) IS
-'Get node identity and pgactive info from a remote server by dsn';
-
-CREATE FUNCTION pgactive_test_replication_connection (
-  dsn text,
-  sysid OUT text,
-  timeline OUT oid,
-  dboid OUT oid)
-RETURNS record
-AS 'MODULE_PATHNAME'
-LANGUAGE C;
-
-REVOKE ALL ON FUNCTION pgactive_test_replication_connection(text) FROM public;
-
-COMMENT ON FUNCTION pgactive_test_replication_connection(text) IS
-'Make a replication-mode connection to the specified DSN and get its node identity';
-
-CREATE FUNCTION pgactive_test_remote_connectback (
-    remote_dsn text,
-    local_dsn text,
-    sysid OUT text,
-    timeline OUT oid,
-    dboid OUT oid,
-    variant OUT text,
-    version OUT text,
-    version_num OUT integer,
-    min_remote_version_num OUT integer,
-    is_superuser OUT boolean)
-RETURNS record
-AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT;
-
-REVOKE ALL ON FUNCTION pgactive_test_remote_connectback(text,text) FROM public;
-
-COMMENT ON FUNCTION pgactive_test_remote_connectback(text,text) IS
-'Connect to remote_dsn and from there connect back to local_dsn and report nodeinfo for local_dsn';
+COMMENT ON FUNCTION _pgactive_get_node_info_private(text, text) IS
+'Verify both replication and non-replication connections to the given dsn and get node info; when specified remote_dsn ask remote node to connect back to local node';
 
 CREATE TABLE pgactive_connections (
     conn_sysid text not null,
@@ -699,7 +666,7 @@ BEGIN
     -- our nodes record (and it wouldn't have committed yet if we had).
     --
     SELECT * INTO localid_from_dsn
-    FROM pgactive_get_remote_nodeinfo(node_local_dsn);
+    FROM _pgactive_get_node_info_private(node_local_dsn);
 
     IF localid_from_dsn.sysid <> localid.sysid
         OR localid_from_dsn.timeline <> localid.timeline
@@ -741,7 +708,7 @@ BEGIN
     -- This will error out if there are issues with the remote node.
     IF remote_dsn IS NOT NULL THEN
         SELECT * INTO remote_nodeinfo
-        FROM pgactive_get_remote_nodeinfo(remote_dsn);
+        FROM _pgactive_get_node_info_private(remote_dsn);
 
         remote_sysid := remote_nodeinfo.sysid;
         remote_timeline := remote_nodeinfo.timeline;
@@ -895,36 +862,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- Verify that we can make a replication connection to the remote node so
-    -- that pg_hba.conf issues get caught early.
-    IF remote_dsn IS NOT NULL THEN
-        -- Returns (sysid, timeline, dboid) on success, else ERRORs
-        SELECT * FROM pgactive_test_replication_connection(remote_dsn)
-        INTO remote_nodeinfo_r;
-
-        IF (remote_nodeinfo_r.sysid, remote_nodeinfo_r.timeline, remote_nodeinfo_r.dboid)
-            IS DISTINCT FROM
-           (remote_sysid, remote_timeline, remote_dboid)
-            AND
-           (remote_sysid, remote_timeline, remote_dboid)
-            IS DISTINCT FROM
-           (NULL, NULL, NULL)
-        THEN
-            -- This just shouldn't happen, so no fancy error. The all-NULLs
-            -- case can only arise when we're connecting to a peer with old pgactive
-            -- versions, where we can't get the sysid etc. from SQL.
-            RAISE USING
-                MESSAGE = 'replication and non-replication connections to remote node reported different node id';
-        END IF;
-
-        -- In case they're NULL because of pgactive_get_remote_nodeinfo due to an
-        -- old upstream
-        remote_sysid := remote_nodeinfo_r.sysid;
-        remote_timeline := remote_nodeinfo_r.timeline;
-        remote_dboid := remote_nodeinfo_r.dboid;
-
-    END IF;
-
     -- Create local node record so the apply worker knows to start initializing
     -- this node with pgactive_init_replica when it's started.
     --
@@ -1047,7 +984,7 @@ BEGIN
     IF join_using_dsn IS NOT NULL THEN
 
         SELECT * INTO connectback_nodeinfo
-        FROM pgactive.pgactive_test_remote_connectback(join_using_dsn, node_external_dsn);
+        FROM pgactive._pgactive_get_node_info_private(node_external_dsn, join_using_dsn);
 
         -- The connectback must actually match our local node identity and must
         -- provide a superuser connection.
@@ -1354,7 +1291,8 @@ BEGIN
         p_lp_cnt := p_lp_cnt + 1;
 
         IF first_time THEN
-          SELECT * FROM pgactive.pgactive_get_remote_nodeinfo(r1.node_init_from_dsn) INTO r2;
+          SELECT * FROM pgactive._pgactive_get_node_info_private(r1.node_init_from_dsn)
+            INTO r2;
           SELECT pg_size_pretty(r2.dbsize) INTO r_db;
           SELECT pg_database_size(r1.node_dboid) INTO l_db_init_sz;
           p_stime := clock_timestamp();

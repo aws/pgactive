@@ -16,13 +16,7 @@ use utils::nodemanagement;
 my $node_a = PostgreSQL::Test::Cluster->new('node_a');
 
 $node_a->init();
-$node_a->append_conf('postgresql.conf', q{
-wal_level = logical
-track_commit_timestamp = on
-shared_preload_libraries = 'pgactive'
-pgactive.skip_ddl_replication = false
-});
-
+pgactive_update_postgresql_conf($node_a);
 $node_a->start;
 
 $node_a->safe_psql('postgres', qq{CREATE DATABASE $pgactive_test_dbname;});
