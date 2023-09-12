@@ -47,8 +47,8 @@ $node_g2_c2->safe_psql($bravo, q[DROP TABLE fruits;]);
 
 $node_g2_c2->safe_psql($bravo, qq{
     SELECT pgactive.pgactive_join_group(
-        local_node_name := 'node_g2_g1_c2',
-        node_external_dsn := '$node_g2_c2_connstr',
+        node_name := 'node_g2_g1_c2',
+        node_dsn := '$node_g2_c2_connstr',
         join_using_dsn := '$node_g1_c1_connstr');});
 
 my $result = find_in_log($node_g2_c2,

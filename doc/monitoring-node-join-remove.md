@@ -27,7 +27,7 @@ one node is initializing (`i`):
 
 ``` PROGRAMLISTING
     SELECT * FROM bdr.bdr_nodes;
-         node_sysid      | node_timeline | node_dboid | node_status | node_name |      node_local_dsn      |    node_init_from_dsn
+         node_sysid      | node_timeline | node_dboid | node_status | node_name |      node_dsn      |    node_init_from_dsn
     ---------------------+---------------+------------+-------------+-----------+--------------------------+--------------------------
      6125823754033780536 |             1 |      16385 | r           | node1     | port=5598 dbname=bdrdemo |
      6125823714403985168 |             1 |      16386 | k           | node2     | port=5599 dbname=bdrdemo | port=5598 dbname=bdrdemo

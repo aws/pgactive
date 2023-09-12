@@ -1260,7 +1260,7 @@ initialize_node_entry(PGconn **conn, NodeInfo * ni, char *node_name, Oid dboid,
 	printfPQExpBuffer(query, "INSERT INTO pgactive.pgactive_nodes"
 					  " (node_status, node_sysid, node_timeline,"
 					  "	node_dboid, node_name, node_init_from_dsn,"
-					  "  node_local_dsn)"
+					  "  node_dsn)"
 					  " VALUES (" pgactive_NODE_STATUS_CATCHUP_S ", '" UINT64_FORMAT "', %u, %u, %s, %s, %s);",
 					  nid, ni->local_tlid, dboid,
 					  PQescapeLiteral(*conn, node_name, strlen(node_name)),

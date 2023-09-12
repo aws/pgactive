@@ -57,8 +57,8 @@ names.
   `node_dboid`           `oid`                                                                                    local database oid on the cluster (node_sysid, node_timeline)
   `node_status`          `char`                                                                                   Readiness of the node: \[b\]eginning setup, \[i\]nitializing, \[c\]atchup, creating \[o\]utbound slots, \[r\]eady, \[k\]illed. Doesn\'t indicate connected/disconnected.
   `node_name`            `text`                                                                                   Name of the node
-  `node_local_dsn`       `text`       `Node management function:``node_local_dsn`      A local loopback or unix socket connection string that the node can use to connect to its self; this is only used during initial setup to make the database restore faster.
-  `node_init_from_dsn`   `text`       `Node management function:``node_external_dsn`   Connection string of the node chosen as join target. Not used after we\'ve joined the node.
+  `node_dsn`       `text`       `Node management function:``node_dsn`      A local loopback or unix socket connection string that the node can use to connect to its self; this is only used during initial setup to make the database restore faster.
+  `node_init_from_dsn`   `text`       `Node management function:``node_dsn `   Connection string of the node chosen as join target. Not used after we\'ve joined the node.
   `node_read_only`       `boolean`                                                                                False unless read-only mode for a node is turned ON.
   `node_seq_id`          `smallint`                                                                                
 

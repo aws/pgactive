@@ -21,7 +21,7 @@ Return Type
 Description
 
 
-`bdr.bdr_create_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
+`bdr.bdr_create_group(`*`local_node_name`*`, `*`node_dsn `*`, `*`node_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`)`
 
 void
 
@@ -32,12 +32,12 @@ cleaned with
 [bdr.bdr_remove](functions-node-mgmt.md#FUNCTION-BDR-REMOVE).
 The \"dsn\" (data source name) parameters are [libpq connection
 strings](https://www.postgresql.org/docs/9.4/static/libpq-connect.html#LIBPQ-CONNSTRING).
-*`node_external_dsn`* is an arbitrary node name, which
-must be unique across the BDR group. *`node_external_dsn`*
+*`node_dsn `* is an arbitrary node name, which
+must be unique across the BDR group. *`node_dsn `*
 must be a connection string other nodes can use to connect to this node.
 It must embed any required passwords unless passwordless authentication
 is required or a suitable `.pgpass` file is created in the
-postgres home directory. If specified, *`node_local_dsn`*
+postgres home directory. If specified, *`node_dsn`*
 should be a local loopback or unix socket connection string that the
 node can use to connect to its self; this is only used during initial
 setup to make the database restore faster. *`apply_delay`*
@@ -49,7 +49,7 @@ creation, and [Replication Sets](replication-sets.md) for more on how
 replication sets work.
 
 
-`bdr.bdr_join_group(`*`local_node_name`*`, `*`node_external_dsn`*`, `*`join_using_dsn`*`, `*`node_local_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`, `*`bypass_collation_checks boolean DEFAULT false`*`)`
+`bdr.bdr_join_group(`*`local_node_name`*`, `*`node_dsn `*`, `*`join_using_dsn`*`, `*`node_dsn DEFAULT NULL`*`, `*`apply_delay integer DEFAULT NULL`*`, `*`replication_sets text[] DEFAULT ARRAY['default']`*`, `*`bypass_collation_checks boolean DEFAULT false`*`)`
 
 void
 
@@ -64,7 +64,7 @@ The parameters are the same as `bdr.bdr_create_group()`
 except for the additional required parameter
 *`join_using_dsn`*. This must be the libpq connection
 string of the node to initialize from, i.e. the other node\'s
-*`node_external_dsn`*. Any node may be chosen as the join
+*`node_dsn `*. Any node may be chosen as the join
 target, but if possible a node with a fast and reliable network link to
 the new node should be preferred. Note that
 `bdr.bdr_join_group()` can [*not*] \"re-join\"
@@ -354,7 +354,7 @@ To create a [BDR] group on \'node1\':
 ``` PROGRAMLISTING
     SELECT bdr.bdr_create_group(
        local_node_name := 'node1',
-       node_external_dsn := 'port=5598 dbname=bdrdemo');
+       node_dsn  := 'port=5598 dbname=bdrdemo');
    
 ```
 
@@ -363,7 +363,7 @@ To join \'node2\' to [BDR] group created above:
 ``` PROGRAMLISTING
     SELECT bdr.bdr_join_group(
        local_node_name := 'node2',
-       node_external_dsn := 'port=5559 dbname=bdrdemo',
+       node_dsn  := 'port=5559 dbname=bdrdemo',
        join_using_dsn := 'port=5558 dbname=bdrdemo');
    
 ```

@@ -128,8 +128,8 @@ my $node_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
 ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
 ($psql_ret, $psql_stdout, $psql_stderr) = $node_b->psql(
     $pgactive_test_dbname,
-    qq{ SELECT pgactive.pgactive_create_group(local_node_name := '@{[ $node_b->name ]}',
-                                    node_external_dsn := '$node_connstr');
+    qq{ SELECT pgactive.pgactive_create_group(node_name := '@{[ $node_b->name ]}',
+                                    node_dsn := '$node_connstr');
       }
 );
 

@@ -51,8 +51,8 @@ $node_0->safe_psql($pgactive_test_dbname, qq{
 # Create pgactive group with user mapping
 $node_0->safe_psql($pgactive_test_dbname, qq{
 	SELECT pgactive.pgactive_create_group(
-		local_node_name := 'node_0',
-		node_external_dsn := '$node_0_fs');});
+		node_name := 'node_0',
+		node_dsn := '$node_0_fs');});
 $node_0->safe_psql($pgactive_test_dbname, qq[
     SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
 $node_0->safe_psql($pgactive_test_dbname, 'SELECT pgactive.pgactive_is_active_in_db()' ) eq 't'
@@ -93,8 +93,8 @@ $node_0->safe_psql($pgactive_test_dbname, qq{
 # Join pgactive group with user mapping
 $node_1->safe_psql($pgactive_test_dbname, qq{
 	SELECT pgactive.pgactive_join_group(
-		local_node_name := 'node_1',
-		node_external_dsn := '$node_1_fs',
+		node_name := 'node_1',
+		node_dsn := '$node_1_fs',
         join_using_dsn := '$node_0_fs');});
 $node_1->safe_psql($pgactive_test_dbname, qq[
     SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);

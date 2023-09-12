@@ -30,7 +30,7 @@ order by attrelid, attnum;
  pgactive.pgactive_nodes           |      3 | node_dboid            | f            | oid                       | t
  pgactive.pgactive_nodes           |      4 | node_status           | f            | "char"                    | t
  pgactive.pgactive_nodes           |      5 | node_name             | f            | text                      | t
- pgactive.pgactive_nodes           |      6 | node_local_dsn        | f            | text                      | f
+ pgactive.pgactive_nodes           |      6 | node_dsn              | f            | text                      | f
  pgactive.pgactive_nodes           |      7 | node_init_from_dsn    | f            | text                      | f
  pgactive.pgactive_nodes           |      8 | node_read_only        | f            | boolean                   | f
  pgactive.pgactive_nodes           |      9 | node_seq_id           | f            | smallint                  | f

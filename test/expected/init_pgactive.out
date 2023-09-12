@@ -6,8 +6,8 @@ SELECT pgactive.pgactive_is_active_in_db();
 (1 row)
 
 SELECT pgactive.pgactive_create_group(
-	local_node_name := 'node-pg',
-	node_external_dsn := 'dbname=postgres',
+	node_name := 'node-pg',
+	node_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
 	);
 WARNING:  secondary unique constraint(s) exist on replicated table(s)
@@ -44,10 +44,9 @@ SELECT pgactive.pgactive_is_active_in_db();
 (1 row)
 
 SELECT pgactive.pgactive_join_group(
-	local_node_name := 'node-regression',
-	node_external_dsn := 'dbname=regression',
+	node_name := 'node-regression',
+	node_dsn := 'dbname=regression',
 	join_using_dsn := 'dbname=postgres',
-	node_local_dsn := 'dbname=regression',
 	replication_sets := ARRAY['default', 'important', 'for-node-2', 'for-node-2-insert', 'for-node-2-update', 'for-node-2-delete']
 	);
  pgactive_join_group 
@@ -106,8 +105,8 @@ SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER 
  dbname=regression | {default,important,for-node-2,for-node-2-insert,for-node-2-update,for-node-2-delete}
 (2 rows)
 
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
- node_status |  node_local_dsn   | node_init_from_dsn 
+SELECT node_status, node_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_dsn;
+ node_status |     node_dsn      | node_init_from_dsn 
 -------------+-------------------+--------------------
  r           | dbname=postgres   | 
  r           | dbname=regression | dbname=postgres
@@ -128,8 +127,8 @@ SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER 
  dbname=regression | {default,important,for-node-2,for-node-2-insert,for-node-2-update,for-node-2-delete}
 (2 rows)
 
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
- node_status |  node_local_dsn   | node_init_from_dsn 
+SELECT node_status, node_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_dsn;
+ node_status |     node_dsn      | node_init_from_dsn 
 -------------+-------------------+--------------------
  r           | dbname=postgres   | 
  r           | dbname=regression | dbname=postgres

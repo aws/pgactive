@@ -16,7 +16,7 @@ ORDER BY attnum;
       3 | node_dboid         | f
       4 | node_status        | f
       5 | node_name          | f
-      6 | node_local_dsn     | f
+      6 | node_dsn           | f
       7 | node_init_from_dsn | f
       8 | node_read_only     | f
       9 | node_seq_id        | f

@@ -201,7 +201,7 @@ CREATE TABLE pgactive_nodes (
     node_dboid oid not null,  -- This is an oid local to the node_sysid cluster
     node_status "char" not null,
     node_name text not null,
-    node_local_dsn text,
+    node_dsn text,
     node_init_from_dsn text,
     node_read_only boolean default false,
     node_seq_id smallint,
@@ -484,7 +484,7 @@ COMMENT ON FUNCTION pgactive_connections_changed() IS
 --
 CREATE FUNCTION _pgactive_join_node_private (
     sysid text, timeline oid, dboid oid,
-    node_external_dsn text,
+    node_dsn text,
     apply_delay integer,
     replication_sets text[]
     )
@@ -526,13 +526,12 @@ BEGIN
          conn_dsn,
          conn_apply_delay, conn_replication_sets)
         VALUES
-        (sysid, timeline, dboid,
-         node_external_dsn,
+        (sysid, timeline, dboid, node_dsn,
          CASE WHEN apply_delay = -1 THEN NULL ELSE apply_delay END,
          replication_sets);
     EXCEPTION WHEN unique_violation THEN
         UPDATE pgactive.pgactive_connections
-        SET conn_dsn = node_external_dsn,
+        SET conn_dsn = node_dsn,
             conn_apply_delay = CASE WHEN apply_delay = -1 THEN NULL ELSE apply_delay END,
             conn_replication_sets = replication_sets
         WHERE conn_sysid = sysid
@@ -585,8 +584,8 @@ $body$;
 
 CREATE FUNCTION _pgactive_begin_join_private (
     caller text,
-    local_node_name text,
-    node_local_dsn text,
+    node_name text,
+    node_dsn text,
     remote_dsn text,
     remote_sysid OUT text,
     remote_timeline OUT oid,
@@ -658,7 +657,7 @@ BEGIN
     -- Validate that the local connection is usable and matches the node
     -- identity of the node we're running on.
     --
-    -- For pgactive this will NOT check the 'dsn' if 'node_local_dsn' gets supplied.
+    -- For pgactive this will NOT check the 'dsn' if 'node_dsn' gets supplied.
     -- We don't know if 'dsn' is even valid for loopback connections and can't
     -- assume it is. That'll get checked later by pgactive specific code.
     --
@@ -666,7 +665,7 @@ BEGIN
     -- our nodes record (and it wouldn't have committed yet if we had).
     --
     SELECT * INTO localid_from_dsn
-    FROM _pgactive_get_node_info_private(node_local_dsn);
+    FROM _pgactive_get_node_info_private(node_dsn);
 
     IF localid_from_dsn.sysid <> localid.sysid
         OR localid_from_dsn.timeline <> localid.timeline
@@ -675,16 +674,16 @@ BEGIN
         RAISE USING
             MESSAGE = 'node identity for local dsn does not match current node',
             DETAIL = format($$The dsn '%s' connects to a node with identity (%s,%s,%s) but the local node is (%s,%s,%s)$$,
-                node_local_dsn, localid_from_dsn.sysid, localid_from_dsn.timeline,
+                node_dsn, localid_from_dsn.sysid, localid_from_dsn.timeline,
                 localid_from_dsn.dboid, localid.sysid, localid.timeline, localid.dboid),
-            HINT = 'The node_local_dsn (or, for pgactive, dsn if node_local_dsn is null) parameter must refer to the node you''re running this function from.',
+            HINT = 'The node_dsn parameter must refer to the node you''re running this function from.',
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
     IF NOT localid_from_dsn.is_superuser THEN
         RAISE USING
-            MESSAGE = 'local dsn does not have superuser rights',
-            DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, node_local_dsn),
+            MESSAGE = 'node_dsn does not have superuser rights',
+            DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, node_dsn),
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
@@ -877,12 +876,12 @@ BEGIN
         INSERT INTO pgactive_nodes (
             node_name,
             node_sysid, node_timeline, node_dboid,
-            node_status, node_local_dsn, node_init_from_dsn
+            node_status, node_dsn, node_init_from_dsn
         ) VALUES (
-            local_node_name,
+            node_name,
             localid.sysid, localid.timeline, localid.dboid,
             pgactive.pgactive_node_status_to_char('pgactive_NODE_STATUS_BEGINNING_INIT'),
-            node_local_dsn, remote_dsn
+            node_dsn, remote_dsn
         );
     ELSIF pgactive.pgactive_node_status_from_char(cur_node.node_status) = 'pgactive_NODE_STATUS_CATCHUP' THEN
         RAISE DEBUG 'starting node join in pgactive_NODE_STATUS_CATCHUP';
@@ -904,10 +903,9 @@ $body$;
 -- unconnected node with a blank database to a pgactive group.
 --
 CREATE FUNCTION pgactive_join_group (
-    local_node_name text,
-    node_external_dsn text,
+    node_name text,
+    node_dsn text,
     join_using_dsn text,
-    node_local_dsn text DEFAULT NULL,
     apply_delay integer DEFAULT NULL,
     replication_sets text[] DEFAULT ARRAY['default'],
     bypass_collation_check boolean DEFAULT false,
@@ -955,17 +953,16 @@ BEGIN
             DETAIL = 'pgactive doesn''t allow a node to pull in changes from more than one logical replication sources';
 	END IF;
 
-    IF node_external_dsn IS NULL THEN
+    IF node_dsn IS NULL THEN
         RAISE USING
-            MESSAGE = 'dsn may not be null',
+            MESSAGE = 'node_dsn can not be null',
             ERRCODE = 'invalid_parameter_value';
     END IF;
 
     PERFORM pgactive._pgactive_begin_join_private(
         caller := '',
-        local_node_name := local_node_name,
-        node_local_dsn := CASE WHEN node_local_dsn IS NULL
-          THEN node_external_dsn ELSE node_local_dsn END,
+        node_name := node_name,
+        node_dsn := node_dsn,
         remote_dsn := join_using_dsn,
         bypass_collation_check := bypass_collation_check,
         bypass_node_identifier_creation := bypass_node_identifier_creation,
@@ -984,13 +981,13 @@ BEGIN
     IF join_using_dsn IS NOT NULL THEN
 
         SELECT * INTO connectback_nodeinfo
-        FROM pgactive._pgactive_get_node_info_private(node_external_dsn, join_using_dsn);
+        FROM pgactive._pgactive_get_node_info_private(node_dsn, join_using_dsn);
 
         -- The connectback must actually match our local node identity and must
         -- provide a superuser connection.
         IF NOT connectback_nodeinfo.is_superuser THEN
             RAISE USING
-                MESSAGE = 'node_external_dsn does not have superuser rights when connecting via remote node',
+                MESSAGE = 'node_dsn does not have superuser rights when connecting via remote node',
                 DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, dsn),
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
@@ -1004,11 +1001,11 @@ BEGIN
            (NULL, NULL, NULL) -- Returned by old versions' dummy functions
         THEN
             RAISE USING
-                MESSAGE = 'node identity for node_external_dsn does not match current node when connecting back via remote',
+                MESSAGE = 'node identity for node_dsn does not match current node when connecting back via remote',
                 DETAIL = format($$The dsn '%s' connects to a node with identity (%s,%s,%s) but the local node is (%s,%s,%s).$$,
-                    node_local_dsn, connectback_nodeinfo.sysid, connectback_nodeinfo.timeline,
+                    node_dsn, connectback_nodeinfo.sysid, connectback_nodeinfo.timeline,
                     connectback_nodeinfo.dboid, localid.sysid, localid.timeline, localid.dboid),
-                HINT = 'The ''node_external_dsn'' parameter must refer to the node you''re running this function from, from the perspective of the node pointed to by join_using_dsn.',
+                HINT = 'The ''node_dsn'' parameter must refer to the node you''re running this function from, from the perspective of the node pointed to by join_using_dsn.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
     END IF;
@@ -1020,7 +1017,7 @@ BEGIN
         conn_dsn, conn_apply_delay, conn_replication_sets
     ) VALUES (
         localid.sysid, localid.timeline, localid.dboid,
-        node_external_dsn, apply_delay, replication_sets
+        node_dsn, apply_delay, replication_sets
     );
 
     -- Now ensure the per-db worker is started if it's not already running.
@@ -1030,13 +1027,12 @@ BEGIN
 END;
 $body$;
 
-COMMENT ON FUNCTION pgactive_join_group(text, text, text, text, integer, text[], boolean, boolean, boolean) IS
+COMMENT ON FUNCTION pgactive_join_group(text, text, text, integer, text[], boolean, boolean, boolean) IS
 'Join an existing pgactive group by connecting to a member node and copying its contents';
 
 CREATE FUNCTION pgactive_create_group (
-    local_node_name text,
-    node_external_dsn text,
-    node_local_dsn text DEFAULT NULL,
+    node_name text,
+    node_dsn text,
     apply_delay integer DEFAULT NULL,
     replication_sets text[] DEFAULT ARRAY['default']
     )
@@ -1129,17 +1125,16 @@ BEGIN
     END LOOP;
 
     PERFORM pgactive.pgactive_join_group(
-        local_node_name := local_node_name,
-        node_external_dsn := node_external_dsn,
+        node_name := node_name,
+        node_dsn := node_dsn,
         join_using_dsn := null,
-        node_local_dsn := node_local_dsn,
         apply_delay := apply_delay,
         replication_sets := replication_sets,
         bypass_user_tables_check := true);
 END;
 $body$;
 
-COMMENT ON FUNCTION pgactive_create_group(text, text, text, integer, text[]) IS
+COMMENT ON FUNCTION pgactive_create_group(text, text, integer, text[]) IS
 'Create a pgactive group, turning a stand-alone database into the first node in a pgactive group';
 
 CREATE FUNCTION pgactive_detach_nodes(p_nodes text[])
@@ -1966,7 +1961,7 @@ BEGIN
   -- Update node DSNs for all nodes that joined pgactive group using passed-in node.
   UPDATE pgactive.pgactive_nodes SET node_init_from_dsn = node_dsn_to_update
     WHERE node_init_from_dsn IS NOT NULL AND
-      pgactive.pgactive_conninfo_cmp(node_init_from_dsn, r.node_local_dsn) AND
+      pgactive.pgactive_conninfo_cmp(node_init_from_dsn, r.node_dsn) AND
       node_status = pgactive.pgactive_node_status_to_char('pgactive_NODE_STATUS_READY');
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
@@ -1975,13 +1970,13 @@ BEGIN
   END IF;
 
   -- Update node DSN for passed-in node.
-  UPDATE pgactive.pgactive_nodes SET node_local_dsn = node_dsn_to_update
+  UPDATE pgactive.pgactive_nodes SET node_dsn = node_dsn_to_update
     WHERE node_name = node_name_to_update AND
       node_status = pgactive.pgactive_node_status_to_char('pgactive_NODE_STATUS_READY');
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows = 0 THEN
-    RAISE EXCEPTION 'could not find any row in pgactive.pgactive_nodes to update node_local_dsn';
+    RAISE EXCEPTION 'could not find any row in pgactive.pgactive_nodes to update node_dsn';
   END IF;
 
   -- Update node DSN for passed-in node in pgactive.pgactive_connections.
@@ -1989,7 +1984,7 @@ BEGIN
     WHERE conn_sysid = r.node_sysid AND
       conn_timeline = r.node_timeline AND
       conn_dboid = r.node_dboid AND
-      conn_dsn = r.node_local_dsn;
+      conn_dsn = r.node_dsn;
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows = 0 THEN

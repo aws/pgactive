@@ -103,13 +103,13 @@ $PGBIN/pg_ctl -D $PGBIN/data -l $RESULTS/server.log start
 echo "pgactive-cizing node $WHALE"
 $PGBIN/psql -h $WHALE_H -p $WHALE_P postgres -c "CREATE DATABASE $WHALE_DB" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "CREATE EXTENSION pgactive" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_create_group(local_node_name := '$WHALE', node_external_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_create_group(node_name := '$WHALE', node_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $WHALE_H -p $WHALE_P $WHALE_DB -c "SELECT pgactive.pgactive_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 echo "pgactive-cizing node $PANDA"
 $PGBIN/psql -h $PANDA_H -p $PANDA_P postgres -c "CREATE DATABASE $PANDA_DB" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "CREATE EXTENSION pgactive" >> $RESULTS/check.log 2>&1
-$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_join_group(local_node_name := '$PANDA', node_external_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
+$PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_join_group(node_name := '$PANDA', node_dsn := 'dbname=$PANDA_DB host=$PANDA_H port=$PANDA_P', join_using_dsn := 'dbname=$WHALE_DB host=$WHALE_H port=$WHALE_P')" >> $RESULTS/check.log 2>&1
 $PGBIN/psql -h $PANDA_H -p $PANDA_P $PANDA_DB -c "SELECT pgactive.pgactive_wait_for_node_ready()" >> $RESULTS/check.log 2>&1
 
 # Initialize pgbench

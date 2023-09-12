@@ -135,8 +135,8 @@ sub create_pgactive_group {
     $node->safe_psql(
         $pgactive_test_dbname, qq{
             SELECT pgactive.pgactive_create_group(
-                    local_node_name := '@{[ $node->name ]}',
-                    node_external_dsn := '$node_connstr'
+                    node_name := '@{[ $node->name ]}',
+                    node_dsn := '$node_connstr'
                     );
             }
     );
@@ -256,8 +256,8 @@ sub generate_pgactive_logical_join_query {
 
     my $join_query = qq{
             SELECT pgactive.pgactive_join_group(
-                    local_node_name := '@{[$local_node->name]}',
-                    node_external_dsn := '$ln_connstr',
+                    node_name := '@{[$local_node->name]}',
+                    node_dsn := '$ln_connstr',
                     join_using_dsn := '$jn_connstr'};
 
     while (my ($k,$v) = each(%params)) {
@@ -830,8 +830,8 @@ sub create_pgactive_group_with_db {
 
     $node->safe_psql($db, qq{
         SELECT pgactive.pgactive_create_group(
-            local_node_name := '$node_name',
-            node_external_dsn := '$node_connstr');});
+            node_name := '$node_name',
+            node_dsn := '$node_connstr');});
     $node->safe_psql($db, qq[
         SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
     $node->safe_psql($db, 'SELECT pgactive.pgactive_is_active_in_db()' ) eq 't'
@@ -856,8 +856,8 @@ sub join_pgactive_group_with_db {
 
     $node->safe_psql($db, qq{
         SELECT pgactive.pgactive_join_group(
-            local_node_name := '$node_name',
-            node_external_dsn := '$node_connstr',
+            node_name := '$node_name',
+            node_dsn := '$node_connstr',
             join_using_dsn := '$upstream_node_connstr');});
     $node->safe_psql($db, qq[
         SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
