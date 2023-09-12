@@ -3,8 +3,8 @@
 SELECT pgactive.pgactive_is_active_in_db();
 
 SELECT pgactive.pgactive_create_group(
-	local_node_name := 'node-pg',
-	node_external_dsn := 'dbname=postgres',
+	node_name := 'node-pg',
+	node_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
 	);
 
@@ -19,10 +19,9 @@ SELECT pgactive.pgactive_is_active_in_db();
 SELECT pgactive.pgactive_is_active_in_db();
 
 SELECT pgactive.pgactive_join_group(
-	local_node_name := 'node-regression',
-	node_external_dsn := 'dbname=regression',
+	node_name := 'node-regression',
+	node_dsn := 'dbname=regression',
 	join_using_dsn := 'dbname=postgres',
-	node_local_dsn := 'dbname=regression',
 	replication_sets := ARRAY['default', 'important', 'for-node-2', 'for-node-2-insert', 'for-node-2-update', 'for-node-2-delete']
 	);
 
@@ -45,13 +44,13 @@ SELECT count(*) FROM pg_stat_replication;
 
 \c postgres
 SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER BY conn_dsn;
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
+SELECT node_status, node_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_dsn;
 
 SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
 
 \c regression
 SELECT conn_dsn, conn_replication_sets FROM pgactive.pgactive_connections ORDER BY conn_dsn;
-SELECT node_status, node_local_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_local_dsn;
+SELECT node_status, node_dsn, node_init_from_dsn FROM pgactive.pgactive_nodes ORDER BY node_dsn;
 
 SELECT 1 FROM pg_replication_slots WHERE restart_lsn <= confirmed_flush_lsn;
 

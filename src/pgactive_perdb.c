@@ -941,7 +941,7 @@ static void
 check_params_are_same(void)
 {
 	MemoryContext saved_ctx;
-	List	   *node_local_dsns;
+	List	   *node_dsns;
 	ListCell   *lc;
 	bool		check_done = false;
 	bool		empty_list = false;
@@ -950,11 +950,11 @@ check_params_are_same(void)
 	{
 		StartTransactionCommand();
 		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-		node_local_dsns = pgactive_get_node_local_dsns(false);
+		node_dsns = pgactive_get_node_dsns(false);
 		MemoryContextSwitchTo(saved_ctx);
 		empty_list = true;
 
-		foreach(lc, node_local_dsns)
+		foreach(lc, node_dsns)
 		{
 			char	   *dsn = (char *) lfirst(lc);
 			PGconn	   *conn;
@@ -976,7 +976,7 @@ check_params_are_same(void)
 		}
 
 		CommitTransactionCommand();
-		list_free(node_local_dsns);
+		list_free(node_dsns);
 
 		if (!check_done && !empty_list)
 		{
@@ -990,16 +990,16 @@ check_params_are_same(void)
 }
 
 /*
- * Check if the local node is connectable using its node_local_dsn entry from
+ * Check if the local node is connectable using its node_dsn entry from
  * pgactive_nodes table. If not, either dsn of the local node is changed and
- * its node_local_dsn entry isn't updated in pgactive_nodes table or we
- * are on a new postgres instance that's restored from a pgactive node. If the
- * local node isn't connectable, we will unregister the pgactive worker.
+ * its node_dsn entry isn't updated in pgactive_nodes table or we are on a new
+ * postgres instance that's restored from a pgactive node. If the local node
+ * isn't connectable, we will unregister the pgactive worker.
  */
 static void
 check_local_node_connectability(void)
 {
-	List	   *node_local_dsn;
+	List	   *node_dsn;
 	char	   *dsn;
 	PGconn	   *conn;
 	char		appsuffix[NAMEDATALEN];
@@ -1011,12 +1011,12 @@ check_local_node_connectability(void)
 
 	StartTransactionCommand();
 	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-	node_local_dsn = pgactive_get_node_local_dsns(true);
+	node_dsn = pgactive_get_node_dsns(true);
 	MemoryContextSwitchTo(saved_ctx);
 
-	Assert(list_length(node_local_dsn) == 1);
+	Assert(list_length(node_dsn) == 1);
 
-	dsn = linitial(node_local_dsn);
+	dsn = linitial(node_dsn);
 
 	snprintf(appsuffix, NAMEDATALEN,
 			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
@@ -1055,7 +1055,7 @@ check_local_node_connectability(void)
 		 * We have connected to ourself i.e. the same postgres instance we are
 		 * on, so just emit a log message and return.
 		 */
-		elog(DEBUG1, "local node " pgactive_NODEID_FORMAT_WITHNAME " is connectable using its node_local_dsn from pgactive_nodes table",
+		elog(DEBUG1, "local node " pgactive_NODEID_FORMAT_WITHNAME " is connectable using its node_dsn from pgactive_nodes table",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 	}
 	else
@@ -1075,7 +1075,7 @@ check_local_node_connectability(void)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
 	CommitTransactionCommand();
-	list_free(node_local_dsn);
+	list_free(node_dsn);
 
 	return;
 

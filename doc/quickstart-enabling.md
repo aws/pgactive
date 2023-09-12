@@ -23,7 +23,7 @@ above on port 5598:
 ``` PROGRAMLISTING
     SELECT bdr.bdr_create_group(
       local_node_name := 'node1',
-      node_external_dsn := 'port=5598 dbname=bdrdemo host=localhost'
+      node_dsn  := 'port=5598 dbname=bdrdemo host=localhost'
 );
     
 ```
@@ -54,7 +54,7 @@ will use port 5599) from the same SQL session as above on port 5599:
 ``` PROGRAMLISTING
     SELECT bdr.bdr_join_group(
       local_node_name := 'node2',
-      node_external_dsn := 'port=5599 dbname=bdrdemo host=localhost',
+      node_dsn  := 'port=5599 dbname=bdrdemo host=localhost',
       join_using_dsn := 'port=5598 dbname=bdrdemo host=localhost'
 );
     
