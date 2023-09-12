@@ -174,8 +174,6 @@ pgactive_worker_shmem_startup(void)
 		/* Worker management starts unpaused */
 		pgactiveWorkerCtl->worker_management_paused = false;
 
-		pgactiveWorkerCtl->in_init_exec_dump_restore = false;
-
 		/*
 		 * The postmaster keeps track of a generation number for pgactive
 		 * workers and increments it at each restart.
@@ -334,7 +332,6 @@ pgactive_worker_shmem_release(void)
 	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 	pgactive_worker_slot->worker_pid = 0;
 	pgactive_worker_slot->worker_proc = NULL;
-	pgactiveWorkerCtl->in_init_exec_dump_restore = false;
 	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	pgactive_worker_type = pgactive_WORKER_EMPTY_SLOT;

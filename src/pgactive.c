@@ -806,22 +806,6 @@ pgactive_do_not_replicate_check_hook(bool *newvalue, void **extra, GucSource sou
 	if (source != PGC_S_CLIENT)
 		return false;
 
-	/*
-	 * Allow pgactive.do_not_replicate to be set only during local node is
-	 * restoring from the dump of remote node.
-	 */
-	if (pgactiveWorkerCtl != NULL)
-	{
-		bool		in_init_exec_dump_restore;
-
-		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
-		in_init_exec_dump_restore = pgactiveWorkerCtl->in_init_exec_dump_restore;
-		LWLockRelease(pgactiveWorkerCtl->lock);
-
-		if (!in_init_exec_dump_restore)
-			return false;
-	}
-
 	Assert(IsUnderPostmaster);
 
 	return true;
