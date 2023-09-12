@@ -119,6 +119,7 @@ int			pgactive_log_min_messages = WARNING;
 int			pgactive_init_node_parallel_jobs;
 int			pgactive_max_nodes;
 bool		pgactive_permit_node_identifier_getter_function_creation;
+bool		pgactive_debug_trace_connection_errors;
 
 PG_MODULE_MAGIC;
 
@@ -287,7 +288,7 @@ pgactive_get_remote_dboid(const char *conninfo_db)
 	{
 		ereport(FATAL,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
-				 errmsg("get remote OID: %s", PQerrorMessage(dbConn))));
+				 errmsg("get remote OID: %s", GetPQerrorMessage(dbConn))));
 	}
 
 	res = PQexec(dbConn, "SELECT oid FROM pg_database WHERE datname = current_database()");
@@ -366,7 +367,7 @@ pgactive_connect(const char *conninfo,
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
 				 errmsg("could not connect to the server in replication mode: %s",
-						PQerrorMessage(streamConn))));
+						GetPQerrorMessage(streamConn))));
 	}
 
 	elog(DEBUG3, "sending replication command: IDENTIFY_SYSTEM");
@@ -412,7 +413,7 @@ pgactive_connect(const char *conninfo,
 		ereport(ERROR,
 				(errcode(ERRCODE_CONNECTION_FAILURE),
 				 errmsg("could not connect to the server in non-replication mode: %s",
-						PQerrorMessage(streamConn))));
+						GetPQerrorMessage(streamConn))));
 	}
 
 	cmd = makeStringInfo();
@@ -1193,6 +1194,15 @@ _PG_init(void)
 							 PGC_SUSET,
 							 GUC_SUPERUSER_ONLY | GUC_DISALLOW_IN_FILE | GUC_DISALLOW_IN_AUTO_FILE,
 							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
+
+	DefineCustomBoolVariable("pgactive.debug_trace_connection_errors",
+							 "Log full error message for each failed database connection made by pgactive workers.",
+							 NULL,
+							 &pgactive_debug_trace_connection_errors,
+							 false,
+							 PGC_SIGHUP,
+							 GUC_SUPERUSER_ONLY,
+							 NULL, NULL, NULL);
 
 	EmitWarningsOnPlaceholders("pgactive");
 

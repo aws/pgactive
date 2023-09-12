@@ -77,7 +77,7 @@ pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool
 	{
 		ereport(FATAL,
 				(errmsg("could not connect to the server in non-replication mode: %s",
-						PQerrorMessage(nonrepl_conn))));
+						GetPQerrorMessage(nonrepl_conn))));
 	}
 
 	return nonrepl_conn;

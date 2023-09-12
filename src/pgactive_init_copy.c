@@ -177,6 +177,24 @@ static char *find_other_exec_or_die(const char *argv0, const char *target);
 static bool postmaster_is_alive(pid_t pid);
 static long get_pgpid(void);
 
+/*
+ * Emit a generic connection failure message based on GUC setting to help not
+ * emit sensitive info like hostname/hostaddress, username, password etc. of
+ * the connection string used for establishing connection. Note that this
+ * function is supposed to be used for connection failures only i.e., for
+ * PQstatus(conn) != CONNECTION_OK cases after PQconnectdb or its friends.
+ */
+static inline char *
+GetPQerrorMessage(const PGconn *conn)
+{
+	Assert(PQstatus(conn) != CONNECTION_OK);
+
+	if (verbosity >= VERBOSITY_DEBUG)
+		return PQerrorMessage(conn);
+	else
+		return "connection failed";
+}
+
 static PGconn *
 connectdb(char *connstr)
 {
@@ -184,7 +202,7 @@ connectdb(char *connstr)
 
 	conn = PQconnectdb(connstr);
 	if (PQstatus(conn) != CONNECTION_OK)
-		die(_("Connection to database failed: %s\n"), PQerrorMessage(conn));
+		die(_("Connection to database failed: %s\n"), GetPQerrorMessage(conn));
 
 	return conn;
 }
@@ -197,7 +215,6 @@ signal_handler(int sig)
 		die(_("\nCanceling...\n"));
 	}
 }
-
 
 int
 main(int argc, char **argv)
@@ -978,7 +995,7 @@ get_remote_info(char *remote_connstr)
 	if (PQstatus(remote_conn) != CONNECTION_OK)
 	{
 		die(_("Could not connect to the remote server: %s\n"),
-			PQerrorMessage(remote_conn));
+			GetPQerrorMessage(remote_conn));
 	}
 
 	ri->version = PQserverVersion(remote_conn);
@@ -1026,7 +1043,8 @@ get_remote_info(char *remote_connstr)
 	remote_conn = PQconnectdb(remote_connstr);
 	if (PQstatus(remote_conn) != CONNECTION_OK)
 	{
-		die(_("Could not connect to the remote server: %s"), PQerrorMessage(remote_conn));
+		die(_("Could not connect to the remote server: %s\n"),
+			GetPQerrorMessage(remote_conn));
 	}
 
 	res = PQexec(remote_conn, "SELECT d.oid, d.datname "
