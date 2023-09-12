@@ -18,7 +18,7 @@ SELECT
 	version = pgactive.pgactive_version(),
 	version_num = pgactive.pgactive_version_num(),
 	min_remote_version_num = pgactive.pgactive_min_remote_version_num(),
-	is_superuser = 't'
+	has_required_privs = 't'
 FROM pgactive._pgactive_get_node_info_private('dbname=regression') r,
      pgactive.pgactive_get_local_nodeid() l;
 

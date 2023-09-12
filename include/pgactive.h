@@ -789,7 +789,7 @@ typedef struct remote_node_info
 	char	   *version;
 	int			version_num;
 	int			min_remote_version_num;
-	bool		is_superuser;
+	bool		has_required_privs;
 	char		node_status;
 	char	   *node_name;
 	char	   *dbname;

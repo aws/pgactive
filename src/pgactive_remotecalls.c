@@ -240,8 +240,8 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	ri->version_num = atoi(PQgetvalue(res, 0, 1));
 	ri->variant = pstrdup(PQgetvalue(res, 0, 2));
 	ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 3));
-	ri->is_superuser = DatumGetBool(
-									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 4))));
+	ri->has_required_privs = DatumGetBool(
+										  DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 4))));
 	ri->node_name = pstrdup(PQgetvalue(res, 0, 5));
 	ri->dbname = pstrdup(PQgetvalue(res, 0, 6));
 	ri->dbsize = DatumGetInt64(
@@ -408,8 +408,8 @@ pgactive_test_remote_connectback_internal(PGconn *conn,
 	ri->version = pstrdup(PQgetvalue(res, 0, 4));
 	ri->version_num = atoi(PQgetvalue(res, 0, 5));
 	ri->min_remote_version_num = atoi(PQgetvalue(res, 0, 6));
-	ri->is_superuser = DatumGetBool(
-									DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
+	ri->has_required_privs = DatumGetBool(
+										  DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 7))));
 	ri->node_status =
 		PQgetisnull(res, 0, 8) ? '\0' : PQgetvalue(res, 0, 8)[0];
 	ri->node_name = pstrdup(PQgetvalue(res, 0, 9));
@@ -507,7 +507,7 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 		values[4] = CStringGetTextDatum(ri.version);
 		values[5] = Int32GetDatum(ri.version_num);
 		values[6] = Int32GetDatum(ri.min_remote_version_num);
-		values[7] = BoolGetDatum(ri.is_superuser);
+		values[7] = BoolGetDatum(ri.has_required_privs);
 		if (ri.node_status == '\0')
 			isnull[8] = true;
 		else

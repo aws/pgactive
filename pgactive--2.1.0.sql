@@ -418,7 +418,7 @@ CREATE FUNCTION _pgactive_get_node_info_private (
   version OUT text,
   version_num OUT integer,
 	min_remote_version_num OUT integer,
-  is_superuser OUT boolean,
+  has_required_privs OUT boolean,
   node_status OUT "char",
   node_name OUT text,
   dbname OUT text,
@@ -680,10 +680,10 @@ BEGIN
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
-    IF NOT localid_from_dsn.is_superuser THEN
+    IF NOT localid_from_dsn.has_required_privs THEN
         RAISE USING
-            MESSAGE = 'node_dsn does not have superuser rights',
-            DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, node_dsn),
+            MESSAGE = 'node_dsn does not have required rights',
+            DETAIL = format($$The dsn '%s' connects successfully but does not have required rights.$$, node_dsn),
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
@@ -713,10 +713,10 @@ BEGIN
         remote_timeline := remote_nodeinfo.timeline;
         remote_dboid := remote_nodeinfo.dboid;
 
-        IF NOT remote_nodeinfo.is_superuser THEN
+        IF NOT remote_nodeinfo.has_required_privs THEN
             RAISE USING
-                MESSAGE = 'connection to remote node does not have superuser rights',
-                DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, remote_dsn),
+                MESSAGE = 'connection to remote node does not have required rights',
+                DETAIL = format($$The dsn '%s' connects successfully but does not have required rights.$$, remote_dsn),
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
@@ -984,11 +984,11 @@ BEGIN
         FROM pgactive._pgactive_get_node_info_private(node_dsn, join_using_dsn);
 
         -- The connectback must actually match our local node identity and must
-        -- provide a superuser connection.
-        IF NOT connectback_nodeinfo.is_superuser THEN
+        -- provide a connection that has required rights.
+        IF NOT connectback_nodeinfo.has_required_privs THEN
             RAISE USING
-                MESSAGE = 'node_dsn does not have superuser rights when connecting via remote node',
-                DETAIL = format($$The dsn '%s' connects successfully but does not grant superuser rights.$$, dsn),
+                MESSAGE = 'node_dsn does not have required rights when connecting via remote node',
+                DETAIL = format($$The dsn '%s' connects successfully but does not have required rights.$$, dsn),
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
 
