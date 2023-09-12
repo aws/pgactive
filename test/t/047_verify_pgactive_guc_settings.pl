@@ -202,8 +202,8 @@ $node_0->reload;
 ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
 ($psql_ret, $psql_stdout, $psql_stderr) = $node_0->psql(
     $pgactive_test_dbname,
-    q[SELECT * FROM pgactive.pgactive_get_remote_nodeinfo('dbname=unknown');]);
-like($psql_stderr, qr/.*FATAL.*could not connect to the server in non-replication mode: connection failed/,
+    q[SELECT * FROM pgactive._pgactive_get_node_info_private('dbname=unknown');]);
+like($psql_stderr, qr/.*ERROR.*could not connect to the server in replication mode: connection failed/,
      "generic error for connection failure is detected");
 
 $node_0->stop;
