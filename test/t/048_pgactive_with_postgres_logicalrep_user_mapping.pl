@@ -106,7 +106,8 @@ $node_b->safe_psql($pgactive_test_dbname,
 $node_b->wait_for_subscription_sync($node_a, $appname);
 
 # No problem to create a pgactive group on the publisher
-create_pgactive_group($node_a);
+my $no_dsn = 1;
+create_pgactive_group($node_a, $no_dsn);
 
 # join the subscriber
 my $join_query = generate_pgactive_logical_join_query($node_b, $node_a);
