@@ -410,7 +410,6 @@ is_pgactive_nid_getter_function_in_stmt(ObjectType objtype, Node *object)
 								 &relation,
 								 AccessExclusiveLock,
 								 true);
-	Assert(relation == NULL);
 
 	if (!OidIsValid(address.objectId))
 		return false;

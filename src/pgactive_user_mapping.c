@@ -21,35 +21,204 @@
 #include "catalog/pg_foreign_data_wrapper.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_user_mapping.h"
+#include "executor/spi.h"
 #include "foreign/foreign.h"
 #include "libpq-fe.h"
 #include "miscadmin.h"
 #include "parser/scansup.h"
 #include "utils/acl.h"
+#include "utils/builtins.h"
+#include "utils/snapmgr.h"
 
 static char *escape_param_str(const char *from);
 static bool is_valid_dsn_option(const PQconninfoOption *options,
 								const char *option, Oid context);
 
 /*
+ * Parse user mapping info with a string containing key=value pairs.
+ *
+ * Core logic for this function is taken from conninfo_parse() in
+ * src/interfaces/libpq/fe-connect.c.
+ */
+static void
+user_mapping_parse(const char *usermappinginfo,
+				   char **usermapping,
+				   char **foreignserver)
+{
+	char	   *pname;
+	char	   *pval;
+	char	   *buf;
+	char	   *cp;
+	char	   *cp2;
+
+	/* Need a modifiable copy of the input string */
+	buf = pstrdup(usermappinginfo);
+	cp = buf;
+
+	while (*cp)
+	{
+		/* Skip blanks before the parameter name */
+		if (isspace((unsigned char) *cp))
+		{
+			cp++;
+			continue;
+		}
+
+		/* Get the parameter name */
+		pname = cp;
+		while (*cp)
+		{
+			if (*cp == '=')
+				break;
+			if (isspace((unsigned char) *cp))
+			{
+				*cp++ = '\0';
+				while (*cp)
+				{
+					if (!isspace((unsigned char) *cp))
+						break;
+					cp++;
+				}
+				break;
+			}
+			cp++;
+		}
+
+		/* Check that there is a following '=' */
+		if (*cp != '=')
+		{
+			/* syntax error in list */
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_NAME),
+					 errmsg("missing \"=\" after \"%s\" in user mapping info string",
+							pname),
+					 errhint("Valid user mapping info string looks like user_mapping=<<name>> pgactive_foreign_server=<<name>>.")));
+
+		}
+		*cp++ = '\0';
+
+		/* Skip blanks after the '=' */
+		while (*cp)
+		{
+			if (!isspace((unsigned char) *cp))
+				break;
+			cp++;
+		}
+
+		/* Get the parameter value */
+		pval = cp;
+
+		if (*cp != '\'')
+		{
+			cp2 = pval;
+			while (*cp)
+			{
+				if (isspace((unsigned char) *cp))
+				{
+					*cp++ = '\0';
+					break;
+				}
+				if (*cp == '\\')
+				{
+					cp++;
+					if (*cp != '\0')
+						*cp2++ = *cp++;
+				}
+				else
+					*cp2++ = *cp++;
+			}
+			*cp2 = '\0';
+		}
+		else
+		{
+			cp2 = pval;
+			cp++;
+			for (;;)
+			{
+				if (*cp == '\0')
+				{
+					/* syntax error in list */
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_NAME),
+							 errmsg("unterminated quoted string in user mapping info string"),
+							 errhint("Valid user mapping info string looks like user_mapping=<<name>> pgactive_foreign_server=<<name>>.")));
+
+				}
+				if (*cp == '\\')
+				{
+					cp++;
+					if (*cp != '\0')
+						*cp2++ = *cp++;
+					continue;
+				}
+				if (*cp == '\'')
+				{
+					*cp2 = '\0';
+					cp++;
+					break;
+				}
+				*cp2++ = *cp++;
+			}
+		}
+
+		/*
+		 * Now that we have the name and the value, store the record.
+		 */
+		if (pg_strncasecmp(pname, "user_mapping", 12) == 0)
+		{
+			*usermapping = pstrdup(pval);
+			truncate_identifier(*usermapping, strlen(*usermapping), true);
+		}
+		else if (pg_strncasecmp(pname, "pgactive_foreign_server", 23) == 0)
+		{
+			*foreignserver = pstrdup(pval);
+			truncate_identifier(*foreignserver, strlen(*foreignserver), true);
+		}
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_NAME),
+					 errmsg("invalid parameter name \"%s\" specified in user mapping info string",
+							pname),
+					 errhint("Valid user mapping info string looks like user_mapping=<<name>> pgactive_foreign_server=<<name>>.")));
+	}
+
+	/* Done with the modifiable input string */
+	pfree(buf);
+}
+
+/*
  * Function taken from contrib/dblink/dblink.c
  *
- * Return value is a palloc, caller must free it if needed
+ * Return value is a palloc, caller must free it if needed.
  *
- * Obtain connection string for a foreign server
+ * Obtain connection string for a given foreign server and user mapping.
  */
 char *
-get_connect_string(const char *servername)
+get_connect_string(const char *usermappinginfo)
 {
 	ForeignServer *foreign_server = NULL;
 	UserMapping *user_mapping;
+	Oid			serverid;
+	Oid			fdwid;
 	ListCell   *cell;
 	StringInfoData buf;
 	ForeignDataWrapper *fdw;
 	AclResult	aclresult;
-	char	   *srvname;
-	bool		CloseTransaction = false;
+	bool		tx_started = false;
 	const PQconninfoOption *options = NULL;
+	char	   *umname = NULL;
+	char	   *fsname = NULL;
+	StringInfoData cmd;
+	Oid			umuser;
+	PQconninfoOption *opts = NULL;
+
+	/*
+	 * First check if it's a valid connection string, if yes, do nothing
+	 * because it's not user mapping info.
+	 */
+	opts = PQconninfoParse(usermappinginfo, NULL);
+	if (opts != NULL)
+		return NULL;
 
 	initStringInfo(&buf);
 
@@ -69,70 +238,87 @@ get_connect_string(const char *servername)
 					 errmsg("out of memory"),
 					 errdetail("Could not get libpq's default connection options.")));
 	}
-	/* first gather the server connstr options */
-	srvname = pstrdup(servername);
-	truncate_identifier(srvname, strlen(srvname), false);
+	/* first parse and gather the user mapping info options */
+	user_mapping_parse(usermappinginfo, &umname, &fsname);
 
 	if (!IsTransactionState())
 	{
+		tx_started = true;
 		StartTransactionCommand();
-		CloseTransaction = true;
 	}
 
-	foreign_server = GetForeignServerByName(srvname, true);
-	if (foreign_server)
+	foreign_server = GetForeignServerByName(fsname, false);
+
+	initStringInfo(&cmd);
+
+	appendStringInfo(&cmd, "SELECT umuser FROM pg_catalog.pg_user_mappings "
+					 "WHERE usename = '%s' AND srvname = '%s';",
+					 umname, fsname);
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	if (SPI_processed != 1 || SPI_tuptable->tupdesc->natts != 1)
 	{
-		Oid			serverid = foreign_server->serverid;
-		Oid			fdwid = foreign_server->fdwid;
-		Oid			userid = GetUserId();
-
-		user_mapping = GetUserMapping(userid, serverid);
-		fdw = GetForeignDataWrapper(fdwid);
-
-		/* Check permissions, user must have usage on the server. */
-		aclresult = pg_foreign_server_aclcheck(serverid, userid, ACL_USAGE);
-		if (aclresult != ACLCHECK_OK)
-			aclcheck_error(aclresult, OBJECT_FOREIGN_SERVER, foreign_server->servername);
-
-		foreach(cell, fdw->options)
-		{
-			DefElem    *def = lfirst(cell);
-
-			if (is_valid_dsn_option(options, def->defname, ForeignDataWrapperRelationId))
-				appendStringInfo(&buf, "%s='%s' ", def->defname,
-								 escape_param_str(strVal(def->arg)));
-		}
-
-		foreach(cell, foreign_server->options)
-		{
-			DefElem    *def = lfirst(cell);
-
-			if (is_valid_dsn_option(options, def->defname, ForeignServerRelationId))
-				appendStringInfo(&buf, "%s='%s' ", def->defname,
-								 escape_param_str(strVal(def->arg)));
-		}
-
-		foreach(cell, user_mapping->options)
-		{
-
-			DefElem    *def = lfirst(cell);
-
-			if (is_valid_dsn_option(options, def->defname, UserMappingRelationId))
-				appendStringInfo(&buf, "%s='%s' ", def->defname,
-								 escape_param_str(strVal(def->arg)));
-		}
-
-		if (CloseTransaction)
-			CommitTransactionCommand();
-
-		return buf.data;
+		elog(FATAL, "could not fetch umuser from pg_catalog.pg_user_mappings: got %d rows and %d columns, expected 1 row and 1 column",
+			 (int) SPI_processed, SPI_tuptable->tupdesc->natts);
 	}
-	else
+
+	umuser = DatumGetObjectId(
+							  DirectFunctionCall1(oidin,
+												  CStringGetDatum(SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1))));
+
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+	PopActiveSnapshot();
+
+	serverid = foreign_server->serverid;
+	fdwid = foreign_server->fdwid;
+
+	user_mapping = GetUserMapping(umuser, serverid);
+	fdw = GetForeignDataWrapper(fdwid);
+
+	/* Check permissions, user must have usage on the server. */
+	aclresult = pg_foreign_server_aclcheck(serverid, umuser, ACL_USAGE);
+	if (aclresult != ACLCHECK_OK)
+		aclcheck_error(aclresult, OBJECT_FOREIGN_SERVER, foreign_server->servername);
+
+	foreach(cell, fdw->options)
 	{
-		if (CloseTransaction)
-			CommitTransactionCommand();
-		return NULL;
+		DefElem    *def = lfirst(cell);
+
+		if (is_valid_dsn_option(options, def->defname, ForeignDataWrapperRelationId))
+			appendStringInfo(&buf, "%s='%s' ", def->defname,
+							 escape_param_str(strVal(def->arg)));
 	}
+
+	foreach(cell, foreign_server->options)
+	{
+		DefElem    *def = lfirst(cell);
+
+		if (is_valid_dsn_option(options, def->defname, ForeignServerRelationId))
+			appendStringInfo(&buf, "%s='%s' ", def->defname,
+							 escape_param_str(strVal(def->arg)));
+	}
+
+	foreach(cell, user_mapping->options)
+	{
+
+		DefElem    *def = lfirst(cell);
+
+		if (is_valid_dsn_option(options, def->defname, UserMappingRelationId))
+			appendStringInfo(&buf, "%s='%s' ", def->defname,
+							 escape_param_str(strVal(def->arg)));
+	}
+
+	if (tx_started)
+		CommitTransactionCommand();
+
+	return buf.data;
 }
 
 /*
