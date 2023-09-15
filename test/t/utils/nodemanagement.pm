@@ -92,7 +92,7 @@ sub make_pgactive_group {
         push @nodes, $node_n;
     }
 
-    initandstart_pgactive_group($node_0, $no_dsn, \@nodes);
+    initandstart_pgactive_group($node_0, $no_dsn);
 
     for (my $nodeid = 1; $nodeid < $n_nodes; $nodeid++)
     {
@@ -113,30 +113,29 @@ sub make_pgactive_group {
 # Wrapper around pgactive.pgactive_create_group
 #
 sub create_pgactive_group {
-    my ($node, $no_dsn, $nodes) = @_;
+    my ($node, $no_dsn) = @_;
     $no_dsn = 0 if !defined($no_dsn);
     my $pgport = $node->port;
     my $pghost = $node->host;
+    my $node_name = $node->name;
     my $node_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
+    my $node_dsn = $node_connstr;
 
     if ( $no_dsn eq 1 ) {
-        my $n_nodes = scalar(@$nodes);
         my $node_user = $ENV{USERNAME} || $ENV{USERNAME} || $ENV{USER} ;
-        for (my $nodeid = 0; $nodeid < $n_nodes; $nodeid++)
-        {
-            my $t_node = $nodes->[$nodeid];
-            my $node_connstr = "server_@{[ $t_node->name ]}";
-            my $node_port = $t_node->port;
-            my $node_host = $t_node->host;
-            $node->safe_psql( $pgactive_test_dbname, qq{CREATE SERVER $node_connstr FOREIGN DATA WRAPPER pgactive_fdw OPTIONS (port '$pgport', dbname '$pgactive_test_dbname', host '$pghost');} );
-            $node->safe_psql( $pgactive_test_dbname, qq{CREATE USER MAPPING FOR $node_user  SERVER $node_connstr OPTIONS ( user '$node_user');} );
-        }
+        my $foreign_server = "server_@{[ $node_name ]}";
+        $node->safe_psql( $pgactive_test_dbname, qq{
+            CREATE SERVER $foreign_server FOREIGN DATA WRAPPER pgactive_fdw OPTIONS (port '$pgport', dbname '$pgactive_test_dbname', host '$pghost');} );
+        $node->safe_psql( $pgactive_test_dbname, qq{
+            CREATE USER MAPPING FOR $node_user  SERVER $foreign_server OPTIONS ( user '$node_user');} );
+        $node_dsn = "user_mapping=$node_user pgactive_foreign_server=$foreign_server";
     }
+
     $node->safe_psql(
         $pgactive_test_dbname, qq{
             SELECT pgactive.pgactive_create_group(
                     node_name := '@{[ $node->name ]}',
-                    node_dsn := '$node_connstr'
+                    node_dsn := '$node_dsn'
                     );
             }
     );
@@ -151,10 +150,9 @@ sub create_pgactive_group {
 sub initandstart_pgactive_group {
     my $node      = shift;
     my $no_dsn    = shift;
-    my $nodes     = shift;
 
     initandstart_node($node);
-    create_pgactive_group($node, $no_dsn, $nodes);
+    create_pgactive_group($node, $no_dsn);
 }
 
 # Init and start node with pgactive, create the test DB and install the pgactive

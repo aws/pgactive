@@ -111,5 +111,5 @@ extern int	pgactive_find_other_exec(const char *argv0, const char *target,
 
 extern uint64 GenerateNodeIdentifier(void);
 
-extern char *get_connect_string(const char *servername);
+extern char *get_connect_string(const char *usermappinginfo);
 #endif							/* pgactive_INTERNAL_H */
