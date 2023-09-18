@@ -842,7 +842,7 @@ prevent_disallowed_extension_creation(CreateExtensionStmt *stmt)
 				(errmsg("cannot create an external logical replication extension when pgactive is active")));
 }
 
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 140000
 static void
 pgactive_commandfilter(PlannedStmt *pstmt,
 					   const char *queryString,
@@ -947,7 +947,7 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 	{
 		if (next_ProcessUtility_hook)
 			next_ProcessUtility_hook(pstmt, queryString,
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 140000
 									 readOnlyTree,
 									 context, params, queryEnv,
 									 dest, qc);
@@ -1633,7 +1633,7 @@ done:
 	{
 		if (next_ProcessUtility_hook)
 			next_ProcessUtility_hook(pstmt, queryString,
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 140000
 									 readOnlyTree,
 									 context, params, queryEnv,
 									 dest, qc);
