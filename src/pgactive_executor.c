@@ -460,7 +460,7 @@ CommandTag
 CreateWritableStmtTag(PlannedStmt *plannedstmt)
 {
 	if (plannedstmt->commandType == CMD_SELECT)
-#if PG_VERSION_NUM < 120000
+#if PG_VERSION_NUM < 130000
 		return "DML";			/* SELECT INTO/WCTE */
 #else
 		return CMDTAG_SELECT_INTO;

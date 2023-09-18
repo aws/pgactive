@@ -361,7 +361,7 @@ filter_AlterTableStmt(Node *parsetree,
 					break;
 
 				case AT_AddConstraint:
-#if PG_VERSION_NUM < 120000
+#if PG_VERSION_NUM < 130000
 				case AT_ProcessedConstraint:
 #endif
 					if (IsA(stmt->def, Constraint))
@@ -748,7 +748,7 @@ allowed_on_read_only_node(Node *parsetree, CommandTag *tag)
 			/* Pg checks this in DoCopy not check_xact_readonly */
 		case T_CopyStmt:
 			{
-#if PG_VERSION_NUM < 120000
+#if PG_VERSION_NUM < 130000
 				*tag = "COPY FROM";
 #else
 				*tag = CMDTAG_COPY_FROM;
