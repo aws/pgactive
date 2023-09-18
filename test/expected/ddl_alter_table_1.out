@@ -1,0 +1,1010 @@
+CREATE TABLE test_tbl(pk int primary key, dropping_col1 text, dropping_col2 text);
+ALTER TABLE test_tbl ADD COLUMN col1 text;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col1 | text    |           |          |         | extended |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ADD COLUMN col2 text;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col1 | text    |           |          |         | extended |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
+ col2          | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ADD COLUMN col3_fail timestamptz NOT NULL DEFAULT now();
+ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl is a regular table
+ALTER TABLE test_tbl ADD COLUMN serial_col_node1 SERIAL;
+ERROR:  ALTER TABLE ... ADD COLUMN ... DEFAULT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl is a regular table
+ALTER TABLE test_tbl DROP COLUMN dropping_col1;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                     Table "public.test_tbl"
+    Column     |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk            | integer |           | not null |         | plain    |              | 
+ dropping_col2 | text    |           |          |         | extended |              | 
+ col1          | text    |           |          |         | extended |              | 
+ col2          | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl DROP COLUMN dropping_col2;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col1 SET NOT NULL;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+
+ALTER TABLE test_tbl ALTER COLUMN col2 SET NOT NULL;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+ALTER TABLE test_tbl ALTER COLUMN col1 DROP NOT NULL;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+ALTER TABLE test_tbl ALTER COLUMN col2 DROP NOT NULL;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col1 SET DEFAULT 'abc';
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          | 'abc'::text | extended |              | 
+ col2   | text    |           |          |             | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col2 SET DEFAULT 'abc';
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          | 'abc'::text | extended |              | 
+ col2   | text    |           |          | 'abc'::text | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col1 DROP DEFAULT;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                    Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable |   Default   | Storage  | Stats target | Description 
+--------+---------+-----------+----------+-------------+----------+--------------+-------------
+ pk     | integer |           | not null |             | plain    |              | 
+ col1   | text    |           |          |             | extended |              | 
+ col2   | text    |           |          | 'abc'::text | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col2 DROP DEFAULT;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ADD CONSTRAINT test_const CHECK (true);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Check constraints:
+    "test_const" CHECK (true)
+
+ALTER TABLE test_tbl ADD CONSTRAINT test_const1 CHECK (true);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Check constraints:
+    "test_const" CHECK (true)
+    "test_const1" CHECK (true)
+
+ALTER TABLE test_tbl DROP CONSTRAINT test_const;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Check constraints:
+    "test_const1" CHECK (true)
+
+ALTER TABLE test_tbl DROP CONSTRAINT test_const1;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           |          |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+
+ALTER TABLE test_tbl ALTER COLUMN col1 SET NOT NULL;
+CREATE UNIQUE INDEX test_idx ON test_tbl(col1);
+ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           |          |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+    "test_idx" UNIQUE, btree (col1) REPLICA IDENTITY
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+
+ALTER TABLE test_tbl ALTER COLUMN col2 SET NOT NULL;
+CREATE UNIQUE INDEX test_idx1 ON test_tbl(col2);
+ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx1;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+    "test_idx" UNIQUE, btree (col1)
+    "test_idx1" UNIQUE, btree (col2) REPLICA IDENTITY
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+ALTER TABLE test_tbl REPLICA IDENTITY DEFAULT;
+DROP INDEX test_idx;
+DROP INDEX test_idx1;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+CREATE UNIQUE INDEX test_idx ON test_tbl(col1);
+ALTER TABLE test_tbl REPLICA IDENTITY USING INDEX test_idx;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+DROP INDEX test_idx;
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+CREATE USER test_user;
+ALTER TABLE test_tbl OWNER TO test_user;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ col1   | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "col1"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+ALTER TABLE test_tbl RENAME COLUMN col1 TO foobar;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "foobar"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "foobar"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+\c postgres
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_tbl_pkey" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "foobar"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+ALTER TABLE test_tbl RENAME CONSTRAINT test_tbl_pkey TO test_ddl_pk;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                  Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+---------+-----------+----------+---------+----------+--------------+-------------
+ pk     | integer |           | not null |         | plain    |              | 
+ foobar | text    |           | not null |         | extended |              | 
+ col2   | text    |           | not null |         | extended |              | 
+Indexes:
+    "test_ddl_pk" PRIMARY KEY, btree (pk)
+Not-null constraints:
+    "test_tbl_col1_not_null" NOT NULL "foobar"
+    "test_tbl_col2_not_null" NOT NULL "col2"
+
+DROP TABLE test_tbl;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+-- ALTER COLUMN ... SET STATISTICS
+\c postgres
+CREATE TABLE test_tbl(id int);
+ALTER TABLE test_tbl ALTER COLUMN id SET STATISTICS 10;
+\d+ test_tbl
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 10           | 
+
+ALTER TABLE test_tbl ALTER COLUMN id SET STATISTICS 0;
+\d+ test_tbl
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 0            | 
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ test_tbl
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   | 0            | 
+
+ALTER TABLE test_tbl ALTER COLUMN id SET STATISTICS -1;
+\d+ test_tbl
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   |              | 
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\d+ test_tbl
+                                 Table "public.test_tbl"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ id     | integer |           |          |         | plain   |              | 
+
+DROP TABLE test_tbl;
+--- INHERITANCE ---
+\c postgres
+CREATE TABLE test_inh_root (id int primary key, val1 varchar, val2 int);
+CREATE TABLE test_inh_chld1 (child1col int) INHERITS (test_inh_root);
+CREATE TABLE test_inh_chld2 () INHERITS (test_inh_chld1);
+INSERT INTO test_inh_root(id, val1, val2)
+SELECT x, x::text, x%4 FROM generate_series(1,10) x;
+INSERT INTO test_inh_chld1(id, val1, val2, child1col)
+SELECT x, x::text, x%4+1, x*2 FROM generate_series(11,20) x;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_inh_root
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
+Indexes:
+    "test_inh_root_pkey" PRIMARY KEY, btree (id)
+Child tables: test_inh_chld1
+
+\d+ test_inh_chld1
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_root
+Child tables: test_inh_chld2
+
+\d+ test_inh_chld2
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_chld1
+
+\c regression
+\d+ test_inh_root
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
+Indexes:
+    "test_inh_root_pkey" PRIMARY KEY, btree (id)
+Child tables: test_inh_chld1
+
+\d+ test_inh_chld1
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_root
+Child tables: test_inh_chld2
+
+\d+ test_inh_chld2
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_chld1
+
+SELECT * FROM test_inh_root;
+ id | val1 | val2 
+----+------+------
+  1 | 1    |    1
+  2 | 2    |    2
+  3 | 3    |    3
+  4 | 4    |    0
+  5 | 5    |    1
+  6 | 6    |    2
+  7 | 7    |    3
+  8 | 8    |    0
+  9 | 9    |    1
+ 10 | 10   |    2
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
+
+SELECT * FROM test_inh_chld1;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+ 11 | 11   |    4 |        22
+ 12 | 12   |    1 |        24
+ 13 | 13   |    2 |        26
+ 14 | 14   |    3 |        28
+ 15 | 15   |    4 |        30
+ 16 | 16   |    1 |        32
+ 17 | 17   |    2 |        34
+ 18 | 18   |    3 |        36
+ 19 | 19   |    4 |        38
+ 20 | 20   |    1 |        40
+(10 rows)
+
+SELECT * FROM test_inh_chld2;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+(0 rows)
+
+SET pgactive.skip_ddl_replication = true;
+ALTER TABLE test_inh_root ADD CONSTRAINT idchk CHECK (id > 0);
+ALTER TABLE ONLY test_inh_chld1 ALTER COLUMN id SET DEFAULT 1;
+ALTER TABLE ONLY test_inh_root DROP CONSTRAINT idchk;
+RESET pgactive.skip_ddl_replication;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_inh_root
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
+Indexes:
+    "test_inh_root_pkey" PRIMARY KEY, btree (id)
+Child tables: test_inh_chld1
+
+\d+ test_inh_chld1
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null | 1       | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Check constraints:
+    "idchk" CHECK (id > 0)
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_root
+Child tables: test_inh_chld2
+
+\d+ test_inh_chld2
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Check constraints:
+    "idchk" CHECK (id > 0)
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_chld1
+
+\c postgres
+\d+ test_inh_root
+                                    Table "public.test_inh_root"
+ Column |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id     | integer           |           | not null |         | plain    |              | 
+ val1   | character varying |           |          |         | extended |              | 
+ val2   | integer           |           |          |         | plain    |              | 
+Indexes:
+    "test_inh_root_pkey" PRIMARY KEY, btree (id)
+Child tables: test_inh_chld1
+
+\d+ test_inh_chld1
+                                     Table "public.test_inh_chld1"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_root
+Child tables: test_inh_chld2
+
+\d+ test_inh_chld2
+                                     Table "public.test_inh_chld2"
+  Column   |       Type        | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+-------------------+-----------+----------+---------+----------+--------------+-------------
+ id        | integer           |           | not null |         | plain    |              | 
+ val1      | character varying |           |          |         | extended |              | 
+ val2      | integer           |           |          |         | plain    |              | 
+ child1col | integer           |           |          |         | plain    |              | 
+Not-null constraints:
+    "test_inh_chld1_id_not_null" NOT NULL "id" (inherited)
+Inherits: test_inh_chld1
+
+\c regression
+SELECT * FROM test_inh_root;
+ id | val1 | val2 
+----+------+------
+  1 | 1    |    1
+  2 | 2    |    2
+  3 | 3    |    3
+  4 | 4    |    0
+  5 | 5    |    1
+  6 | 6    |    2
+  7 | 7    |    3
+  8 | 8    |    0
+  9 | 9    |    1
+ 10 | 10   |    2
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
+
+SELECT * FROM test_inh_chld1;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+ 11 | 11   |    4 |        22
+ 12 | 12   |    1 |        24
+ 13 | 13   |    2 |        26
+ 14 | 14   |    3 |        28
+ 15 | 15   |    4 |        30
+ 16 | 16   |    1 |        32
+ 17 | 17   |    2 |        34
+ 18 | 18   |    3 |        36
+ 19 | 19   |    4 |        38
+ 20 | 20   |    1 |        40
+(10 rows)
+
+SELECT * FROM test_inh_chld2;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+(0 rows)
+
+-- Should fail with an ERROR
+ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
+ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_inh_chld1 is a regular table
+-- Will also fail with an ERROR
+SELECT pgactive.pgactive_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
+ERROR:  ALTER TABLE ... [NO] INHERIT may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_inh_chld1 is a regular table
+CONTEXT:  during replay of DDL statement: ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;
+-- Will be permitted
+BEGIN;
+SET LOCAL pgactive.skip_ddl_replication = true;
+SELECT pgactive.pgactive_replicate_ddl_command('ALTER TABLE public.test_inh_chld1 NO INHERIT public.test_inh_root;');
+ERROR:  pgactive_replicate_ddl_command execution attempt rejected by configuration
+DETAIL:  pgactive.skip_ddl_replication is true.
+HINT:  See the 'DDL replication' chapter of the documentation.
+COMMIT;
+SELECT * FROM test_inh_root;
+ id | val1 | val2 
+----+------+------
+  1 | 1    |    1
+  2 | 2    |    2
+  3 | 3    |    3
+  4 | 4    |    0
+  5 | 5    |    1
+  6 | 6    |    2
+  7 | 7    |    3
+  8 | 8    |    0
+  9 | 9    |    1
+ 10 | 10   |    2
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
+
+SELECT * FROM test_inh_chld1;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+ 11 | 11   |    4 |        22
+ 12 | 12   |    1 |        24
+ 13 | 13   |    2 |        26
+ 14 | 14   |    3 |        28
+ 15 | 15   |    4 |        30
+ 16 | 16   |    1 |        32
+ 17 | 17   |    2 |        34
+ 18 | 18   |    3 |        36
+ 19 | 19   |    4 |        38
+ 20 | 20   |    1 |        40
+(10 rows)
+
+SELECT * FROM test_inh_chld2;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+(0 rows)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+SELECT * FROM test_inh_root;
+ id | val1 | val2 
+----+------+------
+  1 | 1    |    1
+  2 | 2    |    2
+  3 | 3    |    3
+  4 | 4    |    0
+  5 | 5    |    1
+  6 | 6    |    2
+  7 | 7    |    3
+  8 | 8    |    0
+  9 | 9    |    1
+ 10 | 10   |    2
+ 11 | 11   |    4
+ 12 | 12   |    1
+ 13 | 13   |    2
+ 14 | 14   |    3
+ 15 | 15   |    4
+ 16 | 16   |    1
+ 17 | 17   |    2
+ 18 | 18   |    3
+ 19 | 19   |    4
+ 20 | 20   |    1
+(20 rows)
+
+SELECT * FROM test_inh_chld1;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+ 11 | 11   |    4 |        22
+ 12 | 12   |    1 |        24
+ 13 | 13   |    2 |        26
+ 14 | 14   |    3 |        28
+ 15 | 15   |    4 |        30
+ 16 | 16   |    1 |        32
+ 17 | 17   |    2 |        34
+ 18 | 18   |    3 |        36
+ 19 | 19   |    4 |        38
+ 20 | 20   |    1 |        40
+(10 rows)
+
+SELECT * FROM test_inh_chld2;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+(0 rows)
+
+DELETE FROM test_inh_root WHERE val2 = 0;
+ERROR:  cannot run UPDATE or DELETE on table test_inh_chld1 because it does not have a PRIMARY KEY
+HINT:  Add a PRIMARY KEY to the table.
+INSERT INTO test_inh_root(id, val1, val2) VALUES (200, 'root', 1);
+INSERT INTO test_inh_chld1(id, val1, val2, child1col) VALUES (200, 'child', 0, 0);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+SELECT * FROM test_inh_root;
+ id  | val1  | val2 
+-----+-------+------
+   1 | 1     |    1
+   2 | 2     |    2
+   3 | 3     |    3
+   4 | 4     |    0
+   5 | 5     |    1
+   6 | 6     |    2
+   7 | 7     |    3
+   8 | 8     |    0
+   9 | 9     |    1
+  10 | 10    |    2
+ 200 | root  |    1
+  11 | 11    |    4
+  12 | 12    |    1
+  13 | 13    |    2
+  14 | 14    |    3
+  15 | 15    |    4
+  16 | 16    |    1
+  17 | 17    |    2
+  18 | 18    |    3
+  19 | 19    |    4
+  20 | 20    |    1
+ 200 | child |    0
+(22 rows)
+
+SELECT * FROM test_inh_chld1;
+ id  | val1  | val2 | child1col 
+-----+-------+------+-----------
+  11 | 11    |    4 |        22
+  12 | 12    |    1 |        24
+  13 | 13    |    2 |        26
+  14 | 14    |    3 |        28
+  15 | 15    |    4 |        30
+  16 | 16    |    1 |        32
+  17 | 17    |    2 |        34
+  18 | 18    |    3 |        36
+  19 | 19    |    4 |        38
+  20 | 20    |    1 |        40
+ 200 | child |    0 |         0
+(11 rows)
+
+SELECT * FROM test_inh_chld2;
+ id | val1 | val2 | child1col 
+----+------+------+-----------
+(0 rows)
+
+DROP TABLE test_inh_chld2;
+DROP TABLE test_inh_chld1;
+DROP TABLE test_inh_root;
+DROP USER test_user;

@@ -490,6 +490,11 @@ filter_AlterTableStmt(Node *parsetree,
 										   astmt->missing_ok);
 					break;
 
+#if PG_VERSION_NUM >= 170000
+				case AT_SetAttNotNull:
+					break;
+#endif
+
 				default:
 					hasInvalid = true;
 					break;
