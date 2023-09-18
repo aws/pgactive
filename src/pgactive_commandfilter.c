@@ -199,7 +199,7 @@ filter_AlterTableStmt(Node *parsetree,
 	AlterTableStmt *astmt;
 	ListCell   *cell1;
 	bool		hasInvalid;
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 130000
 	AlterTableStmt *stmts = makeNode(AlterTableStmt);
 	List	   *beforeStmts;
 	List	   *afterStmts;
@@ -231,7 +231,7 @@ filter_AlterTableStmt(Node *parsetree,
 	/* XXX Do we need to take care of beforeStmts and afterStmts? */
 	stmts = transformAlterTableStmtpgactive(relid, astmt, queryString);
 
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 130000
 	foreach(cell1, stmts->cmds)
 	{
 		AlterTableCmd *stmt;
@@ -360,10 +360,10 @@ filter_AlterTableStmt(Node *parsetree,
 				case AT_SetTableSpace:
 					break;
 
-#if PG_VERSION_NUM < 150000
 				case AT_AddConstraint:
-#endif
+#if PG_VERSION_NUM < 120000
 				case AT_ProcessedConstraint:
+#endif
 					if (IsA(stmt->def, Constraint))
 					{
 						Constraint *con = (Constraint *) stmt->def;
@@ -413,7 +413,7 @@ filter_AlterTableStmt(Node *parsetree,
 										   astmt->missing_ok);
 					break;
 
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 120000
 				case AT_AddOids:
 #endif
 				case AT_DropOids:
@@ -495,7 +495,7 @@ filter_AlterTableStmt(Node *parsetree,
 					break;
 			}
 		}
-#if PG_VERSION_NUM < 150000
+#if PG_VERSION_NUM < 130000
 	}
 #endif
 
@@ -852,6 +852,15 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 					   QueryEnvironment *queryEnv,
 					   DestReceiver *dest,
 					   QueryCompletion *qc)
+#elif PG_VERSION_NUM >= 130000
+static void
+pgactive_commandfilter(PlannedStmt *pstmt,
+					   const char *queryString,
+					   ProcessUtilityContext context,
+					   ParamListInfo params,
+					   QueryEnvironment *queryEnv,
+					   DestReceiver *dest,
+					   QueryCompletion *qc)
 #else
 static void
 pgactive_commandfilter(PlannedStmt *pstmt,
@@ -945,6 +954,13 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 		else
 			standard_ProcessUtility(pstmt, queryString,
 									readOnlyTree,
+									context, params, queryEnv,
+									dest, qc);
+#elif PG_VERSION_NUM >= 130000
+									 context, params, queryEnv,
+									 dest, qc);
+		else
+			standard_ProcessUtility(pstmt, queryString,
 									context, params, queryEnv,
 									dest, qc);
 #else
@@ -1189,7 +1205,7 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_CreateStmt:
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 130000
 			filter_CreateStmt(parsetree, GetCommandTagName(CreateCommandTag(parsetree)));
 #else
 			filter_CreateStmt(parsetree, completionTag);
@@ -1202,7 +1218,7 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 			break;
 
 		case T_AlterTableStmt:
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 130000
 			filter_AlterTableStmt(parsetree, GetCommandTagName(CreateCommandTag(parsetree)), queryString, &lock_type);
 #else
 			filter_AlterTableStmt(parsetree, completionTag, queryString, &lock_type);
@@ -1624,6 +1640,13 @@ done:
 		else
 			standard_ProcessUtility(pstmt, queryString,
 									readOnlyTree,
+									context, params, queryEnv,
+									dest, qc);
+#elif PG_VERSION_NUM >= 130000
+									 context, params, queryEnv,
+									 dest, qc);
+		else
+			standard_ProcessUtility(pstmt, queryString,
 									context, params, queryEnv,
 									dest, qc);
 #else

@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        version: [REL_16_STABLE, REL_15_STABLE, REL_11_STABLE]
+        version: [REL_16_STABLE, REL_15_STABLE, REL_13_STABLE, REL_11_STABLE]
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
@@ -62,6 +62,7 @@ jobs:
           make -C src/tools/pg_bsd_indent/ -j4 install
           cat << EOF >> pgindent.ignore
           src/compat/11/pg_dump/*
+          src/compat/13/pg_dump/*
           src/compat/15/pg_dump/*
           src/compat/16/pg_dump/*
           EOF
