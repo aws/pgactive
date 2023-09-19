@@ -119,7 +119,26 @@ REGRESSCHECKS = init \
 	dml_toasted \
 	detach_pgactive
 
-include Makefile.global
+# Can only be built using pgxs
+USE_PGXS=1
+
+pgactive_abs_srcdir := @abs_srcdir@
+PG_CONFIG :=@PG_CONFIG@
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+
+vpath_build=@vpath_build@
+ifeq ($(vpath_build),yes)
+	VPATH := $(pgactive_abs_srcdir)/$(pgactive_subdir)
+	USE_VPATH :=$(VPATH)
+endif
+GIT_WORK_TREE=${pgactive_abs_srcdir}
+GIT_DIR=${pgactive_abs_srcdir}/.git
+export GIT_DIR
+export GIT_WORK_TREE
+
+include $(PGXS)
+
+pgactive_VERSION=$(shell awk '/^.define pgactive_VERSION / { print $3; }' ${pgactive_abs_srcdir}/pgactive_version.h.in | cut -d '"' -f 2)
 
 $(info Building against PostgreSQL $(MAJORVERSION))
 
@@ -184,11 +203,8 @@ pgactive_version.h: include/pgactive_version.h.in
 
 src/pgactive.o: pgactive_version.h
 
-# Ensure Makefiles are up2date (should we move this to Makefile.global?)
+# Ensure Makefiles are up to date.
 Makefile: Makefile.in config.status configure
-	./config.status $@
-
-Makefile.global: Makefile.global.in config.status configure
 	./config.status $@
 
 run_tests: run_tests.in  config.status configure
@@ -289,10 +305,10 @@ git-dist: clean
 	rm -f .distgitrev .distgittag
 
 distclean maintainer-clean: clean
-# 	Place the maintainer-clean before removing
-# 	Makefile.global down below because they need Makefile.global.
+# Place the maintainer-clean before removing Makefile down below because they
+# need Makefile.
 	rm -f config.status config.log
-	rm -f include/pgactive_config_generated.h Makefile Makefile.global
+	rm -f include/pgactive_config_generated.h Makefile
 	rm -f test/run_tests
 	rm -rf autom4te.cache/
 

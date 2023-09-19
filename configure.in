@@ -30,8 +30,8 @@ if test -z "$version_num"; then
 fi
 
 AC_MSG_NOTICE([building against PostgreSQL $version_num])
-# Even though Makefile.global defines MAJORVERSION for this, we need access to it
-# before we include Makefile.global in our own Makefile, so set it directly.
+# Even though pgactive defines MAJORVERSION for this, we need access to it
+# early in Makefile, so set it directly.
 pgactive_PG_MAJORVERSION="$version_num"
 AC_SUBST(pgactive_PG_MAJORVERSION)
 
@@ -71,7 +71,6 @@ fi
 AC_SUBST(vpath_build)
 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([Makefile.global])
 AC_CONFIG_FILES([test/run_tests], [chmod +x test/run_tests])
 AC_CONFIG_HEADERS([include/pgactive_config_generated.h])
 AH_TOP([/* Do not include directly, use pgactive_config.h instead. */])
