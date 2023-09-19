@@ -49,7 +49,6 @@ lib*.pc
 /test/run_tests
 /config.log
 /config.status
-/Makefile.global
 /doc/Makefile
 /pgactive.conf.sample
 # Packages

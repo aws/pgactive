@@ -1306,8 +1306,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-pgactive       enable full Active-avtive replication 
-                          [yes/no/auto]
+  --enable-pgactive       enable active-active replication [yes/no/auto]
                           [default=auto]
 
 Some influential environment variables:
@@ -2302,8 +2301,8 @@ fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: building against PostgreSQL $version_num" >&5
 printf "%s\n" "$as_me: building against PostgreSQL $version_num" >&6;}
-# Even though Makefile.global defines MAJORVERSION for this, we need access to it
-# before we include Makefile.global in our own Makefile, so set it directly.
+# Even though pgactive defines MAJORVERSION for this, we need access to it
+# early in Makefile, so set it directly.
 pgactive_PG_MAJORVERSION="$version_num"
 
 
@@ -3363,8 +3362,6 @@ fi
 
 ac_config_files="$ac_config_files Makefile"
 
-ac_config_files="$ac_config_files Makefile.global"
-
 ac_config_files="$ac_config_files test/run_tests"
 
 ac_config_headers="$ac_config_headers include/pgactive_config_generated.h"
@@ -4056,7 +4053,6 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "Makefile.global") CONFIG_FILES="$CONFIG_FILES Makefile.global" ;;
     "test/run_tests") CONFIG_FILES="$CONFIG_FILES test/run_tests" ;;
     "include/pgactive_config_generated.h") CONFIG_HEADERS="$CONFIG_HEADERS include/pgactive_config_generated.h" ;;
 
