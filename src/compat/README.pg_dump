@@ -3,14 +3,15 @@ additional changes stored in <PG Version>.patch file.
 
 While porting pgactive to higher postgres versions or refreshing pg_dump source:
 
-1. Copy pg_dump source code files from postgres src/bin/pg_dump directory to
+1. Copy all pg_dump source code (.c and .h) files except pg_restore.c and
+pg_dumpall.c from postgres src/bin/pg_dump directory to
 src/compat/PG_VERSION/pg_dump directory.
 
-2. Apply the diff (cd src/compat/PG_VERSION/pg_dump and patch -p0 < ../pg_dump.patch).
-
-3. Copy src/fe_utils/string_utils.c from postgres source code to
+2. Copy src/fe_utils/string_utils.c from postgres source code to
 compat/PG_VERSION/pg_dump directory. string_utils.c file is needed by pg_dump
 to make pg_dump a self-reliant component while compiling pgactive source code.
+
+3. Apply the diff (cd src/compat/PG_VERSION/pg_dump and patch -p0 < ../pg_dump.patch).
 
 4. Add the commit hash of postgres in the section "Following table shows commit hash of pg_dump source"
 
