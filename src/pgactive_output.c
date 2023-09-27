@@ -637,6 +637,10 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 	if (tx_started)
 		CommitTransactionCommand();
 
+	/* In binrary upgrade pgactive machinery isn't yet fully started. */
+	if (IsBinaryUpgrade)
+		return;
+
 	/*
 	 * Everything looks ok. Acquire a shmem slot to represent us running.
 	 */
@@ -671,6 +675,10 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is
 static void
 pg_decode_shutdown(LogicalDecodingContext *ctx)
 {
+	/* In binrary upgrade pgactive machinery isn't yet fully started. */
+	if (IsBinaryUpgrade)
+		return;
+
 	/* release and free slot */
 	pgactive_worker_shmem_release();
 }

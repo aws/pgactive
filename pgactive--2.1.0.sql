@@ -654,6 +654,22 @@ BEGIN
             ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
 
+    -- Fail fast if this database is already part of another pgactive group.
+    -- The easiest way is to check if pgactive replication slot already exists
+    -- for this database.
+    PERFORM 1 FROM pg_catalog.pg_replication_slots,
+      pgactive.pgactive_parse_slot_name(slot_name) ps
+      WHERE ps.local_dboid =
+        (SELECT oid FROM pg_database WHERE datname = current_database())
+        AND plugin = 'pgactive';
+
+    IF FOUND THEN
+        RAISE USING
+            MESSAGE = 'this node is already a member of a pgactive group',
+            HINT = 'pgactive replication slot for current database already exists.',
+            ERRCODE = 'object_not_in_prerequisite_state';
+    END IF;
+
     -- Validate that the local connection is usable and matches the node
     -- identity of the node we're running on.
     --

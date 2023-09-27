@@ -738,7 +738,8 @@ extern const char *pgactive_get_my_cached_remote_name(const pgactiveNodeId * con
 
 /* helpers shared by multiple worker types */
 extern struct pg_conn *pgactive_connect(const char *conninfo, Name appname,
-										pgactiveNodeId * out_nodeid);
+										pgactiveNodeId * out_nodeid,
+										PGconn **nonReplConn);
 
 extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
 															  const char *application_name_suffix,

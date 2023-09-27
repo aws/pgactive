@@ -460,7 +460,7 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 		 */
 		snprintf(NameStr(appname), NAMEDATALEN,
 				 "pgactiveverifyreplicationconnection");
-		conn = pgactive_connect(dsn, &appname, &node);
+		conn = pgactive_connect(dsn, &appname, &node, NULL);
 		PQfinish(conn);
 
 		/*

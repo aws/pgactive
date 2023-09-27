@@ -41,7 +41,7 @@ my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
     $pgactive_test_dbname,
     $join_query);
 like($psql_stderr, qr/.*ERROR.*joining node and remote node have different database collation settings/,
-     "joining of a node failed due to different different database collation settings");
+     "joining of a node failed due to different database collation settings");
 
 # Test logical join failure if joining node has existing user tables in the
 # database.

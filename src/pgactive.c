@@ -336,7 +336,8 @@ pgactive_get_remote_dboid(const char *conninfo_db)
 PGconn *
 pgactive_connect(const char *conninfo,
 				 Name appname,
-				 pgactiveNodeId * remote_node)
+				 pgactiveNodeId * remote_node,
+				 PGconn **nonReplConn)
 {
 	PGconn	   *streamConn;
 	PGconn	   *conn;
@@ -448,7 +449,11 @@ pgactive_connect(const char *conninfo,
 
 	pfree(conninfo_nrepl.data);
 	pfree(conninfo_repl.data);
-	PQfinish(conn);
+
+	if (nonReplConn)
+		*nonReplConn = conn;
+	else
+		PQfinish(conn);
 
 	return streamConn;
 }
@@ -470,18 +475,15 @@ pgactive_connect(const char *conninfo,
  * If a snapshot is returned it must be pfree()'d by the caller.
  * ----------
  */
-/*
- * TODO we should really handle the case where the slot already exists but
- * there's no local replication identifier, by dropping and recreating the
- * slot.
- */
 static void
-pgactive_create_slot(PGconn *streamConn, Name slot_name,
+pgactive_create_slot(PGconn *streamConn, PGconn *nonReplConn,
+					 pgactiveNodeId * remote_node, Name slot_name,
 					 char *remote_ident, RepOriginId *replication_identifier,
 					 char **snapshot)
 {
 	StringInfoData query;
 	PGresult   *res;
+	bool		slot_already_exists;
 
 	initStringInfo(&query);
 
@@ -490,21 +492,67 @@ pgactive_create_slot(PGconn *streamConn, Name slot_name,
 	/* we want the new identifier on stable storage immediately */
 	ForceSyncCommit();
 
+	appendStringInfo(&query, "SELECT EXISTS ( "
+					 "SELECT 1 FROM pg_catalog.pg_replication_slots "
+					 "WHERE slot_name = '%s');",
+					 NameStr(*slot_name));
+
+	res = PQexec(nonReplConn, query.data);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		elog(FATAL, "could not check if replication slot \"%s\" already exists on remote node " pgactive_NODEID_FORMAT_WITHNAME ": status %s: %s",
+			 NameStr(*slot_name),
+			 pgactive_NODEID_FORMAT_WITHNAME_ARGS(*remote_node),
+			 PQresStatus(PQresultStatus(res)),
+			 PQresultErrorMessage(res));
+	}
+
+	Assert(PQntuples(res) == 1);
+	Assert(!PQgetisnull(res, 0, 0));
+
+	if (strcmp(PQgetvalue(res, 0, 0), "t") == 0)
+		slot_already_exists = true;
+	else
+		slot_already_exists = false;
+
+	PQclear(res);
+
+	if (slot_already_exists)
+	{
+		elog(DEBUG1, "replication slot \"%s\" already exists on remote node " pgactive_NODEID_FORMAT_WITHNAME ", so dropping it to recreate",
+			 NameStr(*slot_name),
+			 pgactive_NODEID_FORMAT_WITHNAME_ARGS(*remote_node));
+
+		resetStringInfo(&query);
+
+		appendStringInfo(&query, "SELECT * FROM pg_drop_replication_slot('%s');",
+						 NameStr(*slot_name));
+
+		res = PQexec(nonReplConn, query.data);
+
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			elog(FATAL, "could not drop replication slot \"%s\" on remote node " pgactive_NODEID_FORMAT_WITHNAME ": status %s: %s",
+				 NameStr(*slot_name),
+				 pgactive_NODEID_FORMAT_WITHNAME_ARGS(*remote_node),
+				 PQresStatus(PQresultStatus(res)),
+				 PQresultErrorMessage(res));
+		}
+
+		PQclear(res);
+	}
+
+	resetStringInfo(&query);
+
 	/* acquire remote decoding slot */
 	appendStringInfo(&query, "CREATE_REPLICATION_SLOT \"%s\" LOGICAL %s",
 					 NameStr(*slot_name), "pgactive");
-
-	elog(DEBUG3, "sending replication command: %s", query.data);
 
 	res = PQexec(streamConn, query.data);
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		/*
-		 * TODO: Should test whether this error is 'already exists' and carry
-		 * on
-		 */
-
 		elog(FATAL, "could not send replication command \"%s\": status %s: %s",
 			 query.data,
 			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
@@ -734,6 +782,7 @@ pgactive_establish_connection_and_slot(const char *dsn,
 									   RepOriginId *out_replication_identifier, char **out_snapshot)
 {
 	PGconn	   *streamConn;
+	PGconn	   *nonReplConn;
 	bool		tx_started = false;
 	NameData	appname;
 	char	   *remote_repident_name;
@@ -748,7 +797,7 @@ pgactive_establish_connection_and_slot(const char *dsn,
 	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like
 	 * connection failure.
 	 */
-	streamConn = pgactive_connect(dsn, &appname, out_nodeid);
+	streamConn = pgactive_connect(dsn, &appname, out_nodeid, &nonReplConn);
 
 	pgactive_slot_name(out_slot_name, &myid, out_nodeid->dboid);
 	remote_repident_name = pgactive_replident_name(out_nodeid, myid.dboid);
@@ -781,11 +830,15 @@ pgactive_establish_connection_and_slot(const char *dsn,
 		 */
 
 		/* create local replication identifier and a remote slot */
-		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
-		pgactive_create_slot(streamConn, out_slot_name, remote_repident_name,
+		pgactive_create_slot(streamConn, nonReplConn, out_nodeid,
+							 out_slot_name, remote_repident_name,
 							 out_replication_identifier, out_snapshot);
+		elog(DEBUG1, "created new replication slot \"%s\" on remote node " pgactive_NODEID_FORMAT_WITHNAME "",
+			 NameStr(*out_slot_name),
+			 pgactive_NODEID_FORMAT_WITHNAME_ARGS(*out_nodeid));
 	}
 
+	PQfinish(nonReplConn);
 	pfree(remote_repident_name);
 
 	return streamConn;
