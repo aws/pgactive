@@ -22,3 +22,18 @@ CREATE EXTENSION pgactive;
 
 -- DDL lock state before pgactive comes up
 SELECT * FROM pgactive.pgactive_get_global_locks_info();
+
+-- pgactive functions must behave sanely when the database hasn't been added
+-- yet to the pgactive group.
+CREATE DATABASE test;
+
+\c test
+CREATE EXTENSION pgactive;
+SELECT pgactive.pgactive_get_local_nodeid();
+SELECT pgactive.get_replication_lag_info();
+SELECT pgactive.pgactive_skip_changes('unknown', 0, 0, '0/FFFFFFFF');
+SELECT pgactive.pgactive_get_global_locks_info();
+
+\c regression
+
+DROP DATABASE test;

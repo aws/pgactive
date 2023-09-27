@@ -179,9 +179,9 @@ uint64
 pgactive_get_nid_internal(void)
 {
 	StringInfoData cmd;
-	char	   *nid_str;
 	uint64		nid;
 	bool		tx_started = false;
+	char	   *res;
 
 	nid = pgactive_nid_shmem_get(MyDatabaseId);
 
@@ -195,22 +195,44 @@ pgactive_get_nid_internal(void)
 	}
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT * FROM pgactive.%s();",
-					 pgactive_NID_GETTER_FUNC_NAME);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
+
+	appendStringInfo(&cmd, "SELECT EXISTS ( "
+					 "SELECT 1 FROM pg_catalog.pg_proc p "
+					 "INNER JOIN pg_namespace n ON p.pronamespace = n.oid "
+					 "WHERE n.nspname = 'pgactive' "
+					 "AND p.proname = '%s');",
+					 pgactive_NID_GETTER_FUNC_NAME);
 
 	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_execute failed: %s", cmd.data);
 
 	Assert(SPI_processed == 1);
 	Assert(SPI_tuptable->tupdesc->natts == 1);
-	nid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+	res = SPI_getvalue(SPI_tuptable->vals[0],
+					   SPI_tuptable->tupdesc, 1);
 
-	if (sscanf(nid_str, UINT64_FORMAT, &nid) != 1)
+	if (strcmp(res, "f") == 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("pgactive is not active in this database")));
+
+	resetStringInfo(&cmd);
+	appendStringInfo(&cmd, "SELECT * FROM pgactive.%s();",
+					 pgactive_NID_GETTER_FUNC_NAME);
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	Assert(SPI_processed == 1);
+	Assert(SPI_tuptable->tupdesc->natts == 1);
+	res = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+
+	if (sscanf(res, UINT64_FORMAT, &nid) != 1)
 		elog(ERROR, "parsing pgactive node identifier to uint64 from %s failed",
-			 nid_str);
+			 res);
 
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
