@@ -36,7 +36,6 @@ OBJS = src/pgactive.o \
 	src/pgactive_conflict_logging.o \
 	src/pgactive_commandfilter.o \
 	src/pgactive_common.o \
-	src/pgactive_compat.o \
 	src/pgactive_count.o \
 	src/pgactive_executor.o \
 	src/pgactive_init_replica.o \

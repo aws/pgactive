@@ -2345,3 +2345,47 @@ has_required_privs(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(false);
 }
+
+/* Compatibility check functions */
+bool
+pgactive_get_float4byval(void)
+{
+#ifdef USE_FLOAT4_BYVAL
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool
+pgactive_get_float8byval(void)
+{
+#ifdef USE_FLOAT8_BYVAL
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool
+pgactive_get_integer_timestamps(void)
+{
+	const char *val;
+
+	val = GetConfigOption("integer_datetimes", false, false);
+
+	if (strcmp(val, "on") == 0)
+		return true;
+	else
+		return false;
+}
+
+bool
+pgactive_get_bigendian(void)
+{
+#ifdef WORDS_BIGENDIAN
+	return true;
+#else
+	return false;
+#endif
+}
