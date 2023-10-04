@@ -57,7 +57,7 @@ const char *drop_handler_sql =
 "DELETE FROM pgactive.pgactive_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
 const char *conflict_handlers_get_tbl_oid_sql =
-"SELECT oid FROM pgactive.pgactive_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
+"SELECT ch_reloid FROM pgactive.pgactive_conflict_handlers WHERE ch_reloid = $1 AND ch_name = $2";
 
 const char *get_conflict_handlers_for_table_sql =
 "SELECT ch_fun::regprocedure, ch_type::text ch_type, ch_timeframe FROM pgactive.pgactive_conflict_handlers" \
@@ -65,7 +65,6 @@ const char *get_conflict_handlers_for_table_sql =
 
 static void pgactive_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid);
 static void pgactive_conflict_handlers_check_access(Oid reloid);
-static const char *pgactive_conflict_handlers_event_type_name(pgactiveConflictType event_type);
 
 static Oid	pgactive_conflict_handler_table_oid = InvalidOid;
 static Oid	pgactive_conflict_handler_type_oid = InvalidOid;
@@ -663,33 +662,6 @@ pgactive_get_conflict_handlers(pgactiveRelation * rel)
 	}
 }
 
-static const char *
-pgactive_conflict_handlers_event_type_name(pgactiveConflictType event_type)
-{
-	switch (event_type)
-	{
-		case pgactiveConflictType_InsertInsert:
-			return "insert_insert";
-		case pgactiveConflictType_InsertUpdate:
-			return "insert_update";
-		case pgactiveConflictType_UpdateUpdate:
-			return "update_update";
-		case pgactiveConflictType_UpdateDelete:
-			return "update_delete";
-		case pgactiveConflictType_DeleteDelete:
-			return "delete_delete";
-		case pgactiveConflictType_UnhandledTxAbort:
-			return "unhandled_tx_abort";
-
-		default:
-			elog(ERROR,
-				 "wrong value for event type, possibly corrupted memory: %d",
-				 event_type);
-	}
-
-	return "(unknown)";
-}
-
 /*
  * Call a list of handlers (identified by Oids) and return the first non-NULL
  * return value. Return NULL if no handler returns a non-NULL value.
@@ -702,11 +674,6 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 {
 	size_t		i;
 	Datum		retval;
-#if PG_VERSION_NUM >= 120000
-	FunctionCallInfoBaseData fcinfo;
-#else
-	FunctionCallInfoData fcinfo;
-#endif
 	FmgrInfo	finfo;
 	HeapTuple	fun_tup;
 	HeapTupleData result_tup;
@@ -714,19 +681,22 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 	TupleDesc	retdesc;
 	Datum		val;
 	bool		isnull;
-	Oid			event_oid;
-	const char *event = pgactive_conflict_handlers_event_type_name(event_type);
+	Datum		event_d;
 
 	*skip = false;
 
 	pgactive_get_conflict_handlers(rel);
 
-	event_oid = pgactiveGetSysCacheOid2Error(ENUMTYPOIDNAME, Anum_pg_enum_enumtypid,
-											 pgactive_conflict_handler_type_oid,
-											 CStringGetDatum(event));
+	event_d = pgactive_conflict_type_get_datum(event_type);
 
 	for (i = 0; i < rel->conflict_handlers_len; ++i)
 	{
+#if PG_VERSION_NUM >= 120000
+		LOCAL_FCINFO(fcinfo, 5);
+#else
+		FunctionCallInfoData fcinfo;
+#endif
+
 		/*
 		 * ignore all handlers which don't match the type or are not usable by
 		 * timeframe
@@ -737,38 +707,49 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			continue;
 
 		fmgr_info(rel->conflict_handlers[i].handler_oid, &finfo);
-		InitFunctionCallInfoData(fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
 
 #if PG_VERSION_NUM >= 120000
+		InitFunctionCallInfoData(*fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
+
 		if (local != NULL)
 		{
-			fcinfo.args[0].value =
+			fcinfo->args[0].value =
 				heap_copy_tuple_as_datum(local, RelationGetDescr(rel->rel));
-			fcinfo.args[0].isnull = false;
+			fcinfo->args[0].isnull = false;
 		}
 		else
-			fcinfo.args[0].isnull = true;
+			fcinfo->args[0].isnull = true;
 
 		if (remote != NULL)
 		{
-			fcinfo.args[1].value =
+			fcinfo->args[1].value =
 				heap_copy_tuple_as_datum(remote, RelationGetDescr(rel->rel));
-			fcinfo.args[1].isnull = false;
+			fcinfo->args[1].isnull = false;
 		}
 		else
-			fcinfo.args[1].isnull = true;
+			fcinfo->args[1].isnull = true;
 
-		fcinfo.args[2].value = CStringGetTextDatum(command_tag);
-		fcinfo.args[3].value = ObjectIdGetDatum(RelationGetRelid(rel->rel));
-		fcinfo.args[4].value = event_oid;
+		fcinfo->args[2].value = CStringGetTextDatum(command_tag);
+		fcinfo->args[2].isnull = false;
 
-		retval = FunctionCallInvoke(&fcinfo);
+		fcinfo->args[3].value = ObjectIdGetDatum(RelationGetRelid(rel->rel));
+		fcinfo->args[3].isnull = false;
 
-		if (!fcinfo.args[0].isnull)
-			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[0].value));
-		if (!fcinfo.args[1].isnull)
-			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[1].value));
+		fcinfo->args[4].value = event_d;
+		fcinfo->args[4].isnull = false;
+
+		retval = FunctionCallInvoke(fcinfo);
+
+		if (!fcinfo->args[0].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo->args[0].value));
+		if (!fcinfo->args[1].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo->args[1].value));
+
+		if (fcinfo->isnull)
+			elog(ERROR, "handler return value is NULL");
 #else
+		InitFunctionCallInfoData(fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
+
 		if (local != NULL)
 		{
 			fcinfo.arg[0] =
@@ -788,8 +769,13 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			fcinfo.argnull[1] = true;
 
 		fcinfo.arg[2] = CStringGetTextDatum(command_tag);
+		fcinfo.argnull[2] = false;
+
 		fcinfo.arg[3] = ObjectIdGetDatum(RelationGetRelid(rel->rel));
-		fcinfo.arg[4] = event_oid;
+		fcinfo.argnull[3] = false;
+
+		fcinfo.arg[4] = event_d;
+		fcinfo.argnull[4] = false;
 
 		retval = FunctionCallInvoke(&fcinfo);
 
@@ -797,9 +783,10 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.arg[0]));
 		if (!fcinfo.argnull[1])
 			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.arg[1]));
-#endif
+
 		if (fcinfo.isnull)
 			elog(ERROR, "handler return value is NULL");
+#endif
 
 		tup_header = DatumGetHeapTupleHeader(retval);
 

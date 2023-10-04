@@ -976,4 +976,5 @@ GetPQerrorMessage(const PGconn *conn)
 		return "connection failed";
 }
 
+extern Datum pgactive_conflict_type_get_datum(pgactiveConflictType conflict_type);
 #endif							/* pgactive_H */

@@ -104,7 +104,7 @@ pgactive_conflict_logging_cleanup(void)
 
 
 /* Get the enum oid for a given pgactiveConflictType */
-static Datum
+Datum
 pgactive_conflict_type_get_datum(pgactiveConflictType conflict_type)
 {
 	Oid			conflict_type_oid;
