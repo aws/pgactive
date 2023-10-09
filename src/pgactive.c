@@ -1383,10 +1383,10 @@ pgactive_get_local_nodeid(PG_FUNCTION_ARGS)
 	char		sysid_str[33];
 	pgactiveNodeId myid;
 
-	pgactive_make_my_nodeid(&myid);
-
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
+
+	pgactive_make_my_nodeid(&myid);
 
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
@@ -1569,16 +1569,18 @@ pgactive_skip_changes_cleanup(int code, Datum arg)
 Datum
 pgactive_skip_changes(PG_FUNCTION_ARGS)
 {
-	const char *remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
-	XLogRecPtr	upto_lsn = PG_GETARG_LSN(3);
+	char	   *remote_sysid_str;
+	XLogRecPtr	upto_lsn;
 	RepOriginId nodeid;
 	pgactiveNodeId myid,
 				remote;
 
+	pgactive_make_my_nodeid(&myid);
+
+	remote_sysid_str = text_to_cstring(PG_GETARG_TEXT_P(0));
 	remote.timeline = PG_GETARG_OID(1);
 	remote.dboid = PG_GETARG_OID(2);
-
-	pgactive_make_my_nodeid(&myid);
+	upto_lsn = PG_GETARG_LSN(3);
 
 	/*
 	 * replace pgactive_permit_unsafe_commands by
@@ -2057,24 +2059,27 @@ get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	pgactiveNodeId target;
-	char	   *sysid_str = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	char	   *sysid_str;
 	pgactiveWorker *worker;
 	bool		lock_acquired = false;
 	TransactionId xid = InvalidTransactionId;
 	TimestampTz committs = 0;
 	TimestampTz applied_at = 0;
 
-	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
-		PG_RETURN_VOID();
+	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
 
+	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("pgactive is not active in this database")));
+
+	sysid_str = text_to_cstring(PG_GETARG_TEXT_PP(0));
 	if (sscanf(sysid_str, UINT64_FORMAT, &target.sysid) != 1)
 		elog(ERROR, "parsing of sysid as uint64 failed");
 
 	target.timeline = PG_GETARG_OID(1);
 	target.dboid = PG_GETARG_OID(2);
-
-	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
 
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
@@ -2216,9 +2221,6 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 	int			i;
 	pgactiveNodeId myid;
 	char		local_sysid_str[33];
-
-	if (!pgactive_is_pgactive_activated_db(MyDatabaseId))
-		PG_RETURN_VOID();
 
 	pgactive_make_my_nodeid(&myid);
 	snprintf(local_sysid_str, sizeof(local_sysid_str), UINT64_FORMAT,
