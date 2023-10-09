@@ -1,0 +1,931 @@
+CREATE TABLE test_tbl_simple_create(val int);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_create
+                          Table "public.test_tbl_simple_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_simple_create
+                          Table "public.test_tbl_simple_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+DROP TABLE test_tbl_simple_create;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_create
+\c regression
+\d+ test_tbl_simple_create
+CREATE UNLOGGED TABLE test_tbl_unlogged(val int);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_unlogged
+                        Unlogged table "public.test_tbl_unlogged"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_unlogged
+\c regression
+\d+ test_tbl_unlogged
+                        Unlogged table "public.test_tbl_unlogged"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+CREATE TABLE test_tbl_simple_pk(val int PRIMARY KEY);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_pk
+                            Table "public.test_tbl_simple_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
+
+\c postgres
+\d+ test_tbl_simple_pk
+                            Table "public.test_tbl_simple_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
+
+DROP TABLE test_tbl_simple_pk;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_pk
+\c regression
+\d+ test_tbl_simple_pk
+CREATE TABLE test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1));
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_combined_pk
+                           Table "public.test_tbl_combined_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+ val1   | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+
+\c postgres
+\d+ test_tbl_combined_pk
+                           Table "public.test_tbl_combined_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+ val1   | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+
+DROP TABLE test_tbl_combined_pk;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_combined_pk
+\c regression
+\d+ test_tbl_combined_pk
+CREATE TABLE test_tbl_serial(val SERIAL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+
+\c postgres
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+
+DROP TABLE test_tbl_serial;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+\c regression
+\d+ test_tbl_serial
+CREATE TABLE test_tbl_serial(val SERIAL);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+
+\c postgres
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+
+CREATE TABLE test_tbl_serial_pk(val SERIAL PRIMARY KEY);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_pk
+                                                Table "public.test_tbl_serial_pk"
+ Column |  Type   | Collation | Nullable |                     Default                     | Storage | Stats target | Description 
+--------+---------+-----------+----------+-------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_pk_val_seq'::regclass) | plain   |              | 
+Indexes:
+    "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
+
+\c postgres
+\d+ test_tbl_serial_pk
+                                                Table "public.test_tbl_serial_pk"
+ Column |  Type   | Collation | Nullable |                     Default                     | Storage | Stats target | Description 
+--------+---------+-----------+----------+-------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_pk_val_seq'::regclass) | plain   |              | 
+Indexes:
+    "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
+
+DROP TABLE test_tbl_serial_pk;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_pk
+\c regression
+\d+ test_tbl_serial_pk
+CREATE TABLE test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1));
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_combined_pk
+                                                Table "public.test_tbl_serial_combined_pk"
+ Column |  Type   | Collation | Nullable |                         Default                          | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_combined_pk_val_seq'::regclass) | plain   |              | 
+ val1   | integer |           | not null |                                                          | plain   |              | 
+Indexes:
+    "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+
+\c postgres
+\d+ test_tbl_serial_combined_pk
+                                                Table "public.test_tbl_serial_combined_pk"
+ Column |  Type   | Collation | Nullable |                         Default                          | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_combined_pk_val_seq'::regclass) | plain   |              | 
+ val1   | integer |           | not null |                                                          | plain   |              | 
+Indexes:
+    "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+
+CREATE TABLE test_tbl_create_index (val int, val2 int);
+CREATE UNIQUE INDEX test1_idx ON test_tbl_create_index(val);
+CREATE INDEX test2_idx ON test_tbl_create_index (lower(val2::text));
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" UNIQUE, btree (val)
+    "test2_idx" btree (lower(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" UNIQUE, btree (val)
+    "test2_idx" btree (lower(val2::text))
+
+DROP INDEX test1_idx;
+DROP INDEX test2_idx;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+
+CREATE INDEX test1_idx ON test_tbl_create_index(val, val2);
+CREATE INDEX test2_idx ON test_tbl_create_index USING gist (val, UPPER(val2::text));
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" btree (val, val2)
+    "test2_idx" gist (val, upper(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" btree (val, val2)
+    "test2_idx" gist (val, upper(val2::text))
+
+DROP INDEX test1_idx;
+DROP INDEX CONCURRENTLY test2_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+\c postgres
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+CREATE INDEX CONCURRENTLY test1_idx ON test_tbl_create_index(val, val2);
+ERROR:  CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl_create_index is a regular table
+CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON test_tbl_create_index (lower(val2::text));
+ERROR:  CREATE INDEX CONCURRENTLY without pgactive.skip_ddl_replication set may only affect UNLOGGED or TEMPORARY tables when pgactive is active; test_tbl_create_index is a regular table
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+DROP INDEX CONCURRENTLY test1_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
+DROP INDEX CONCURRENTLY test2_idx;
+ERROR:  DROP INDEX CONCURRENTLY is not supported without pgactive.skip_ddl_replication set
+DROP TABLE test_tbl_create_index;
+CREATE TABLE test_simple_create_with_arrays_tbl(val int[], val1 text[]);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_arrays_tbl
+                      Table "public.test_simple_create_with_arrays_tbl"
+ Column |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-----------+-----------+----------+---------+----------+--------------+-------------
+ val    | integer[] |           |          |         | extended |              | 
+ val1   | text[]    |           |          |         | extended |              | 
+
+\c postgres
+\d+ test_simple_create_with_arrays_tbl
+                      Table "public.test_simple_create_with_arrays_tbl"
+ Column |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-----------+-----------+----------+---------+----------+--------------+-------------
+ val    | integer[] |           |          |         | extended |              | 
+ val1   | text[]    |           |          |         | extended |              | 
+
+DROP TABLE test_simple_create_with_arrays_tbl;
+CREATE TYPE test_t AS ENUM('a','b','c');
+CREATE TABLE test_simple_create_with_enums_tbl(val test_t, val1 test_t);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_enums_tbl
+                    Table "public.test_simple_create_with_enums_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+--------+-----------+----------+---------+---------+--------------+-------------
+ val    | test_t |           |          |         | plain   |              | 
+ val1   | test_t |           |          |         | plain   |              | 
+
+\c regression
+\d+ test_simple_create_with_enums_tbl
+                    Table "public.test_simple_create_with_enums_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+--------+-----------+----------+---------+---------+--------------+-------------
+ val    | test_t |           |          |         | plain   |              | 
+ val1   | test_t |           |          |         | plain   |              | 
+
+DROP TABLE test_simple_create_with_enums_tbl;
+DROP TYPE test_t;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_enums_tbl
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
+(0 rows)
+
+\c postgres
+\d+ test_simple_create_with_enums_tbl
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
+(0 rows)
+
+CREATE TYPE test_t AS (f1 text, f2 float, f3 integer);
+CREATE TABLE test_simple_create_with_composites_tbl(val test_t, val1 test_t);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_composites_tbl
+                  Table "public.test_simple_create_with_composites_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ val    | test_t |           |          |         | extended |              | 
+ val1   | test_t |           |          |         | extended |              | 
+
+\c regression
+\d+ test_simple_create_with_composites_tbl
+                  Table "public.test_simple_create_with_composites_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ val    | test_t |           |          |         | extended |              | 
+ val1   | test_t |           |          |         | extended |              | 
+
+DROP TABLE test_simple_create_with_composites_tbl;
+DROP TYPE test_t;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_composites_tbl
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
+(0 rows)
+
+\c postgres
+\d+ test_simple_create_with_composites_tbl
+\dT+ test_t
+                                    List of data types
+ Schema | Name | Internal name | Size | Elements | Owner | Access privileges | Description 
+--------+------+---------------+------+----------+-------+-------------------+-------------
+(0 rows)
+
+DROP TABLE test_tbl_serial;
+DROP TABLE test_tbl_serial_combined_pk;
+CREATE TABLE test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02');
+CREATE TABLE test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (test_tbl_inh_parent);
+NOTICE:  merging column "f1" with inherited definition
+NOTICE:  merging column "f2" with inherited definition
+CREATE TABLE test_tbl_inh_chld2(f1 text, f2 date) INHERITS (test_tbl_inh_parent);
+NOTICE:  merging column "f1" with inherited definition
+NOTICE:  merging column "f2" with inherited definition
+CREATE TABLE test_tbl_inh_chld3(f1 text) INHERITS (test_tbl_inh_parent, test_tbl_inh_chld1);
+NOTICE:  merging multiple inherited definitions of column "f1"
+NOTICE:  merging multiple inherited definitions of column "f2"
+NOTICE:  merging column "f1" with inherited definition
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_*
+                                 Table "public.test_tbl_inh_chld1"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+Child tables: test_tbl_inh_chld3
+
+                                 Table "public.test_tbl_inh_chld2"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+
+                                 Table "public.test_tbl_inh_chld3"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent,
+          test_tbl_inh_chld1
+
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+\c regression
+\d+ test_tbl_inh_*
+                                 Table "public.test_tbl_inh_chld1"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+Child tables: test_tbl_inh_chld3
+
+                                 Table "public.test_tbl_inh_chld2"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+
+                                 Table "public.test_tbl_inh_chld3"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent,
+          test_tbl_inh_chld1
+
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO test_tbl_inh_parent
+          WHERE (f1 LIKE '%1%') DO INSTEAD
+          INSERT INTO test_tbl_inh_chld1 VALUES (NEW.*);
+CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO test_tbl_inh_parent
+          WHERE (f1 LIKE '%2%') DO INSTEAD
+          INSERT INTO test_tbl_inh_chld2 VALUES (NEW.*);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_parent
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Rules:
+    test_tbl_inh_parent_rule_ins_1 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%1%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld1 (f1, f2)
+  VALUES (new.f1, new.f2)
+    test_tbl_inh_parent_rule_ins_2 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%2%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld2 (f1, f2)
+  VALUES (new.f1, new.f2)
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+\c postgres
+\d+ test_tbl_inh_parent
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Rules:
+    test_tbl_inh_parent_rule_ins_1 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%1%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld1 (f1, f2)
+  VALUES (new.f1, new.f2)
+    test_tbl_inh_parent_rule_ins_2 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%2%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld2 (f1, f2)
+  VALUES (new.f1, new.f2)
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+DROP TABLE test_tbl_inh_chld1;
+ERROR:  cannot drop table test_tbl_inh_chld1 because other objects depend on it
+DETAIL:  table test_tbl_inh_chld3 depends on table test_tbl_inh_chld1
+rule test_tbl_inh_parent_rule_ins_1 on table test_tbl_inh_parent depends on table test_tbl_inh_chld1
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+DROP TABLE test_tbl_inh_parent CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table test_tbl_inh_chld1
+drop cascades to table test_tbl_inh_chld2
+drop cascades to table test_tbl_inh_chld3
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_*
+\c regression
+\d+ test_tbl_inh_*
+-- ensure tables WITH OIDs can't be created
+SHOW default_with_oids;
+ default_with_oids 
+-------------------
+ off
+(1 row)
+
+CREATE TABLE tbl_with_oids() WITH oids;
+ERROR:  syntax error at or near "oids"
+LINE 1: CREATE TABLE tbl_with_oids() WITH oids;
+                                          ^
+CREATE TABLE tbl_without_oids() WITHOUT oids;
+DROP TABLE tbl_without_oids;
+CREATE TABLE tbl_without_oids();
+DROP TABLE tbl_without_oids;
+SET default_with_oids = true;
+ERROR:  tables declared WITH OIDS are not supported
+CREATE TABLE tbl_with_oids() WITH OIDS;
+ERROR:  syntax error at or near "OIDS"
+LINE 1: CREATE TABLE tbl_with_oids() WITH OIDS;
+                                          ^
+CREATE TABLE tbl_without_oids() WITHOUT oids;
+DROP TABLE tbl_without_oids;
+SET default_with_oids = false;
+-- ensure storage attributes in CREATE TABLE are replicated properly
+\c postgres
+CREATE TABLE tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75);
+\d+ tbl_showfillfactor
+                                Table "public.tbl_showfillfactor"
+ Column |      Type      | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+----------------+-----------+----------+---------+----------+--------------+-------------
+ name   | character(500) |           |          |         | extended |              | 
+Indexes:
+    "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
+Options: fillfactor=75
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ tbl_showfillfactor
+                                Table "public.tbl_showfillfactor"
+ Column |      Type      | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+----------------+-----------+----------+---------+----------+--------------+-------------
+ name   | character(500) |           |          |         | extended |              | 
+Indexes:
+    "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
+Options: fillfactor=75
+
+DROP TABLE tbl_showfillfactor;
+--- AGGREGATE ---
+\c postgres
+CREATE AGGREGATE test_avg (
+   sfunc = int4_avg_accum, basetype = int4, stype = _int8,
+   finalfunc = int8_avg,
+   initcond1 = '{0,0}',
+   sortop = =
+);
+-- without finalfunc; test obsolete spellings 'sfunc1' etc
+CREATE AGGREGATE test_sum (
+   sfunc1 = int4pl, basetype = int4, stype1 = int4,
+   initcond1 = '0'
+);
+-- zero-argument aggregate
+CREATE AGGREGATE test_cnt (*) (
+   sfunc = int8inc, stype = int8,
+   initcond = '0'
+);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                         List of functions
+ Schema |   Name   | Result data type | Argument data types | Type 
+--------+----------+------------------+---------------------+------
+ public | test_avg | numeric          | integer             | agg
+ public | test_cnt | bigint           |                     | agg
+ public | test_sum | integer          | integer             | agg
+(3 rows)
+
+\c regression
+\dfa test_*
+                         List of functions
+ Schema |   Name   | Result data type | Argument data types | Type 
+--------+----------+------------------+---------------------+------
+ public | test_avg | numeric          | integer             | agg
+ public | test_cnt | bigint           |                     | agg
+ public | test_sum | integer          | integer             | agg
+(3 rows)
+
+DROP AGGREGATE test_avg(int4);
+DROP AGGREGATE test_sum(int4);
+DROP AGGREGATE test_cnt(*);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+\c postgres
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+create type aggtype as (a integer, b integer, c text);
+create function aggf_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
+language sql strict immutable;
+create function aggfns_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
+language sql immutable;
+create aggregate test_aggfstr(integer,integer,text) (
+   sfunc = aggf_trans, stype = aggtype[],
+   initcond = '{}'
+);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                            List of functions
+ Schema |     Name     | Result data type |  Argument data types   | Type 
+--------+--------------+------------------+------------------------+------
+ public | test_aggfstr | aggtype[]        | integer, integer, text | agg
+(1 row)
+
+\c regression
+\dfa test_*
+                            List of functions
+ Schema |     Name     | Result data type |  Argument data types   | Type 
+--------+--------------+------------------+------------------------+------
+ public | test_aggfstr | aggtype[]        | integer, integer, text | agg
+(1 row)
+
+DROP AGGREGATE test_aggfstr(integer,integer,text);
+DROP FUNCTION aggf_trans(aggtype[],integer,integer,text);
+DROP FUNCTION aggfns_trans(aggtype[],integer,integer,text);
+DROP TYPE aggtype;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+\c postgres
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+--- OPERATOR ---
+\c postgres
+CREATE OPERATOR ## (
+   leftarg = path,
+   rightarg = path,
+   procedure = path_inter,
+   commutator = ##
+);
+CREATE OPERATOR @#@ (
+   rightarg = int8,		-- left unary
+   procedure = factorial
+);
+CREATE OPERATOR #@# (
+   leftarg = int8,		-- right unary
+   procedure = factorial
+);
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\do public.##
+                                      List of operators
+ Schema | Name | Left arg type | Right arg type | Result type |          Description          
+--------+------+---------------+----------------+-------------+-------------------------------
+ public | ##   | path          | path           | boolean     | implementation of ?# operator
+(1 row)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | @#@  |               | bigint         | numeric     | factorial
+(1 row)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | #@#  | bigint        |                | numeric     | factorial
+(1 row)
+
+\c regression
+\do public.##
+                                      List of operators
+ Schema | Name | Left arg type | Right arg type | Result type |          Description          
+--------+------+---------------+----------------+-------------+-------------------------------
+ public | ##   | path          | path           | boolean     | implementation of ?# operator
+(1 row)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | @#@  |               | bigint         | numeric     | factorial
+(1 row)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | #@#  | bigint        |                | numeric     | factorial
+(1 row)
+
+DROP OPERATOR ##(path, path);
+DROP OPERATOR @#@(none,int8);
+DROP OPERATOR #@#(int8,none);
+\do public.##
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\do public.##
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+

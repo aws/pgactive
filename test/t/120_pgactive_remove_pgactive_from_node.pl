@@ -30,7 +30,7 @@ pgactive_detach_nodes( [$node_b], $node_a );
 check_detach_status([$node_b], $node_a);
 
 # Remove pgactive from detached node
-pgactive_remove_and_localize_seqs( $node_b, 1 );
+pgactive_remove_and_localize_seqs( $node_b );
 
 # Remove the table foo
 $node_b->safe_psql( $pgactive_test_dbname, "drop table foo" );

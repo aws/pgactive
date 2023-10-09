@@ -232,7 +232,7 @@ regress_check: all install
 # install them. So you'll have to copy them manually or patch your postgres
 # tree to install them:
 # https://www.postgresql.org/message-id/CAMsr%2BYFXv%2B2qne6xJW7z_25mYBtktRX5rpkrgrb%2pgactivegQ_FxgHQ@mail.gmail.com
-ifeq ($(shell test $(MAJORVERSION) -eq 16; echo $$?),0)
+ifeq ($(shell test $(MAJORVERSION) -ge 16; echo $$?),0)
 $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm:
 	@[ -e $(pgxsdir)/src/test/perl/PostgreSQL/Test/Cluster.pm ] || ( echo -e "----ERROR----\nCannot run prove_check, copy src/test/perl/* to $(pgxsdir)/src/test/perl/ and retry\n-------------" && exit 1)
 

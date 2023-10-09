@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        version: [REL_16_STABLE, REL_15_STABLE, REL_11_STABLE]
+        version: [master, REL_16_STABLE, REL_15_STABLE, REL_14_STABLE, REL_13_STABLE, REL_12_STABLE, REL_11_STABLE]
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
@@ -62,8 +62,12 @@ jobs:
           make -C src/tools/pg_bsd_indent/ -j4 install
           cat << EOF >> pgindent.ignore
           src/compat/11/pg_dump/*
+          src/compat/12/pg_dump/*
+          src/compat/13/pg_dump/*
+          src/compat/14/pg_dump/*
           src/compat/15/pg_dump/*
           src/compat/16/pg_dump/*
+          src/compat/17/pg_dump/*
           EOF
           src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --show-diff $GITHUB_WORKSPACE/pgactive > pgindent.diffs
           test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0
