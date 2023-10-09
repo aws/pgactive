@@ -365,8 +365,8 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 
 		cmdargc = 0;
 		cmdargv[cmdargc++] = pgactive_dump_path;
-		cmdargv[cmdargc++] = "-T \"pgactive.pgactive_nodes\"";
-		cmdargv[cmdargc++] = "-T \"pgactive.pgactive_connections\"";
+		cmdargv[cmdargc++] = "--exclude-table=pgactive.pgactive_nodes";
+		cmdargv[cmdargc++] = "--exclude-table=pgactive.pgactive_connections";
 		cmdargv[cmdargc++] = "--pgactive-init-node";
 		cmdargv[cmdargc++] = arg_jobs;
 		cmdargv[cmdargc++] = arg_tmp1;

@@ -116,7 +116,9 @@ static void die(const char *fmt,...)
 static void print_msg(VerbosityLevelEnum level, const char *fmt,...)
 			__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
 
-static int	run_pg_ctl(const char *arg);
+static int	run_pg_ctl(char *cmdargv[],
+					   int cmdargc_total,
+					   int cmdargc_current);
 static void run_basebackup(const char *remote_connstr, const char *data_dir);
 static void wait_postmaster_connection(const char *connstr);
 static void wait_for_end_recovery(const char *connstr);
@@ -176,6 +178,9 @@ static void copy_file(char *fromfile, char *tofile);
 static char *find_other_exec_or_die(const char *argv0, const char *target);
 static bool postmaster_is_alive(pid_t pid);
 static long get_pgpid(void);
+static int	execute_command(const char *cmd,
+							char *cmdargv[],
+							bool get_ret_code);
 
 /*
  * Emit a generic connection failure message based on GUC setting to help not
@@ -246,8 +251,9 @@ main(int argc, char **argv)
 	int			pg_ctl_ret,
 				logfd;
 	int			apply_delay = 0;
-#define PG_CTL_CMD_BUF_SIZE 1000
-	char		pg_ctl_cmd_buf[PG_CTL_CMD_BUF_SIZE];
+	char	   *cmdargv[10];
+	int			cmdargc;
+	char		arg_log_file_name[MAXPGPATH];
 
 	static struct option long_options[] = {
 		{"apply-delay", required_argument, NULL, 'y'},
@@ -577,10 +583,18 @@ main(int argc, char **argv)
 	 * immediately exits due to issues like port conflicts. We'll detect that
 	 * in wait_postmaster_connection().
 	 */
-	snprintf(&pg_ctl_cmd_buf[0], PG_CTL_CMD_BUF_SIZE,
-			 "start -l \'%s\' -o \"-c shared_preload_libraries=''\"",
-			 log_file_name);
-	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
+
+	/*
+	 * cmdargc = 0 th element a.k.a command path will be filled in
+	 * run_pg_ctl().
+	 */
+	cmdargc = 1;
+	snprintf(arg_log_file_name, sizeof(arg_log_file_name), "--log=%s", log_file_name);
+	cmdargv[cmdargc++] = "start";
+	cmdargv[cmdargc++] = arg_log_file_name;
+	cmdargv[cmdargc++] = "--options=-cshared_preload_libraries=";
+
+	pg_ctl_ret = run_pg_ctl(cmdargv, lengthof(cmdargv), cmdargc);
 	if (pg_ctl_ret != 0)
 		die(_("postgres startup for restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
 
@@ -624,9 +638,15 @@ main(int argc, char **argv)
 	 * Stop Postgres so we can reset system id and start it with pgactive
 	 * loaded.
 	 */
-	pg_ctl_ret = run_pg_ctl("stop");
+	cmdargc = 1;
+	cmdargv[cmdargc++] = "stop";
+	cmdargv[cmdargc++] = arg_log_file_name;
+
+	pg_ctl_ret = run_pg_ctl(cmdargv, lengthof(cmdargv), cmdargc);
 	if (pg_ctl_ret != 0)
-		die(_("postgres stop after restore point catchup failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
+		die(_("postgres stop after restore point catchup failed with %d, see '%s'\n"),
+			pg_ctl_ret, log_file_name);
+
 	wait_postmaster_shutdown();
 
 	/*
@@ -637,11 +657,15 @@ main(int argc, char **argv)
 	print_msg(VERBOSITY_NORMAL,
 			  _("Initializing pgactive on the local node:\n"));
 
-	snprintf(&pg_ctl_cmd_buf[0], PG_CTL_CMD_BUF_SIZE,
-			 "start -l '%s'", log_file_name);
-	pg_ctl_ret = run_pg_ctl(pg_ctl_cmd_buf);
+	cmdargc = 1;
+	cmdargv[cmdargc++] = "start";
+	cmdargv[cmdargc++] = arg_log_file_name;
+
+	pg_ctl_ret = run_pg_ctl(cmdargv, lengthof(cmdargv), cmdargc);
 	if (pg_ctl_ret != 0)
-		die(_("postgres restart with pgactive enabled failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
+		die(_("postgres restart with pgactive enabled failed with % d, see '%s'\n"),
+			pg_ctl_ret, log_file_name);
+
 	wait_postmaster_connection(local_connstr);
 
 	for (i = 0; i < remote_info->numdbs; i++)
@@ -686,9 +710,14 @@ main(int argc, char **argv)
 	if (stop)
 	{
 		print_msg(VERBOSITY_NORMAL, _("Stopping the local node ...\n"));
-		pg_ctl_ret = run_pg_ctl("stop");
+		cmdargc = 1;
+		cmdargv[cmdargc++] = "stop";
+
+		pg_ctl_ret = run_pg_ctl(cmdargv, lengthof(cmdargv), cmdargc);
 		if (pg_ctl_ret != 0)
-			die(_("Stopping postgres after successful join failed with %d, see '%s'\n"), pg_ctl_ret, log_file_name);
+			die(_("Stopping postgres after successful join failed with %d, see '%s'\n"),
+				pg_ctl_ret, log_file_name);
+
 		wait_postmaster_shutdown();
 	}
 
@@ -750,10 +779,15 @@ finish_die()
 
 	if (get_pgpid())
 	{
-		if (!run_pg_ctl("stop -s"))
-		{
+		char	   *cmdargv[10];
+		int			cmdargc;
+
+		cmdargc = 1;
+		cmdargv[cmdargc++] = "stop";
+		cmdargv[cmdargc++] = "--silent";
+
+		if (!run_pg_ctl(cmdargv, lengthof(cmdargv), cmdargc))
 			fprintf(stderr, _("WARNING: postgres seems to be running, but could not be stopped\n"));
-		}
 	}
 
 	exit(1);
@@ -804,30 +838,28 @@ print_msg(VerbosityLevelEnum level, const char *fmt,...)
  * signal this call will die and not return.
  */
 static int
-run_pg_ctl(const char *arg)
+run_pg_ctl(char *cmdargv[], int cmdargc_total, int cmdargc_current)
 {
 	int			ret;
-	PQExpBuffer cmd = createPQExpBuffer();
 	char	   *exec_path = find_other_exec_or_die(argv0, "pg_ctl");
+	char		arg_tmp1[MAXPGPATH];
 
-	appendPQExpBuffer(cmd, "%s %s -D \"%s\" -s", exec_path, arg, data_dir);
-	pg_free(exec_path);
+	snprintf(arg_tmp1, sizeof(arg_tmp1), "--pgdata=%s", data_dir);
+
+	cmdargv[0] = exec_path;
+	cmdargv[cmdargc_current++] = arg_tmp1;
 
 	/* Run pg_ctl in silent mode unless we run in debug mode. */
 	if (verbosity < VERBOSITY_DEBUG)
-		appendPQExpBuffer(cmd, " -s");
+		cmdargv[cmdargc_current++] = "--silent";
 
-	print_msg(VERBOSITY_DEBUG, _("Running pg_ctl: %s.\n"), cmd->data);
-	ret = system(cmd->data);
+	cmdargv[cmdargc_current++] = NULL;
 
-	destroyPQExpBuffer(cmd);
+	print_msg(VERBOSITY_DEBUG, _("Executing pg_ctl command...\n"));
+	ret = execute_command(exec_path, cmdargv, true);
+	pg_free(exec_path);
 
-	if (WIFEXITED(ret))
-		return WEXITSTATUS(ret);
-	else if (WIFSIGNALED(ret))
-		die(_("pg_ctl exited with signal %d"), WTERMSIG(ret));
-	else
-		die(_("pg_ctl exited for an unknown reason (system() returned %d)"), ret);
+	return ret;
 }
 
 
@@ -837,30 +869,32 @@ run_pg_ctl(const char *arg)
 static void
 run_basebackup(const char *remote_connstr, const char *data_dir)
 {
-	int			ret;
-	PQExpBuffer cmd = createPQExpBuffer();
 	char	   *exec_path = find_other_exec_or_die(argv0, "pg_basebackup");
+	char	   *cmdargv[10];
+	int			cmdargc;
+	char		arg_tmp1[MAXPGPATH];
+	char		arg_tmp2[MAXPGPATH];
 
-	appendPQExpBuffer(cmd, "%s -D \"%s\" -d \"%s\" -X s -P --checkpoint=fast", exec_path, data_dir, remote_connstr);
-	pg_free(exec_path);
+	snprintf(arg_tmp1, sizeof(arg_tmp1), "--pgdata=%s", data_dir);
+	snprintf(arg_tmp2, sizeof(arg_tmp2), "--dbname=%s", remote_connstr);
+
+	cmdargc = 0;
+	cmdargv[cmdargc++] = exec_path;
+	cmdargv[cmdargc++] = arg_tmp1;
+	cmdargv[cmdargc++] = arg_tmp2;
+	cmdargv[cmdargc++] = "--wal-method=stream";
+	cmdargv[cmdargc++] = "--progress";
+	cmdargv[cmdargc++] = "--checkpoint=fast";
 
 	/* Run pg_basebackup in verbose mode if we are running in verbose mode. */
 	if (verbosity >= VERBOSITY_VERBOSE)
-		appendPQExpBuffer(cmd, " -v");
+		cmdargv[cmdargc++] = "--verbose";
 
-	print_msg(VERBOSITY_DEBUG, _("Running pg_basebackup: %s.\n"), cmd->data);
-	ret = system(cmd->data);
+	cmdargv[cmdargc++] = NULL;
 
-	destroyPQExpBuffer(cmd);
-
-	if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
-		return;
-	if (WIFEXITED(ret))
-		die(_("pg_basebackup failed with exit status %d, cannot continue.\n"), WEXITSTATUS(ret));
-	else if (WIFSIGNALED(ret))
-		die(_("pg_basebackup exited with signal %d, cannot continue"), WTERMSIG(ret));
-	else
-		die(_("pg_basebackup exited for an unknown reason (system() returned %d)"), ret);
+	print_msg(VERBOSITY_DEBUG, _("Executing pg_basebackup command...\n"));
+	(void) execute_command(exec_path, cmdargv, false);
+	pg_free(exec_path);
 }
 
 /*
@@ -2083,4 +2117,93 @@ get_pgpid(void)
 	}
 	fclose(pidf);
 	return pid;
+}
+
+/*
+ * Function to execute a given commnd.
+ *
+ * Returns exit code of the command if asked.
+ */
+static int
+execute_command(const char *cmd, char *cmdargv[], bool get_ret_code)
+{
+	pid_t		pid;
+	int			exitstatus;
+
+#ifdef WIN32
+
+	/*
+	 * TODO: on Windows we should be using CreateProcessEx instead of fork()
+	 * and exec(). We should add an abstraction for this to port/ eventually,
+	 * so this code doesn't have to care about the platform.
+	 */
+	die(_("init_copy isn't supported on Windows yet.\n"));
+#endif
+
+	/*
+	 * Flush stdio channels just before fork, to avoid double-output problems.
+	 */
+	fflush(NULL);
+
+	pid = fork();
+	if (pid == 0)				/* child */
+	{
+		if (execv(cmd, cmdargv) < 0)
+		{
+			print_msg(VERBOSITY_NORMAL, _("could not execute command \"%s\"\n"),
+					  cmd);
+
+			/* We're already in the child process here, can't return */
+			exit(1);
+		}
+	}
+
+	if (pid < 0)
+	{
+		/* in parent, fork failed */
+		die(_("could not fork new process to execute command \"%s\" for init_copy.\n"),
+			cmd);
+	}
+
+	/* in parent, successful fork */
+	print_msg(VERBOSITY_NORMAL, _("waiting for process %d to execute command \"%s\" for init_copy\n"),
+			  (int) pid, cmd);
+
+	while (1)
+	{
+		pid_t		res;
+
+		res = waitpid(pid, &exitstatus, 0);
+
+		if (res == pid)
+			break;
+		else if (res == -1 && errno != EINTR)
+			die(_("error in waitpid() while waiting for process %d.\n"),
+				pid);
+
+		pg_usleep(1000000);		/* 1 sec */
+	}
+
+	if (exitstatus != 0)
+	{
+		if (WIFEXITED(exitstatus))
+		{
+			if (get_ret_code)
+				return WEXITSTATUS(exitstatus);
+			else
+				die(_("process %d to execute command \"%s\" for init_copy exited with exit code %d.\n"),
+					pid, cmd, WEXITSTATUS(exitstatus));
+		}
+		if (WIFSIGNALED(exitstatus))
+			die(_("process %d to execute command \"%s\" for init_copy exited due to signal %d.\n"),
+				pid, cmd, WTERMSIG(exitstatus));
+
+		die(_("process %d to execute command \"%s\" for init_copy exited for an unknown reason with exit code %d.\n"),
+			pid, cmd, exitstatus);
+	}
+
+	print_msg(VERBOSITY_NORMAL, _("successfully executed command \"%s\" for init_copy\n"),
+			  cmd);
+
+	return WEXITSTATUS(exitstatus);
 }
