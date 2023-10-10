@@ -893,7 +893,7 @@ out:
  * error cleanup.
  */
 static void
-check_params_ensure_error_cleanup(PGconn *conn, bool *check_done)
+check_params_ensure_error_cleanup(PGconn *conn)
 {
 	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
@@ -921,7 +921,6 @@ check_params_ensure_error_cleanup(PGconn *conn, bool *check_done)
 					 errhint("The parameter must be set to the same value on all pgactive members.")));
 
 		free_remote_node_info(&ri);
-		*check_done = true;
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 								PointerGetDatum(&conn));
@@ -967,12 +966,11 @@ check_params_are_same(void)
 			if (PQstatus(conn) != CONNECTION_OK)
 				continue;
 
-			check_params_ensure_error_cleanup(conn, &check_done);
+			check_params_ensure_error_cleanup(conn);
+
+			check_done = true;
 
 			PQfinish(conn);
-			/* no need to check against other remote nodes */
-			if (check_done)
-				break;
 		}
 
 		CommitTransactionCommand();
