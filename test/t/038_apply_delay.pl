@@ -152,7 +152,7 @@ wait_for_apply($node_0, $node_1);
 
 # Wait until apply worker on node_1 applies the xact sent by node_0
 my $caughtup_query =
-  qq[SELECT EXISTS (SELECT 1 FROM pgactive.get_replication_lag_info()
+  qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info()
      WHERE last_applied_xact_id >= $xid);];
 $node_0->poll_query_until($pgactive_test_dbname, $caughtup_query)
   or die "Timed out while waiting for apply worker on node_1 applies the xact sent by node_0";

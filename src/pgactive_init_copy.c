@@ -1481,6 +1481,15 @@ create_pgactive_nid_getter_function(PGconn *conn, char *dbname, uint64 nid)
 			dbname, PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 	PQclear(res);
 
+	/* Revoke from public */
+	printfPQExpBuffer(query, "REVOKE ALL ON FUNCTION pgactive.%s() FROM public;", pgactive_NID_GETTER_FUNC_NAME);
+	res = PQexec(conn, query->data);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		die(_("Could not REVOKE ALL ON FUNCTION pgactive.%s() FROM public %s: %s\n"),
+			pgactive_NID_GETTER_FUNC_NAME,
+			PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	PQclear(res);
+
 	/* Save changes. */
 	res = PQexec(conn, "COMMIT");
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
