@@ -247,7 +247,29 @@ get_connect_string(const char *usermappinginfo)
 		StartTransactionCommand();
 	}
 
-	foreign_server = GetForeignServerByName(fsname, false);
+	initStringInfo(&cmd);
+
+	appendStringInfo(&cmd, "SELECT pfs.srvname FROM pg_catalog.pg_foreign_server pfs "
+					 "JOIN pg_catalog.pg_foreign_data_wrapper pfdw ON pfdw.oid = pfs.srvfdw "
+					 "WHERE pfdw.fdwname ='pgactive_fdw' AND pfs.srvname = '%s';",
+					 fsname);
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+	PushActiveSnapshot(GetTransactionSnapshot());
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	if (SPI_processed != 1 || SPI_tuptable->tupdesc->natts != 1)
+	{
+		elog(FATAL, "foreign data server: %s is not based on pgactive_fdw",
+			 fsname);
+	}
+
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+	PopActiveSnapshot();
 
 	initStringInfo(&cmd);
 
@@ -275,6 +297,8 @@ get_connect_string(const char *usermappinginfo)
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
+
+	foreign_server = GetForeignServerByName(fsname, false);
 
 	serverid = foreign_server->serverid;
 	fdwid = foreign_server->fdwid;
