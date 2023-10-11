@@ -30,7 +30,7 @@ CREATE DATABASE test;
 \c test
 CREATE EXTENSION pgactive;
 SELECT pgactive.pgactive_get_local_nodeid();
-SELECT pgactive.get_replication_lag_info();
+SELECT pgactive.pgactive_get_replication_lag_info();
 SELECT pgactive.pgactive_skip_changes('unknown', 0, 0, '0/FFFFFFFF');
 SELECT pgactive.pgactive_get_global_locks_info();
 

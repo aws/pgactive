@@ -148,11 +148,11 @@ PGDLLEXPORT Datum pgactive_is_active_in_db(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_xact_replication_origin(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_conninfo_cmp(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum get_free_disk_space(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum has_required_privs(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_get_replication_lag_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum _pgactive_get_free_disk_space(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum _pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum _pgactive_has_required_privs(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_apply_pause);
 PG_FUNCTION_INFO_V1(pgactive_apply_resume);
@@ -173,11 +173,11 @@ PG_FUNCTION_INFO_V1(pgactive_is_active_in_db);
 PG_FUNCTION_INFO_V1(pgactive_xact_replication_origin);
 PG_FUNCTION_INFO_V1(pgactive_conninfo_cmp);
 PG_FUNCTION_INFO_V1(pgactive_destroy_temporary_dump_directories);
-PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
-PG_FUNCTION_INFO_V1(get_replication_lag_info);
-PG_FUNCTION_INFO_V1(get_free_disk_space);
-PG_FUNCTION_INFO_V1(check_file_system_mount_points);
-PG_FUNCTION_INFO_V1(has_required_privs);
+PG_FUNCTION_INFO_V1(pgactive_get_last_applied_xact_info);
+PG_FUNCTION_INFO_V1(pgactive_get_replication_lag_info);
+PG_FUNCTION_INFO_V1(_pgactive_get_free_disk_space);
+PG_FUNCTION_INFO_V1(_pgactive_check_file_system_mount_points);
+PG_FUNCTION_INFO_V1(_pgactive_has_required_privs);
 
 static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
@@ -2052,7 +2052,7 @@ pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
 }
 
 Datum
-get_last_applied_xact_info(PG_FUNCTION_ARGS)
+pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 {
 	Datum		values[3];
 	bool		isnull[3];
@@ -2171,7 +2171,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 							PointerGetDatum(&conn));
 	{
 		initStringInfo(&cmd);
-		appendStringInfo(&cmd, "SELECT * FROM pgactive.get_last_applied_xact_info('%s', %u, %u);",
+		appendStringInfo(&cmd, "SELECT * FROM pgactive.pgactive_get_last_applied_xact_info('%s', %u, %u);",
 						 sysid_str, myid.timeline, myid.dboid);
 
 		res = PQexec(conn, cmd.data);
@@ -2214,7 +2214,7 @@ done:
 }
 
 Datum
-get_replication_lag_info(PG_FUNCTION_ARGS)
+pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 {
 #define GET_REPLICATION_LAG_INFO_COLS	7
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
@@ -2282,7 +2282,7 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 }
 
 Datum
-get_free_disk_space(PG_FUNCTION_ARGS)
+_pgactive_get_free_disk_space(PG_FUNCTION_ARGS)
 {
 #ifdef WIN32
 	ereport(ERROR,
@@ -2305,7 +2305,7 @@ get_free_disk_space(PG_FUNCTION_ARGS)
 }
 
 Datum
-check_file_system_mount_points(PG_FUNCTION_ARGS)
+_pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS)
 {
 #ifdef WIN32
 	ereport(ERROR,
@@ -2340,7 +2340,7 @@ check_file_system_mount_points(PG_FUNCTION_ARGS)
  * Checks if current user has required privileges.
  */
 Datum
-has_required_privs(PG_FUNCTION_ARGS)
+_pgactive_has_required_privs(PG_FUNCTION_ARGS)
 {
 	if (superuser())
 		PG_RETURN_BOOL(true);

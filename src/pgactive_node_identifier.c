@@ -161,6 +161,12 @@ pgactive_generate_node_identifier(PG_FUNCTION_ARGS)
 						 pgactive_NID_GETTER_FUNC_NAME);
 
 		pgactive_spi_exec(cmd.data, SPI_OK_UTILITY);
+
+		resetStringInfo(&cmd);
+		appendStringInfo(&cmd, "REVOKE ALL ON FUNCTION pgactive.%s() FROM public;",
+						 pgactive_NID_GETTER_FUNC_NAME);
+
+		pgactive_spi_exec(cmd.data, SPI_OK_UTILITY);
 	}
 
 	/* done manipulating pgactive artifacts */

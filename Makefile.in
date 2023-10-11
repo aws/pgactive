@@ -12,7 +12,7 @@ pgactive_top_builddir = .
 
 MODULE_big = pgactive
 EXTENSION = pgactive
-DATA = pgactive--2.1.0.sql
+DATA = $(wildcard $(EXTENSION)*--*.sql)
 SCRIPTS_built = pgactive_init_copy pgactive_dump
 EXTRA_CLEAN = src/pgactive_init_copy$(X) src/pgactive_init_copy.o include/pgactive_version.h .distgitrev \
 	test/tmp_check test/results test/log test/tmp_t \

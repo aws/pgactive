@@ -19,7 +19,6 @@
 
 #include "fmgr.h"
 #include "funcapi.h"
-#include "miscadmin.h"
 
 #include "nodes/execnodes.h"
 
@@ -297,11 +296,6 @@ pgactive_get_stats(PG_FUNCTION_ARGS)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	size_t		current_offset;
-
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("access to pgactive_get_stats() denied as non-superuser")));
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
