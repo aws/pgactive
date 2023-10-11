@@ -161,7 +161,9 @@ pgactive_DUMP_OBJS = $(pgactive_DUMP_DIR)/pg_dump.o \
 	$(pgactive_DUMP_DIR)/dumputils.o \
 	$(pgactive_DUMP_DIR)/compress_io.o
 
-pgactive_DUMP_LIBS = $(shell $(PG_CONFIG) --libs) -lpgfeutils
+PG_CONFIG_LIBS = $(shell $(PG_CONFIG) --libs) 
+
+pgactive_DUMP_LIBS = $(PG_CONFIG_LIBS) -lpgfeutils
 
 ifneq ($(wildcard $(pgactive_DUMP_DIR)/compress_lz4.c),)
 	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/compress_lz4.o
@@ -189,7 +191,7 @@ pgactive_dump: $(pgactive_DUMP_OBJS)
 	$(CC) $(CFLAGS) $(pgactive_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(pgactive_DUMP_LIBS) -o $@$(X)
 
 pgactive_init_copy: src/pgactive_init_copy.o src/pgactive_common.o
-	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) -o $@$(X)
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(PG_CONFIG_LIBS) $(libpq_pgport) -o $@$(X)
 
 DATE=$(shell date "+%Y-%m-%d")
 GITHASH=$(shell if [ -e .distgitrev ]; then cat .distgitrev; else GIT_DIR=${pgactive_abs_srcdir}/.git git rev-parse --short HEAD; fi)
