@@ -171,6 +171,10 @@ pgactive_create_conflict_handler(PG_FUNCTION_ARGS)
 
 	Relation	rel;
 
+	ereport(ERROR,
+			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+			 errmsg("feature is not implemented yet")));
+
 	if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) || PG_ARGISNULL(3))
 		elog(ERROR, "relation, handler name, handler procedure, and handler type must be non-null");
 
@@ -349,6 +353,10 @@ pgactive_drop_conflict_handler(PG_FUNCTION_ARGS)
 	int			guc_nestlevel;
 
 	Relation	rel;
+
+	ereport(ERROR,
+			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+			 errmsg("feature is not implemented yet")));
 
 	if (pgactive_conflict_handler_table_oid == InvalidOid)
 		pgactive_conflict_handlers_init();
