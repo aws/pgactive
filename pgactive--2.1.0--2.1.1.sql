@@ -1,3 +1,4 @@
+SET pgactive.skip_ddl_replication = true;
 -- Everything should assume the 'pgactive' prefix
 SET LOCAL search_path = pgactive;
 
@@ -454,3 +455,6 @@ REVOKE ALL ON FUNCTION pgactive_handle_rejoin() FROM public;
 REVOKE ALL ON FUNCTION pgactive_get_node_identifier() FROM PUBLIC;
 REVOKE ALL ON FUNCTION pgactive_fdw_validator(text[], oid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION pgactive_conninfo_cmp(text, text) FROM PUBLIC;
+
+RESET pgactive.skip_ddl_replication;
+RESET search_path;
