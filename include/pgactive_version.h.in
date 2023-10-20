@@ -1,4 +1,4 @@
-#define pgactive_VERSION "2.1.1-RC1"
+#define pgactive_VERSION "2.1.1"
 #define pgactive_VERSION_NUM 20101
 #define pgactive_MIN_REMOTE_VERSION_NUM 20100
 #define pgactive_VERSION_DATE ""
