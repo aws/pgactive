@@ -117,7 +117,11 @@ pgactive_send_message(StringInfo s, bool transactional)
 {
 	XLogRecPtr	lsn;
 
+#if PG_VERSION_NUM >= 170000
+	lsn = LogLogicalMessage(pgactive_LOGICAL_MSG_PREFIX, s->data, s->len, transactional, false);
+#else
 	lsn = LogLogicalMessage(pgactive_LOGICAL_MSG_PREFIX, s->data, s->len, transactional);
+#endif
 	XLogFlush(lsn);
 
 	elog(DEBUG3, "sending prepared message %p",
