@@ -55,8 +55,8 @@ jobs:
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
 
-      - if: ${{ matrix.version == 'REL_16_STABLE' }}
-        name: Check pgactive code indentation (REL_16_STABLE only)
+      - if: ${{ matrix.version == 'master' }}
+        name: Check pgactive code indentation (master only)
         run: |
           cd postgres
           make -C src/tools/pg_bsd_indent/ -j4 install
