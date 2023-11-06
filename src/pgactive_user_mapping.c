@@ -248,7 +248,6 @@ get_connect_string(const char *usermappinginfo)
 	}
 
 	initStringInfo(&cmd);
-
 	appendStringInfo(&cmd, "SELECT pfs.srvname FROM pg_catalog.pg_foreign_server pfs "
 					 "JOIN pg_catalog.pg_foreign_data_wrapper pfdw ON pfdw.oid = pfs.srvfdw "
 					 "WHERE pfdw.fdwname ='pgactive_fdw' AND pfs.srvname = '%s';",
@@ -263,7 +262,7 @@ get_connect_string(const char *usermappinginfo)
 
 	if (SPI_processed != 1 || SPI_tuptable->tupdesc->natts != 1)
 	{
-		elog(FATAL, "foreign data server: %s is not based on pgactive_fdw",
+		elog(ERROR, "foreign data wrapper \"%s\" is not based on pgactive_fdw",
 			 fsname);
 	}
 
@@ -271,8 +270,7 @@ get_connect_string(const char *usermappinginfo)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
 
-	initStringInfo(&cmd);
-
+	resetStringInfo(&cmd);
 	appendStringInfo(&cmd, "SELECT umuser FROM pg_catalog.pg_user_mappings "
 					 "WHERE usename = '%s' AND srvname = '%s';",
 					 umname, fsname);
@@ -286,9 +284,11 @@ get_connect_string(const char *usermappinginfo)
 
 	if (SPI_processed != 1 || SPI_tuptable->tupdesc->natts != 1)
 	{
-		elog(FATAL, "could not fetch umuser from pg_catalog.pg_user_mappings: got %d rows and %d columns, expected 1 row and 1 column",
+		elog(ERROR, "could not fetch umuser from pg_catalog.pg_user_mappings: got %d rows and %d columns, expected 1 row and 1 column",
 			 (int) SPI_processed, SPI_tuptable->tupdesc->natts);
 	}
+
+	pfree(cmd.data);
 
 	umuser = DatumGetObjectId(
 							  DirectFunctionCall1(oidin,
