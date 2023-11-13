@@ -888,9 +888,9 @@ out:
 }
 
 /*
- * Check whether the local node and one remote node have same
- * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values while ensuring
- * error cleanup.
+ * Check whether the local node and all connectable remote nodes have same
+ * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values while
+ * ensuring error cleanup.
  */
 static void
 check_params_ensure_error_cleanup(PGconn *conn)
@@ -927,7 +927,7 @@ check_params_ensure_error_cleanup(PGconn *conn)
 }
 
 /*
- * Check whether the local node and one remote node have same
+ * Check whether the local node and all connectable remote nodes have same
  * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values.
  *
  * If remote nodes exist and none is available to check the values
@@ -941,50 +941,67 @@ check_params_are_same(void)
 {
 	MemoryContext saved_ctx;
 	List	   *node_dsns;
+	int			node_cnt;
 	ListCell   *lc;
-	bool		check_done = false;
-	bool		empty_list = false;
+#if PG_VERSION_NUM < 130000
+	ListCell   *next,
+			   *prev = NULL;
+#endif
 
-	while (!check_done && !empty_list)
+	StartTransactionCommand();
+	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
+	node_dsns = pgactive_get_node_dsns(false);
+	MemoryContextSwitchTo(saved_ctx);
+	CommitTransactionCommand();
+
+	node_cnt = list_length(node_dsns);
+
+	if (node_cnt == 0)
+		return;
+
+#if PG_VERSION_NUM >= 130000
+	foreach(lc, node_dsns)
+#else
+	for (lc = list_head(node_dsns); lc; lc = next)
+#endif
 	{
-		StartTransactionCommand();
-		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-		node_dsns = pgactive_get_node_dsns(false);
-		MemoryContextSwitchTo(saved_ctx);
-		empty_list = true;
+		char	   *dsn = (char *) lfirst(lc);
+		PGconn	   *conn;
 
-		foreach(lc, node_dsns)
+		/* We might delete the cell so advance it now. */
+#if PG_VERSION_NUM < 130000
+		next = lnext(lc);
+#endif
+
+		conn = pgactive_connect_nonrepl(dsn,
+										"pgactivenodeinfo", false);
+		if (PQstatus(conn) != CONNECTION_OK)
 		{
-			char	   *dsn = (char *) lfirst(lc);
-			PGconn	   *conn;
-
-			empty_list = false;
-
-			conn = pgactive_connect_nonrepl(dsn,
-											"pgactivenodeinfo", false);
-
-			if (PQstatus(conn) != CONNECTION_OK)
-				continue;
-
-			check_params_ensure_error_cleanup(conn);
-
-			check_done = true;
-
-			PQfinish(conn);
+#if PG_VERSION_NUM < 130000
+			prev = lc;
+#endif
+			continue;
 		}
 
-		CommitTransactionCommand();
-		list_free(node_dsns);
+		check_params_ensure_error_cleanup(conn);
 
-		if (!check_done && !empty_list)
-		{
-			ereport(FATAL,
-					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("local node " pgactive_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
-							pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
-					 errhint("Ensure one remote node is connectable from the local node.")));
-		}
+		/* Delete the remote node DSN from the list if it's connectable. */
+#if PG_VERSION_NUM >= 130000
+		node_dsns = foreach_delete_current(node_dsns, lc);
+#else
+		node_dsns = list_delete_cell(node_dsns, lc, prev);
+#endif
+
+		PQfinish(conn);
 	}
+
+	/* Error out if none of the remote nodes is connectable. */
+	if (list_length(node_dsns) == node_cnt)
+		ereport(FATAL,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("local node " pgactive_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
+						pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
+				 errhint("Ensure at least one remote node is connectable from the local node.")));
 }
 
 /*
@@ -1178,10 +1195,6 @@ pgactive_perdb_worker_main(Datum main_arg)
 
 		check_local_node_connectability();
 
-		/*
-		 * Check whether the local node and one remote node have same
-		 * pgactive.max_nodes and pgactive.skip_ddl_replication GUC values.
-		 */
 		check_params_are_same();
 
 		/*
