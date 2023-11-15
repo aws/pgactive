@@ -1792,6 +1792,12 @@ pgactive_locks_node_detached(pgactiveNodeId * node)
 	}
 }
 
+static void
+abort_on_pgactive_locks_removal_failure(int code, Datum arg)
+{
+	elog(PANIC, "could not remove row from pgactive_locks before releasing the in-memory lock");
+}
+
 /*
  * Release any global DDL lock we may hold for node 'lock'.
  *
@@ -1809,14 +1815,13 @@ pgactive_locks_release_local_ddl_lock(const pgactiveNodeId * const lock)
 	bool		found = false;
 	Latch	   *latch;
 	MemoryContext old_ctx = CurrentMemoryContext;
-	MemoryContext cs_mem_ctx;
 
 	/* FIXME: check db */
 
 	pgactive_locks_find_my_database(false);
 
 	/*
-	 * Remove row from pgactive_locks *before* releasing the in memory lock.
+	 * Remove row from pgactive_locks *before* releasing the in-memory lock.
 	 * If we crash we'll replay the event again.
 	 */
 	StartTransactionCommand();
@@ -1891,23 +1896,26 @@ pgactive_locks_release_local_ddl_lock(const pgactiveNodeId * const lock)
 	latch = pgactive_my_locks_database->requestor;
 
 	/*
-	 * We allow memory allocations in the following critical section for the
-	 * sake of CommitTransactionCommand(), so, keep track of the memory
-	 * context in which we did so. This is needed to correctly reset
-	 * allowInCritSection flag as CommitTransactionCommand() changes the
-	 * memory context.
+	 * Ensure that if on disk and shmem state diverge, in other words, if we
+	 * can't remove row from pgactive_locks *before* releasing the in-memory
+	 * lock, we crash and replay the event again.
+	 *
+	 * Note the use of PG_ENSURE_ERROR_CLEANUP and PG_END_ENSURE_ERROR_CLEANUP
+	 * blocks to convert any ERROR or FATAL while committing the txn to PANIC
+	 * so that all the backends restart. Although committing the txn within a
+	 * critical section (CS) does the same thing, interrupts are blocked in a
+	 * CS which may not be wanted as committing the txn can do a bunch of
+	 * other things.
 	 */
-	cs_mem_ctx = CurrentMemoryContext;
-	MemoryContextAllowInCriticalSection(CurrentMemoryContext, true);
+	PG_ENSURE_ERROR_CLEANUP(abort_on_pgactive_locks_removal_failure, 0);
+	{
+		CommitTransactionCommand();
+	}
+	PG_END_ENSURE_ERROR_CLEANUP(abort_on_pgactive_locks_removal_failure, 0);
 
-	/* Ensure that if on disk and shmem state diverge we crash and recover */
-	START_CRIT_SECTION();
-
-	CommitTransactionCommand();
-
-	/* Let's reset allowInCritSection correctly */
-	MemoryContextAllowInCriticalSection(cs_mem_ctx, false);
 	MemoryContextSwitchTo(old_ctx);
+
+	START_CRIT_SECTION();
 
 	Assert(pgactive_my_locks_database->lock_state == pgactive_LOCKSTATE_NOLOCK);
 	pgactive_my_locks_database->lockcount--;
