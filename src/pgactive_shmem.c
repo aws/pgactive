@@ -258,11 +258,12 @@ pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type, uint32 *ctl_idx)
  * is not still running before the slot is released.
  */
 void
-pgactive_worker_shmem_free(pgactiveWorker * worker, BackgroundWorkerHandle *handle)
+pgactive_worker_shmem_free(pgactiveWorker * worker,
+						   BackgroundWorkerHandle *handle,
+						   bool need_lock)
 {
-	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
-
-	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	if (need_lock)
+		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 	/* Already free? Do nothing */
 	if (worker->worker_type != pgactive_WORKER_EMPTY_SLOT)
@@ -287,7 +288,16 @@ pgactive_worker_shmem_free(pgactiveWorker * worker, BackgroundWorkerHandle *hand
 		/* and for good measure, zero it so problems are seen immediately */
 		memset(worker, 0, sizeof(pgactiveWorker));
 	}
-	LWLockRelease(pgactiveWorkerCtl->lock);
+
+	/*
+	 * Reset pgactive worker-local variable to shmem block if we've freed it
+	 * up above.
+	 */
+	if (pgactive_worker_slot == worker)
+		pgactive_worker_slot = NULL;
+
+	if (need_lock)
+		LWLockRelease(pgactiveWorkerCtl->lock);
 }
 
 /*
@@ -321,25 +331,30 @@ pgactive_worker_shmem_acquire(pgactiveWorkerType worker_type, uint32 worker_idx,
 }
 
 /*
- * Relase shmem slot acquired by pgactive_worker_shmem_acquire().
+ * Release shmem slot acquired by pgactive_worker_shmem_acquire().
+ *
+ * NB: Has to be safe to execute even if no resources have been acquired. This
+ * is needed to avoid crashes when the function is called from multiple sites.
  */
 void
 pgactive_worker_shmem_release(void)
 {
+	if (pgactive_worker_slot == NULL)
+		return;
+
 	Assert(pgactive_worker_type != pgactive_WORKER_EMPTY_SLOT);
 	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
 	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 	pgactive_worker_slot->worker_pid = 0;
 	pgactive_worker_slot->worker_proc = NULL;
-	LWLockRelease(pgactiveWorkerCtl->lock);
-
 	pgactive_worker_type = pgactive_WORKER_EMPTY_SLOT;
 
 	if (worker_slot_free_at_rel)
-		pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
+		pgactive_worker_shmem_free(pgactive_worker_slot, NULL, false);
 
 	pgactive_worker_slot = NULL;
+	LWLockRelease(pgactiveWorkerCtl->lock);
 }
 
 /*

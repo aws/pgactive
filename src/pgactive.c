@@ -697,8 +697,7 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 	return;
 
 unregister:
-	pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
-	pgactive_worker_slot = NULL;
+	pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
 	proc_exit(0);				/* unregister */
 }
 

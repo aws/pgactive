@@ -1078,8 +1078,7 @@ check_local_node_connectability(void)
 	return;
 
 unregister:
-	pgactive_worker_shmem_free(pgactive_worker_slot, NULL);
-	pgactive_worker_slot = NULL;
+	pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
 	proc_exit(0);				/* unregister */
 }
 

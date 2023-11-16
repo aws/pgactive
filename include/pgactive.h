@@ -634,7 +634,9 @@ extern void pgactive_shmem_init(void);
 
 extern pgactiveWorker * pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type,
 													uint32 *ctl_idx);
-extern void pgactive_worker_shmem_free(pgactiveWorker * worker, BackgroundWorkerHandle *handle);
+extern void pgactive_worker_shmem_free(pgactiveWorker * worker,
+									   BackgroundWorkerHandle *handle,
+									   bool need_lock);
 extern void pgactive_worker_shmem_acquire(pgactiveWorkerType worker_type,
 										  uint32 worker_idx,
 										  bool free_at_rel);
