@@ -470,6 +470,8 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 		pgactive_copytable(local_conn, remote_conn,
 						   query.data, "COPY pgactive.pgactive_nodes FROM stdin");
 
+		pfree(query.data);
+
 		/*
 		 * Copy remote connections to the local node.
 		 *
@@ -961,10 +963,7 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 {
 	pgactiveNodeStatus status;
 	PGconn	   *nonrepl_init_conn;
-	StringInfoData dsn;
 	pgactiveConnectionConfig *local_conn_config;
-
-	initStringInfo(&dsn);
 
 	status = local_node->status;
 

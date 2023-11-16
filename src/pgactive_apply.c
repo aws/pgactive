@@ -224,6 +224,8 @@ action_error_callback(void *arg)
 								  action->is_ddl_or_drop);
 
 		errcontext("%s", si.data);
+
+		pfree(si.data);
 	}
 }
 
@@ -1026,7 +1028,7 @@ process_remote_update(StringInfo s)
 			appendStringInfo(&o, " to");
 			tuple_to_stringinfo(&o, RelationGetDescr(rel->rel), remote_tuple);
 			elog(DEBUG1, "UPDATE: %s", o.data);
-			resetStringInfo(&o);
+			pfree(o.data);
 		}
 #endif
 
@@ -1779,7 +1781,8 @@ queued_drop_error_callback(void *arg)
 	format_drop_objectlist(&si, addrs);
 
 	errcontext("during DDL replay object drop:%s", si.data);
-	resetStringInfo(&si);
+
+	pfree(si.data);
 }
 
 static TypeName *
@@ -2158,9 +2161,13 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 					getTypeBinaryInputInfo(att->atttypid,
 										   &typreceive, &typioparam);
 
-					/* create StringInfo pointing into the bigger buffer */
+					/*
+					 * Create StringInfo pointing into the bigger buffer.
+					 * First free the palloc-ed memory that initStringInfo
+					 * gives to not leak any memory.
+					 */
 					initStringInfo(&buf);
-					/* and data */
+					pfree(buf.data);
 					buf.data = (char *) pq_getmsgbytes(s, len);
 					buf.len = len;
 					tup->values[i] = OidReceiveFunctionCall(
@@ -2528,7 +2535,7 @@ log_tuple(const char *format, TupleDesc desc, HeapTuple tup)
 	initStringInfo(&o);
 	tuple_to_stringinfo(&o, desc, tup);
 	elog(DEBUG1, format, o.data);
-	resetStringInfo(&o);
+	pfree(o.data);
 
 }
 #endif
@@ -2694,7 +2701,13 @@ pgactive_apply_work(PGconn *streamConn)
 
 				MemoryContextSwitchTo(MessageContext);
 
+				/*
+				 * Create StringInfo pointing into the bigger buffer. First
+				 * free the palloc-ed memory that initStringInfo gives to not
+				 * leak any memory.
+				 */
 				initStringInfo(&s);
+				pfree(s.data);
 				s.data = copybuf;
 				s.len = r;
 				s.maxlen = -1;
@@ -2947,6 +2960,7 @@ pgactive_apply_main(Datum main_arg)
 			 query.data, PQresultErrorMessage(res), sqlstate);
 	}
 	PQclear(res);
+	pfree(query.data);
 
 	replorigin_session_origin = rep_origin_id;
 

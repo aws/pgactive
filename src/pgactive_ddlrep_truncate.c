@@ -278,6 +278,7 @@ pgactive_finish_truncate(void)
 
 	list_free(pgactive_truncated_tables);
 	pgactive_truncated_tables = NIL;
+	pfree(buf.data);
 }
 
 /*

@@ -631,7 +631,7 @@ pgactive_conflict_log_serverlog(pgactiveApplyConflict * conflict)
 			break;
 	}
 
-	resetStringInfo(&s_key);
+	pfree(s_key.data);
 }
 
 
