@@ -744,8 +744,8 @@ extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
 															  const char *application_name_suffix,
 															  Name out_slot_name,
 															  pgactiveNodeId * out_nodeid,
-															  RepOriginId *out_replication_identifier,
-															  char **out_snapshot);
+															  RepOriginId *out_rep_origin_id,
+															  char *out_snapshot);
 
 extern PGconn *pgactive_connect_nonrepl(const char *connstring,
 										const char *appnamesuffix,

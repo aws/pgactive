@@ -2809,7 +2809,7 @@ pgactive_apply_main(Datum main_arg)
 	PGresult   *res;
 	StringInfoData query;
 	char	   *sqlstate;
-	RepOriginId replication_identifier;
+	RepOriginId rep_origin_id;
 	XLogRecPtr	start_from;
 	NameData	slot_name;
 	char		status;
@@ -2892,21 +2892,11 @@ pgactive_apply_main(Datum main_arg)
 
 	/* Make the replication connection to the remote end */
 	streamConn = pgactive_establish_connection_and_slot(pgactive_apply_config->dsn,
-														query.data, &slot_name, &origin, &replication_identifier, NULL);
-
-
-	/* initialize stat subsystem, our id won't change further */
-	pgactive_count_set_current_node(replication_identifier);
-
-	/*
-	 * tell replication_identifier.c about our identifier so it can cache the
-	 * search in shared memory.
-	 */
-#if PG_VERSION_NUM >= 160000
-	replorigin_session_setup(replication_identifier, 0);
-#else
-	replorigin_session_setup(replication_identifier);
-#endif
+														query.data,
+														&slot_name,
+														&origin,
+														&rep_origin_id,
+														NULL);
 
 	/*
 	 * Check whether we already replayed something so we don't replay it
@@ -2919,7 +2909,7 @@ pgactive_apply_main(Datum main_arg)
 	start_from = replorigin_session_get_progress(false);
 
 	elog(INFO, "starting up replication from %u at %X/%X (inclusive)",
-		 replication_identifier, LSN_FORMAT_ARGS(start_from));
+		 rep_origin_id, LSN_FORMAT_ARGS(start_from));
 
 	resetStringInfo(&query);
 	appendStringInfo(&query, "START_REPLICATION SLOT \"%s\" LOGICAL %X/%X ("
@@ -2959,7 +2949,7 @@ pgactive_apply_main(Datum main_arg)
 	}
 	PQclear(res);
 
-	replorigin_session_origin = replication_identifier;
+	replorigin_session_origin = rep_origin_id;
 
 	pgactive_conflict_logging_startup();
 
