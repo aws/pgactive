@@ -2,6 +2,19 @@
 
 SELECT pgactive.pgactive_is_active_in_db();
 
+\set VERBOSITY terse
+
+-- Verify an error case with the use of non-pgactive foreign data wrapper
+CREATE FOREIGN DATA WRAPPER dummy;
+CREATE SERVER dummy_fs FOREIGN DATA WRAPPER dummy;
+CREATE USER MAPPING FOR public SERVER dummy_fs;
+
+SELECT pgactive.pgactive_create_group(node_name := 'dummy_node',
+	node_dsn := 'user_mapping=public pgactive_foreign_server=dummy_fs',
+	replication_sets := ARRAY['for_dummy_node']);
+
+\set VERBOSITY default
+
 SELECT pgactive.pgactive_create_group(
 	node_name := 'node-pg',
 	node_dsn := 'dbname=postgres',
