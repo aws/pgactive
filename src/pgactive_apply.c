@@ -2791,7 +2791,7 @@ pgactive_apply_work(PGconn *streamConn)
 			CHECK_FOR_INTERRUPTS();
 		}
 
-		MemoryContextResetAndDeleteChildren(MessageContext);
+		MemoryContextReset(MessageContext);
 	}
 }
 
