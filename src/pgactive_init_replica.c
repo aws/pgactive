@@ -586,8 +586,6 @@ pgactive_init_make_other_slots()
 		NameData	slot_name;
 		pgactiveNodeId remote,
 					myid;
-		RepOriginId replication_identifier;
-		char	   *snapshot;
 
 		pgactive_make_my_nodeid(&myid);
 
@@ -598,8 +596,12 @@ pgactive_init_make_other_slots()
 			pgactive_free_connection_config(cfg);
 		}
 
-		conn = pgactive_establish_connection_and_slot(cfg->dsn, "mkslot", &slot_name,
-													  &remote, &replication_identifier, &snapshot);
+		conn = pgactive_establish_connection_and_slot(cfg->dsn,
+													  "mkslot",
+													  &slot_name,
+													  &remote,
+													  NULL,
+													  NULL);
 
 		/* Ensure the slot points to the node the conn info says it should */
 		if (!pgactive_nodeid_eq(&cfg->remote_node, &remote))
@@ -611,10 +613,6 @@ pgactive_init_make_other_slots()
 							   pgactive_NODEID_FORMAT_WITHNAME_ARGS(cfg->remote_node),
 							   pgactive_NODEID_FORMAT_WITHNAME_ARGS(remote))));
 		}
-
-		/* We don't require the snapshot IDs here */
-		if (snapshot != NULL)
-			pfree(snapshot);
 
 		/* No replication for now, just close the connection */
 		PQfinish(conn);
@@ -1097,11 +1095,10 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 
 		if (status == pgactive_NODE_STATUS_BEGINNING_INIT)
 		{
-			char	   *init_snapshot = NULL;
+			char		init_snapshot[NAMEDATALEN] = {0};
 			PGconn	   *init_repl_conn = NULL;
 			NameData	slot_name;
 			pgactiveNodeId remote;
-			RepOriginId repnodeid;
 
 			elog(INFO, "initializing node");
 
@@ -1121,10 +1118,13 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 * Now establish our slot on the target node, so we can replay
 			 * changes from that node. It'll be used in catchup mode.
 			 */
-			init_repl_conn = pgactive_establish_connection_and_slot(
-																	local_node->init_from_dsn,
-																	"init", &slot_name,
-																	&remote, &repnodeid, &init_snapshot);
+			init_repl_conn =
+				pgactive_establish_connection_and_slot(local_node->init_from_dsn,
+													   "init",
+													   &slot_name,
+													   &remote,
+													   NULL,
+													   init_snapshot);
 
 			elog(INFO, "connected to target node " pgactive_NODEID_FORMAT_WITHNAME
 				 " with snapshot %s",
@@ -1159,7 +1159,6 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 */
 
 			PQfinish(init_repl_conn);
-			pfree(init_snapshot);
 
 			/*
 			 * Copy the state (pgactive_nodes and pgactive_connections) over

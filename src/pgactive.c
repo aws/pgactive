@@ -466,8 +466,6 @@ pgactive_connect(const char *conninfo,
  * Out parameters:
  *   replication_identifier		Created local replication identifier
  *   snapshot					If !NULL, snapshot ID of slot snapshot
- *
- * If a snapshot is returned it must be pfree()'d by the caller.
  * ----------
  */
 /*
@@ -476,16 +474,15 @@ pgactive_connect(const char *conninfo,
  * slot.
  */
 static void
-pgactive_create_slot(PGconn *streamConn, Name slot_name,
-					 char *remote_ident, RepOriginId *replication_identifier,
-					 char **snapshot)
+pgactive_create_slot(PGconn *streamConn, Name slot_name, char *remote_ident,
+					 RepOriginId *replication_identifier, char *snapshot)
 {
 	StringInfoData query;
 	PGresult   *res;
 
 	initStringInfo(&query);
 
-	StartTransactionCommand();
+	Assert(IsTransactionState());
 
 	/* we want the new identifier on stable storage immediately */
 	ForceSyncCommit();
@@ -513,13 +510,12 @@ pgactive_create_slot(PGconn *streamConn, Name slot_name,
 	/* acquire new local identifier, but don't commit */
 	*replication_identifier = replorigin_create(remote_ident);
 
-	/* now commit local identifier */
-	CommitTransactionCommand();
 	CurrentResourceOwner = pgactive_saved_resowner;
 	elog(DEBUG1, "created replication identifier %u", *replication_identifier);
 
-	if (snapshot)
-		*snapshot = pstrdup(PQgetvalue(res, 0, 2));
+	if (snapshot != NULL &&
+		!PQgetisnull(res, 0, 2))
+		snprintf(snapshot, NAMEDATALEN, "%s", PQgetvalue(res, 0, 2));
 
 	PQclear(res);
 }
@@ -729,15 +725,17 @@ unregister:
  */
 PGconn *
 pgactive_establish_connection_and_slot(const char *dsn,
-									   const char *application_name_suffix, Name out_slot_name,
+									   const char *application_name_suffix,
+									   Name out_slot_name,
 									   pgactiveNodeId * out_nodeid,
-									   RepOriginId *out_replication_identifier, char **out_snapshot)
+									   RepOriginId *out_rep_origin_id,
+									   char *out_snapshot)
 {
 	PGconn	   *streamConn;
-	bool		tx_started = false;
 	NameData	appname;
 	char	   *remote_repident_name;
 	pgactiveNodeId myid;
+	RepOriginId origin_id;
 
 	pgactive_make_my_nodeid(&myid);
 
@@ -754,22 +752,12 @@ pgactive_establish_connection_and_slot(const char *dsn,
 	remote_repident_name = pgactive_replident_name(out_nodeid, myid.dboid);
 	Assert(remote_repident_name != NULL);
 
-	if (!IsTransactionState())
-	{
-		tx_started = true;
-		StartTransactionCommand();
-	}
-	*out_replication_identifier = replorigin_by_name(remote_repident_name, true);
-	if (tx_started)
-		CommitTransactionCommand();
+	Assert(!IsTransactionState());
+	StartTransactionCommand();
+	origin_id = replorigin_by_name(remote_repident_name, true);
 
-	if (OidIsValid(*out_replication_identifier))
-	{
-		elog(DEBUG1, "found valid replication identifier %u",
-			 *out_replication_identifier);
-		if (out_snapshot)
-			*out_snapshot = NULL;
-	}
+	if (OidIsValid(origin_id))
+		elog(DEBUG1, "found valid replication identifier %u", origin_id);
 	else
 	{
 		/*
@@ -783,9 +771,28 @@ pgactive_establish_connection_and_slot(const char *dsn,
 		/* create local replication identifier and a remote slot */
 		elog(DEBUG1, "creating new slot %s", NameStr(*out_slot_name));
 		pgactive_create_slot(streamConn, out_slot_name, remote_repident_name,
-							 out_replication_identifier, out_snapshot);
+							 &origin_id, out_snapshot);
 	}
 
+	if (out_rep_origin_id)
+	{
+		/* initialize stat subsystem, our id won't change further */
+		pgactive_count_set_current_node(origin_id);
+
+		/*
+		 * tell replication_identifier.c about our identifier so it can cache
+		 * the search in shared memory.
+		 */
+#if PG_VERSION_NUM >= 160000
+		replorigin_session_setup(origin_id, 0);
+#else
+		replorigin_session_setup(origin_id);
+#endif
+
+		*out_rep_origin_id = origin_id;
+	}
+
+	CommitTransactionCommand();
 	pfree(remote_repident_name);
 
 	return streamConn;
