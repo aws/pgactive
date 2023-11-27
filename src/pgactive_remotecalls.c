@@ -80,6 +80,8 @@ pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool
 						GetPQerrorMessage(nonrepl_conn))));
 	}
 
+	pfree(dsn.data);
+
 	return nonrepl_conn;
 }
 

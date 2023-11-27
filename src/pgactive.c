@@ -518,6 +518,7 @@ pgactive_create_slot(PGconn *streamConn, Name slot_name, char *remote_ident,
 		snprintf(snapshot, NAMEDATALEN, "%s", PQgetvalue(res, 0, 2));
 
 	PQclear(res);
+	pfree(query.data);
 }
 
 /*

@@ -104,6 +104,8 @@ get_pgactive_nid_getter_function_dependency(void)
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
 
+	pfree(cmd.data);
+
 	return is_getter_func_part_of_extension;
 }
 

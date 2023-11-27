@@ -1120,6 +1120,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 	SetConfigOption("application_name", si.data, PGC_USERSET, PGC_S_SESSION);
 	SetConfigOption("lock_timeout", "10000", PGC_USERSET, PGC_S_SESSION);
 
+	pfree(si.data);
+
 	CurrentResourceOwner = ResourceOwnerCreate(NULL, "pgactive seq top-level resource owner");
 	pgactive_saved_resowner = CurrentResourceOwner;
 

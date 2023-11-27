@@ -856,6 +856,8 @@ pgactive_lock_holder_xact_callback(XactEvent event, void *arg)
 		pgactive_send_nodeid(&s, &myid, false);
 		pgactive_send_message(&s, false);
 
+		pfree(s.data);
+
 		LWLockAcquire(pgactive_locks_ctl->lock, LW_EXCLUSIVE);
 		if (pgactive_my_locks_database->lockcount > 0)
 		{
@@ -1140,6 +1142,8 @@ pgactive_acquire_ddl_lock(pgactiveLockType lock_type)
 
 	LWLockRelease(pgactive_locks_ctl->lock);
 
+	pfree(s.data);
+
 	/* ---
 	 * Now wait for standbys to ack ddl lock
 	 * ---
@@ -1405,6 +1409,7 @@ pgactive_request_replay_confirmation(void)
 	pgactive_my_locks_database->replay_confirmed_lsn = wait_for_lsn;
 	pgactive_my_locks_database->lock_state = pgactive_LOCKSTATE_PEER_CATCHUP;
 	LWLockRelease(pgactive_locks_ctl->lock);
+	pfree(s.data);
 }
 
 /*
@@ -2056,6 +2061,8 @@ pgactive_process_request_replay_confirm(const pgactiveNodeId * const node, XLogR
 	 * until it is flushed to disk.
 	 */
 	pgactive_send_message(&s, false);
+
+	pfree(s.data);
 }
 
 
@@ -2095,6 +2102,8 @@ pgactive_send_confirm_lock(void)
 	pgactive_send_nodeid(&s, &replay, false);
 	pq_sendint(&s, pgactive_my_locks_database->lock_type, 4);
 	pgactive_send_message(&s, true);	/* transactional */
+
+	pfree(s.data);
 
 	/*
 	 * Update state of lock. Do so in the same xact that confirms the lock.
@@ -2215,14 +2224,11 @@ pgactive_locks_process_remote_startup(const pgactiveNodeId * const node)
 	Snapshot	snap;
 	SysScanDesc scan;
 	HeapTuple	tuple;
-	StringInfoData s;
 	MemoryContext old_ctx;
 
 	Assert(pgactive_worker_type == pgactive_WORKER_APPLY);
 
 	pgactive_locks_find_my_database(false);
-
-	initStringInfo(&s);
 
 	elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
 		 LOCKTRACE "got startup message from node " pgactive_NODEID_FORMAT_WITHNAME ", clearing any locks it held",

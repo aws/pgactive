@@ -51,9 +51,12 @@ pgactive_process_remote_message(StringInfo s)
 	/*
 	 * Logical WAL messages are (for some reason) encapsulated in their own
 	 * header with its own length, even though the outer CopyData knows its
-	 * length. Unwrap it.
+	 * length. Unwrap it. Create StringInfo pointing into the bigger buffer.
+	 * First free the palloc-ed memory that initStringInfo gives to not leak
+	 * any memory.
 	 */
 	initStringInfo(&message);
+	pfree(message.data);
 	message.len = pq_getmsgint(s, 4);
 	message.data = (char *) pq_getmsgbytes(s, message.len);
 	msg_type = pq_getmsgint(&message, 4);

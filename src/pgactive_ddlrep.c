@@ -203,8 +203,6 @@ pgactive_capture_ddl(Node *parsetree, const char *queryString,
 	CommandTag	tag = completionTag;
 	bool		first;
 
-	initStringInfo(&si);
-
 	/*
 	 * If the call comes from DDL executed by pgactive_replicate_ddl_command,
 	 * don't queue it as it would insert duplicate commands into the queue.
@@ -233,6 +231,8 @@ pgactive_capture_ddl(Node *parsetree, const char *queryString,
 	 */
 	active_search_path = fetch_search_path(true);
 
+	initStringInfo(&si);
+
 	/*
 	 * We have to look up each namespace name by oid and reconstruct a
 	 * search_path string. It's lucky DDL is already expensive.
@@ -259,5 +259,5 @@ pgactive_capture_ddl(Node *parsetree, const char *queryString,
 
 	pgactive_queue_ddl_command(GetCommandTagName(tag), queryString, si.data);
 
-	resetStringInfo(&si);
+	pfree(si.data);
 }
