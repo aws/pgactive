@@ -1342,8 +1342,8 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 }
 
 /*
- * Cleanup function after catchup; makes sure we free the bgworker
- * slot for the catchup worker.
+ * Cleanup function after catchup; makes sure we free the bgworker slot for the
+ * catchup worker.
  */
 static void
 pgactive_catchup_to_lsn_cleanup(int code, Datum offset)
@@ -1356,7 +1356,8 @@ pgactive_catchup_to_lsn_cleanup(int code, Datum offset)
 	 * There's no need to unregister the worker as it was registered with
 	 * BGW_NEVER_RESTART.
 	 */
-	pgactive_worker_shmem_free(&pgactiveWorkerCtl->slots[worker_shmem_idx], NULL);
+	pgactive_worker_shmem_free(&pgactiveWorkerCtl->slots[worker_shmem_idx],
+							   NULL, true);
 }
 
 /*
