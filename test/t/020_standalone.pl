@@ -53,6 +53,4 @@ is($node_a->safe_psql($pgactive_test_dbname, 'SELECT pgactive.pgactive_is_active
 
 ok(!$node_a->psql($pgactive_test_dbname, 'DROP EXTENSION pgactive;'), 'extension dropped');
 
-$node_a->stop('fast');
-
 done_testing();

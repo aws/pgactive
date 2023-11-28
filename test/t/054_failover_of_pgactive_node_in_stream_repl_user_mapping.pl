@@ -127,7 +127,7 @@ is($node_1_res, $expected, "pgactive node node_1 has all the data");
 
 $node_0_standby->poll_query_until($pgactive_test_dbname,
   qq[SELECT COUNT(*) = 2 FROM fruits;])
-  or die "timed out waitinf for standby to receive all the data from primary";
+  or die "timed out waiting for standby to receive all the data from primary";
 
 my $node_0_datadir = $node_0->data_dir;
 my $node_0_replslotname = $node_0->safe_psql($pgactive_test_dbname,

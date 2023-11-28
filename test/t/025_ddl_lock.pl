@@ -76,9 +76,7 @@ my $offline_node = $nodes->[$offline_index];
 $offline_node->stop;
  
 my $lock = start_acquire_ddl_lock($node_0, 'ddl_lock', $timer);
-# Not much way around waiting here, since we're trying to show we'll
-# time out...
-sleep(2);
+
 # We'll always acquire the local ddl lock on peers, it's just the global lock
 # we don't acquire. (The local ddl lock is also held on the node that takes the
 # global ddl lock, but it's inserted in a row that's in an uncommitted xact so
@@ -88,8 +86,11 @@ is($node_2->safe_psql($pgactive_test_dbname, q[SELECT state FROM pgactive.pgacti
 # No good way to show if requesting node has replies
 # from all peers. Best we can do is see if pgactive.pgactive_acquire_global_lock(...)
 # stmt has finished.
-is($node_0->safe_psql($pgactive_test_dbname, "SELECT state FROM pg_stat_activity WHERE pid = " . $lock->{backend_pid} . ";"),
-    'active', 'still trying to acquire lock on node_0');
+$node_0->poll_query_until($pgactive_test_dbname,
+ "SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+    WHERE query LIKE '%pgactive.pgactive_acquire_global_lock%' AND
+    state = 'active' AND pid = " . $lock->{backend_pid} . ");")
+ or die "timed out waiting for node_0 to be in acquire DDL lock state";
 
 cancel_ddl_lock($lock);
 ok(!wait_acquire_ddl_lock($lock, undef, 1), 'did not acquire lock');

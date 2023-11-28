@@ -206,7 +206,4 @@ $node_0->reload;
 like($psql_stderr, qr/.*ERROR.*could not connect to the server in replication mode: connection failed/,
      "generic error for connection failure is detected");
 
-$node_0->stop;
-$node_1->stop;
-
 done_testing();

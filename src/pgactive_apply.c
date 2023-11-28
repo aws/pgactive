@@ -2776,9 +2776,9 @@ pgactive_apply_work(PGconn *streamConn)
 
 		/*
 		 * If the user has paused replication with pgactive_apply_pause(), we
-		 * wait on our procLatch until pg_pgactive_apply_resume() unsets the
-		 * flag in shmem. We don't pause until the end of the current
-		 * transaction, to avoid sleeping with locks held.
+		 * wait on our procLatch until pgactive_apply_resume() unsets the flag
+		 * in shmem. We don't pause until the end of the current transaction,
+		 * to avoid sleeping with locks held.
 		 *
 		 * Sleep for 5 minutes before re-checking. We shouldn't really need to
 		 * since we set the proc latch on resume, but it doesn't hurt to be
@@ -2786,6 +2786,10 @@ pgactive_apply_work(PGconn *streamConn)
 		 */
 		while (pgactiveWorkerCtl->pause_apply && !IsTransactionState())
 		{
+			ereport(LOG,
+					(errmsg("apply has paused"),
+					 errhint("Execute pgactive_apply_resume() to continue.")));
+
 			rc = pgactiveWaitLatch(&MyProc->procLatch,
 								   WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 								   300000L, PG_WAIT_EXTENSION);
