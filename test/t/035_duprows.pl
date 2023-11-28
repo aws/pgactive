@@ -77,20 +77,14 @@ is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'results node B
 $node_a->stop;
 is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'results node B during restart A');
 $node_a->start;
-# to make sure a is ready for queries again:
-sleep(10);
 
-note "taking final DDL lock";
-$node_a->safe_psql($pgactive_test_dbname, q[SELECT pgactive.pgactive_acquire_global_lock('write_lock')]);
-note "done, checking final state";
+# Make sure node_a is fully caught up with node_b changes after restart
+wait_for_apply($node_b, $node_a);
 
 $expected = q[node_a|node_a
 node_b|node_b];
 
 is($node_a->safe_psql($pgactive_test_dbname, $query), $expected, 'final results node A');
 is($node_b->safe_psql($pgactive_test_dbname, $query), $expected, 'final results node B');
-
-$node_a->stop;
-$node_b->stop;
 
 done_testing();

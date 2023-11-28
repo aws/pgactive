@@ -32,11 +32,15 @@ create_table($node_0,"$test_table");
 wait_for_apply($node_0,$node_1);
 wait_for_apply($node_0,$node_2);
 
+my $logstart_0 = get_log_size($node_0);
+
 $node_0->safe_psql($pgactive_test_dbname,"select pgactive.pgactive_apply_pause()");
-# Pause doesn't try to wait for any sort of acknowledgement from the worker and
-# there's no way to check if a worker is paused, so we'd better wait a
-# moment...
-sleep(1);
+# Check that the apply worker has reported that it has paused the apply in
+# server log file.
+my $result = find_in_log($node_0,
+	qr[LOG:  apply has paused],
+	$logstart_0);
+ok($result, "apply has paused on node_0");
 
 $node_2->safe_psql($pgactive_test_dbname,qq(INSERT INTO $test_table VALUES($value)));
 

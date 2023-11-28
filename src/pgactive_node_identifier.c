@@ -47,7 +47,7 @@ bool		pgactiveart = false;
 do { \
 	if (!cb_registered) \
 	{ \
-		RegisterXactCallback(pg_pgactive_xact_callback, NULL); \
+		RegisterXactCallback(pgactive_xact_callback, NULL); \
 		cb_registered = true; \
 	} \
 	pgactiveart = true; \
@@ -64,7 +64,7 @@ static void pgactive_nid_shmem_reset(Oid dboid);
 static void pgactive_nid_shmem_reset_all_guts(bool need_lock);
 static void pgactive_nid_shmem_set(Oid dboid, uint64 nid);
 static uint64 pgactive_nid_shmem_get(Oid dboid);
-static void pg_pgactive_xact_callback(XactEvent event, void *arg);
+static void pgactive_xact_callback(XactEvent event, void *arg);
 static void pgactive_spi_exec(const char *cmd, int ret);
 static bool get_pgactive_nid_getter_function_dependency(void);
 static bool is_pgactive_nid_getter_function_in_stmt(ObjectType objtype,
@@ -283,7 +283,7 @@ pgactive_get_node_identifier(PG_FUNCTION_ARGS)
  * Cleanup at main-transaction end.
  */
 static void
-pg_pgactive_xact_callback(XactEvent event, void *arg)
+pgactive_xact_callback(XactEvent event, void *arg)
 {
 	/* end pgactive artifacts */
 	UNSET_pgactiveART;
