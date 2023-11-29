@@ -94,5 +94,5 @@ ERROR:  altering of pgactive node identifier getter function is not allowed
 ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private RENAME TO alice;
 ERROR:  altering of pgactive node identifier getter function is not allowed
 -- Must fail
-DROP FUNCTION pgactive._pgactive_node_identifier_getter_private()
+DROP FUNCTION pgactive._pgactive_node_identifier_getter_private();
 ERROR:  dropping of pgactive node identifier getter function is not allowed
