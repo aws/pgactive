@@ -893,7 +893,7 @@ out:
  * ensuring error cleanup.
  */
 static void
-check_params_ensure_error_cleanup(PGconn *conn)
+check_params_ensure_error_cleanup(PGconn *conn, char *node_name)
 {
 	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
@@ -905,18 +905,20 @@ check_params_ensure_error_cleanup(PGconn *conn)
 		if (pgactive_max_nodes != ri.max_nodes)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%d)",
+					 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node %s value (%d)",
 							pgactive_max_nodes,
 							pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
+							node_name,
 							ri.max_nodes),
 					 errhint("The parameter must be set to the same value on all pgactive members.")));
 
 		if (prev_pgactive_skip_ddl_replication != ri.skip_ddl_replication)
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("pgactive.skip_ddl_replication parameter value (%s) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node (%s)",
+					 errmsg("pgactive.skip_ddl_replication parameter value (%s) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node %s value (%s)",
 							prev_pgactive_skip_ddl_replication ? "true" : "false",
 							pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
+							node_name,
 							ri.skip_ddl_replication ? "true" : "false"),
 					 errhint("The parameter must be set to the same value on all pgactive members.")));
 
@@ -965,7 +967,7 @@ check_params_are_same(void)
 	for (lc = list_head(node_dsns); lc; lc = next)
 #endif
 	{
-		char	   *dsn = (char *) lfirst(lc);
+		pgactiveNodeDSNsInfo *info = (pgactiveNodeDSNsInfo *) lfirst(lc);
 		PGconn	   *conn;
 
 		/* We might delete the cell so advance it now. */
@@ -973,7 +975,7 @@ check_params_are_same(void)
 		next = lnext(lc);
 #endif
 
-		conn = pgactive_connect_nonrepl(dsn,
+		conn = pgactive_connect_nonrepl(info->node_dsn,
 										"pgactivenodeinfo", false);
 		if (PQstatus(conn) != CONNECTION_OK)
 		{
@@ -983,7 +985,7 @@ check_params_are_same(void)
 			continue;
 		}
 
-		check_params_ensure_error_cleanup(conn);
+		check_params_ensure_error_cleanup(conn, info->node_name);
 
 		/* Delete the remote node DSN from the list if it's connectable. */
 #if PG_VERSION_NUM >= 130000
@@ -1002,6 +1004,8 @@ check_params_are_same(void)
 				 errmsg("local node " pgactive_NODEID_FORMAT_WITHNAME " is not able to connect to any remote node to compare its parameters with",
 						pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
 				 errhint("Ensure at least one remote node is connectable from the local node.")));
+
+	list_free(node_dsns);
 }
 
 /*
@@ -1015,7 +1019,7 @@ static void
 check_local_node_connectability(void)
 {
 	List	   *node_dsn;
-	char	   *dsn;
+	pgactiveNodeDSNsInfo *info;
 	PGconn	   *conn;
 	char		appsuffix[NAMEDATALEN];
 	StringInfoData cmd;
@@ -1031,12 +1035,12 @@ check_local_node_connectability(void)
 
 	Assert(list_length(node_dsn) == 1);
 
-	dsn = linitial(node_dsn);
+	info = (pgactiveNodeDSNsInfo *) linitial(node_dsn);
 
 	snprintf(appsuffix, NAMEDATALEN,
 			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
 
-	conn = pgactive_connect_nonrepl(dsn,
+	conn = pgactive_connect_nonrepl(info->node_dsn,
 									appsuffix,
 									false);
 

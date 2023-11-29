@@ -583,8 +583,8 @@ pgactive_read_connection_configs()
 }
 
 /*
- * Get the list of node_dsn from pgactive_nodes table of all nodes but
- * excluding local node or only local node.
+ * Get the list of node_dsn and node_name from pgactive_nodes table of all
+ * nodes but excluding local node or only local node.
  */
 List *
 pgactive_get_node_dsns(bool only_local_node)
@@ -611,12 +611,12 @@ pgactive_get_node_dsns(bool only_local_node)
 	initStringInfo(&query);
 
 	if (only_local_node)
-		appendStringInfo(&query, "SELECT node_dsn "
+		appendStringInfo(&query, "SELECT node_dsn, node_name "
 						 "FROM pgactive.pgactive_nodes "
 						 "WHERE (node_sysid, node_timeline, node_dboid) = ($1, $2, $3) "
 						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
 	else
-		appendStringInfo(&query, "SELECT node_dsn "
+		appendStringInfo(&query, "SELECT node_dsn, node_name "
 						 "FROM pgactive.pgactive_nodes "
 						 "WHERE (node_sysid, node_timeline, node_dboid) <> ($1, $2, $3) "
 						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
@@ -640,22 +640,20 @@ pgactive_get_node_dsns(bool only_local_node)
 
 	for (i = 0; i < SPI_processed; i++)
 	{
-		char	   *tmp;
+		pgactiveNodeDSNsInfo *info;
 
+		info = palloc(sizeof(pgactiveNodeDSNsInfo));
 		tuple = SPI_tuptable->vals[i];
-
-		tmp = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
-						   getattno("node_dsn"));
-
-		node_dsns = lcons(tmp, node_dsns);
-
+		info->node_dsn = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
+									  getattno("node_dsn"));
+		info->node_name = SPI_getvalue(tuple, SPI_tuptable->tupdesc,
+									   getattno("node_name"));
+		node_dsns = lcons(info, node_dsns);
 	}
 
 	MemoryContextSwitchTo(saved_ctx);
-
 	SPI_finish();
 	PopActiveSnapshot();
-
 	MemoryContextSwitchTo(caller_ctx);
 
 	return node_dsns;
