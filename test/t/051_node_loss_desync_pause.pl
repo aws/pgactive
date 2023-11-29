@@ -51,6 +51,30 @@ is($node_1->safe_psql($pgactive_test_dbname,"SELECT id FROM $test_table"),
 is($node_0->safe_psql($pgactive_test_dbname,"SELECT id FROM $test_table"),
     '',"Changes not replayed to node_0 due to apply pause");
 
+# Resume the apply and see if the changes get replicated
+$node_0->safe_psql($pgactive_test_dbname,"select pgactive.pgactive_apply_resume()");
+
+$value = 2;
+$node_2->safe_psql($pgactive_test_dbname,qq(INSERT INTO $test_table VALUES($value)));
+
+wait_for_apply($node_2,$node_0);
+is($node_0->safe_psql($pgactive_test_dbname,"SELECT id FROM $test_table WHERE id = $value"),
+    $value,"Changes from node_2 after apply resume on node_0 are replayed to node_0");
+
+wait_for_apply($node_2,$node_1);
+is($node_1->safe_psql($pgactive_test_dbname,"SELECT id FROM $test_table WHERE id = $value"),
+    $value,"Changes from node_2 after apply resume on node_0 are replayed to node_1");
+
+# Pause the apply again for the below detach node test
+$logstart_0 = get_log_size($node_0);
+$node_0->safe_psql($pgactive_test_dbname,"select pgactive.pgactive_apply_pause()");
+# Check that the apply worker has reported that it has paused the apply in
+# server log file.
+$result = find_in_log($node_0,
+	qr[LOG:  apply has paused],
+	$logstart_0);
+ok($result, "apply has paused on node_0 for the second time");
+
 detach_and_check_nodes([$node_2],$node_1);
 
 $node_0->safe_psql($pgactive_test_dbname,"select pgactive.pgactive_apply_resume()");
