@@ -69,4 +69,4 @@ ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private OWNER TO CURREN
 ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private RENAME TO alice;
 
 -- Must fail
-DROP FUNCTION pgactive._pgactive_node_identifier_getter_private()
+DROP FUNCTION pgactive._pgactive_node_identifier_getter_private();

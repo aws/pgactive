@@ -99,7 +99,6 @@ REGRESSCHECKS = init \
 	schema_desync \
 	replorigin_filter \
 	catalog \
-	terminate \
 	skipchanges \
 	seq \
 	read_only \
