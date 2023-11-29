@@ -80,6 +80,12 @@ REVOKE ALL ON FUNCTION _pgactive_has_required_privs() FROM public;
 COMMENT ON FUNCTION _pgactive_has_required_privs() IS
 'Checks if current user has required privileges.';
 
+CREATE FUNCTION has_required_privs()
+RETURNS boolean
+AS 'MODULE_PATHNAME','_pgactive_has_required_privs'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION has_required_privs() FROM public;
 
 CREATE VIEW pgactive.pgactive_node_slots AS
 SELECT n.node_name,

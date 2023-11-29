@@ -115,7 +115,8 @@ REGRESSCHECKS = init \
 	dml_replicate_ddl_command \
 	dml_missing_pk \
 	dml_toasted \
-	detach_pgactive
+	detach_pgactive \
+	oldextversions
 
 # Can only be built using pgxs
 USE_PGXS=1
