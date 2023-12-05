@@ -616,10 +616,16 @@ pgactive_get_node_dsns(bool only_local_node)
 						 "WHERE (node_sysid, node_timeline, node_dboid) = ($1, $2, $3) "
 						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
 	else
+	{
+		/*
+		 * Get info from only nodes that are ready and fully functional. Let
+		 * the nodes finish all the due diligence in other pre-ready states.
+		 */
 		appendStringInfo(&query, "SELECT node_dsn, node_name "
 						 "FROM pgactive.pgactive_nodes "
 						 "WHERE (node_sysid, node_timeline, node_dboid) <> ($1, $2, $3) "
-						 "AND node_status <> " pgactive_NODE_STATUS_KILLED_S " ");
+						 "AND node_status = " pgactive_NODE_STATUS_READY_S " ");
+	}
 
 	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, myid.sysid);
 
