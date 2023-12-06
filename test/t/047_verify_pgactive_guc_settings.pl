@@ -28,8 +28,6 @@ my $upstream_node = $node_a;
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_node($node_b);
 
-my $logstart_b = get_log_size($node_b);
-
 $node_b->append_conf('postgresql.conf', q{pgactive.max_nodes = 4});
 $node_b->restart;
 
@@ -54,9 +52,11 @@ check_join_status($node_b, $upstream_node);
 # Change/deviate pgactive.max_nodes value from the group and restart the node, the
 # node mustn't start per-db and apply workers.
 $node_b->append_conf('postgresql.conf', qq(pgactive.max_nodes = 4));
+
+my $logstart_b = get_log_size($node_b);
 $node_b->restart;
 my $result = find_in_log($node_b,
-	qr[ERROR:  pgactive.max_nodes parameter value .* on local node .* doesn't match with remote node .*],
+	qr[ERROR:  pgactive.max_nodes parameter value .* on local node .* doesn't match with remote node node_a value .*],
 	$logstart_b);
 ok($result, "pgactive.max_nodes parameter value mismatch between local node and remote node is detected");
 
@@ -117,8 +117,6 @@ $upstream_node = $node_0;
 my $node_1 = PostgreSQL::Test::Cluster->new('node_1');
 initandstart_node($node_1);
 
-my $logstart_0 = get_log_size($node_0);
-
 $node_1->append_conf('postgresql.conf', q{pgactive.skip_ddl_replication = false});
 $node_1->restart;
 
@@ -143,9 +141,10 @@ check_join_status($node_1, $upstream_node);
 # This time, on the "creator" node, change/deviate pgactive.skip_ddl_replication value
 # from the group and restart the node, the node mustn't start per-db and apply workers.
 $node_0->append_conf('postgresql.conf', qq(pgactive.skip_ddl_replication = false));
+my $logstart_0 = get_log_size($node_0);
 $node_0->restart;
 $result = find_in_log($node_0,
-	qr[ERROR:  pgactive.skip_ddl_replication parameter value .* on local node .* doesn't match with remote node .*],
+	qr[ERROR:  pgactive.skip_ddl_replication parameter value .* on local node .* doesn't match with remote node node_1 value .*],
 	$logstart_0);
 ok($result, "pgactive.skip_ddl_replication parameter value mismatch between local node and remote node is detected");
 

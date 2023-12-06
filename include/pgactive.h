@@ -587,6 +587,12 @@ typedef struct pgactiveApplyConflict
 	ErrorData  *apply_error;
 }			pgactiveApplyConflict;
 
+typedef struct pgactiveNodeDSNsInfo
+{
+	char	   *node_dsn;
+	char	   *node_name;
+}			pgactiveNodeDSNsInfo;
+
 extern void pgactive_conflict_logging_startup(void);
 extern void pgactive_conflict_logging_cleanup(void);
 
