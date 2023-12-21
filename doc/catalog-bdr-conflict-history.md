@@ -53,7 +53,15 @@ It is safe to `TRUNCATE` this table to save disk space.
   `local_tuple_origin_dboid`      `oid`                                         
   `local_commit_time`             `timestamp with timezone`                    The time the local transaction involved in this conflict committed.
 
+We recommend that you schedule a job that purges this table. For example, keeping a week's worth of entries might be sufficient for troubleshooting purposes.
 
+The following example uses the pg_cron extension and the cron.schedule function to schedule a job that runs every day at midnight to purge the `bdr.bdr_conflict_history` table. The job keeps only the last seven days.
+
+`
+SELECT cron.schedule('0 0 * * *', $$DELETE
+    FROM bdr.bdr_conflict_history
+    WHERE local_conflict_time < now() - interval '7 days'$$);
+`
 
   ------------------------------------------------- ------------------------------------------ ----------------------------------------------------------------
   [Prev](catalog-bdr-stats.md)       [Home](README.md)        [Next](catalog-bdr-replication-set-config.md)
