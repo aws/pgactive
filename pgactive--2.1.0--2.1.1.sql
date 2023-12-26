@@ -1,3 +1,8 @@
+/* pgactive--2.1.0--2.1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION pgactive UPDATE TO '2.1.1'" to load this file. \quit
+
 SET pgactive.skip_ddl_replication = true;
 -- Everything should assume the 'pgactive' prefix
 SET LOCAL search_path = pgactive;
