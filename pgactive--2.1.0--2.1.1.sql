@@ -1,3 +1,8 @@
+/* pgactive--2.1.0--2.1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION pgactive UPDATE TO '2.1.1'" to load this file. \quit
+
 SET pgactive.skip_ddl_replication = true;
 -- Everything should assume the 'pgactive' prefix
 SET LOCAL search_path = pgactive;
@@ -80,6 +85,12 @@ REVOKE ALL ON FUNCTION _pgactive_has_required_privs() FROM public;
 COMMENT ON FUNCTION _pgactive_has_required_privs() IS
 'Checks if current user has required privileges.';
 
+CREATE FUNCTION has_required_privs()
+RETURNS boolean
+AS 'MODULE_PATHNAME','_pgactive_has_required_privs'
+LANGUAGE C STRICT;
+
+REVOKE ALL ON FUNCTION has_required_privs() FROM public;
 
 CREATE VIEW pgactive.pgactive_node_slots AS
 SELECT n.node_name,

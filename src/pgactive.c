@@ -149,10 +149,15 @@ PGDLLEXPORT Datum pgactive_xact_replication_origin(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_conninfo_cmp(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_last_applied_xact_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_get_replication_lag_info(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_replication_lag_info(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum _pgactive_get_free_disk_space(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum get_free_disk_space(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum _pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum _pgactive_has_required_privs(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum has_required_privs(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_apply_pause);
 PG_FUNCTION_INFO_V1(pgactive_apply_resume);
@@ -174,10 +179,15 @@ PG_FUNCTION_INFO_V1(pgactive_xact_replication_origin);
 PG_FUNCTION_INFO_V1(pgactive_conninfo_cmp);
 PG_FUNCTION_INFO_V1(pgactive_destroy_temporary_dump_directories);
 PG_FUNCTION_INFO_V1(pgactive_get_last_applied_xact_info);
+PG_FUNCTION_INFO_V1(get_last_applied_xact_info);
 PG_FUNCTION_INFO_V1(pgactive_get_replication_lag_info);
+PG_FUNCTION_INFO_V1(get_replication_lag_info);
 PG_FUNCTION_INFO_V1(_pgactive_get_free_disk_space);
+PG_FUNCTION_INFO_V1(get_free_disk_space);
 PG_FUNCTION_INFO_V1(_pgactive_check_file_system_mount_points);
+PG_FUNCTION_INFO_V1(check_file_system_mount_points);
 PG_FUNCTION_INFO_V1(_pgactive_has_required_privs);
+PG_FUNCTION_INFO_V1(has_required_privs);
 
 static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
@@ -2058,6 +2068,13 @@ pgactive_destroy_temporary_dump_directories(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
+/* For 2.1.0 backward compatibility */
+Datum
+get_last_applied_xact_info(PG_FUNCTION_ARGS)
+{
+	return pgactive_get_last_applied_xact_info(fcinfo);
+}
+
 Datum
 pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 {
@@ -2220,6 +2237,13 @@ done:
 	PQfinish(conn);
 }
 
+/* For 2.1.0 backward compatibility */
+Datum
+get_replication_lag_info(PG_FUNCTION_ARGS)
+{
+	return pgactive_get_replication_lag_info(fcinfo);
+}
+
 Datum
 pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 {
@@ -2288,6 +2312,13 @@ pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 #undef GET_REPLICATION_LAG_INFO_COLS
 }
 
+/* For 2.1.0 backward compatibility */
+Datum
+get_free_disk_space(PG_FUNCTION_ARGS)
+{
+	return _pgactive_get_free_disk_space(fcinfo);
+}
+
 Datum
 _pgactive_get_free_disk_space(PG_FUNCTION_ARGS)
 {
@@ -2309,6 +2340,13 @@ _pgactive_get_free_disk_space(PG_FUNCTION_ARGS)
 	free_space = buf.f_bsize * buf.f_bfree;
 
 	PG_RETURN_INT64(free_space);
+}
+
+/* For 2.1.0 backward compatibility */
+Datum
+check_file_system_mount_points(PG_FUNCTION_ARGS)
+{
+	return _pgactive_check_file_system_mount_points(fcinfo);
 }
 
 Datum
@@ -2341,6 +2379,13 @@ _pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS)
 		PG_RETURN_BOOL(true);
 
 	PG_RETURN_BOOL(false);
+}
+
+/* For 2.1.0 backward compatibility */
+Datum
+has_required_privs(PG_FUNCTION_ARGS)
+{
+	return _pgactive_has_required_privs(fcinfo);
 }
 
 /*

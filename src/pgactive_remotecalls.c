@@ -222,7 +222,7 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 	 */
 	res = PQexec(conn, "SELECT pgactive.pgactive_version(), pgactive.pgactive_version_num(), "
 				 "pgactive.pgactive_variant(), pgactive.pgactive_min_remote_version_num(), "
-				 "pgactive._pgactive_has_required_privs() AS hasrequiredprivs, "
+				 "pgactive.has_required_privs() AS hasrequiredprivs, "
 				 "pgactive.pgactive_get_local_node_name() AS node_name, "
 				 "current_database()::text AS dbname, "
 				 "pg_database_size(current_database()) AS dbsize, "
