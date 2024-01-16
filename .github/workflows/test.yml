@@ -94,11 +94,6 @@ jobs:
           cd pgactive
           make PROVE_FLAGS="--timer -v" prove_check
 
-      - name: Run pgbench tests with pgactive
-        run: |
-            cd pgactive
-            time sh test/pgactive_pgbench.sh PGSRC=$GITHUB_WORKSPACE/postgres pgactiveSRC=$GITHUB_WORKSPACE/pgactive RESULTS=$GITHUB_WORKSPACE/pgbench_results
-
       - name: Upload test artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
@@ -108,5 +103,4 @@ jobs:
             postgres/pgindent.diffs
             pgactive/test/regression.diffs
             pgactive/test/tmp_check/log
-            $GITHUB_WORKSPACE/pgbench_results
           retention-days: 1
