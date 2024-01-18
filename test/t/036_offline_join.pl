@@ -78,8 +78,6 @@ $new_node->safe_psql($pgactive_test_dbname, q[SELECT pgactive.pgactive_acquire_g
 
 # TODO: check offline work is sync'd
 
-
-
 # A physical join should run pgactive_init_copy fine when a node is offline, then get
 # stuck in catchup mode, just like logical join.
 $offline_node->stop;

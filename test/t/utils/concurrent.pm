@@ -228,7 +228,7 @@ sub concurrent_detach {
 sub pgbench_init {
     my ($node, $scale) = @_;
     $node->pgbench(
-	    "--initialize --scale=$scale");
+	    "--initialize --scale=$scale", 0, [], [], 'pgbench init');
 }
 
 sub pgbench_start {
