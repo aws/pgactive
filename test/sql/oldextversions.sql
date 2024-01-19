@@ -11,3 +11,9 @@ ALTER EXTENSION pgactive UPDATE TO '2.1.1';
 
 -- List what version 2.1.1 contains.
 \dx+ pgactive
+
+-- Move to new version 2.1.2.
+ALTER EXTENSION pgactive UPDATE TO '2.1.2';
+
+-- List what version 2.1.2 contains.
+\dx+ pgactive
