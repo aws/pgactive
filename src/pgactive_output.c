@@ -925,7 +925,12 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 			pq_sendbyte(ctx->out, 'I'); /* action INSERT */
 			write_rel(ctx->out, relation);
 			pq_sendbyte(ctx->out, 'N'); /* new tuple follows */
-			write_tuple(data, ctx->out, relation, &change->data.tp.newtuple->tuple);
+#if PG_VERSION_NUM >= 170000
+			write_tuple(data, ctx->out, relation, change->data.tp.newtuple);
+#else
+			write_tuple(data, ctx->out, relation,
+						&change->data.tp.newtuple->tuple);
+#endif
 			break;
 		case REORDER_BUFFER_CHANGE_UPDATE:
 			pq_sendbyte(ctx->out, 'U'); /* action UPDATE */
@@ -933,12 +938,21 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 			if (change->data.tp.oldtuple != NULL)
 			{
 				pq_sendbyte(ctx->out, 'K'); /* old key follows */
+#if PG_VERSION_NUM >= 170000
+				write_tuple(data, ctx->out, relation,
+							change->data.tp.oldtuple);
+#else
 				write_tuple(data, ctx->out, relation,
 							&change->data.tp.oldtuple->tuple);
+#endif
 			}
 			pq_sendbyte(ctx->out, 'N'); /* new tuple follows */
+#if PG_VERSION_NUM >= 170000
+			write_tuple(data, ctx->out, relation, change->data.tp.newtuple);
+#else
 			write_tuple(data, ctx->out, relation,
 						&change->data.tp.newtuple->tuple);
+#endif
 			break;
 		case REORDER_BUFFER_CHANGE_DELETE:
 			pq_sendbyte(ctx->out, 'D'); /* action DELETE */
@@ -946,8 +960,13 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 			if (change->data.tp.oldtuple != NULL)
 			{
 				pq_sendbyte(ctx->out, 'K'); /* old key follows */
+#if PG_VERSION_NUM >= 170000
+				write_tuple(data, ctx->out, relation,
+							change->data.tp.oldtuple);
+#else
 				write_tuple(data, ctx->out, relation,
 							&change->data.tp.oldtuple->tuple);
+#endif
 			}
 			else
 				pq_sendbyte(ctx->out, 'E'); /* empty */
