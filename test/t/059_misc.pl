@@ -198,7 +198,6 @@ $node_0->safe_psql($pgactive_test_dbname,
     SELECT pg_replication_origin_xact_setup('1/1', current_timestamp);
     INSERT INTO public.origin_filter(id, n1) values (4, 4);
     COMMIT;
-    SELECT 'finished';
   ]);
 wait_for_apply($node_0, $node_1);
 
@@ -208,5 +207,108 @@ my $result_expected = '1|1
 2|2';
 $result = $node_1->safe_psql($pgactive_test_dbname, q[SELECT * FROM origin_filter;]);
 is($result, $result_expected, 'check if writes generated after the replication origin is set up are not forwarded');
+
+# Test node identifier related things
+# No real way to test the sysid, so ignore it
+$result = $node_1->safe_psql($pgactive_test_dbname,
+  q[SELECT timeline = 0, dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
+    FROM pgactive.pgactive_get_local_nodeid();]);
+is($result, 't|t', 'check if TLI and dboid matches with that of local node id');
+
+my $pgport = $node_0->port;
+my $pghost = $node_0->host;
+my $node_0_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
+
+$query = qq[SELECT
+	r.sysid != l.sysid,
+	r.timeline = l.timeline,
+	variant = pgactive.pgactive_variant(),
+	version = pgactive.pgactive_version(),
+	version_num = pgactive.pgactive_version_num(),
+	min_remote_version_num = pgactive.pgactive_min_remote_version_num(),
+	has_required_privs = 't'
+FROM pgactive._pgactive_get_node_info_private('$node_0_connstr') r,
+     pgactive.pgactive_get_local_nodeid() l;];
+
+$result = $node_1->safe_psql($pgactive_test_dbname, $query);
+is($result, 't|t|t|t|t|t|t', 'check if remote node info matches with that of local node');
+
+$pgport = $node_1->port;
+$pghost = $node_1->host;
+my $node_1_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
+
+$query = qq[SELECT
+    r.dboid = (SELECT oid FROM pg_database WHERE datname = current_database())
+FROM pgactive._pgactive_get_node_info_private('$node_1_connstr') r;];
+
+$result = $node_1->safe_psql($pgactive_test_dbname, $query);
+is($result, 't', 'check if local node info matches when connected to itself');
+
+# Verify that parsing slot names then formatting them again produces round-trip
+# output.
+$result = $node_0->safe_psql($pgactive_test_dbname,
+    q[WITH namepairs(orig, remote_sysid, remote_timeline, remote_dboid, local_dboid, replication_name, formatted)
+        AS (
+          SELECT
+            s.slot_name, p.*, pgactive.pgactive_format_slot_name(p.remote_sysid, p.remote_timeline, p.remote_dboid, p.local_dboid, '')
+          FROM pg_catalog.pg_replication_slots s,
+            LATERAL pgactive.pgactive_parse_slot_name(s.slot_name) p
+        )
+        SELECT orig, formatted
+        FROM namepairs
+        WHERE orig <> formatted;
+      SELECT 'finished';
+    ]);
+is($result, 'finished', 'check if parsing slot names is successful');
+
+# Check the view mapping slot names to pgactive nodes. We can't really examine
+# the slot name in the tests, because it changes every run, so make sure we at
+# least find the expected nodes.
+$result = $node_0->safe_psql($pgactive_test_dbname,
+  q[SELECT count(1) FROM (
+    SELECT ns.node_name
+      FROM pgactive.pgactive_nodes LEFT JOIN pgactive.pgactive_node_slots ns USING (node_name)
+      ) q
+    WHERE node_name IS NULL;]);
+is($result, 1, 'check if view mapping slot names to pgactive nodes');
+
+# Check to see if we can get the local node name
+$result = $node_0->safe_psql($pgactive_test_dbname,
+  q[SELECT pgactive.pgactive_get_local_node_name() = 'node_0';]);
+is($result, 't', 'check if we can get the local node name');
+
+# Verify that creating/altering/dropping of pgactive node identifier getter
+# function is disallowed.
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q(CREATE OR REPLACE FUNCTION pgactive._pgactive_node_identifier_getter_private()
+      RETURNS numeric AS $$ SELECT '123456'::numeric $$
+      LANGUAGE SQL;));
+like($stderr, qr/.*ERROR.*creation of pgactive node identifier getter function is not allowed/,
+     "creation of pgactive node identifier getter function is not allowed");
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q(ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private STABLE;));
+like($stderr, qr/.*ERROR.*altering of pgactive node identifier getter function is not allowed/,
+     "altering of pgactive node identifier getter function is not allowed");
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q(ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private OWNER TO CURRENT_USER;));
+like($stderr, qr/.*ERROR.*altering of pgactive node identifier getter function is not allowed/,
+     "altering of pgactive node identifier getter function is not allowed");
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q(ALTER FUNCTION pgactive._pgactive_node_identifier_getter_private RENAME TO alice;));
+like($stderr, qr/.*ERROR.*altering of pgactive node identifier getter function is not allowed/,
+     "altering of pgactive node identifier getter function is not allowed");
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q(DROP FUNCTION pgactive._pgactive_node_identifier_getter_private();));
+like($stderr, qr/.*ERROR.*dropping of pgactive node identifier getter function is not allowed/,
+     "dropping of pgactive node identifier getter function is not allowed");
 
 done_testing();
