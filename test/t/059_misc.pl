@@ -311,4 +311,48 @@ like($stderr, qr/.*ERROR.*altering of pgactive node identifier getter function i
 like($stderr, qr/.*ERROR.*dropping of pgactive node identifier getter function is not allowed/,
      "dropping of pgactive node identifier getter function is not allowed");
 
+# Test skipping pgactive changes
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q[SELECT pgactive.pgactive_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
+        FROM pgactive.pgactive_nodes n
+        WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != pgactive.pgactive_get_local_nodeid();]);
+like($stderr, qr/.*ERROR.*skipping changes is unsafe and will cause replicas to be out of sync/,
+     "check if skipping pgactive changes errors out");
+
+# Let's try to skip the changes anyway
+$node_0->append_conf('postgresql.conf', qq(pgactive.skip_ddl_replication = true));
+$node_0->restart;
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q[SELECT pgactive.pgactive_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/0')
+        FROM pgactive.pgactive_nodes n
+        WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != pgactive.pgactive_get_local_nodeid();]);
+like($stderr, qr/.*ERROR.*target LSN must be nonzero/,
+     "check if skipping pgactive changes with bogus LSN errors out");
+
+# Access a bogus node.
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q[SELECT pgactive.pgactive_skip_changes('0', 0, 1234, '0/1');]);
+like($stderr, qr/.*ERROR.* replication origin "pgactive_0_0_.* does not exist/,
+     "check if skipping pgactive changes with bogus node errors out");
+
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    q[SELECT pgactive.pgactive_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
+        FROM pgactive.pgactive_nodes n
+        WHERE (n.node_sysid, n.node_timeline, n.node_dboid) = pgactive.pgactive_get_local_nodeid();]);
+like($stderr, qr/.*ERROR.*passed ID is for the local node, can't skip changes from self/,
+     "check if skipping pgactive changes for local node errors out");
+
+# Skipping the past must do nothing. The LSN isn't exposed in
+# pg_replication_identifier so this'll just produce no visible result, but not
+# break anything.
+$node_0->psql($pgactive_test_dbname,
+  q[SELECT pgactive.pgactive_skip_changes(n.node_sysid, n.node_timeline, n.node_dboid, '0/1')
+    FROM pgactive.pgactive_nodes n
+    WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != pgactive.pgactive_get_local_nodeid();]);
+
 done_testing();
