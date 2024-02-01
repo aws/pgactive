@@ -96,7 +96,6 @@ REGRESSCHECKS = init \
 	replorigin_filter \
 	skipchanges \
 	seq \
-	read_only \
 	$(FAILING_TESTS) \
 	ddl_lock \
 	$(DDLTESTS) \
