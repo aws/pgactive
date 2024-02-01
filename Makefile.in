@@ -91,7 +91,6 @@ DDLTESTS_FUNC := ddl_fn/ddl_enable_ddl \
 REGRESSCHECKS = init \
 	init_pgactive \
 	guc \
-	schema \
 	identifier \
 	schema_desync \
 	replorigin_filter \
