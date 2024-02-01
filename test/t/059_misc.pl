@@ -49,4 +49,57 @@ wait_for_apply($node_0, $node_1);
 $node_0->poll_query_until($pgactive_test_dbname,
   qq[SELECT COUNT(*) = 2 FROM fruits;]);
 
+# The DB name pgactive_supervisordb is reserved by pgactive. None of these
+# commands may be permitted.
+my $query = qq[CREATE DATABASE pgactive_supervisordb;];
+# Must not use safe_psql since we expect an error here
+my ($result, $stdout, $stderr) = ('','', '');
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    $query);
+like($stderr, qr/.*ERROR.*pgactive extension reserves the database name pgactive_supervisordb for its own use/,
+     "creation of database with a name reserved by pgactive fails");
+
+$query = qq[DROP DATABASE pgactive_supervisordb;];
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    $query);
+like($stderr, qr/.*ERROR.*pgactive extension reserves the database name pgactive_supervisordb for its own use/,
+     "dropping of database with a name reserved by pgactive fails");
+
+$query = qq[ALTER DATABASE pgactive_supervisordb RENAME TO someothername;];
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    $query);
+like($stderr, qr/.*ERROR.*pgactive extension reserves the database name pgactive_supervisordb for its own use/,
+     "renaming of database with a name reserved by pgactive to other fails");
+
+$query = qq[ALTER DATABASE postgres RENAME TO pgactive_supervisordb;];
+($result, $stdout, $stderr) = $node_0->psql(
+    $pgactive_test_dbname,
+    $query);
+like($stderr, qr/.*ERROR.*pgactive extension reserves the database name pgactive_supervisordb for its own use/,
+     "renaming of other database to database with a name reserved by pgactive fails");
+
+# We can connect to the supervisor db; but can only run read-only commands, not
+# all, exception is VACUUM command.
+$query = qq[SET log_statement = 'all';];
+($result, $stdout, $stderr) = $node_0->psql(
+    'pgactive_supervisordb',
+    $query);
+like($stderr, qr/.*ERROR.*no commands may be run on the pgactive supervisor database/,
+     "running of write commands (SET) fail on pgactive_supervisordb");
+
+$query = qq[CREATE TABLE create_fails(id integer);];
+($result, $stdout, $stderr) = $node_0->psql(
+    'pgactive_supervisordb',
+    $query);
+like($stderr, qr/.*ERROR.*no commands may be run on the pgactive supervisor database/,
+     "running of write commands fail on pgactive_supervisordb");
+
+is($node_0->safe_psql('pgactive_supervisordb', "SELECT 1;"),
+	1, 'read-only query on pgactive_supervisordb works');
+
+$node_0->safe_psql('pgactive_supervisordb', q[VACUUM;]);
+
 done_testing();

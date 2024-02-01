@@ -49,7 +49,7 @@ OBJS = src/pgactive.o \
 	src/pgactive_remotecalls.o \
 	src/pgactive_seq.o \
 	src/pgactive_shmem.o \
-	src/pgactive_supervisor.o \
+	src/pgactive_.o \
 	src/pgactive_user_mapping.o
 
 ifdef RUN_FAILING_TESTS
@@ -94,7 +94,6 @@ REGRESSCHECKS = init \
 	guc \
 	schema \
 	preseed_check \
-	supervisordb \
 	identifier \
 	schema_desync \
 	replorigin_filter \
