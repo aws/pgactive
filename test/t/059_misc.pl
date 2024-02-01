@@ -180,4 +180,33 @@ is($node_0->safe_psql('pgactive_supervisordb', "SELECT 1;"),
 
 $node_0->safe_psql('pgactive_supervisordb', q[VACUUM;]);
 
+# Simulate a write from some unknown peer node by defining a replication
+# origin and using it in our session. We must not forward the writes generated
+# after replication origin is setup.
+$node_0->safe_psql($pgactive_test_dbname,
+    q[CREATE TABLE origin_filter(id integer primary key not null, n1 integer not null);]);
+$node_0->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO origin_filter VALUES (1, 1);]);
+wait_for_apply($node_0, $node_1);
+
+$node_0->safe_psql($pgactive_test_dbname,
+  q[SELECT pg_replication_origin_create('demo_origin');
+    INSERT INTO origin_filter(id, n1) VALUES (2, 2);
+    SELECT pg_replication_origin_session_setup('demo_origin');
+    INSERT INTO origin_filter(id, n1) VALUES (3, 3);
+    BEGIN;
+    SELECT pg_replication_origin_xact_setup('1/1', current_timestamp);
+    INSERT INTO public.origin_filter(id, n1) values (4, 4);
+    COMMIT;
+    SELECT 'finished';
+  ]);
+wait_for_apply($node_0, $node_1);
+
+# Writes generated (i.e., rows (3,3) and (4,4)) after the replication origin is
+# setup won't be forwarded to the other node.
+my $result_expected = '1|1
+2|2';
+$result = $node_1->safe_psql($pgactive_test_dbname, q[SELECT * FROM origin_filter;]);
+is($result, $result_expected, 'check if writes generated after the replication origin is set up are not forwarded');
+
 done_testing();

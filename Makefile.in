@@ -93,7 +93,6 @@ REGRESSCHECKS = init \
 	guc \
 	identifier \
 	schema_desync \
-	replorigin_filter \
 	skipchanges \
 	seq \
 	$(FAILING_TESTS) \
