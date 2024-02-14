@@ -71,12 +71,8 @@ $node_0_standby->poll_query_until($pgactive_test_dbname,
   qq[SELECT COUNT(*) = 2 FROM fruits;])
   or die "timed out waiting for standby to receive all the data from primary";
 
-my $pgport = $node_0->port;
-my $pghost = $node_0->host;
-my $node_0_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
-
-$pgport = $node_0_standby->port;
-$pghost = $node_0_standby->host;
+my $pgport = $node_0_standby->port;
+my $pghost = $node_0_standby->host;
 my $node_0_standby_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
 
 $pgport = $node_1->port;

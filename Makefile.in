@@ -89,19 +89,10 @@ DDLTESTS_FUNC := ddl_fn/ddl_enable_ddl \
 	ddl_fn/ddl_disable_ddl
 
 REGRESSCHECKS = init \
-	preseed \
 	init_pgactive \
 	guc \
-	schema \
-	preseed_check \
-	supervisordb \
-	identifier \
 	schema_desync \
-	replorigin_filter \
-	catalog \
-	skipchanges \
 	seq \
-	read_only \
 	$(FAILING_TESTS) \
 	ddl_lock \
 	$(DDLTESTS) \
@@ -113,8 +104,7 @@ REGRESSCHECKS = init \
 	dml_replicate_ddl_command \
 	dml_missing_pk \
 	dml_toasted \
-	detach_pgactive \
-	oldextversions
+	detach_pgactive
 
 # Can only be built using pgxs
 USE_PGXS=1

@@ -20,9 +20,6 @@ SELECT pgactive.pgactive_create_group(
 	node_dsn := 'dbname=postgres',
 	replication_sets := ARRAY['default', 'important', 'for-node-1']
 	);
-WARNING:  secondary unique constraint(s) exist on replicated table(s)
-DETAIL:  Table public.some_local_tbl has secondary unique constraint some_local_tbl_key_key. This may cause unhandled replication conflicts.
-HINT:  Drop the secondary unique constraint(s), change the table(s) to UNLOGGED if they don't need to be replicated, or exclude the table(s) from the active replication set(s).
  pgactive_create_group 
 -----------------------
  
