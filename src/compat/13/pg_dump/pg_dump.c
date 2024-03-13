@@ -359,7 +359,6 @@ main(int argc, char **argv)
 		 */
 		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
 		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
-		{"pgactive-init-node", no_argument, &dopt.pgactive_init_node, 1},
 		{"column-inserts", no_argument, &dopt.column_inserts, 1},
 		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
 		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
@@ -1487,13 +1486,10 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	addObjectDependency(dobj, ext->dobj.dumpId);
 
 	/*
-	 * In 9.6 and above, mark the member object to have any non-initial ACL,
-	 * policies, and security labels dumped.
-	 *
-	 * Note that any initial ACLs (see pg_init_privs) will be removed when we
-	 * extract the information about the object.  We don't provide support for
-	 * initial policies and security labels and it seems unlikely for those to
-	 * ever exist, but we may have to revisit this later.
+	 * In 9.6 and above, mark the member object to have any non-initial ACLs
+	 * dumped.  (Any initial ACLs will be removed later, using data from
+	 * pg_init_privs, so that we'll dump only the delta from the extension's
+	 * initial setup.)
 	 *
 	 * Prior to 9.6, we do not include any extension member components.
 	 *
@@ -1501,6 +1497,13 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	 * individually, since the idea is to exactly reproduce the database
 	 * contents rather than replace the extension contents with something
 	 * different.
+	 *
+	 * Note: it might be interesting someday to implement storage and delta
+	 * dumping of extension members' RLS policies and/or security labels.
+	 * However there is a pitfall for RLS policies: trying to dump them
+	 * requires getting a lock on their tables, and the calling user might not
+	 * have privileges for that.  We need no lock to examine a table's ACLs,
+	 * so the current feature doesn't have a problem of that sort.
 	 */
 	if (fout->dopt->binary_upgrade)
 		dobj->dump = ext->dobj.dump;
@@ -1509,9 +1512,7 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 		if (fout->remoteVersion < 90600)
 			dobj->dump = DUMP_COMPONENT_NONE;
 		else
-			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL |
-													DUMP_COMPONENT_SECLABEL |
-													DUMP_COMPONENT_POLICY);
+			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL);
 	}
 
 	return true;
@@ -1812,6 +1813,26 @@ selectDumpablePublicationTable(DumpableObject *dobj, Archive *fout)
 
 	dobj->dump = fout->dopt->include_everything ?
 		DUMP_COMPONENT_ALL : DUMP_COMPONENT_NONE;
+}
+
+/*
+ * selectDumpableStatisticsObject: policy-setting subroutine
+ *		Mark an extended statistics object as to be dumped or not
+ *
+ * We dump an extended statistics object if the schema it's in and the table
+ * it's for are being dumped.  (This'll need more thought if statistics
+ * objects ever support cross-table stats.)
+ */
+static void
+selectDumpableStatisticsObject(StatsExtInfo *sobj, Archive *fout)
+{
+	if (checkExtensionMembership(&sobj->dobj, fout))
+		return;					/* extension membership overrides all else */
+
+	sobj->dobj.dump = sobj->dobj.namespace->dobj.dump_contains;
+	if (sobj->stattable == NULL ||
+		!(sobj->stattable->dobj.dump & DUMP_COMPONENT_DEFINITION))
+		sobj->dobj.dump = DUMP_COMPONENT_NONE;
 }
 
 /*
@@ -7491,6 +7512,7 @@ getExtendedStatistics(Archive *fout)
 	int			i_stxname;
 	int			i_stxnamespace;
 	int			i_rolname;
+	int			i_stxrelid;
 	int			i_stattarget;
 	int			i;
 
@@ -7502,12 +7524,12 @@ getExtendedStatistics(Archive *fout)
 
 	if (fout->remoteVersion < 130000)
 		appendPQExpBuffer(query, "SELECT tableoid, oid, stxname, "
-						  "stxnamespace, (%s stxowner) AS rolname, (-1) AS stxstattarget "
+						  "stxnamespace, (%s stxowner) AS rolname, stxrelid, (-1) AS stxstattarget "
 						  "FROM pg_catalog.pg_statistic_ext",
 						  username_subquery);
 	else
 		appendPQExpBuffer(query, "SELECT tableoid, oid, stxname, "
-						  "stxnamespace, (%s stxowner) AS rolname, stxstattarget "
+						  "stxnamespace, (%s stxowner) AS rolname, stxrelid, stxstattarget "
 						  "FROM pg_catalog.pg_statistic_ext",
 						  username_subquery);
 
@@ -7520,6 +7542,7 @@ getExtendedStatistics(Archive *fout)
 	i_stxname = PQfnumber(res, "stxname");
 	i_stxnamespace = PQfnumber(res, "stxnamespace");
 	i_rolname = PQfnumber(res, "rolname");
+	i_stxrelid = PQfnumber(res, "stxrelid");
 	i_stattarget = PQfnumber(res, "stxstattarget");
 
 	statsextinfo = (StatsExtInfo *) pg_malloc(ntups * sizeof(StatsExtInfo));
@@ -7535,10 +7558,12 @@ getExtendedStatistics(Archive *fout)
 			findNamespace(fout,
 						  atooid(PQgetvalue(res, i, i_stxnamespace)));
 		statsextinfo[i].rolname = pg_strdup(PQgetvalue(res, i, i_rolname));
+		statsextinfo[i].stattable =
+			findTableByOid(atooid(PQgetvalue(res, i, i_stxrelid)));
 		statsextinfo[i].stattarget = atoi(PQgetvalue(res, i, i_stattarget));
 
 		/* Decide whether we want to dump it */
-		selectDumpableObject(&(statsextinfo[i].dobj), fout);
+		selectDumpableStatisticsObject(&(statsextinfo[i]), fout);
 
 		/* Stats objects do not currently have ACLs. */
 		statsextinfo[i].dobj.dump &= ~DUMP_COMPONENT_ACL;
@@ -9113,8 +9138,6 @@ bool
 shouldPrintColumn(DumpOptions *dopt, TableInfo *tbinfo, int colno)
 {
 	if (dopt->binary_upgrade)
-		return true;
-	if (dopt->pgactive_init_node)
 		return true;
 	if (tbinfo->attisdropped[colno])
 		return false;
@@ -15065,7 +15088,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
 	res = ExecuteSqlQueryForSingleRow(fout, query->data);
 	fdwname = PQgetvalue(res, 0, 0);
 
-	appendPQExpBuffer(q, "CREATE SERVER IF NOT EXISTS %s", qsrvname);
+	appendPQExpBuffer(q, "CREATE SERVER %s", qsrvname);
 	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
 	{
 		appendPQExpBufferStr(q, " TYPE ");
@@ -15193,7 +15216,7 @@ dumpUserMappings(Archive *fout,
 		umoptions = PQgetvalue(res, i, i_umoptions);
 
 		resetPQExpBuffer(q);
-		appendPQExpBuffer(q, "CREATE USER MAPPING IF NOT EXISTS FOR %s", fmtId(usename));
+		appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(usename));
 		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
 
 		if (umoptions && strlen(umoptions) > 0)
@@ -16519,35 +16542,6 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			destroyPQExpBuffer(q2);
 		}
 
-		/* Some of the binary compatibility is needed for pgactive as well. */
-		if (dopt->pgactive_init_node && tbinfo->relkind == RELKIND_RELATION)
-		{
-			for (j = 0; j < tbinfo->numatts; j++)
-			{
-				if (!tbinfo->attisdropped[j])
-					continue;
-
-				appendPQExpBufferStr(q, "\n-- For pgactive init, recreate dropped column.\n");
-				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
-									 "SET attlen = %d, "
-									 "attalign = '%c', attbyval = false\n"
-									 "WHERE attname = ",
-									 tbinfo->attlen[j],
-									 tbinfo->attalign[j]);
-				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
-				appendPQExpBufferStr(q, "\n  AND attrelid = ");
-				appendStringLiteralAH(q, qualrelname, fout);
-				appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
-
-				if (tbinfo->relkind == RELKIND_RELATION ||
-					tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
-					appendPQExpBuffer(q, "ALTER TABLE ONLY %s ", qualrelname);
-				else
-					appendPQExpBuffer(q, "ALTER FOREIGN TABLE %s ", qualrelname);
-
-				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
-			}
-		}
 		/*
 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes

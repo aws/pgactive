@@ -1,0 +1,232 @@
+\c regression
+SET SESSION AUTHORIZATION super;
+CREATE SCHEMA grant_test
+	CREATE TABLE test_tbl(a serial, b text, primary key (a))
+	CREATE VIEW test_view AS SELECT * FROM test_tbl;
+CREATE FUNCTION grant_test.test_func(i int, out o text) AS $$SELECT i::text;$$ LANGUAGE SQL STRICT SECURITY DEFINER;
+CREATE TYPE grant_test.test_type AS (prefix text, number text);
+CREATE DOMAIN grant_test.test_domain AS timestamptz DEFAULT '2014-01-01' NOT NULL;
+GRANT SELECT, INSERT ON grant_test.test_tbl TO nonsuper WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON grant_test.test_view TO nonsuper;
+GRANT USAGE, UPDATE ON grant_test.test_tbl_a_seq TO nonsuper;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dp grant_test.*
+                                       Access privileges
+   Schema   |      Name      |   Type   |   Access privileges    | Column privileges | Policies 
+------------+----------------+----------+------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=a*r*/super    |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super       +|                   | 
+            |                |          | nonsuper=wU/super      |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=arwdDxt/super |                   | 
+(3 rows)
+
+\c postgres
+\dp grant_test.*
+                                       Access privileges
+   Schema   |      Name      |   Type   |   Access privileges    | Column privileges | Policies 
+------------+----------------+----------+------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=a*r*/super    |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super       +|                   | 
+            |                |          | nonsuper=wU/super      |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super   +|                   | 
+            |                |          | nonsuper=arwdDxt/super |                   | 
+(3 rows)
+
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test FROM PUBLIC, nonsuper;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dp grant_test.*
+                                      Access privileges
+   Schema   |      Name      |   Type   |  Access privileges  | Column privileges | Policies 
+------------+----------------+----------+---------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super    +|                   | 
+            |                |          | nonsuper=wU/super   |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super |                   | 
+(3 rows)
+
+\c regression
+\dp grant_test.*
+                                      Access privileges
+   Schema   |      Name      |   Type   |  Access privileges  | Column privileges | Policies 
+------------+----------------+----------+---------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super    +|                   | 
+            |                |          | nonsuper=wU/super   |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super |                   | 
+(3 rows)
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA grant_test TO nonsuper WITH GRANT OPTION;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dp grant_test.*
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super              +|                   | 
+            |                |          | nonsuper=wU/super             |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+(3 rows)
+
+\c postgres
+\dp grant_test.*
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super              +|                   | 
+            |                |          | nonsuper=wU/super             |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+(3 rows)
+
+REVOKE TRIGGER, INSERT, UPDATE, DELETE, REFERENCES, TRUNCATE ON grant_test.test_view FROM nonsuper;
+REVOKE ALL PRIVILEGES ON grant_test.test_tbl_a_seq FROM nonsuper;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dp grant_test.*
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super               |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=r*/super             |                   | 
+(3 rows)
+
+\c regression
+\dp grant_test.*
+                                           Access privileges
+   Schema   |      Name      |   Type   |       Access privileges       | Column privileges | Policies 
+------------+----------------+----------+-------------------------------+-------------------+----------
+ grant_test | test_tbl       | table    | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=a*r*w*d*D*x*t*/super |                   | 
+ grant_test | test_tbl_a_seq | sequence | super=rwU/super               |                   | 
+ grant_test | test_view      | view     | super=arwdDxt/super          +|                   | 
+            |                |          | nonsuper=r*/super             |                   | 
+(3 rows)
+
+GRANT EXECUTE ON FUNCTION grant_test.test_func(int) TO nonsuper;
+GRANT USAGE ON TYPE grant_test.test_type TO nonsuper;
+GRANT ALL PRIVILEGES ON DOMAIN grant_test.test_domain TO nonsuper WITH GRANT OPTION;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+SELECT proacl FROM pg_proc WHERE oid = 'grant_test.test_func(int)'::regprocedure;
+                  proacl                   
+-------------------------------------------
+ {=X/super,super=X/super,nonsuper=X/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_domain'::regtype;
+                   typacl                   
+--------------------------------------------
+ {=U/super,super=U/super,nonsuper=U*/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_type'::regtype;
+                  typacl                   
+-------------------------------------------
+ {=U/super,super=U/super,nonsuper=U/super}
+(1 row)
+
+\c postgres
+SELECT proacl FROM pg_proc WHERE oid = 'grant_test.test_func(int)'::regprocedure;
+                  proacl                   
+-------------------------------------------
+ {=X/super,super=X/super,nonsuper=X/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_domain'::regtype;
+                   typacl                   
+--------------------------------------------
+ {=U/super,super=U/super,nonsuper=U*/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_type'::regtype;
+                  typacl                   
+-------------------------------------------
+ {=U/super,super=U/super,nonsuper=U/super}
+(1 row)
+
+REVOKE ALL PRIVILEGES ON FUNCTION grant_test.test_func(int) FROM nonsuper;
+REVOKE ALL PRIVILEGES ON TYPE grant_test.test_type FROM nonsuper;
+REVOKE USAGE ON DOMAIN grant_test.test_domain FROM nonsuper;
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+SELECT proacl FROM pg_proc WHERE oid = 'grant_test.test_func(int)'::regprocedure;
+          proacl          
+--------------------------
+ {=X/super,super=X/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_domain'::regtype;
+          typacl          
+--------------------------
+ {=U/super,super=U/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_type'::regtype;
+          typacl          
+--------------------------
+ {=U/super,super=U/super}
+(1 row)
+
+\c regression
+SELECT proacl FROM pg_proc WHERE oid = 'grant_test.test_func(int)'::regprocedure;
+          proacl          
+--------------------------
+ {=X/super,super=X/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_domain'::regtype;
+          typacl          
+--------------------------
+ {=U/super,super=U/super}
+(1 row)
+
+SELECT typacl FROM pg_type WHERE oid = 'grant_test.test_type'::regtype;
+          typacl          
+--------------------------
+ {=U/super,super=U/super}
+(1 row)
+
+DROP SCHEMA grant_test CASCADE;
+NOTICE:  drop cascades to 5 other objects
+DETAIL:  drop cascades to table grant_test.test_tbl
+drop cascades to view grant_test.test_view
+drop cascades to function grant_test.test_func(integer)
+drop cascades to type grant_test.test_type
+drop cascades to type grant_test.test_domain

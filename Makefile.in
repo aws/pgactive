@@ -19,6 +19,7 @@ EXTRA_CLEAN = src/pgactive_init_copy$(X) src/pgactive_init_copy.o include/pgacti
 	test/regression.diffs test/regression.out \
 	pgactive_init_copy_postgres.log home tmp_test_* \
 	pgactive_dump$(X) $(pgactive_DUMP_OBJS) \
+	$(pgactive_BUILD_DIR)
 
 # When in development add -Werror.
 PG_CPPFLAGS = -I$(srcdir)/include -I$(srcdir)/src/$(pgactive_PGVERCOMPAT_INCDIR) -I$(libpq_srcdir) -Wall -Wmissing-prototypes -Wmissing-declarations $(EXTRA_CFLAGS)
@@ -136,47 +137,59 @@ export PATH
 REQUIRED_TEST_EXTENSIONS = btree_gist cube hstore pg_trgm
 
 pgactive_DUMP_DIR := src/compat/$(pgactive_PG_MAJORVERSION)/pg_dump
-pgactive_DUMP_OBJS = $(pgactive_DUMP_DIR)/pg_dump.o \
-	$(pgactive_DUMP_DIR)/common.o \
-	$(pgactive_DUMP_DIR)/pg_dump_sort.o \
-	$(pgactive_DUMP_DIR)/pg_backup_archiver.o \
-	$(pgactive_DUMP_DIR)/pg_backup_db.o \
-	$(pgactive_DUMP_DIR)/pg_backup_custom.o \
-	$(pgactive_DUMP_DIR)/pg_backup_null.o \
-	$(pgactive_DUMP_DIR)/pg_backup_tar.o \
-	$(pgactive_DUMP_DIR)/pg_backup_directory.o \
-	$(pgactive_DUMP_DIR)/pg_backup_utils.o \
-	$(pgactive_DUMP_DIR)/parallel.o \
-	$(pgactive_DUMP_DIR)/dumputils.o \
-	$(pgactive_DUMP_DIR)/compress_io.o
+pgactive_BUILD_DIR := src/compat/$(pgactive_PG_MAJORVERSION)/pg_build
+pgactive_DUMP_OBJS = $(pgactive_BUILD_DIR)/pg_dump.o \
+	$(pgactive_BUILD_DIR)/common.o \
+	$(pgactive_BUILD_DIR)/pg_dump_sort.o \
+	$(pgactive_BUILD_DIR)/pg_backup_archiver.o \
+	$(pgactive_BUILD_DIR)/pg_backup_db.o \
+	$(pgactive_BUILD_DIR)/pg_backup_custom.o \
+	$(pgactive_BUILD_DIR)/pg_backup_null.o \
+	$(pgactive_BUILD_DIR)/pg_backup_tar.o \
+	$(pgactive_BUILD_DIR)/pg_backup_directory.o \
+	$(pgactive_BUILD_DIR)/pg_backup_utils.o \
+	$(pgactive_BUILD_DIR)/parallel.o \
+	$(pgactive_BUILD_DIR)/dumputils.o \
+	$(pgactive_BUILD_DIR)/compress_io.o
 
 PG_CONFIG_LIBS = $(shell $(PG_CONFIG) --libs) 
 
 pgactive_DUMP_LIBS = $(PG_CONFIG_LIBS) -lpgfeutils
 
 ifneq ($(wildcard $(pgactive_DUMP_DIR)/compress_lz4.c),)
-	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/compress_lz4.o
+	pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/compress_lz4.o
 endif
 
 ifneq ($(wildcard $(pgactive_DUMP_DIR)/compress_gzip.c),)
-	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/compress_gzip.o
+	pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/compress_gzip.o
 endif
 
 ifneq ($(wildcard $(pgactive_DUMP_DIR)/compress_none.c),)
-	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/compress_none.o
+	pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/compress_none.o
 endif
 
 ifneq ($(wildcard $(pgactive_DUMP_DIR)/compress_zstd.c),)
-	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/compress_zstd.o
+	pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/compress_zstd.o
 endif
 
+ifneq ($(wildcard $(pgactive_DUMP_DIR)/filter.c),)
+	pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/filter.o
+endif
+pgdumpSRCS = $(wildcard $(pgactive_DUMP_DIR)/*.c)
+pgctive_DUMP_SRCS = $(patsubst $(pgactive_DUMP_DIR)/%.c,$(pgactive_DUMP_DIR)/%.c,$(pgdumpSRCS))
 # string_utils.c file is needed by pg_dump so we copied it from postgres source
 # code src/fe_utils/ and placed it under
 # src/compat/$(pgactive_PG_MAJORVERSION)/pg_dump to make pg_dump a self-reliant
 # component while compiling pgactive source code.
-pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/string_utils.o
+pgactive_DUMP_OBJS += $(pgactive_BUILD_DIR)/string_utils.o
 
-pgactive_dump: $(pgactive_DUMP_OBJS)
+
+$(pgactive_BUILD_DIR):
+	mkdir -p $(pgactive_BUILD_DIR)
+	cp -f $(pgactive_DUMP_DIR)/*.[ch] $(pgactive_BUILD_DIR)/
+	(cd $(pgactive_BUILD_DIR); patch -p0 <../pg_dump.patch)
+
+pgactive_dump: $(pgactive_BUILD_DIR) $(pgactive_DUMP_OBJS)
 	$(CC) $(CFLAGS) $(pgactive_DUMP_OBJS) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(pgactive_DUMP_LIBS) -o $@$(X)
 
 pgactive_init_copy: src/pgactive_init_copy.o src/pgactive_common.o
@@ -200,12 +213,12 @@ run_tests: run_tests.in  config.status configure
 configure: configure.in
 	cd ${pgactive_abs_srcdir} && autoreconf
 
-all: pgactive_init_copy pgactive_dump
+all: $(pgactive_BUILD_DIR) pgactive_init_copy pgactive_dump
 
 check: regress_check prove_check
 
 regress_check: all install
-	mkdir -p test/results/ddl test/results/ddl_fn test/results/dml
+	@mkdir -p test/results/ddl test/results/ddl_fn test/results/dml
 
 	./test/run_tests --config $(pgactive_abs_srcdir)/test/pgactive_regress.conf \
 		--testbinary src/test/regress/pg_regress \
@@ -286,4 +299,4 @@ distclean maintainer-clean: clean
 	rm -f test/run_tests
 	rm -rf autom4te.cache/
 
-.PHONY: all check regress_check prove_check installcheck git-dist distclean maintainer-clean
+.PHONY: all check regress_check prove_check installcheck git-dist distclean maintainer-clean $(pgactive_BUILD_DIR) pgactive_dump_compile

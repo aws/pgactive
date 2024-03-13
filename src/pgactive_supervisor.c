@@ -465,7 +465,11 @@ void
 pgactive_supervisor_worker_main(Datum main_arg)
 {
 	Assert(DatumGetInt32(main_arg) == 0);
+#if PG_VERSION_NUM < 170000
 	Assert(IsBackgroundWorker);
+#else
+	Assert(AmBackgroundWorkerProcess());
+#endif
 
 	pqsignal(SIGHUP, SignalHandlerForConfigReload);
 	pqsignal(SIGTERM, die);

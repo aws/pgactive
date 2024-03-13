@@ -548,8 +548,11 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 	pgactiveNodeId myid;
 	char		mystatus;
 
+#if PG_VERSION_NUM < 170000
 	Assert(IsBackgroundWorker);
-
+#else
+	Assert(AmBackgroundWorkerProcess());
+#endif
 	MyProcPort = (Port *) calloc(1, sizeof(Port));
 
 	worker_generation = (uint16) (worker_arg >> 16);

@@ -32,6 +32,8 @@ lib*.pc
 /include/pgactive_version.h
 /test/log/
 /test/results/
+/test/regression.diffs
+/test/regression.out
 /test/tmp_check/
 /test/tmp_t/
 /tmp_test_*
@@ -41,6 +43,7 @@ lib*.pc
 /.distgitrev
 /.distgittag
 /pgactive_init_copy_postgres.log
+/src/compat/*/pg_build
 # autoconf output
 /autom4te.cache/
 /include/pgactive_config_generated.h
