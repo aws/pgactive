@@ -1619,13 +1619,10 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	addObjectDependency(dobj, ext->dobj.dumpId);
 
 	/*
-	 * In 9.6 and above, mark the member object to have any non-initial ACL,
-	 * policies, and security labels dumped.
-	 *
-	 * Note that any initial ACLs (see pg_init_privs) will be removed when we
-	 * extract the information about the object.  We don't provide support for
-	 * initial policies and security labels and it seems unlikely for those to
-	 * ever exist, but we may have to revisit this later.
+	 * In 9.6 and above, mark the member object to have any non-initial ACLs
+	 * dumped.  (Any initial ACLs will be removed later, using data from
+	 * pg_init_privs, so that we'll dump only the delta from the extension's
+	 * initial setup.)
 	 *
 	 * Prior to 9.6, we do not include any extension member components.
 	 *
@@ -1633,6 +1630,13 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	 * individually, since the idea is to exactly reproduce the database
 	 * contents rather than replace the extension contents with something
 	 * different.
+	 *
+	 * Note: it might be interesting someday to implement storage and delta
+	 * dumping of extension members' RLS policies and/or security labels.
+	 * However there is a pitfall for RLS policies: trying to dump them
+	 * requires getting a lock on their tables, and the calling user might not
+	 * have privileges for that.  We need no lock to examine a table's ACLs,
+	 * so the current feature doesn't have a problem of that sort.
 	 */
 	if (fout->dopt->binary_upgrade)
 		dobj->dump = ext->dobj.dump;
@@ -1641,9 +1645,7 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 		if (fout->remoteVersion < 90600)
 			dobj->dump = DUMP_COMPONENT_NONE;
 		else
-			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL |
-													DUMP_COMPONENT_SECLABEL |
-													DUMP_COMPONENT_POLICY);
+			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL);
 	}
 
 	return true;
@@ -1954,6 +1956,26 @@ selectDumpablePublicationTable(DumpableObject *dobj, Archive *fout)
 
 	dobj->dump = fout->dopt->include_everything ?
 		DUMP_COMPONENT_ALL : DUMP_COMPONENT_NONE;
+}
+
+/*
+ * selectDumpableStatisticsObject: policy-setting subroutine
+ *		Mark an extended statistics object as to be dumped or not
+ *
+ * We dump an extended statistics object if the schema it's in and the table
+ * it's for are being dumped.  (This'll need more thought if statistics
+ * objects ever support cross-table stats.)
+ */
+static void
+selectDumpableStatisticsObject(StatsExtInfo *sobj, Archive *fout)
+{
+	if (checkExtensionMembership(&sobj->dobj, fout))
+		return;					/* extension membership overrides all else */
+
+	sobj->dobj.dump = sobj->dobj.namespace->dobj.dump_contains;
+	if (sobj->stattable == NULL ||
+		!(sobj->stattable->dobj.dump & DUMP_COMPONENT_DEFINITION))
+		sobj->dobj.dump = DUMP_COMPONENT_NONE;
 }
 
 /*
@@ -7682,6 +7704,7 @@ getExtendedStatistics(Archive *fout)
 	int			i_stxname;
 	int			i_stxnamespace;
 	int			i_rolname;
+	int			i_stxrelid;
 	int			i_stattarget;
 	int			i;
 
@@ -7693,12 +7716,12 @@ getExtendedStatistics(Archive *fout)
 
 	if (fout->remoteVersion < 130000)
 		appendPQExpBuffer(query, "SELECT tableoid, oid, stxname, "
-						  "stxnamespace, (%s stxowner) AS rolname, (-1) AS stxstattarget "
+						  "stxnamespace, (%s stxowner) AS rolname, stxrelid, (-1) AS stxstattarget "
 						  "FROM pg_catalog.pg_statistic_ext",
 						  username_subquery);
 	else
 		appendPQExpBuffer(query, "SELECT tableoid, oid, stxname, "
-						  "stxnamespace, (%s stxowner) AS rolname, stxstattarget "
+						  "stxnamespace, (%s stxowner) AS rolname, stxrelid, stxstattarget "
 						  "FROM pg_catalog.pg_statistic_ext",
 						  username_subquery);
 
@@ -7711,6 +7734,7 @@ getExtendedStatistics(Archive *fout)
 	i_stxname = PQfnumber(res, "stxname");
 	i_stxnamespace = PQfnumber(res, "stxnamespace");
 	i_rolname = PQfnumber(res, "rolname");
+	i_stxrelid = PQfnumber(res, "stxrelid");
 	i_stattarget = PQfnumber(res, "stxstattarget");
 
 	statsextinfo = (StatsExtInfo *) pg_malloc(ntups * sizeof(StatsExtInfo));
@@ -7725,10 +7749,12 @@ getExtendedStatistics(Archive *fout)
 		statsextinfo[i].dobj.namespace =
 			findNamespace(atooid(PQgetvalue(res, i, i_stxnamespace)));
 		statsextinfo[i].rolname = pg_strdup(PQgetvalue(res, i, i_rolname));
+		statsextinfo[i].stattable =
+			findTableByOid(atooid(PQgetvalue(res, i, i_stxrelid)));
 		statsextinfo[i].stattarget = atoi(PQgetvalue(res, i, i_stattarget));
 
 		/* Decide whether we want to dump it */
-		selectDumpableObject(&(statsextinfo[i].dobj), fout);
+		selectDumpableStatisticsObject(&(statsextinfo[i]), fout);
 
 		/* Stats objects do not currently have ACLs. */
 		statsextinfo[i].dobj.dump &= ~DUMP_COMPONENT_ACL;

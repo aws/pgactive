@@ -1673,13 +1673,10 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	addObjectDependency(dobj, ext->dobj.dumpId);
 
 	/*
-	 * In 9.6 and above, mark the member object to have any non-initial ACL,
-	 * policies, and security labels dumped.
-	 *
-	 * Note that any initial ACLs (see pg_init_privs) will be removed when we
-	 * extract the information about the object.  We don't provide support for
-	 * initial policies and security labels and it seems unlikely for those to
-	 * ever exist, but we may have to revisit this later.
+	 * In 9.6 and above, mark the member object to have any non-initial ACLs
+	 * dumped.  (Any initial ACLs will be removed later, using data from
+	 * pg_init_privs, so that we'll dump only the delta from the extension's
+	 * initial setup.)
 	 *
 	 * Prior to 9.6, we do not include any extension member components.
 	 *
@@ -1687,6 +1684,13 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 	 * individually, since the idea is to exactly reproduce the database
 	 * contents rather than replace the extension contents with something
 	 * different.
+	 *
+	 * Note: it might be interesting someday to implement storage and delta
+	 * dumping of extension members' RLS policies and/or security labels.
+	 * However there is a pitfall for RLS policies: trying to dump them
+	 * requires getting a lock on their tables, and the calling user might not
+	 * have privileges for that.  We need no lock to examine a table's ACLs,
+	 * so the current feature doesn't have a problem of that sort.
 	 */
 	if (fout->dopt->binary_upgrade)
 		dobj->dump = ext->dobj.dump;
@@ -1695,9 +1699,7 @@ checkExtensionMembership(DumpableObject *dobj, Archive *fout)
 		if (fout->remoteVersion < 90600)
 			dobj->dump = DUMP_COMPONENT_NONE;
 		else
-			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL |
-													DUMP_COMPONENT_SECLABEL |
-													DUMP_COMPONENT_POLICY);
+			dobj->dump = ext->dobj.dump_contains & (DUMP_COMPONENT_ACL);
 	}
 
 	return true;
@@ -2026,6 +2028,26 @@ selectDumpablePublicationObject(DumpableObject *dobj, Archive *fout)
 
 	dobj->dump = fout->dopt->include_everything ?
 		DUMP_COMPONENT_ALL : DUMP_COMPONENT_NONE;
+}
+
+/*
+ * selectDumpableStatisticsObject: policy-setting subroutine
+ *		Mark an extended statistics object as to be dumped or not
+ *
+ * We dump an extended statistics object if the schema it's in and the table
+ * it's for are being dumped.  (This'll need more thought if statistics
+ * objects ever support cross-table stats.)
+ */
+static void
+selectDumpableStatisticsObject(StatsExtInfo *sobj, Archive *fout)
+{
+	if (checkExtensionMembership(&sobj->dobj, fout))
+		return;					/* extension membership overrides all else */
+
+	sobj->dobj.dump = sobj->dobj.namespace->dobj.dump_contains;
+	if (sobj->stattable == NULL ||
+		!(sobj->stattable->dobj.dump & DUMP_COMPONENT_DEFINITION))
+		sobj->dobj.dump = DUMP_COMPONENT_NONE;
 }
 
 /*
@@ -4584,16 +4606,17 @@ getSubscriptions(Archive *fout)
 	int			i_oid;
 	int			i_subname;
 	int			i_subowner;
+	int			i_subbinary;
 	int			i_substream;
 	int			i_subtwophasestate;
 	int			i_subdisableonerr;
-	int			i_suborigin;
+	int			i_subpasswordrequired;
+	int			i_subrunasowner;
 	int			i_subconninfo;
 	int			i_subslotname;
 	int			i_subsynccommit;
 	int			i_subpublications;
-	int			i_subbinary;
-	int			i_subpasswordrequired;
+	int			i_suborigin;
 	int			i,
 				ntups;
 
@@ -4647,12 +4670,14 @@ getSubscriptions(Archive *fout)
 
 	if (fout->remoteVersion >= 160000)
 		appendPQExpBufferStr(query,
-							 " s.suborigin,\n"
-							 " s.subpasswordrequired\n");
+							 " s.subpasswordrequired,\n"
+							 " s.subrunasowner,\n"
+							 " s.suborigin\n");
 	else
 		appendPQExpBuffer(query,
-						  " '%s' AS suborigin,\n"
-						  " 't' AS subpasswordrequired\n",
+						  " 't' AS subpasswordrequired,\n"
+						  " 't' AS subrunasowner,\n"
+						  " '%s' AS suborigin\n",
 						  LOGICALREP_ORIGIN_ANY);
 
 	appendPQExpBufferStr(query,
@@ -4672,16 +4697,17 @@ getSubscriptions(Archive *fout)
 	i_oid = PQfnumber(res, "oid");
 	i_subname = PQfnumber(res, "subname");
 	i_subowner = PQfnumber(res, "subowner");
-	i_subconninfo = PQfnumber(res, "subconninfo");
-	i_subslotname = PQfnumber(res, "subslotname");
-	i_subsynccommit = PQfnumber(res, "subsynccommit");
-	i_subpublications = PQfnumber(res, "subpublications");
 	i_subbinary = PQfnumber(res, "subbinary");
 	i_substream = PQfnumber(res, "substream");
 	i_subtwophasestate = PQfnumber(res, "subtwophasestate");
 	i_subdisableonerr = PQfnumber(res, "subdisableonerr");
-	i_suborigin = PQfnumber(res, "suborigin");
 	i_subpasswordrequired = PQfnumber(res, "subpasswordrequired");
+	i_subrunasowner = PQfnumber(res, "subrunasowner");
+	i_subconninfo = PQfnumber(res, "subconninfo");
+	i_subslotname = PQfnumber(res, "subslotname");
+	i_subsynccommit = PQfnumber(res, "subsynccommit");
+	i_subpublications = PQfnumber(res, "subpublications");
+	i_suborigin = PQfnumber(res, "suborigin");
 
 	subinfo = pg_malloc(ntups * sizeof(SubscriptionInfo));
 
@@ -4694,15 +4720,7 @@ getSubscriptions(Archive *fout)
 		AssignDumpId(&subinfo[i].dobj);
 		subinfo[i].dobj.name = pg_strdup(PQgetvalue(res, i, i_subname));
 		subinfo[i].rolname = getRoleName(PQgetvalue(res, i, i_subowner));
-		subinfo[i].subconninfo = pg_strdup(PQgetvalue(res, i, i_subconninfo));
-		if (PQgetisnull(res, i, i_subslotname))
-			subinfo[i].subslotname = NULL;
-		else
-			subinfo[i].subslotname = pg_strdup(PQgetvalue(res, i, i_subslotname));
-		subinfo[i].subsynccommit =
-			pg_strdup(PQgetvalue(res, i, i_subsynccommit));
-		subinfo[i].subpublications =
-			pg_strdup(PQgetvalue(res, i, i_subpublications));
+
 		subinfo[i].subbinary =
 			pg_strdup(PQgetvalue(res, i, i_subbinary));
 		subinfo[i].substream =
@@ -4711,9 +4729,22 @@ getSubscriptions(Archive *fout)
 			pg_strdup(PQgetvalue(res, i, i_subtwophasestate));
 		subinfo[i].subdisableonerr =
 			pg_strdup(PQgetvalue(res, i, i_subdisableonerr));
-		subinfo[i].suborigin = pg_strdup(PQgetvalue(res, i, i_suborigin));
 		subinfo[i].subpasswordrequired =
 			pg_strdup(PQgetvalue(res, i, i_subpasswordrequired));
+		subinfo[i].subrunasowner =
+			pg_strdup(PQgetvalue(res, i, i_subrunasowner));
+		subinfo[i].subconninfo =
+			pg_strdup(PQgetvalue(res, i, i_subconninfo));
+		if (PQgetisnull(res, i, i_subslotname))
+			subinfo[i].subslotname = NULL;
+		else
+			subinfo[i].subslotname =
+				pg_strdup(PQgetvalue(res, i, i_subslotname));
+		subinfo[i].subsynccommit =
+			pg_strdup(PQgetvalue(res, i, i_subsynccommit));
+		subinfo[i].subpublications =
+			pg_strdup(PQgetvalue(res, i, i_subpublications));
+		subinfo[i].suborigin = pg_strdup(PQgetvalue(res, i, i_suborigin));
 
 		/* Decide whether we want to dump it */
 		selectDumpableObject(&(subinfo[i].dobj), fout);
@@ -4789,14 +4820,17 @@ dumpSubscription(Archive *fout, const SubscriptionInfo *subinfo)
 	if (strcmp(subinfo->subdisableonerr, "t") == 0)
 		appendPQExpBufferStr(query, ", disable_on_error = true");
 
-	if (pg_strcasecmp(subinfo->suborigin, LOGICALREP_ORIGIN_ANY) != 0)
-		appendPQExpBuffer(query, ", origin = %s", subinfo->suborigin);
+	if (strcmp(subinfo->subpasswordrequired, "t") != 0)
+		appendPQExpBuffer(query, ", password_required = false");
+
+	if (strcmp(subinfo->subrunasowner, "t") == 0)
+		appendPQExpBufferStr(query, ", run_as_owner = true");
 
 	if (strcmp(subinfo->subsynccommit, "off") != 0)
 		appendPQExpBuffer(query, ", synchronous_commit = %s", fmtId(subinfo->subsynccommit));
 
-	if (strcmp(subinfo->subpasswordrequired, "t") != 0)
-		appendPQExpBuffer(query, ", password_required = false");
+	if (pg_strcasecmp(subinfo->suborigin, LOGICALREP_ORIGIN_ANY) != 0)
+		appendPQExpBuffer(query, ", origin = %s", subinfo->suborigin);
 
 	appendPQExpBufferStr(query, ");\n");
 
@@ -7256,6 +7290,7 @@ getExtendedStatistics(Archive *fout)
 	int			i_stxname;
 	int			i_stxnamespace;
 	int			i_stxowner;
+	int			i_stxrelid;
 	int			i_stattarget;
 	int			i;
 
@@ -7267,11 +7302,11 @@ getExtendedStatistics(Archive *fout)
 
 	if (fout->remoteVersion < 130000)
 		appendPQExpBufferStr(query, "SELECT tableoid, oid, stxname, "
-							 "stxnamespace, stxowner, (-1) AS stxstattarget "
+							 "stxnamespace, stxowner, stxrelid, (-1) AS stxstattarget "
 							 "FROM pg_catalog.pg_statistic_ext");
 	else
 		appendPQExpBufferStr(query, "SELECT tableoid, oid, stxname, "
-							 "stxnamespace, stxowner, stxstattarget "
+							 "stxnamespace, stxowner, stxrelid, stxstattarget "
 							 "FROM pg_catalog.pg_statistic_ext");
 
 	res = ExecuteSqlQuery(fout, query->data, PGRES_TUPLES_OK);
@@ -7283,6 +7318,7 @@ getExtendedStatistics(Archive *fout)
 	i_stxname = PQfnumber(res, "stxname");
 	i_stxnamespace = PQfnumber(res, "stxnamespace");
 	i_stxowner = PQfnumber(res, "stxowner");
+	i_stxrelid = PQfnumber(res, "stxrelid");
 	i_stattarget = PQfnumber(res, "stxstattarget");
 
 	statsextinfo = (StatsExtInfo *) pg_malloc(ntups * sizeof(StatsExtInfo));
@@ -7297,10 +7333,12 @@ getExtendedStatistics(Archive *fout)
 		statsextinfo[i].dobj.namespace =
 			findNamespace(atooid(PQgetvalue(res, i, i_stxnamespace)));
 		statsextinfo[i].rolname = getRoleName(PQgetvalue(res, i, i_stxowner));
+		statsextinfo[i].stattable =
+			findTableByOid(atooid(PQgetvalue(res, i, i_stxrelid)));
 		statsextinfo[i].stattarget = atoi(PQgetvalue(res, i, i_stattarget));
 
 		/* Decide whether we want to dump it */
-		selectDumpableObject(&(statsextinfo[i].dobj), fout);
+		selectDumpableStatisticsObject(&(statsextinfo[i]), fout);
 	}
 
 	PQclear(res);
@@ -13418,6 +13456,18 @@ dumpCollation(Archive *fout, const CollInfo *collinfo)
 	else
 		collctype = NULL;
 
+	/*
+	 * Before version 15, collcollate and collctype were of type NAME and
+	 * non-nullable. Treat empty strings as NULL for consistency.
+	 */
+	if (fout->remoteVersion < 150000)
+	{
+		if (collcollate[0] == '\0')
+			collcollate = NULL;
+		if (collctype[0] == '\0')
+			collctype = NULL;
+	}
+
 	if (!PQgetisnull(res, 0, i_colliculocale))
 		colliculocale = PQgetvalue(res, 0, i_colliculocale);
 	else
@@ -13449,35 +13499,60 @@ dumpCollation(Archive *fout, const CollInfo *collinfo)
 	if (strcmp(PQgetvalue(res, 0, i_collisdeterministic), "f") == 0)
 		appendPQExpBufferStr(q, ", deterministic = false");
 
-	if (colliculocale != NULL)
+	if (collprovider[0] == 'd')
 	{
-		appendPQExpBufferStr(q, ", locale = ");
-		appendStringLiteralAH(q, colliculocale, fout);
-	}
-	else
-	{
-		Assert(collcollate != NULL);
-		Assert(collctype != NULL);
+		if (collcollate || collctype || colliculocale || collicurules)
+			pg_log_warning("invalid collation \"%s\"", qcollname);
 
-		if (strcmp(collcollate, collctype) == 0)
+		/* no locale -- the default collation cannot be reloaded anyway */
+	}
+	else if (collprovider[0] == 'i')
+	{
+		if (fout->remoteVersion >= 150000)
+		{
+			if (collcollate || collctype || !colliculocale)
+				pg_log_warning("invalid collation \"%s\"", qcollname);
+
+			appendPQExpBufferStr(q, ", locale = ");
+			appendStringLiteralAH(q, colliculocale ? colliculocale : "",
+								  fout);
+		}
+		else
+		{
+			if (!collcollate || !collctype || colliculocale ||
+				strcmp(collcollate, collctype) != 0)
+				pg_log_warning("invalid collation \"%s\"", qcollname);
+
+			appendPQExpBufferStr(q, ", locale = ");
+			appendStringLiteralAH(q, collcollate ? collcollate : "", fout);
+		}
+
+		if (collicurules)
+		{
+			appendPQExpBufferStr(q, ", rules = ");
+			appendStringLiteralAH(q, collicurules ? collicurules : "", fout);
+		}
+	}
+	else if (collprovider[0] == 'c')
+	{
+		if (colliculocale || collicurules || !collcollate || !collctype)
+			pg_log_warning("invalid collation \"%s\"", qcollname);
+
+		if (collcollate && collctype && strcmp(collcollate, collctype) == 0)
 		{
 			appendPQExpBufferStr(q, ", locale = ");
-			appendStringLiteralAH(q, collcollate, fout);
+			appendStringLiteralAH(q, collcollate ? collcollate : "", fout);
 		}
 		else
 		{
 			appendPQExpBufferStr(q, ", lc_collate = ");
-			appendStringLiteralAH(q, collcollate, fout);
+			appendStringLiteralAH(q, collcollate ? collcollate : "", fout);
 			appendPQExpBufferStr(q, ", lc_ctype = ");
-			appendStringLiteralAH(q, collctype, fout);
+			appendStringLiteralAH(q, collctype ? collctype : "", fout);
 		}
 	}
-
-	if (collicurules)
-	{
-		appendPQExpBufferStr(q, ", rules = ");
-		appendStringLiteralAH(q, collicurules, fout);
-	}
+	else
+		pg_fatal("unrecognized collation provider: %s", collprovider);
 
 	/*
 	 * For binary upgrade, carry over the collation version.  For normal

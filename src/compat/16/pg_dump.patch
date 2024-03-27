@@ -1,6 +1,8 @@
---- pg_backup.h	2022-08-24 14:43:06.971833597 +0000
-+++ pg_backup.h	2023-08-12 10:07:14.523436942 +0000
-@@ -159,6 +159,7 @@
+diff --git a/src/compat/16/pg_dump/pg_backup.h b/src/compat/16/pg_dump/pg_backup.h
+index aba780e..095e9b9 100644
+--- a/src/compat/16/pg_dump/pg_backup.h
++++ b/src/compat/16/pg_dump/pg_backup.h
+@@ -161,6 +161,7 @@ typedef struct _dumpOptions
  	ConnParams	cparams;
  
  	int			binary_upgrade;
@@ -8,9 +10,11 @@
  
  	/* various user-settable parameters */
  	bool		schemaOnly;
---- pg_dump.c	2023-08-11 19:11:50.112577187 +0000
-+++ pg_dump.c	2023-08-12 10:07:14.523436942 +0000
-@@ -384,6 +384,7 @@
+diff --git a/src/compat/16/pg_dump/pg_dump.c b/src/compat/16/pg_dump/pg_dump.c
+index 6e1b070..6acf2ad 100644
+--- a/src/compat/16/pg_dump/pg_dump.c
++++ b/src/compat/16/pg_dump/pg_dump.c
+@@ -399,6 +399,7 @@ main(int argc, char **argv)
  		 */
  		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
  		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
@@ -18,7 +22,7 @@
  		{"column-inserts", no_argument, &dopt.column_inserts, 1},
  		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
  		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -8759,6 +8760,8 @@
+@@ -8947,6 +8948,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
  {
  	if (dopt->binary_upgrade)
  		return true;
@@ -27,7 +31,7 @@
  	if (tbinfo->attisdropped[colno])
  		return false;
  	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -14271,7 +14274,7 @@
+@@ -14513,7 +14516,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
  	res = ExecuteSqlQueryForSingleRow(fout, query->data);
  	fdwname = PQgetvalue(res, 0, 0);
  
@@ -36,7 +40,7 @@
  	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
  	{
  		appendPQExpBufferStr(q, " TYPE ");
-@@ -14399,7 +14402,7 @@
+@@ -14641,7 +14644,7 @@ dumpUserMappings(Archive *fout,
  		umoptions = PQgetvalue(res, i, i_umoptions);
  
  		resetPQExpBuffer(q);
@@ -45,7 +49,7 @@
  		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
  
  		if (umoptions && strlen(umoptions) > 0)
-@@ -15720,6 +15723,35 @@
+@@ -15966,6 +15969,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
  			}
  		}
  

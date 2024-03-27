@@ -296,7 +296,11 @@ pgactive_maintain_db_workers(void)
 	pgactive_make_my_nodeid(&myid);
 
 	/* Should be called from the perdb worker */
+#if PG_VERSION_NUM < 170000
 	Assert(IsBackgroundWorker);
+#else
+	Assert(AmBackgroundWorkerProcess());
+#endif
 	Assert(pgactive_worker_type == pgactive_WORKER_PERDB);
 
 	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));

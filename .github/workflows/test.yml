@@ -77,7 +77,7 @@ jobs:
             cd pgactive
             PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
             sh configure
-            make PROFILE="-Wall -Wmissing-prototypes -Werror=maybe-uninitialized -Werror" -j4 all install
+            make PROFILE="-Wall -Wmissing-prototypes -Werror=maybe-uninitialized -Werror" -j1 all install
 
       - name: Run pgactive core tests
         run: |

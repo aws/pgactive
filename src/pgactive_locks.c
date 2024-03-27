@@ -394,7 +394,11 @@ pgactive_locks_shmem_init()
 void
 pgactive_locks_addwaiter(PGPROC *proc)
 {
+#if PG_VERSION_NUM < 170000
 	pgactiveLockWaiter *waiter = &pgactive_locks_ctl->waiters[proc->pgprocno];
+#else
+	pgactiveLockWaiter *waiter = &pgactive_locks_ctl->waiters[GetNumberFromPGProc(proc)];
+#endif
 	slist_iter	iter;
 
 	waiter->proc = proc;
@@ -695,7 +699,11 @@ pgactive_locks_startup(void)
 void
 pgactive_locks_set_nnodes(int nnodes)
 {
+#if PG_VERSION_NUM < 170000
 	Assert(IsBackgroundWorker);
+#else
+	Assert(AmBackgroundWorkerProcess());
+#endif
 	Assert(pgactive_my_locks_database != NULL);
 	Assert(nnodes >= 0);
 
@@ -905,7 +913,11 @@ static void
 pgactive_lock_state_xact_callback(XactEvent event, void *arg)
 {
 	Assert(arg == NULL);
+#if PG_VERSION_NUM < 170000
 	Assert(IsBackgroundWorker);
+#else
+	Assert(AmBackgroundWorkerProcess());
+#endif
 	Assert(IspgactiveApplyWorker() || IspgactivePerdbWorker());
 
 	if (event == XACT_EVENT_COMMIT && pgactive_lock_state_xact_callback_info.pending)
@@ -1310,9 +1322,15 @@ cancel_conflicting_transactions(void)
 
 	conflict = GetConflictingVirtualXIDs(InvalidTransactionId, MyDatabaseId);
 
+#if PG_VERSION_NUM < 170000
 	while (conflict->backendId != InvalidBackendId)
 	{
 		PGPROC	   *pgproc = BackendIdGetProc(conflict->backendId);
+#else
+	while (conflict->procNumber != INVALID_PROC_NUMBER)
+	{
+		PGPROC	   *pgproc = ProcNumberGetProc(conflict->procNumber);
+#endif
 #if PG_VERSION_NUM < 140000
 		PGXACT	   *pgxact;
 #endif

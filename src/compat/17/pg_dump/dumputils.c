@@ -5,7 +5,7 @@
  * Basically this is stuff that is useful in both pg_dump and pg_dumpall.
  *
  *
- * Portions Copyright (c) 1996-2023, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2024, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/pg_dump/dumputils.c
@@ -463,6 +463,7 @@ do { \
 				CONVERT_PRIV('d', "DELETE");
 				CONVERT_PRIV('t', "TRIGGER");
 				CONVERT_PRIV('D', "TRUNCATE");
+				CONVERT_PRIV('m', "MAINTAIN");
 			}
 		}
 
