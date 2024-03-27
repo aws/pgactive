@@ -384,6 +384,7 @@ main(int argc, char **argv)
 		 */
 		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
 		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
+		{"pgactive-init-node", no_argument, &dopt.pgactive_init_node, 1},
 		{"column-inserts", no_argument, &dopt.column_inserts, 1},
 		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
 		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
@@ -8785,6 +8786,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
 {
 	if (dopt->binary_upgrade)
 		return true;
+	if (dopt->pgactive_init_node)
+		return true;
 	if (tbinfo->attisdropped[colno])
 		return false;
 	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
@@ -14334,7 +14337,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
 	res = ExecuteSqlQueryForSingleRow(fout, query->data);
 	fdwname = PQgetvalue(res, 0, 0);
 
-	appendPQExpBuffer(q, "CREATE SERVER %s", qsrvname);
+	appendPQExpBuffer(q, "CREATE SERVER IF NOT EXISTS %s", qsrvname);
 	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
 	{
 		appendPQExpBufferStr(q, " TYPE ");
@@ -14462,7 +14465,7 @@ dumpUserMappings(Archive *fout,
 		umoptions = PQgetvalue(res, i, i_umoptions);
 
 		resetPQExpBuffer(q);
-		appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(usename));
+		appendPQExpBuffer(q, "CREATE USER MAPPING IF NOT EXISTS FOR %s", fmtId(usename));
 		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
 
 		if (umoptions && strlen(umoptions) > 0)
@@ -15783,6 +15786,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 			}
 		}
 
+		/* Some of the binary compatibility is needed for pgactive as well. */
+		if (dopt->pgactive_init_node && tbinfo->relkind == RELKIND_RELATION)
+		{
+			for (j = 0; j < tbinfo->numatts; j++)
+			{
+				if (!tbinfo->attisdropped[j])
+					continue;
+
+				appendPQExpBufferStr(q, "\n-- For pgactive init, recreate dropped column.\n");
+				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
+									 "SET attlen = %d, "
+									 "attalign = '%c', attbyval = false\n"
+									 "WHERE attname = ",
+									 tbinfo->attlen[j],
+									 tbinfo->attalign[j]);
+				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
+				appendPQExpBufferStr(q, "\n  AND attrelid = ");
+				appendStringLiteralAH(q, qualrelname, fout);
+				appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
+
+				if (tbinfo->relkind == RELKIND_RELATION ||
+					tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
+					appendPQExpBuffer(q, "ALTER TABLE ONLY %s ", qualrelname);
+				else
+					appendPQExpBuffer(q, "ALTER FOREIGN TABLE %s ", qualrelname);
+
+				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
+			}
+		}
 		/*
 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
