@@ -117,6 +117,7 @@ int			pgactive_debug_trace_ddl_locks_level = DDL_LOCK_TRACE_STATEMENT;
 char	   *pgactive_extra_apply_connection_options;
 int			pgactive_log_min_messages = WARNING;
 int			pgactive_init_node_parallel_jobs;
+bool		pgactive_init_node_data_only;
 int			pgactive_max_nodes;
 bool		pgactive_permit_node_identifier_getter_function_creation;
 bool		pgactive_debug_trace_connection_errors;
@@ -1179,6 +1180,15 @@ _PG_init(void)
 							PGC_SIGHUP,
 							0,
 							NULL, NULL, NULL);
+
+	DefineCustomBoolVariable("pgactive.init_node_data_only",
+							 "Sets --data-only option for dump while logical join of a node.",
+							 "When set, user must ensure node has all required schema before logically joining it to pgactive group.",
+							 &pgactive_init_node_data_only,
+							 false,
+							 PGC_SIGHUP,
+							 0,
+							 NULL, NULL, NULL);
 
 	DefineCustomIntVariable("pgactive.max_nodes",
 							"Sets maximum allowed nodes in a pgactive group.",

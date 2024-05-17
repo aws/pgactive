@@ -373,6 +373,10 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 		cmdargv[cmdargc++] = "--format=directory";
 		cmdargv[cmdargc++] = arg_tmp2;
 		cmdargv[cmdargc++] = origin_dsn->data;
+
+		if (pgactive_init_node_data_only)
+			cmdargv[cmdargc++] = "--data-only";
+
 		cmdargv[cmdargc++] = NULL;
 
 		pgactive_execute_command(pgactive_dump_path, cmdargv);
