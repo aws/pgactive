@@ -466,6 +466,9 @@ static const char *const pgactive_default_apply_connection_options =
 "keepalives_interval=20 "
 "keepalives_count=5 ";
 
+/* size of the buffer allocated for error message. */
+#define MAX_ERRORMSG_LEN 1000
+
 /*
  * Header for the shared memory segment ref'd by the pgactiveWorkerCtl ptr,
  * containing pgactive_max_workers pgactiveWorkerControl entries.
@@ -484,6 +487,8 @@ typedef struct pgactiveWorkerControl
 	bool		worker_management_paused;
 	/* Latch for the supervisor worker */
 	Latch	   *supervisor_latch;
+	/* Buffer to hold error message */
+	char		errormsg_buf[MAX_ERRORMSG_LEN + 1];
 	/* Array members, of size pgactive_max_workers */
 	pgactiveWorker slots[FLEXIBLE_ARRAY_MEMBER];
 }			pgactiveWorkerControl;

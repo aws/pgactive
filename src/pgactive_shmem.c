@@ -200,6 +200,7 @@ pgactive_worker_shmem_startup(void)
 			elog(FATAL, "too many postmaster crash/restart cycles, restart the PostgreSQL server");
 
 		pgactiveWorkerCtl->worker_generation = ++pgactive_worker_generation;
+		pgactiveWorkerCtl->errormsg_buf[0] = '\0';
 	}
 	LWLockRelease(AddinShmemInitLock);
 
