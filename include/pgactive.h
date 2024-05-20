@@ -713,8 +713,7 @@ extern int	pgactive_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *pgactive_nodeid_name(const pgactiveNodeId * const node,
-										bool missing_ok,
-										bool only_cache_lookup);
+										bool missing_ok);
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -736,7 +735,7 @@ extern void pgactive_nodecache_invalidate(void);
 extern bool pgactive_local_node_read_only(void);
 extern char pgactive_local_node_status(void);
 extern int32 pgactive_local_node_seq_id(void);
-extern const char *pgactive_local_node_name(bool only_cache_lookup);
+extern const char *pgactive_local_node_name(void);
 
 extern void pgactive_set_node_read_only_guts(char *node_name, bool read_only, bool force);
 extern void pgactive_setup_my_cached_node_names(void);

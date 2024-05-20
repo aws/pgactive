@@ -14,7 +14,6 @@
 #include "postgres.h"
 
 #include "pgactive.h"
-#include "pgactive_locks.h"
 
 #include "access/heapam.h"
 #include "access/xact.h"
@@ -125,8 +124,7 @@ pgactive_nodecache_initialize()
 
 static pgactiveNodeInfo *
 pgactive_nodecache_lookup(const pgactiveNodeId * const nodeid,
-						  bool missing_ok,
-						  bool only_cache_lookup)
+						  bool missing_ok)
 {
 	pgactiveNodeInfo *entry,
 			   *nodeinfo;
@@ -176,13 +174,6 @@ pgactive_nodecache_lookup(const pgactiveNodeId * const nodeid,
 		   0,
 		   sizeof(pgactiveNodeInfo) - offsetof(pgactiveNodeInfo, valid));
 
-	/*
-	 * If asked to look up only in the cache, do not go further to get the
-	 * info from the table upon cache miss.
-	 */
-	if (only_cache_lookup)
-		return NULL;
-
 	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
 	nodeinfo = pgactive_nodes_get_local_info(nodeid);
 	MemoryContextSwitchTo(saved_ctx);
@@ -229,13 +220,13 @@ pgactive_nodecache_lookup(const pgactiveNodeId * const nodeid,
  * open txn, use pgactive_local_node_name_cached().
  */
 const char *
-pgactive_local_node_name(bool only_cache_lookup)
+pgactive_local_node_name(void)
 {
 	pgactiveNodeId nodeid;
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
-	node = pgactive_nodecache_lookup(&nodeid, true, only_cache_lookup);
+	node = pgactive_nodecache_lookup(&nodeid, true);
 
 	if (node == NULL)
 		return "(unknown)";
@@ -250,7 +241,7 @@ pgactive_local_node_read_only(void)
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
-	node = pgactive_nodecache_lookup(&nodeid, true, false);
+	node = pgactive_nodecache_lookup(&nodeid, true);
 
 	if (node == NULL)
 		return false;
@@ -265,7 +256,7 @@ pgactive_local_node_status(void)
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
-	node = pgactive_nodecache_lookup(&nodeid, true, false);
+	node = pgactive_nodecache_lookup(&nodeid, true);
 
 	if (node == NULL)
 		return '\0';
@@ -284,7 +275,7 @@ pgactive_local_node_seq_id(void)
 	pgactiveNodeInfo *node;
 
 	pgactive_make_my_nodeid(&nodeid);
-	node = pgactive_nodecache_lookup(&nodeid, true, false);
+	node = pgactive_nodecache_lookup(&nodeid, true);
 
 	if (node == NULL)
 		return -1;
@@ -301,13 +292,12 @@ pgactive_local_node_seq_id(void)
  */
 const char *
 pgactive_nodeid_name(const pgactiveNodeId * const node,
-					 bool missing_ok,
-					 bool only_cache_lookup)
+					 bool missing_ok)
 {
 	pgactiveNodeInfo *nodeinfo;
 	char	   *node_name;
 
-	nodeinfo = pgactive_nodecache_lookup(node, missing_ok, only_cache_lookup);
+	nodeinfo = pgactive_nodecache_lookup(node, missing_ok);
 	node_name = (nodeinfo == NULL || nodeinfo->name == NULL ?
 				 "(unknown)" : nodeinfo->name);
 
@@ -340,7 +330,7 @@ pgactive_setup_my_cached_node_names()
 	pgactive_make_my_nodeid(&myid);
 
 	my_node_name = MemoryContextStrdup(CacheMemoryContext,
-									   pgactive_nodeid_name(&myid, false, false));
+									   pgactive_nodeid_name(&myid, false));
 }
 
 void
@@ -349,43 +339,11 @@ pgactive_setup_cached_remote_name(const pgactiveNodeId * const remote_nodeid)
 	Assert(IsTransactionState());
 
 	remote_node_name = MemoryContextStrdup(CacheMemoryContext,
-										   pgactive_nodeid_name(remote_nodeid, false, false));
+										   pgactive_nodeid_name(remote_nodeid, false));
 
 	pgactive_nodeid_cpy(&remote_node_id, remote_nodeid);
 }
 
-/*
- * A deadlock can occur when look up for a node name leads to reading from
- * pgactive.pgactive_nodes table (node cache miss) while holding pgactive_locks shared memory
- * lock. The deadlock was observed in one of the TAP test
- * 042_concurrency_physical.pl, and it looked like the following:
- *
- * 1. A per-db worker while holding pgactive_locks shared memory lock from
- * pgactive_locks_node_detached() tried to read a node name (via
- * pgactive_NODEID_FORMAT_WITHNAME_ARGS) to print in log message. This node name
- * read from node cache lead to reading from pgactive.pgactive_nodes table in
- * pgactive_nodes_get_local_info() which requires an exclusive lock on the table.
- *
- * 2. A backend process related to the connection opened by
- * pgactive_nodes_set_remote_status_ready() was trying to commit a transaction while
- * holding the exclusive lock on pgactive.pgactive_nodes table. This led to
- * pgactive_lock_holder_xact_callback() requiring pgactive_locks shared memory lock.
- *
- * In short, the per-db worker held pgactive_locks shared memory lock, and waiting
- * to acquire exclusive lock on pgactive.pgactive_nodes table. The backend process held
- * exclusive lock on pgactive.pgactive_nodes table, and waiting to acquire pgactive_locks
- * shared memory lock. This led to deadlock.
- *
- * A simple fix here is to disallow reading node name from pgactive.pgactive_nodes table
- * when node cache miss happens while holding pgactive_locks shared memory lock. In
- * this case, "(unknown)" is returned as node name. This fix is simple because
- * the node name read functions pgactive_get_my_cached_node_name() and
- * pgactive_get_my_cached_remote_name() are mostly called to print node names in log
- * messages. What may happen is that the log messages will have a valid node id
- * with node name as "(unknown)", the valid node id will help distiguish the
- * log messages for every node. See the code around only_cache_lookup variable
- * in below functions.
- */
 const char *
 pgactive_get_my_cached_node_name()
 {
@@ -393,12 +351,8 @@ pgactive_get_my_cached_node_name()
 		return my_node_name;
 	else if (IsTransactionState())
 	{
-		bool		only_cache_lookup;
-
-		only_cache_lookup = IspgactiveLocksShmemLockHeldByMe();
-
 		/* We might get called from a user backend too, within a function */
-		return pgactive_local_node_name(only_cache_lookup);
+		return pgactive_local_node_name();
 	}
 	else
 		return "(unknown)";
@@ -413,12 +367,8 @@ pgactive_get_my_cached_remote_name(const pgactiveNodeId * const remote_nodeid)
 		return remote_node_name;
 	else if (IsTransactionState())
 	{
-		bool		only_cache_lookup;
-
-		only_cache_lookup = IspgactiveLocksShmemLockHeldByMe();
-
 		/* We might get called from a user backend */
-		return pgactive_nodeid_name(remote_nodeid, true, only_cache_lookup);
+		return pgactive_nodeid_name(remote_nodeid, true);
 	}
 	else
 		return "(unknown)";

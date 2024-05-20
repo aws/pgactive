@@ -2088,7 +2088,6 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	pgactiveNodeId target;
 	char	   *sysid_str;
 	pgactiveWorker *worker;
-	bool		lock_acquired = false;
 	TransactionId xid = InvalidTransactionId;
 	TimestampTz committs = 0;
 	TimestampTz applied_at = 0;
@@ -2111,12 +2110,7 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	if (!LWLockHeldByMe(pgactiveWorkerCtl->lock))
-	{
-		LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
-		lock_acquired = true;
-	}
-
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
 	if (find_apply_worker_slot(&target, &worker) != -1)
 	{
 		pgactiveApplyWorker *apply;
@@ -2133,9 +2127,7 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	values[0] = ObjectIdGetDatum(xid);
 	values[1] = TimestampTzGetDatum(committs);
 	values[2] = TimestampTzGetDatum(applied_at);
-
-	if (lock_acquired)
-		LWLockRelease(pgactiveWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));

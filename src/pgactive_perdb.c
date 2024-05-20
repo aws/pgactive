@@ -522,7 +522,7 @@ pgactive_maintain_db_workers(void)
 				{
 					elog(DEBUG1, "need to drop slot %s of detached node %s",
 						 NameStr(s->data.name),
-						 pgactive_nodeid_name(node, true, false));
+						 pgactive_nodeid_name(node, true));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
 			}
@@ -808,8 +808,8 @@ pgactive_maintain_db_workers(void)
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
 				 "pgactive apply worker for %s to %s",
-				 pgactive_nodeid_name(&target, true, false),
-				 pgactive_nodeid_name(&myid, true, false));
+				 pgactive_nodeid_name(&target, true),
+				 pgactive_nodeid_name(&myid, true));
 
 		/* Allocate a new shmem slot for this apply worker */
 		worker = pgactive_worker_shmem_alloc(pgactive_WORKER_APPLY, &slot);
