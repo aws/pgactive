@@ -30,6 +30,7 @@
 #include <io.h>
 #endif
 
+#include "catalog/pg_class_d.h"
 #include "common/string.h"
 #include "compress_io.h"
 #include "dumputils.h"
@@ -62,6 +63,8 @@ static void _becomeOwner(ArchiveHandle *AH, TocEntry *te);
 static void _selectOutputSchema(ArchiveHandle *AH, const char *schemaName);
 static void _selectTablespace(ArchiveHandle *AH, const char *tablespace);
 static void _selectTableAccessMethod(ArchiveHandle *AH, const char *tableam);
+static void _printTableAccessMethodNoStorage(ArchiveHandle *AH,
+											 TocEntry *te);
 static void processEncodingEntry(ArchiveHandle *AH, TocEntry *te);
 static void processStdStringsEntry(ArchiveHandle *AH, TocEntry *te);
 static void processSearchPathEntry(ArchiveHandle *AH, TocEntry *te);
@@ -502,7 +505,28 @@ RestoreArchive(Archive *AHX)
 			/* Otherwise, drop anything that's selected and has a dropStmt */
 			if (((te->reqs & (REQ_SCHEMA | REQ_DATA)) != 0) && te->dropStmt)
 			{
+				bool		not_allowed_in_txn = false;
+
 				pg_log_info("dropping %s %s", te->desc, te->tag);
+
+				/*
+				 * In --transaction-size mode, we have to temporarily exit our
+				 * transaction block to drop objects that can't be dropped
+				 * within a transaction.
+				 */
+				if (ropt->txn_size > 0)
+				{
+					if (strcmp(te->desc, "DATABASE") == 0 ||
+						strcmp(te->desc, "DATABASE PROPERTIES") == 0)
+					{
+						not_allowed_in_txn = true;
+						if (AH->connection)
+							CommitTransaction(AHX);
+						else
+							ahprintf(AH, "COMMIT;\n");
+					}
+				}
+
 				/* Select owner and schema as necessary */
 				_becomeOwner(AH, te);
 				_selectOutputSchema(AH, te->namespace);
@@ -512,7 +536,20 @@ RestoreArchive(Archive *AHX)
 				 * don't necessarily emit it verbatim; at this point we add an
 				 * appropriate IF EXISTS clause, if the user requested it.
 				 */
-				if (*te->dropStmt != '\0')
+				if (strcmp(te->desc, "BLOB METADATA") == 0)
+				{
+					/* We must generate the per-blob commands */
+					if (ropt->if_exists)
+						IssueCommandPerBlob(AH, te,
+											"SELECT pg_catalog.lo_unlink(oid) "
+											"FROM pg_catalog.pg_largeobject_metadata "
+											"WHERE oid = '", "'");
+					else
+						IssueCommandPerBlob(AH, te,
+											"SELECT pg_catalog.lo_unlink('",
+											"')");
+				}
+				else if (*te->dropStmt != '\0')
 				{
 					if (!ropt->if_exists ||
 						strncmp(te->dropStmt, "--", 2) == 0)
@@ -528,12 +565,12 @@ RestoreArchive(Archive *AHX)
 					{
 						/*
 						 * Inject an appropriate spelling of "if exists".  For
-						 * large objects, we have a separate routine that
+						 * old-style large objects, we have a routine that
 						 * knows how to do it, without depending on
 						 * te->dropStmt; use that.  For other objects we need
 						 * to parse the command.
 						 */
-						if (strncmp(te->desc, "BLOB", 4) == 0)
+						if (strcmp(te->desc, "BLOB") == 0)
 						{
 							DropLOIfExists(AH, te->catalogId.oid);
 						}
@@ -613,6 +650,33 @@ RestoreArchive(Archive *AHX)
 							destroyPQExpBuffer(ftStmt);
 							pg_free(dropStmtOrig);
 						}
+					}
+				}
+
+				/*
+				 * In --transaction-size mode, re-establish the transaction
+				 * block if needed; otherwise, commit after every N drops.
+				 */
+				if (ropt->txn_size > 0)
+				{
+					if (not_allowed_in_txn)
+					{
+						if (AH->connection)
+							StartTransaction(AHX);
+						else
+							ahprintf(AH, "BEGIN;\n");
+						AH->txnCount = 0;
+					}
+					else if (++AH->txnCount >= ropt->txn_size)
+					{
+						if (AH->connection)
+						{
+							CommitTransaction(AHX);
+							StartTransaction(AHX);
+						}
+						else
+							ahprintf(AH, "COMMIT;\nBEGIN;\n");
+						AH->txnCount = 0;
 					}
 				}
 			}
@@ -711,7 +775,11 @@ RestoreArchive(Archive *AHX)
 		}
 	}
 
-	if (ropt->single_txn)
+	/*
+	 * Close out any persistent transaction we may have.  While these two
+	 * cases are started in different places, we can end both cases here.
+	 */
+	if (ropt->single_txn || ropt->txn_size > 0)
 	{
 		if (AH->connection)
 			CommitTransaction(AHX);
@@ -772,6 +840,25 @@ restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
 	 */
 	if ((reqs & REQ_SCHEMA) != 0)
 	{
+		bool		object_is_db = false;
+
+		/*
+		 * In --transaction-size mode, must exit our transaction block to
+		 * create a database or set its properties.
+		 */
+		if (strcmp(te->desc, "DATABASE") == 0 ||
+			strcmp(te->desc, "DATABASE PROPERTIES") == 0)
+		{
+			object_is_db = true;
+			if (ropt->txn_size > 0)
+			{
+				if (AH->connection)
+					CommitTransaction(&AH->public);
+				else
+					ahprintf(AH, "COMMIT;\n\n");
+			}
+		}
+
 		/* Show namespace in log message if available */
 		if (te->namespace)
 			pg_log_info("creating %s \"%s.%s\"",
@@ -822,10 +909,10 @@ restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
 		/*
 		 * If we created a DB, connect to it.  Also, if we changed DB
 		 * properties, reconnect to ensure that relevant GUC settings are
-		 * applied to our session.
+		 * applied to our session.  (That also restarts the transaction block
+		 * in --transaction-size mode.)
 		 */
-		if (strcmp(te->desc, "DATABASE") == 0 ||
-			strcmp(te->desc, "DATABASE PROPERTIES") == 0)
+		if (object_is_db)
 		{
 			pg_log_info("connecting to new database \"%s\"", te->tag);
 			_reconnectToDB(AH, te->tag);
@@ -948,6 +1035,25 @@ restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
 			/* If we haven't already dumped the defn part, do so now */
 			pg_log_info("executing %s %s", te->desc, te->tag);
 			_printTocEntry(AH, te, false);
+		}
+	}
+
+	/*
+	 * If we emitted anything for this TOC entry, that counts as one action
+	 * against the transaction-size limit.  Commit if it's time to.
+	 */
+	if ((reqs & (REQ_SCHEMA | REQ_DATA)) != 0 && ropt->txn_size > 0)
+	{
+		if (++AH->txnCount >= ropt->txn_size)
+		{
+			if (AH->connection)
+			{
+				CommitTransaction(&AH->public);
+				StartTransaction(&AH->public);
+			}
+			else
+				ahprintf(AH, "COMMIT;\nBEGIN;\n\n");
+			AH->txnCount = 0;
 		}
 	}
 
@@ -1119,6 +1225,7 @@ ArchiveEntry(Archive *AHX, CatalogId catalogId, DumpId dumpId,
 	newToc->namespace = opts->namespace ? pg_strdup(opts->namespace) : NULL;
 	newToc->tablespace = opts->tablespace ? pg_strdup(opts->tablespace) : NULL;
 	newToc->tableam = opts->tableam ? pg_strdup(opts->tableam) : NULL;
+	newToc->relkind = opts->relkind;
 	newToc->owner = opts->owner ? pg_strdup(opts->owner) : NULL;
 	newToc->desc = pg_strdup(opts->description);
 	newToc->defn = opts->createStmt ? pg_strdup(opts->createStmt) : NULL;
@@ -1212,10 +1319,13 @@ PrintTOCSummary(Archive *AHX)
 	curSection = SECTION_PRE_DATA;
 	for (te = AH->toc->next; te != AH->toc; te = te->next)
 	{
+		/* This bit must match ProcessArchiveRestoreOptions' marking logic */
 		if (te->section != SECTION_NONE)
 			curSection = te->section;
+		te->reqs = _tocEntryRequired(te, curSection, AH);
+		/* Now, should we print it? */
 		if (ropt->verbose ||
-			(_tocEntryRequired(te, curSection, AH) & (REQ_SCHEMA | REQ_DATA)) != 0)
+			(te->reqs & (REQ_SCHEMA | REQ_DATA)) != 0)
 		{
 			char	   *sanitized_name;
 			char	   *sanitized_schema;
@@ -1290,14 +1400,19 @@ EndLO(Archive *AHX, Oid oid)
  **********/
 
 /*
- * Called by a format handler before any LOs are restored
+ * Called by a format handler before a group of LOs is restored
  */
 void
 StartRestoreLOs(ArchiveHandle *AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
-	if (!ropt->single_txn)
+	/*
+	 * LOs must be restored within a transaction block, since we need the LO
+	 * handle to stay open while we write it.  Establish a transaction unless
+	 * there's one being used globally.
+	 */
+	if (!(ropt->single_txn || ropt->txn_size > 0))
 	{
 		if (AH->connection)
 			StartTransaction(&AH->public);
@@ -1309,14 +1424,14 @@ StartRestoreLOs(ArchiveHandle *AH)
 }
 
 /*
- * Called by a format handler after all LOs are restored
+ * Called by a format handler after a group of LOs is restored
  */
 void
 EndRestoreLOs(ArchiveHandle *AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
-	if (!ropt->single_txn)
+	if (!(ropt->single_txn || ropt->txn_size > 0))
 	{
 		if (AH->connection)
 			CommitTransaction(&AH->public);
@@ -1343,6 +1458,12 @@ StartRestoreLO(ArchiveHandle *AH, Oid oid, bool drop)
 	AH->loCount++;
 
 	/* Initialize the LO Buffer */
+	if (AH->lo_buf == NULL)
+	{
+		/* First time through (in this process) so allocate the buffer */
+		AH->lo_buf_size = LOBBUFSIZE;
+		AH->lo_buf = (void *) pg_malloc(LOBBUFSIZE);
+	}
 	AH->lo_buf_used = 0;
 
 	pg_log_info("restoring large object with OID %u", oid);
@@ -2488,6 +2609,7 @@ WriteToc(ArchiveHandle *AH)
 		WriteStr(AH, te->namespace);
 		WriteStr(AH, te->tablespace);
 		WriteStr(AH, te->tableam);
+		WriteInt(AH, te->relkind);
 		WriteStr(AH, te->owner);
 		WriteStr(AH, "false");
 
@@ -2592,6 +2714,9 @@ ReadToc(ArchiveHandle *AH)
 
 		if (AH->version >= K_VERS_1_14)
 			te->tableam = ReadStr(AH);
+
+		if (AH->version >= K_VERS_1_16)
+			te->relkind = ReadInt(AH);
 
 		te->owner = ReadStr(AH);
 		is_supported = true;
@@ -2988,19 +3113,20 @@ _tocEntryRequired(TocEntry *te, teSection curSection, ArchiveHandle *AH)
 	{
 		/*
 		 * Special Case: If 'SEQUENCE SET' or anything to do with LOs, then it
-		 * is considered a data entry.  We don't need to check for the BLOBS
-		 * entry or old-style BLOB COMMENTS, because they will have hadDumper
-		 * = true ... but we do need to check new-style BLOB ACLs, comments,
+		 * is considered a data entry.  We don't need to check for BLOBS or
+		 * old-style BLOB COMMENTS entries, because they will have hadDumper =
+		 * true ... but we do need to check new-style BLOB ACLs, comments,
 		 * etc.
 		 */
 		if (strcmp(te->desc, "SEQUENCE SET") == 0 ||
 			strcmp(te->desc, "BLOB") == 0 ||
+			strcmp(te->desc, "BLOB METADATA") == 0 ||
 			(strcmp(te->desc, "ACL") == 0 &&
-			 strncmp(te->tag, "LARGE OBJECT ", 13) == 0) ||
+			 strncmp(te->tag, "LARGE OBJECT", 12) == 0) ||
 			(strcmp(te->desc, "COMMENT") == 0 &&
-			 strncmp(te->tag, "LARGE OBJECT ", 13) == 0) ||
+			 strncmp(te->tag, "LARGE OBJECT", 12) == 0) ||
 			(strcmp(te->desc, "SECURITY LABEL") == 0 &&
-			 strncmp(te->tag, "LARGE OBJECT ", 13) == 0))
+			 strncmp(te->tag, "LARGE OBJECT", 12) == 0))
 			res = res & REQ_DATA;
 		else
 			res = res & ~REQ_DATA;
@@ -3035,12 +3161,13 @@ _tocEntryRequired(TocEntry *te, teSection curSection, ArchiveHandle *AH)
 		if (!(ropt->sequence_data && strcmp(te->desc, "SEQUENCE SET") == 0) &&
 			!(ropt->binary_upgrade &&
 			  (strcmp(te->desc, "BLOB") == 0 ||
+			   strcmp(te->desc, "BLOB METADATA") == 0 ||
 			   (strcmp(te->desc, "ACL") == 0 &&
-				strncmp(te->tag, "LARGE OBJECT ", 13) == 0) ||
+				strncmp(te->tag, "LARGE OBJECT", 12) == 0) ||
 			   (strcmp(te->desc, "COMMENT") == 0 &&
-				strncmp(te->tag, "LARGE OBJECT ", 13) == 0) ||
+				strncmp(te->tag, "LARGE OBJECT", 12) == 0) ||
 			   (strcmp(te->desc, "SECURITY LABEL") == 0 &&
-				strncmp(te->tag, "LARGE OBJECT ", 13) == 0))))
+				strncmp(te->tag, "LARGE OBJECT", 12) == 0))))
 			res = res & REQ_SCHEMA;
 	}
 
@@ -3149,6 +3276,19 @@ _doSetFixedOutputState(ArchiveHandle *AH)
 		ahprintf(AH, "SET row_security = on;\n");
 	else
 		ahprintf(AH, "SET row_security = off;\n");
+
+	/*
+	 * In --transaction-size mode, we should always be in a transaction when
+	 * we begin to restore objects.
+	 */
+	if (ropt && ropt->txn_size > 0)
+	{
+		if (AH->connection)
+			StartTransaction(&AH->public);
+		else
+			ahprintf(AH, "\nBEGIN;\n");
+		AH->txnCount = 0;
+	}
 
 	ahprintf(AH, "\n");
 }
@@ -3439,6 +3579,51 @@ _selectTableAccessMethod(ArchiveHandle *AH, const char *tableam)
 }
 
 /*
+ * Set the proper default table access method for a table without storage.
+ * Currently, this is required only for partitioned tables with a table AM.
+ */
+static void
+_printTableAccessMethodNoStorage(ArchiveHandle *AH, TocEntry *te)
+{
+	RestoreOptions *ropt = AH->public.ropt;
+	const char *tableam = te->tableam;
+	PQExpBuffer cmd;
+
+	/* do nothing in --no-table-access-method mode */
+	if (ropt->noTableAm)
+		return;
+
+	if (!tableam)
+		return;
+
+	Assert(te->relkind == RELKIND_PARTITIONED_TABLE);
+
+	cmd = createPQExpBuffer();
+
+	appendPQExpBufferStr(cmd, "ALTER TABLE ");
+	appendPQExpBuffer(cmd, "%s ", fmtQualifiedId(te->namespace, te->tag));
+	appendPQExpBuffer(cmd, "SET ACCESS METHOD %s;",
+					  fmtId(tableam));
+
+	if (RestoringToDB(AH))
+	{
+		PGresult   *res;
+
+		res = PQexec(AH->connection, cmd->data);
+
+		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK)
+			warn_or_exit_horribly(AH,
+								  "could not alter table access method: %s",
+								  PQerrorMessage(AH->connection));
+		PQclear(res);
+	}
+	else
+		ahprintf(AH, "%s\n\n", cmd->data);
+
+	destroyPQExpBuffer(cmd);
+}
+
+/*
  * Extract an object description for a TOC entry, and append it to buf.
  *
  * This is used for ALTER ... OWNER TO.
@@ -3544,11 +3729,17 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
-	/* Select owner, schema, tablespace and default AM as necessary */
+	/*
+	 * Select owner, schema, tablespace and default AM as necessary. The
+	 * default access method for partitioned tables is handled after
+	 * generating the object definition, as it requires an ALTER command
+	 * rather than SET.
+	 */
 	_becomeOwner(AH, te);
 	_selectOutputSchema(AH, te->namespace);
 	_selectTablespace(AH, te->tablespace);
-	_selectTableAccessMethod(AH, te->tableam);
+	if (te->relkind != RELKIND_PARTITIONED_TABLE)
+		_selectTableAccessMethod(AH, te->tableam);
 
 	/* Emit header comment for item */
 	if (!AH->noTocComments)
@@ -3607,17 +3798,34 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData)
 	}
 
 	/*
-	 * Actually print the definition.
+	 * Actually print the definition.  Normally we can just print the defn
+	 * string if any, but we have three special cases:
 	 *
-	 * Really crude hack for suppressing AUTHORIZATION clause that old pg_dump
+	 * 1. A crude hack for suppressing AUTHORIZATION clause that old pg_dump
 	 * versions put into CREATE SCHEMA.  Don't mutate the variant for schema
 	 * "public" that is a comment.  We have to do this when --no-owner mode is
 	 * selected.  This is ugly, but I see no other good way ...
+	 *
+	 * 2. BLOB METADATA entries need special processing since their defn
+	 * strings are just lists of OIDs, not complete SQL commands.
+	 *
+	 * 3. ACL LARGE OBJECTS entries need special processing because they
+	 * contain only one copy of the ACL GRANT/REVOKE commands, which we must
+	 * apply to each large object listed in the associated BLOB METADATA.
 	 */
 	if (ropt->noOwner &&
 		strcmp(te->desc, "SCHEMA") == 0 && strncmp(te->defn, "--", 2) != 0)
 	{
 		ahprintf(AH, "CREATE SCHEMA %s;\n\n\n", fmtId(te->tag));
+	}
+	else if (strcmp(te->desc, "BLOB METADATA") == 0)
+	{
+		IssueCommandPerBlob(AH, te, "SELECT pg_catalog.lo_create('", "')");
+	}
+	else if (strcmp(te->desc, "ACL") == 0 &&
+			 strncmp(te->tag, "LARGE OBJECTS", 13) == 0)
+	{
+		IssueACLPerBlob(AH, te);
 	}
 	else
 	{
@@ -3639,19 +3847,39 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData)
 		te->owner && strlen(te->owner) > 0 &&
 		te->dropStmt && strlen(te->dropStmt) > 0)
 	{
-		PQExpBufferData temp;
+		if (strcmp(te->desc, "BLOB METADATA") == 0)
+		{
+			/* BLOB METADATA needs special code to handle multiple LOs */
+			char	   *cmdEnd = psprintf(" OWNER TO %s", fmtId(te->owner));
 
-		initPQExpBuffer(&temp);
-		_getObjectDescription(&temp, te);
+			IssueCommandPerBlob(AH, te, "ALTER LARGE OBJECT ", cmdEnd);
+			pg_free(cmdEnd);
+		}
+		else
+		{
+			/* For all other cases, we can use _getObjectDescription */
+			PQExpBufferData temp;
 
-		/*
-		 * If _getObjectDescription() didn't fill the buffer, then there is no
-		 * owner.
-		 */
-		if (temp.data[0])
-			ahprintf(AH, "ALTER %s OWNER TO %s;\n\n", temp.data, fmtId(te->owner));
-		termPQExpBuffer(&temp);
+			initPQExpBuffer(&temp);
+			_getObjectDescription(&temp, te);
+
+			/*
+			 * If _getObjectDescription() didn't fill the buffer, then there
+			 * is no owner.
+			 */
+			if (temp.data[0])
+				ahprintf(AH, "ALTER %s OWNER TO %s;\n\n",
+						 temp.data, fmtId(te->owner));
+			termPQExpBuffer(&temp);
+		}
 	}
+
+	/*
+	 * Select a partitioned table's default AM, once the table definition has
+	 * been generated.
+	 */
+	if (te->relkind == RELKIND_PARTITIONED_TABLE)
+		_printTableAccessMethodNoStorage(AH, te);
 
 	/*
 	 * If it's an ACL entry, it might contain SET SESSION AUTHORIZATION
@@ -3991,6 +4219,14 @@ restore_toc_entries_prefork(ArchiveHandle *AH, TocEntry *pending_list)
 			pending_list_append(pending_list, next_work_item);
 		}
 	}
+
+	/*
+	 * In --transaction-size mode, we must commit the open transaction before
+	 * dropping the database connection.  This also ensures that child workers
+	 * can see the objects we've created so far.
+	 */
+	if (AH->public.ropt->txn_size > 0)
+		CommitTransaction(&AH->public);
 
 	/*
 	 * Now close parent connection in prep for parallel steps.  We do this
@@ -4731,6 +4967,10 @@ CloneArchive(ArchiveHandle *AH)
 	clone = (ArchiveHandle *) pg_malloc(sizeof(ArchiveHandle));
 	memcpy(clone, AH, sizeof(ArchiveHandle));
 
+	/* Likewise flat-copy the RestoreOptions, so we can alter them locally */
+	clone->public.ropt = (RestoreOptions *) pg_malloc(sizeof(RestoreOptions));
+	memcpy(clone->public.ropt, AH->public.ropt, sizeof(RestoreOptions));
+
 	/* Handle format-independent fields */
 	memset(&(clone->sqlparse), 0, sizeof(clone->sqlparse));
 
@@ -4748,6 +4988,16 @@ CloneArchive(ArchiveHandle *AH)
 
 	/* clone has its own error count, too */
 	clone->public.n_errors = 0;
+
+	/* clones should not share lo_buf */
+	clone->lo_buf = NULL;
+
+	/*
+	 * Clone connections disregard --transaction-size; they must commit after
+	 * each command so that the results are immediately visible to other
+	 * workers.
+	 */
+	clone->public.ropt->txn_size = 0;
 
 	/*
 	 * Connect our new clone object to the database, using the same connection

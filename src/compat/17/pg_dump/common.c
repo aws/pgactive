@@ -47,6 +47,8 @@ static DumpId lastDumpId = 0;	/* Note: 0 is InvalidDumpId */
  * expects that it can move them around when resizing the table.  So we
  * cannot make the DumpableObjects be elements of the hash table directly;
  * instead, the hash table elements contain pointers to DumpableObjects.
+ * This does have the advantage of letting us map multiple CatalogIds
+ * to one DumpableObject, which is useful for blobs.
  *
  * It turns out to be convenient to also use this data structure to map
  * CatalogIds to owning extensions, if any.  Since extension membership
@@ -83,8 +85,7 @@ static catalogid_hash *catalogIdHash = NULL;
 static void flagInhTables(Archive *fout, TableInfo *tblinfo, int numTables,
 						  InhInfo *inhinfo, int numInherits);
 static void flagInhIndexes(Archive *fout, TableInfo *tblinfo, int numTables);
-static void flagInhAttrs(Archive *fout, DumpOptions *dopt, TableInfo *tblinfo,
-						 int numTables);
+static void flagInhAttrs(Archive *fout, TableInfo *tblinfo, int numTables);
 static int	strInArray(const char *pattern, char **arr, int arr_size);
 static IndxInfo *findIndexByOid(Oid oid);
 
@@ -228,7 +229,7 @@ getSchemaData(Archive *fout, int *numTablesPtr)
 	getTableAttrs(fout, tblinfo, numTables);
 
 	pg_log_info("flagging inherited columns in subtables");
-	flagInhAttrs(fout, fout->dopt, tblinfo, numTables);
+	flagInhAttrs(fout, tblinfo, numTables);
 
 	pg_log_info("reading partitioning data");
 	getPartitioningInfo(fout);
@@ -476,8 +477,7 @@ flagInhIndexes(Archive *fout, TableInfo tblinfo[], int numTables)
  * What we need to do here is:
  *
  * - Detect child columns that inherit NOT NULL bits from their parents, so
- *   that we needn't specify that again for the child. (Versions >= 16 no
- *   longer need this.)
+ *   that we needn't specify that again for the child.
  *
  * - Detect child columns that have DEFAULT NULL when their parents had some
  *   non-null default.  In this case, we make up a dummy AttrDefInfo object so
@@ -497,8 +497,9 @@ flagInhIndexes(Archive *fout, TableInfo tblinfo[], int numTables)
  * modifies tblinfo
  */
 static void
-flagInhAttrs(Archive *fout, DumpOptions *dopt, TableInfo *tblinfo, int numTables)
+flagInhAttrs(Archive *fout, TableInfo *tblinfo, int numTables)
 {
+	DumpOptions *dopt = fout->dopt;
 	int			i,
 				j,
 				k;
@@ -560,8 +561,7 @@ flagInhAttrs(Archive *fout, DumpOptions *dopt, TableInfo *tblinfo, int numTables
 				{
 					AttrDefInfo *parentDef = parent->attrdefs[inhAttrInd];
 
-					foundNotNull |= (parent->notnull_constrs[inhAttrInd] != NULL &&
-									 !parent->notnull_noinh[inhAttrInd]);
+					foundNotNull |= parent->notnull[inhAttrInd];
 					foundDefault |= (parentDef != NULL &&
 									 strcmp(parentDef->adef_expr, "NULL") != 0 &&
 									 !parent->attgenerated[inhAttrInd]);
@@ -579,9 +579,8 @@ flagInhAttrs(Archive *fout, DumpOptions *dopt, TableInfo *tblinfo, int numTables
 				}
 			}
 
-			/* In versions < 17, remember if we found inherited NOT NULL */
-			if (fout->remoteVersion < 170000)
-				tbinfo->notnull_inh[j] = foundNotNull;
+			/* Remember if we found inherited NOT NULL */
+			tbinfo->inhNotNull[j] = foundNotNull;
 
 			/*
 			 * Manufacture a DEFAULT NULL clause if necessary.  This breaks
@@ -698,6 +697,30 @@ AssignDumpId(DumpableObject *dobj)
 		Assert(entry->dobj == NULL);
 		entry->dobj = dobj;
 	}
+}
+
+/*
+ * recordAdditionalCatalogID
+ *	  Record an additional catalog ID for the given DumpableObject
+ */
+void
+recordAdditionalCatalogID(CatalogId catId, DumpableObject *dobj)
+{
+	CatalogIdMapEntry *entry;
+	bool		found;
+
+	/* CatalogId hash table must exist, if we have a DumpableObject */
+	Assert(catalogIdHash != NULL);
+
+	/* Add reference to CatalogId hash */
+	entry = catalogid_insert(catalogIdHash, catId, &found);
+	if (!found)
+	{
+		entry->dobj = NULL;
+		entry->ext = NULL;
+	}
+	Assert(entry->dobj == NULL);
+	entry->dobj = dobj;
 }
 
 /*

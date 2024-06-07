@@ -789,16 +789,7 @@ process_remote_insert(StringInfo s)
 				ExecStoreHeapTuple(user_tuple, newslot, true);
 			}
 
-#if PG_VERSION_NUM >= 170000
-			simple_table_tuple_update(rel->rel,
-									  &(oldslot->tts_tid),
-									  newslot,
-									  estate->es_snapshot,
-									  &update_indexes,
-									  NULL);
-
-			if (update_indexes != TU_None)
-#elif PG_VERSION_NUM >= 160000
+#if PG_VERSION_NUM >= 160000
 			simple_table_tuple_update(rel->rel,
 									  &(oldslot->tts_tid),
 									  newslot,
@@ -1088,16 +1079,7 @@ process_remote_update(StringInfo s)
 				ExecStoreHeapTuple(user_tuple, newslot, true);
 			}
 
-#if PG_VERSION_NUM >= 170000
-			simple_table_tuple_update(rel->rel,
-									  &(oldslot->tts_tid),
-									  newslot,
-									  estate->es_snapshot,
-									  &update_indexes,
-									  NULL);
-
-			if (update_indexes != TU_None)
-#elif PG_VERSION_NUM >= 160000
+#if PG_VERSION_NUM >= 160000
 			simple_table_tuple_update(rel->rel,
 									  &(oldslot->tts_tid),
 									  newslot,
