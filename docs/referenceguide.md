@@ -1,4 +1,10 @@
-# User Guide
+# Reference Guide
+
+Table of contents
+- [Active-Active conflicts](#active-active-conflicts)
+- [Public Functions](#public-functions)
+- [Internal Functions](#internal-functions)
+- [Private Functions](#private-functions)
 
 ## Active-Active conflicts
 
@@ -16,7 +22,7 @@ The reason most conflicts can't happen when all transactions run on a single nod
 
 [pgactive] does not have a distributed transaction manager or lock manager. That's part of why it performs well with latency and network partitions. As a result, so [transactions on different nodes execute entirely in isolation from each other]. Despite the usual perception that "more isolation is good" you actually need to reduce isolation to prevent conflicts.
 
-### Tyoes of conflicts
+### Types of conflicts
 
 #### PRIMARY KEY or UNIQUE conflicts
 
