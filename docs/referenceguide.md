@@ -199,255 +199,97 @@ Because the conflict history table contains data on every table in the database 
 
 ### get\_last\_applied\_xact\_info
 
+Arguments: sysid text, timeline oid, dboid oid, OUT last_applied_xact_id oid, OUT last_applied_xact_committs timestamp with time zone, OUT last_applied_xact_at timestamp with time zone
+
+Return: record
+ 
 Gets last applied transaction info of apply worker for a given node.
 
 ### pgactive\_apply\_pause
+
+Arguments: NONE
+
+Return: boolean
 
 Pause applying replication.
 
 ### pgactive\_apply\_resume
 
+Arguments: NONE
+
+Return: void
+
 Resume applying replication.
 
 ### pgactive\_is\_apply\_paused
 
-Chewck if replication apply is paused.
+Arguments: NONE
+
+Return: boolean
+
+Check if replication apply is paused.
 
 ### pgactive\_create\_group
+
+Arguments: node_name text, node_dsn text, apply_delay integer DEFAULT NULL::integer, replication_sets text[] DEFAULT ARRAY['default'::text]
+
+Return: void
 
 Create a pgactive group, turning a stand-alone database into the first node in a pgactive group.
 
 ### pgactive\_detach\_nodes
 
+Arguments: p_nodes text[]
+
+Return: void
+
 Detach node(s) from pgactive group.
 
-### pgactive\_get\_connection\_replication\_sets
-
-Get replication sets for the given node.
-
 ### pgactive\_get\_replication\_lag\_info
+
+Arguments: OUT slot_name name, OUT last_sent_xact_id oid, OUT last_sent_xact_committs timestamp with time zone, OUT last_sent_xact_at timestamp with time zone, OUT last_applied_xact_id oid, OUT last_applied_xact_committs timestamp with time zone, OUT last_applied_xact_at timestamp with time zone
+
+Return: SETOF record
 
 Gets replication lag info.
 
 ### pgactive\_get\_stats
 
+Arguments: OUT rep_node_id oid, OUT rilocalid oid, OUT riremoteid text, OUT nr_commit bigint, OUT nr_rollback bigint, OUT nr_insert bigint, OUT nr_insert_conflict bigint, OUT nr_update bigint, OUT nr_update_conflict bigint, OUT nr_delete bigint, OUT nr_delete_conflict bigint, OUT nr_disconnect bigint
+
+Return: SETOF record
+
 Get pgactive replication stats.
 
 ### pgactive\_join\_group
+
+Arguments: node_name text, node_dsn text, join_using_dsn text, apply_delay integer DEFAULT NULL::integer, replication_sets text[] DEFAULT ARRAY['default'::text], bypass_collation_check boolean DEFAULT false, bypass_node_identifier_creation boolean DEFAULT false, bypass_user_tables_check boolean DEFAULT false
+
+Return: void
 
 Join an existing pgactive group by connecting to a member node and copying its contents.
 
 ### pgactive\_remove
 
+Arguments: force boolean DEFAULT false
+
+Return: void
+
 Remove all traces of pgactive from the local node.
 
 ### pgactive\_snowflake\_id\_nextval
+
+Arguments: regclass
+
+Return: bigint
 
 Generate sequence values unique to this node using a local sequence as a seed
 
 ### pgactive\_update\_node\_conninfo
 
+Arguments: node_name_to_update text, node_dsn_to_update text
+
+Return: void
+
 Update pgactive node connection info.
-
-### Internal Functions
-
-These internal functions are not recommended for general use.
-
-### check\_file\_system\_mount\_points
-
-Checks if given two paths are on same file system mount points.
-
-### get\_free\_disk\_space
-
-Gets free disk space in bytes of filesystem to which given path is mounted.
-
-### has\_required\_privs
-
-Checks if current user has required privileges.
-
-### pgactive\_acquire\_global\_lock
-
-TBD
-
-### pgactive\_assign\_seq\_ids\_post\_upgrade
-
-TBD
-
-### pgactive\_connections\_changed
-
-Function to notify other background info to refresh connectiob.
-
-### pgactive\_conninfo\_cmp
-
-Checks if given two connectgions are same.
-
-### pgactive\_create\_conflict\_handler 
-
-TBD
-
-### pgactive\_drop\_conflict\_handler
-
-TBD
-
-### pgactive\_fdw\_validator
-
-TBD
-
-### pgactive\_format\_replident\_name
-
-TBD
-
-### pgactive\_format\_slot\_name
-
-TBD
-
-### pgactive\_get\_connection\_replication\_sets
-
-TBD
-
-### pgactive\_get\_connection\_replication\_sets
-
-TBD
-
-### pgactive\_get\_last\_applied\_xact\_info
-
-TBD
-
-### pgactive\_get\_local\_node\_name
-
-TBD
-
-### pgactive\_get\_local\_nodeid
-
-TBD
-
-### pgactive\_get\_node\_identifier
-
-TBD
-
-### pgactive\_get\_table\_replication\_sets
-
-TBD
-
-### pgactive\_get\_workers\_info
-
-TBD
-
-### pgactive\_handle\_rejoin
-
-TBD
-
-### pgactive\_internal\_create\_truncate\_trigger
-
-TBD
-
-### pgactive\_is\_active\_in\_db
-
-TBD
-
-### pgactive\_min\_remote\_version\_num
-
-TBD
-
-### pgactive\_node\_status\_from\_char
-
-TBD
-
-### pgactive\_node\_status\_to\_char
-
-TBD
-
-### pgactive\_parse\_replident\_name
-
-TBD
-
-### pgactive\_parse\_slot\_name
-
-TBD
-
-### pgactive\_queue\_truncate
-
-TBD
-
-### pgactive\_replicate\_ddl\_command
-
-TBD
-
-### pgactive\_set\_connection\_replication\_sets
-
-TBD
-
-### pgactive\_set\_node\_read\_only
-
-TBD
-
-### pgactive\_set\_table\_replication\_sets
-
-TBD
-
-### pgactive\_skip\_changes
-
-TBD
-
-### pgactive\_terminate\_workers
-
-TBD
-
-### pgactive\_truncate\_trigger\_add
-
-TBD
-
-### pgactive\_variant
-
-TBD
-
-### pgactive\_version
-
-TBD
-
-### pgactive\_version\_num
-
-TBD
-
-### pgactive\_wait\_for\_node\_ready
-
-TBD
-
-### pgactive\_wait\_for\_slots\_confirmed\_flush\_lsn
-
-TBD
-
-### pgactive\_xact\_replication\_origin
-
-TBD
-
-## Private Functions
-
-These private functions are not recommended for general use.
-
-### \_pgactive\_begin\_join\_private
-
-### \_pgactive\_begin\_join\_private
-
-### \_pgactive\_check\_file\_system\_mount\_points
-
-### \_pgactive\_destroy\_temporary\_dump\_directories\_private
-
-### \_pgactive\_generate\_node\_identifier\_private
-
-### \_pgactive\_get\_free\_disk\_space
-
-### \_pgactive\_get\_node\_info\_private
-
-### \_pgactive\_has\_required\_privs
-
-### \_pgactive\_join\_node\_private
-
-### \_pgactive\_nid\_shmem\_reset\_all\_private
-
-### \_pgactive\_pause\_worker\_management\_private
-
-### \_pgactive\_snowflake\_id\_nextval\_private
-
-### \_pgactive\_update\_seclabel\_private
 
