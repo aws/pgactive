@@ -2,9 +2,7 @@
 
 Table of contents
 - [Active-Active conflicts](#active-active-conflicts)
-- [Public Functions](#public-functions)
-- [Internal Functions](#internal-functions)
-- [Private Functions](#private-functions)
+- [Functions](#functions)
 
 ## Active-Active conflicts
 
@@ -195,7 +193,7 @@ Row values may optionally be logged for row conflicts. This is controlled by the
 
 Because the conflict history table contains data on every table in the database so each row's schema might be different, if row values are logged they are stored as json fields. The json is created with row_to_json, just like if you'd called it on the row yourself from SQL. There is no corresponding json_to_row function in PostgreSQL at this time, so you'll need table-specific code (pl/pgsql, pl/python, pl/perl, whatever) if you want to reconstruct a composite-typed tuple from the logged json.
 
-## Public Functions
+## Functions
 
 ### get\_last\_applied\_xact\_info
 
