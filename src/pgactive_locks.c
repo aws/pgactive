@@ -1797,8 +1797,8 @@ pgactive_locks_node_detached(pgactiveNodeId * node)
 		pgactive_fetch_sysid_via_node_id(pgactive_my_locks_database->lock_holder, &owner);
 
 		elog(ddl_lock_log_level(DDL_LOCK_TRACE_PEERS),
-			 LOCKTRACE "global lock held by " pgactive_NODEID_FORMAT_WITHNAME " released after node detach",
-			 pgactive_NODEID_FORMAT_WITHNAME_ARGS(*node));
+			 LOCKTRACE "global lock held by " pgactive_NODEID_FORMAT " released after node detach",
+			 pgactive_NODEID_FORMAT_ARGS(*node));
 
 		peer_holds_lock = pgactive_nodeid_eq(node, &owner);
 		CommitTransactionCommand();
@@ -2591,14 +2591,4 @@ pgactive_get_global_locks_info(PG_FUNCTION_ARGS)
 
 	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
-}
-
-/*
- * A simple wrapper to check if calling process is currently holding pgactive_locks
- * shared memory lock.
- */
-bool
-IspgactiveLocksShmemLockHeldByMe(void)
-{
-	return pgactive_locks_ctl == NULL ? false : LWLockHeldByMe(pgactive_locks_ctl->lock);
 }
