@@ -874,6 +874,13 @@ typedef struct pgactiveNodeIdentifier
 {
 	Oid			dboid;
 	uint64		nid;
+
+	/*
+	 * Sets --data-only option for dump while logical join of a node. When
+	 * set, user must ensure node has all required schema before logically
+	 * joining it to pgactive group.
+	 */
+	bool		data_only_node_init;
 }			pgactiveNodeIdentifier;
 
 typedef struct pgactiveNodeIdentifierControl
@@ -897,6 +904,8 @@ extern bool is_pgactive_nid_getter_function_drop(DropStmt *stmt);
 extern bool is_pgactive_nid_getter_function_alter(AlterFunctionStmt *stmt);
 extern bool is_pgactive_nid_getter_function_alter_owner(AlterOwnerStmt *stmt);
 extern bool is_pgactive_nid_getter_function_alter_rename(RenameStmt *stmt);
+extern void pgactive_set_data_only_node_init(Oid dboid, bool val);
+extern bool pgactive_get_data_only_node_init(Oid dboid);
 
 /* Postgres commit cfdf4dc4fc96 introduced this pseudo-event in version 12. */
 #if PG_VERSION_NUM >= 120000

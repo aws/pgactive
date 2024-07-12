@@ -385,9 +385,19 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 		cmdargv[cmdargc++] = "--format=directory";
 		cmdargv[cmdargc++] = arg_tmp2;
 		cmdargv[cmdargc++] = origin_dsn->data;
+
+		if (pgactive_get_data_only_node_init(MyDatabaseId))
+			cmdargv[cmdargc++] = "--data-only";
+
 		cmdargv[cmdargc++] = NULL;
 
 		pgactive_execute_command(pgactive_dump_path, cmdargv);
+
+		/*
+		 * We don't need this flag anymore after the dump finishes, so reset
+		 * it
+		 */
+		pgactive_set_data_only_node_init(MyDatabaseId, false);
 
 		/*
 		 * Restore contents from remote node on to local node with pg_restore.

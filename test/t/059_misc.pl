@@ -355,4 +355,34 @@ $node_0->psql($pgactive_test_dbname,
     FROM pgactive.pgactive_nodes n
     WHERE (n.node_sysid, n.node_timeline, n.node_dboid) != pgactive.pgactive_get_local_nodeid();]);
 
+$node_0->stop;
+$node_1->stop;
+
+# Test data-only logical join of a node
+my $node_2 = PostgreSQL::Test::Cluster->new('node_2');
+initandstart_pgactive_group($node_2);
+
+$node_2->safe_psql($pgactive_test_dbname,
+    q[CREATE TABLE fruits(id integer PRIMARY KEY, name varchar);]);
+$node_2->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (1, 'Mango');]);
+
+my $node_3 = PostgreSQL::Test::Cluster->new('node_3');
+initandstart_node($node_3);
+
+# Create schema on the joining node first
+$node_3->safe_psql($pgactive_test_dbname,
+    q[CREATE TABLE fruits(id integer PRIMARY KEY, name varchar);]);
+
+# Now, join the node with data-only option set
+my $join_query = generate_pgactive_logical_join_query($node_3, $node_2, data_only_node_init => 'true');
+$node_3->safe_psql($pgactive_test_dbname, $join_query);
+
+$node_3->safe_psql( $pgactive_test_dbname,
+            qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]);
+
+check_join_status($node_3, $node_2);
+
+wait_for_apply($node_2, $node_3);
+
 done_testing();

@@ -2063,6 +2063,9 @@ destroy_temp_dump_dir(int code, Datum arg)
 		if (!rmtree(dir, true))
 			elog(WARNING, "failed to clean up pgactive dump temporary directory %s", dir);
 	}
+
+	if (pgactive_worker_type == pgactive_WORKER_PERDB)
+		pgactive_set_data_only_node_init(MyDatabaseId, false);
 }
 
 Datum

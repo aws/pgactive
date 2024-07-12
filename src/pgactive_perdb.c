@@ -1261,5 +1261,6 @@ pgactive_perdb_worker_main(Datum main_arg)
 	}
 
 	perdb->p_dboid = InvalidOid;
+	pgactive_set_data_only_node_init(MyDatabaseId, false);
 	proc_exit(0);
 }
