@@ -1,5 +1,5 @@
-#define pgactive_VERSION "2.1.4"
-#define pgactive_VERSION_NUM 20104
+#define pgactive_VERSION "2.1.3"
+#define pgactive_VERSION_NUM 20103
 #define pgactive_MIN_REMOTE_VERSION_NUM 20100
 #define pgactive_VERSION_DATE ""
 #define pgactive_VERSION_GITHASH ""
