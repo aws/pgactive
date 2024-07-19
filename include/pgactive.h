@@ -106,6 +106,9 @@
 
 #define pgactive_SECLABEL_PROVIDER "pgactive"
 
+#define pgactive_INCLUDE_REPLICATION_SET_NAME "include_set"
+#define pgactive_EXCLUDE_REPLICATION_SET_NAME "exclude_set"
+
 static const struct config_enum_entry pgactive_message_level_options[] = {
 	{"debug5", DEBUG5, false},
 	{"debug4", DEBUG4, false},

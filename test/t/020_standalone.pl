@@ -1001,4 +1001,7 @@ view pgactive.pgactive_stats';
 #     'extension version 2.1.3 contains expected objects on PG >=17');
 #}
 
+# Move to new version 2.1.4.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.4';});
+
 done_testing();

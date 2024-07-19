@@ -695,12 +695,30 @@ RETURNS VOID
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
+CREATE FUNCTION pgactive_get_replication_set_tables(r_sets text[])
+RETURNS SETOF text
+VOLATILE
+STRICT
+LANGUAGE 'sql'
+AS $$
+  SELECT DISTINCT objname
+    FROM pg_seclabels
+    WHERE provider = 'pgactive'
+    AND objtype = 'table'
+    AND EXISTS (
+    SELECT 1
+    FROM json_array_elements_text(label::json->'sets') AS elem
+    WHERE elem::text = ANY (r_sets)
+  );
+$$;
+
 REVOKE ALL ON FUNCTION _pgactive_begin_join_private(text, text, text, text, boolean, boolean, boolean, boolean) FROM public;
 REVOKE ALL ON FUNCTION pgactive_join_group(text, text, text, integer, text[], boolean, boolean, boolean, boolean) FROM public;
 REVOKE ALL ON FUNCTION pgactive_create_group(text, text, integer, text[]) FROM public;
 REVOKE ALL ON FUNCTION pgactive_get_last_error_info() FROM public;
 REVOKE ALL ON FUNCTION pgactive_wait_for_node_ready(integer, integer) FROM public;
 REVOKE ALL ON FUNCTION _pgactive_set_data_only_node_init(oid, boolean) FROM public;
+REVOKE ALL ON FUNCTION pgactive_get_replication_set_tables(text[]) FROM public;
 
 RESET pgactive.skip_ddl_replication;
 RESET search_path;

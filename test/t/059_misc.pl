@@ -385,4 +385,160 @@ check_join_status($node_3, $node_2);
 
 wait_for_apply($node_2, $node_3);
 
+# Check data is available on all pgactive nodes after logical join
+$query = qq[SELECT COUNT(*) FROM fruits;];
+my $expected = 1;
+my $node_2_res = $node_2->safe_psql($pgactive_test_dbname, $query);
+my $node_3_res = $node_3->safe_psql($pgactive_test_dbname, $query);
+
+is($node_2_res, $expected, "pgactive node node_2 has all the data");
+is($node_3_res, $expected, "pgactive node node_3 has all the data");
+
+$node_2->stop;
+$node_3->stop;
+
+# Test include replication set
+test_replication_sets(1, 0);
+
+# Test exclude replication set
+test_replication_sets(0, 1);
+
+sub test_replication_sets
+{
+	my ($is_include_set, $is_exclude_set) = @_;
+	my $rset;
+
+	my $node_c = PostgreSQL::Test::Cluster->new('node_c');
+	my $node_r = PostgreSQL::Test::Cluster->new('node_r');
+
+	initandstart_node($node_c, $pgactive_test_dbname);
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[CREATE TABLE foo (c_i int PRIMARY KEY);]);
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[INSERT INTO foo SELECT * FROM generate_series(1, 5);]);
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[CREATE TABLE bar (c_i int PRIMARY KEY);]);
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[INSERT INTO bar SELECT * FROM generate_series(1, 5);]);
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[CREATE TABLE baz (c_i int PRIMARY KEY);]);
+	$node_c->safe_psql($pgactive_test_dbname,
+		q[INSERT INTO baz SELECT * FROM generate_series(1, 5);]);
+
+	$pgport = $node_c->port;
+	$pghost = $node_c->host;
+	my $node_c_connstr =
+	  "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
+
+	$node_c->safe_psql(
+		$pgactive_test_dbname, qq{
+      SELECT pgactive.pgactive_create_group(
+        node_name := '@{[ $node_c->name ]}',
+        node_dsn := '$node_c_connstr'
+      );
+    }
+	);
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]
+	);
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		'SELECT pgactive.pgactive_is_active_in_db()') eq 't'
+	  or BAIL_OUT(
+		'!pgactive.pgactive_is_active_in_db() after pgactive_create_group');
+
+	if ($is_include_set eq 1)
+	{
+		# Include foo and bar, not baz
+		note "Testing include replication set";
+		$rset = "include_set";
+		$node_c->safe_psql($pgactive_test_dbname,
+			qq{SELECT pgactive.pgactive_set_table_replication_sets('foo', ARRAY['$rset']);}
+		);
+		$node_c->safe_psql($pgactive_test_dbname,
+			qq{SELECT pgactive.pgactive_set_table_replication_sets('bar', ARRAY['$rset']);}
+		);
+	}
+	elsif ($is_exclude_set eq 1)
+	{
+		# Exclude baz, not foo, bar
+		note "Testing exclude replication set";
+		$rset = "exclude_set";
+		$node_c->safe_psql($pgactive_test_dbname,
+			qq{SELECT pgactive.pgactive_set_table_replication_sets('baz', ARRAY['$rset']);}
+		);
+	}
+
+	$node_c->safe_psql($pgactive_test_dbname,
+		qq[SELECT pgactive.pgactive_set_connection_replication_sets(ARRAY['$rset'], '@{[ $node_c->name ]}');]
+	);
+
+	initandstart_node($node_r);
+
+	my $jn_port = $node_r->port;
+	my $jn_host = $node_r->host;
+	my $jn_connstr =
+	  "port=$jn_port host=$jn_host dbname=$pgactive_test_dbname";
+
+	$join_query = qq{
+    SELECT pgactive.pgactive_join_group(
+      node_name := '@{[ $node_r->name ]}',
+      node_dsn := '$jn_connstr',
+      join_using_dsn := '$node_c_connstr',
+      replication_sets := ARRAY['$rset']);
+      };
+
+	$node_r->safe_psql($pgactive_test_dbname, $join_query);
+
+	$node_r->safe_psql($pgactive_test_dbname,
+		qq[SELECT pgactive.pgactive_wait_for_node_ready($PostgreSQL::Test::Utils::timeout_default)]
+	);
+
+	check_join_status($node_r, $node_c);
+
+	wait_for_apply($node_c, $node_r);
+
+	# Check data is available for the included on all pgactive nodes after logical
+	# join.
+	$query = qq[SELECT COUNT(*) FROM foo;];
+	$expected = 5;
+	my $node_c_res = $node_c->safe_psql($pgactive_test_dbname, $query);
+	my $node_r_res = $node_r->safe_psql($pgactive_test_dbname, $query);
+
+	is($node_c_res, $expected,
+		"pgactive node node_c has all the data of table foo");
+	is($node_r_res, $expected,
+		"pgactive node node_r has all the data of table foo");
+
+	$query = qq[SELECT COUNT(*) FROM bar;];
+	$expected = 5;
+	$node_c_res = $node_c->safe_psql($pgactive_test_dbname, $query);
+	$node_r_res = $node_r->safe_psql($pgactive_test_dbname, $query);
+
+	is($node_c_res, $expected,
+		"pgactive node node_c has all the data of table bar");
+	is($node_r_res, $expected,
+		"pgactive node node_r has all the data of table bar");
+
+	$query = qq[SELECT COUNT(*) FROM baz;];
+
+	# Must not use safe_psql since we expect an error here
+	my ($psql_ret, $psql_stdout, $psql_stderr) = ('', '', '');
+	($psql_ret, $psql_stdout, $psql_stderr) =
+	  $node_r->psql($pgactive_test_dbname, $query);
+	like(
+		$psql_stderr,
+		qr/ERROR:  relation "baz" does not exist/,
+		"excluded table baz is not present on node_r after logical join");
+
+	$node_c->teardown_node;
+	$node_c->clean_node;
+	$node_r->teardown_node;
+	$node_r->clean_node;
+}
+
 done_testing();

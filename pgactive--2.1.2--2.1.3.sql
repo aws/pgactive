@@ -47,7 +47,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION pgactive_get_connection_replication_sets(
+CREATE OR REPLACE FUNCTION pgactive_set_connection_replication_sets(
     new_replication_sets text[],
     sysid text, timeline oid, dboid oid,
     origin_sysid text default '0',
