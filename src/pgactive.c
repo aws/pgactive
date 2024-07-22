@@ -345,7 +345,7 @@ pgactive_get_remote_dboid(const char *conninfo_db)
  */
 PGconn *
 pgactive_connect(const char *conninfo,
-				 Name appname,
+				 const char *appnamesuffix,
 				 pgactiveNodeId * remote_node)
 {
 	PGconn	   *streamConn;
@@ -357,13 +357,15 @@ pgactive_connect(const char *conninfo,
 	char	   *remote_tlid;
 	char	   *servername;
 	StringInfo	cmd;
+	pgactiveNodeId myid;
 
 	initStringInfo(&conninfo_nrepl);
 	initStringInfo(&conninfo_repl);
 
+	pgactive_make_my_nodeid(&myid);
 	servername = get_connect_string(conninfo);
-	appendStringInfo(&conninfo_nrepl, "application_name='%s' %s %s %s",
-					 (appname == NULL ? "pgactive" : NameStr(*appname)),
+	appendStringInfo(&conninfo_nrepl, "application_name='pgactive:" UINT64_FORMAT ":%s' %s %s %s",
+					 myid.sysid, appnamesuffix,
 					 pgactive_default_apply_connection_options,
 					 pgactive_extra_apply_connection_options,
 					 (servername == NULL ? conninfo : servername));
@@ -745,21 +747,17 @@ pgactive_establish_connection_and_slot(const char *dsn,
 									   char *out_snapshot)
 {
 	PGconn	   *streamConn;
-	NameData	appname;
 	char	   *remote_repident_name;
 	pgactiveNodeId myid;
 	RepOriginId origin_id;
 
 	pgactive_make_my_nodeid(&myid);
 
-	snprintf(NameStr(appname), NAMEDATALEN, "%s:%s",
-			 pgactive_get_my_cached_node_name(), application_name_suffix);
-
 	/*
 	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like
 	 * connection failure.
 	 */
-	streamConn = pgactive_connect(dsn, &appname, out_nodeid);
+	streamConn = pgactive_connect(dsn, application_name_suffix, out_nodeid);
 
 	pgactive_slot_name(out_slot_name, &myid, out_nodeid->dboid);
 	remote_repident_name = pgactive_replident_name(out_nodeid, myid.dboid);
@@ -2177,7 +2175,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 	PGresult   *res;
 	StringInfoData cmd;
 
-	conn = pgactive_connect_nonrepl(dsn->data, "pgactiveapplyinfo", false);
+	conn = pgactive_connect_nonrepl(dsn->data, "xact info", true, false);
 
 	/* Make sure pgactive is actually present and active on the remote */
 	pgactive_ensure_ext_installed(conn);

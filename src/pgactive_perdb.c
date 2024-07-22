@@ -980,7 +980,8 @@ check_params_are_same(void)
 #endif
 
 		conn = pgactive_connect_nonrepl(info->node_dsn,
-										"pgactivenodeinfo", false);
+										"check params",
+										true, false);
 		if (PQstatus(conn) != CONNECTION_OK)
 		{
 #if PG_VERSION_NUM < 130000
@@ -1025,7 +1026,7 @@ check_local_node_connectability(void)
 	List	   *node_dsn;
 	pgactiveNodeDSNsInfo *info;
 	PGconn	   *conn;
-	char		appsuffix[NAMEDATALEN];
+	char		appname[NAMEDATALEN];
 	StringInfoData cmd;
 	char	   *result;
 	MemoryContext saved_ctx;
@@ -1041,12 +1042,9 @@ check_local_node_connectability(void)
 
 	info = (pgactiveNodeDSNsInfo *) linitial(node_dsn);
 
-	snprintf(appsuffix, NAMEDATALEN,
-			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
-
-	conn = pgactive_connect_nonrepl(info->node_dsn,
-									appsuffix,
-									false);
+	snprintf(appname, NAMEDATALEN, "pgactive:" UINT64_FORMAT ":check connection",
+			 GenerateNodeIdentifier());
+	conn = pgactive_connect_nonrepl(info->node_dsn, appname, false, false);
 
 	if (PQstatus(conn) != CONNECTION_OK)
 	{
@@ -1057,9 +1055,9 @@ check_local_node_connectability(void)
 	}
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT EXISTS ("
-					 "SELECT 1 FROM pg_stat_activity WHERE application_name = '%s:%s');",
-					 pgactive_get_my_cached_node_name(), appsuffix);
+	appendStringInfo(&cmd, "SELECT count(*) = 1 FROM pg_stat_activity "
+					 "WHERE pid = %d AND application_name = '%s';",
+					 PQbackendPID(conn), appname);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -1068,8 +1066,6 @@ check_local_node_connectability(void)
 	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_execute failed: %s", cmd.data);
 
-	Assert(SPI_processed == 1);
-	Assert(SPI_tuptable->tupdesc->natts == 1);
 	result = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
 	if (strcmp(result, "t") == 0)
@@ -1141,7 +1137,7 @@ pgactive_perdb_worker_main(Datum main_arg)
 	pgactive_make_my_nodeid(&myid);
 	elog(DEBUG1, "per-db worker for node " pgactive_NODEID_FORMAT " starting", pgactive_LOCALID_FORMAT_ARGS);
 
-	appendStringInfo(&si, "%s:perdb", pgactive_get_my_cached_node_name());
+	appendStringInfo(&si, "pgactive:" UINT64_FORMAT ":perdb", myid.sysid);
 	SetConfigOption("application_name", si.data, PGC_USERSET, PGC_S_SESSION);
 	SetConfigOption("lock_timeout", "10000", PGC_USERSET, PGC_S_SESSION);
 

@@ -744,7 +744,8 @@ extern const char *pgactive_get_my_cached_node_name(void);
 extern const char *pgactive_get_my_cached_remote_name(const pgactiveNodeId * const remote_nodeid);
 
 /* helpers shared by multiple worker types */
-extern struct pg_conn *pgactive_connect(const char *conninfo, Name appname,
+extern struct pg_conn *pgactive_connect(const char *conninfo,
+										const char *appnamesuffix,
 										pgactiveNodeId * out_nodeid);
 
 extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
@@ -755,7 +756,8 @@ extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
 															  char *out_snapshot);
 
 extern PGconn *pgactive_connect_nonrepl(const char *connstring,
-										const char *appnamesuffix,
+										const char *appname,
+										bool is_appnamesuffix,
 										bool report_fatal);
 
 /* Helper for PG_ENSURE_ERROR_CLEANUP to close a PGconn */

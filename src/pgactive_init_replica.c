@@ -270,6 +270,7 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	char		arg_jobs[12];
 	char		arg_tmp1[MAXPGPATH];
 	char		arg_tmp2[MAXPGPATH];
+	pgactiveNodeId myid;
 
 	if (pgactive_find_other_exec(my_exec_path, pgactive_DUMP_CMD, &bin_version,
 								 &pgactive_dump_path[0]) < 0)
@@ -302,11 +303,12 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	}
 
 	o_servername = get_connect_string(node->init_from_dsn);
-	appendStringInfo(origin_dsn, "%s %s %s application_name='%s: init dump'",
+	pgactive_make_my_nodeid(&myid);
+	appendStringInfo(origin_dsn, "%s %s %s application_name='pgactive:" UINT64_FORMAT ":init dump'",
 					 pgactive_default_apply_connection_options,
 					 pgactive_extra_apply_connection_options,
 					 (o_servername == NULL ? node->init_from_dsn : o_servername),
-					 pgactive_get_my_cached_node_name());
+					 myid.sysid);
 
 	/*
 	 * Suppress replication of changes applied via pg_restore back to the
@@ -318,7 +320,7 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	 * is a bit dodgy.
 	 */
 	l_servername = get_connect_string(node->local_dsn);
-	appendStringInfo(local_dsn, "%s application_name='%s: init restore' "
+	appendStringInfo(local_dsn, "%s application_name='pgactive:" UINT64_FORMAT ":init restore' "
 					 "options='-c pgactive.do_not_replicate=on "
 
 	/*
@@ -330,7 +332,8 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	 * remove for now "-c pgactive.skip_ddl_locking=on "
 	 */
 					 "-c session_replication_role=replica'",
-					 (l_servername == NULL ? node->local_dsn : l_servername), pgactive_get_my_cached_node_name());
+					 (l_servername == NULL ? node->local_dsn : l_servername),
+					 myid.sysid);
 
 	snprintf(tmpdir, sizeof(tmpdir), "%s/%s-" UINT64_FORMAT "-%s.%d",
 			 pgactive_temp_dump_directory, TEMP_DUMP_DIR_PREFIX,
@@ -415,7 +418,7 @@ pgactive_sync_nodes(PGconn *remote_conn, pgactiveNodeInfo * local_node)
 {
 	PGconn	   *local_conn;
 
-	local_conn = pgactive_connect_nonrepl(local_node->local_dsn, "init", true);
+	local_conn = pgactive_connect_nonrepl(local_node->local_dsn, "state sync", true, true);
 
 	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&local_conn));
@@ -599,7 +602,7 @@ pgactive_init_make_other_slots()
 		}
 
 		conn = pgactive_establish_connection_and_slot(cfg->dsn,
-													  "mkslot",
+													  "make replication slot",
 													  &slot_name,
 													  &remote,
 													  NULL,
@@ -1019,7 +1022,7 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 		 local_node->init_from_dsn);
 
 	nonrepl_init_conn =
-		pgactive_connect_nonrepl(local_node->init_from_dsn, "init", true);
+		pgactive_connect_nonrepl(local_node->init_from_dsn, "init replica", true, true);
 
 	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&nonrepl_init_conn));
@@ -1119,7 +1122,7 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 */
 			init_repl_conn =
 				pgactive_establish_connection_and_slot(local_node->init_from_dsn,
-													   "init",
+													   "init node",
 													   &slot_name,
 													   &remote,
 													   NULL,

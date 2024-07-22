@@ -543,7 +543,7 @@ pgactive_supervisor_worker_main(Datum main_arg)
 
 	elog(LOG, "pgactive supervisor restarted and connected to DB " pgactive_SUPERVISOR_DBNAME);
 
-	SetConfigOption("application_name", "pgactive supervisor", PGC_USERSET, PGC_S_SESSION);
+	SetConfigOption("application_name", "pgactive:supervisor", PGC_USERSET, PGC_S_SESSION);
 
 	/* mark as idle, before starting to loop */
 	pgstat_report_activity(STATE_IDLE, NULL);
