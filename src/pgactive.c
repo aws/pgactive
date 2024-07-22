@@ -158,7 +158,6 @@ PGDLLEXPORT Datum _pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum _pgactive_has_required_privs(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum has_required_privs(PG_FUNCTION_ARGS);
-PGDLLEXPORT Datum pgactive_get_last_error_info(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_apply_pause);
 PG_FUNCTION_INFO_V1(pgactive_apply_resume);
@@ -189,7 +188,6 @@ PG_FUNCTION_INFO_V1(_pgactive_check_file_system_mount_points);
 PG_FUNCTION_INFO_V1(check_file_system_mount_points);
 PG_FUNCTION_INFO_V1(_pgactive_has_required_privs);
 PG_FUNCTION_INFO_V1(has_required_privs);
-PG_FUNCTION_INFO_V1(pgactive_get_last_error_info);
 
 static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
@@ -2442,20 +2440,4 @@ pgactive_get_bigendian(void)
 #else
 	return false;
 #endif
-}
-
-Datum
-pgactive_get_last_error_info(PG_FUNCTION_ARGS)
-{
-	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
-	if (pgactiveWorkerCtl->errormsg_buf[0] == '\0')
-	{
-		LWLockRelease(pgactiveWorkerCtl->lock);
-		PG_RETURN_NULL();
-	}
-	else
-	{
-		LWLockRelease(pgactiveWorkerCtl->lock);
-		PG_RETURN_TEXT_P(cstring_to_text(pgactiveWorkerCtl->errormsg_buf));
-	}
 }

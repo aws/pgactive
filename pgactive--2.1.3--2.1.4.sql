@@ -583,113 +583,6 @@ $body$;
 COMMENT ON FUNCTION pgactive_create_group(text, text, integer, text[]) IS
 'Create a pgactive group, turning a stand-alone database into the first node in a pgactive group';
 
-CREATE FUNCTION pgactive_get_last_error_info()
-RETURNS TEXT
-AS 'MODULE_PATHNAME'
-LANGUAGE C;
-
-DROP FUNCTION pgactive_wait_for_node_ready(integer, integer);
-CREATE FUNCTION pgactive_wait_for_node_ready(
-  timeout integer DEFAULT 0,
-  progress_interval integer DEFAULT 60)
-RETURNS void LANGUAGE plpgsql VOLATILE
-AS $body$
-DECLARE
-  r1 record;
-  r2 record;
-  t_lp_cnt integer := 0;
-  p_lp_cnt integer := 0;
-  first_time boolean := true;
-  l_db_init_sz int8;
-  l_db_sz int8;
-  r_db text;
-  p_pct integer;
-  p_stime timestamp;
-  p_etime timestamp;
-  p_elapsed interval;
-  last_error_info text;
-BEGIN
-
-    IF timeout < 0 THEN
-      RAISE EXCEPTION '''timeout'' parameter must not be negative';
-    END IF;
-
-    IF progress_interval < 0 THEN
-      RAISE EXCEPTION '''progress_interval'' parameter must not be negative';
-    END IF;
-
-    IF current_setting('transaction_isolation') <> 'read committed' THEN
-        RAISE EXCEPTION 'can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
-                        current_setting('transaction_isolation');
-    END IF;
-
-    LOOP
-      SELECT * FROM pgactive.pgactive_nodes
-      WHERE (node_sysid, node_timeline, node_dboid)
-        = pgactive.pgactive_get_local_nodeid()
-      INTO r1;
-
-      PERFORM pg_sleep(1);
-
-      IF r1.node_status = 'r' THEN
-        IF progress_interval > 0 AND r2 IS NOT NULL THEN
-          p_etime := clock_timestamp();
-          p_elapsed := p_etime - p_stime;
-          RAISE NOTICE
-              USING MESSAGE = format('successfully restored database ''%s'' from node %s in %s',
-                                     r2.dbname, r2.node_name, p_elapsed);
-        END IF;
-        EXIT;
-      END IF;
-
-      IF timeout > 0 THEN
-        t_lp_cnt := t_lp_cnt + 1;
-        IF t_lp_cnt > timeout THEN
-          RAISE EXCEPTION 'node % cannot reach ready state within % seconds, current state is %',
-                          r1.node_name, timeout, r1.node_status;
-        END IF;
-      END IF;
-
-      SELECT * FROM pgactive.pgactive_get_last_error_info() INTO last_error_info;
-      IF last_error_info IS NOT NULL THEN
-        RAISE EXCEPTION USING
-            MESSAGE = format('previous init of node %s failed with error message: %s',
-                             r1.node_name, last_error_info),
-            HINT = format('Check server logs for more details.'),
-            ERRCODE = 'object_not_in_prerequisite_state';
-      END IF;
-
-      IF progress_interval > 0 AND r1.node_init_from_dsn IS NOT NULL THEN
-        p_lp_cnt := p_lp_cnt + 1;
-
-        IF first_time THEN
-          SELECT * FROM pgactive._pgactive_get_node_info_private(r1.node_init_from_dsn)
-            INTO r2;
-          SELECT pg_size_pretty(r2.dbsize) INTO r_db;
-          SELECT pg_database_size(r1.node_dboid) INTO l_db_init_sz;
-          p_stime := clock_timestamp();
-          first_time := false;
-        END IF;
-
-        IF p_lp_cnt > progress_interval THEN
-          SELECT pg_database_size(r1.node_dboid) INTO l_db_sz;
-          IF l_db_sz = 0 OR l_db_sz = l_db_init_sz THEN
-            RAISE NOTICE
-                USING MESSAGE = format('transferring of database ''%s'' (%s) from node %s in progress',
-                                       r2.dbname, r_db, r2.node_name);
-          ELSE
-            SELECT ROUND((l_db_sz::real/r2.dbsize::real) * 100.0) INTO p_pct;
-            RAISE NOTICE
-              USING MESSAGE = format('restoring database ''%s'', %s%% of %s complete',
-                                     r2.dbname, p_pct, r_db);
-          END IF;
-          p_lp_cnt := 0;
-        END IF;
-      END IF;
-    END LOOP;
-END;
-$body$;
-
 CREATE FUNCTION _pgactive_set_data_only_node_init(dboid oid, val boolean)
 RETURNS VOID
 AS 'MODULE_PATHNAME'
@@ -715,8 +608,6 @@ $$;
 REVOKE ALL ON FUNCTION _pgactive_begin_join_private(text, text, text, text, boolean, boolean, boolean, boolean) FROM public;
 REVOKE ALL ON FUNCTION pgactive_join_group(text, text, text, integer, text[], boolean, boolean, boolean, boolean) FROM public;
 REVOKE ALL ON FUNCTION pgactive_create_group(text, text, integer, text[]) FROM public;
-REVOKE ALL ON FUNCTION pgactive_get_last_error_info() FROM public;
-REVOKE ALL ON FUNCTION pgactive_wait_for_node_ready(integer, integer) FROM public;
 REVOKE ALL ON FUNCTION _pgactive_set_data_only_node_init(oid, boolean) FROM public;
 REVOKE ALL ON FUNCTION pgactive_get_replication_set_tables(text[]) FROM public;
 

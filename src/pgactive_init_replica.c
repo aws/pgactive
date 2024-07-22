@@ -240,27 +240,15 @@ pgactive_execute_command(const char *cmd, char *cmdargv[])
 
 	if (exitstatus != 0)
 	{
-		StringInfoData buf;
-
-		initStringInfo(&buf);
-
 		if (WIFEXITED(exitstatus))
-			appendStringInfo(&buf, "process %d to execute command \"%s\" for init_replica exited with exit code %d",
-							 pid, cmd, WEXITSTATUS(exitstatus));
-		else if (WIFSIGNALED(exitstatus))
-			appendStringInfo(&buf, "process %d to execute command \"%s\" for init_replica exited due to signal %d",
-							 pid, cmd, WEXITSTATUS(exitstatus));
-		else
-			appendStringInfo(&buf, "process %d to execute command \"%s\" for init_replica exited for an unknown reason with exit code %d",
-							 pid, cmd, exitstatus);
+			elog(FATAL, "process %d to execute command \"%s\" for init_replica exited with exit code %d",
+				 pid, cmd, WEXITSTATUS(exitstatus));
+		if (WIFSIGNALED(exitstatus))
+			elog(FATAL, "process %d to execute command \"%s\" for init_replica exited due to signal %d",
+				 pid, cmd, WTERMSIG(exitstatus));
 
-		/* Set error message info */
-		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
-		memcpy(pgactiveWorkerCtl->errormsg_buf, buf.data, buf.len);
-		pgactiveWorkerCtl->errormsg_buf[buf.len] = '\0';
-		LWLockRelease(pgactiveWorkerCtl->lock);
-
-		elog(FATAL, "%s", buf.data);
+		elog(FATAL, "process %d to execute command \"%s\" for init_replica exited for an unknown reason with exit code %d",
+			 pid, cmd, exitstatus);
 	}
 
 	ereport(LOG,
@@ -1265,11 +1253,6 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 				elog(ERROR, "unreachable %c", status);	/* Unhandled case */
 				break;
 		}
-
-		/* Reset previous error message info */
-		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
-		pgactiveWorkerCtl->errormsg_buf[0] = '\0';
-		LWLockRelease(pgactiveWorkerCtl->lock);
 
 		if (status == pgactive_NODE_STATUS_BEGINNING_INIT)
 		{
