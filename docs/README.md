@@ -101,13 +101,13 @@ Note: Administrators should monitor for node outages (see: Monitoring and make s
 
 A node is removed with the `pgactive.pgactive_detach_nodes()` function. You must specify the node name (as passed during node creation) to remove a node. You should call `pgactive.pgactive_detach_nodes()` from a node that will remain in the pgactive group, not the node to be removed. Multiple nodes may be removed at once. No value is returned; the removal status may be seen by checking the `status` field in `pgactive.pgactive_nodes` for that node.
 
-To remove node1
+To remove node2, executing following on node1
 
-  `SELECT pgactive.pgactive_detach_nodes(ARRAY['node-1']);`
+  `SELECT pgactive.pgactive_detach_nodes(ARRAY['node-2']);`
 
-or to remove multiple nodes at once:
+or to remove multiple nodes at once, execute following on node1:
 
- `SELECT pgactive.pgactive_detach_nodes(ARRAY['node-1', 'node-2', 'node-3']);`
+ `SELECT pgactive.pgactive_detach_nodes(ARRAY['node-2', 'node-3']);`
 
 
 

@@ -4,7 +4,7 @@ To run the examples in this post, you’ll need to provision at least two Postgr
 
 In this example we will create a database "app", some table, enable / setup pgactive to accept writes on all the PostgreSQL instance, and thus creating an Active-Active PostgreSQL database.
 
-## Use pgactive to deploy an active-active PostgreSQL cluster
+## Use pgactive to deploy an active-active PostgreSQL database
 
 ### 1. On each PostgreSQL instance, run the following command:
 
@@ -231,9 +231,9 @@ FROM pgactive.pgactive_node_slots;
 
 ## Reviewing and correcting write conflicts
 
-Conflicts in asynchronous active-active replication can occur when two active instances simultaneously modify the same row. Using the data in our endpoint1 and endpoint2 clusters as an example, let’s suppose a transaction on endpoint1 modifies soap to be sapone while a transaction on endpoint2 modifies soap to be savon before sapone is applied.
+Conflicts in asynchronous active-active replication can occur when two active instances simultaneously modify the same row. Using the data in our endpoint1 and endpoint2 clusters as an example, let’s suppose a transaction on endpoint1 modifies product_name from soap to be sapone while a transaction on endpoint2 modifies product_name from soap to be savon before sapone is applied.
 
-By default, pgactive logs all conflicts and uses the last-update-wins strategy of resolving conflicts, where it will accept the changes from the transaction with the latest timestamp. In our example, the change from soap to sapone on endpoint1 was made at t=1 and the change from soap to savon was made at t=2 on endpoint2, so pgactive will resolve the conflict on endpoint1 and change sapone to savon because savon is the later update.
+By default, pgactive logs all conflicts and uses the last-update-wins strategy of resolving conflicts, where it will accept the changes from the transaction with the latest timestamp. In our example, the change of product_name from soap to sapone on endpoint1 was made at t=1 and the change to product_name from soap to savon was made at t=2 on endpoint2, so pgactive will resolve the conflict on endpoint1 and changes product_name from sapone to savon because endpoint2 update is latest.
 
 You can view all the conflicting transactions and how they were resolved in the pgactive.pgactive_conflict_history table, as shown in the following code:
 
@@ -245,17 +245,17 @@ conflict_id                 | 1
 local_node_sysid            | 7254092437219470229
 local_conflict_xid          | 0
 local_conflict_lsn          | 0/1DCBEA8
-local_conflict_time         | 2023-07-10 07:43:33.238874+00
-object_schema               | public
-object_name                 | city
+local_conflict_time         | 2023-08-31 12:22:10.062739+00
+object_schema               | inventory
+object_name                 | products
 remote_node_sysid           | 7254092429617437576
 remote_txid                 | 738
-remote_commit_time          | 2023-07-10 07:43:32.738135+00
+remote_commit_time          | 2023-08-31 12:23:10.062739+00
 remote_commit_lsn           | 0/1DCDBF0
-conflict_type               | update_delete
-conflict_resolution         | skip_change
-local_tuple                 | 
-remote_tuple                | {"id":"20605a2f-f43a-47f9-bcb7-8fe200bc8143","product_name":"Pune", "created_at": "2023-08-31 12:23:10.062739+00"}
+conflict_type               | update_update
+conflict_resolution         | last_update_wins_keep_remote
+local_tuple                 | {"id":"20605a2f-f43a-47f9-bcb7-8fe200bc8143","product_name":"sapone", "created_at": "2023-08-31 12:22:10.062739+00"}
+remote_tuple                | {"id":"20605a2f-f43a-47f9-bcb7-8fe200bc8143","product_name":"savon", "created_at": "2023-08-31 12:23:10.062739+00"}
 local_tuple_xmin            | 
 local_tuple_origin_sysid    | 7254092437219470229
 error_message               | 
@@ -290,10 +290,10 @@ To remove a pgactive instance from an application set and prepare to drop the pg
 SELECT pgactive.pgactive_detach_nodes(ARRAY['endpoint1-app', 'endpoint2-app']);
 ```
 
-After you have detached the nodes, you can run the pgactive.remove_pgactive() command on each instance to disable pgactive:
+After you have detached the nodes, you can run the pgactive.pgactive_remove() command on each instance to disable pgactive:
 
 ```
-SELECT pgactive.remove_pgactive();
+SELECT pgactive.pgactive_remove();
 ```
 
 After you have successfully run these commands, you can drop the pgactive extension:
