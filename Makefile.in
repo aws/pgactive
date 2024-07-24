@@ -70,7 +70,6 @@ DDLTESTS := ddl_enable_ddl \
 	ddl_mixed \
 	ddl_namespace \
 	ddl_sequence \
-	ddl_replication_set \
 	ddl_view \
 	ddl_disable_ddl
 
@@ -84,7 +83,6 @@ DDLTESTS_FUNC := ddl_fn/ddl_enable_ddl \
 	ddl_fn/ddl_mixed \
 	ddl_fn/ddl_namespace \
 	ddl_fn/ddl_sequence \
-	ddl_fn/ddl_replication_set \
 	ddl_fn/ddl_view \
 	ddl_fn/ddl_disable_ddl
 

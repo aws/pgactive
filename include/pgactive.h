@@ -805,6 +805,7 @@ typedef struct remote_node_info
 	int64		indexessize;
 	int			max_nodes;
 	bool		skip_ddl_replication;
+	int			nb_include_rs;
 	int			cur_nodes;
 
 	/* collation related info */
