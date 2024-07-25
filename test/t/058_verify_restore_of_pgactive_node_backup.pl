@@ -38,9 +38,9 @@ my $logstart_2 = get_log_size($node_2);
 
 # Detached node must unregister per-db worker
 my $result = find_in_log($node_2,
-	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to failure in connectability check!,
+	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to failure when connecting to ourself!,
 	$logstart_2);
-ok($result, "unregistering per-db worker due to failure in connectability check is detected");
+ok($result, "unregistering per-db worker due to failure when connecting to ourself is detected");
 
 # There mustn't be any pgactive workers on restored instance
 $result = $node_2->safe_psql($pgactive_test_dbname, qq[SELECT COUNT(*) FROM pgactive.pgactive_get_workers_info();]);

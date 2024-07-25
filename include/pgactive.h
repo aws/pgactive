@@ -447,6 +447,7 @@ extern bool pgactive_do_not_replicate;
 extern bool pgactive_discard_mismatched_row_attributes;
 extern int	pgactive_max_ddl_lock_delay;
 extern int	pgactive_ddl_lock_timeout;
+extern int	pgactive_connectability_check_duration;
 #ifdef USE_ASSERT_CHECKING
 extern int	pgactive_ddl_lock_acquire_timeout;
 #endif

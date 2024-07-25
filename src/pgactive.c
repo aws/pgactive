@@ -1078,6 +1078,15 @@ _PG_init(void)
 							GUC_UNIT_MS,
 							NULL, NULL, NULL);
 
+	DefineCustomIntVariable("pgactive.connectability_check_duration",
+							"Internal. Sets the amount of time (in seconds) per-db worker will keep retrying to connect.",
+							NULL,
+							&pgactive_connectability_check_duration,
+							300, 2, 600,
+							PGC_SIGHUP,
+							GUC_UNIT_S,
+							NULL, NULL, NULL);
+
 #ifdef USE_ASSERT_CHECKING
 
 	/*
