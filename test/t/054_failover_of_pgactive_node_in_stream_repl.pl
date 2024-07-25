@@ -136,7 +136,7 @@ wait_for_apply($node_0_standby, $node_1);
 
 $node_1->safe_psql($pgactive_test_dbname,
     q[INSERT INTO fruits VALUES (3, 'Cherry');]);
-wait_for_apply_with_peer_name($node_1, 'node_0');
+wait_for_apply($node_1, $node_0_standby);
 
 $expected = 4;
 my $node_0_standby_res = $node_0_standby->safe_psql($pgactive_test_dbname, $query);
@@ -155,7 +155,7 @@ wait_for_apply($node_0_standby, $node_1);
 
 $node_1->safe_psql($pgactive_test_dbname,
     q[INSERT INTO sports VALUES (2, 'Kabaddi');]);
-wait_for_apply_with_peer_name($node_1, 'node_0');
+wait_for_apply($node_1, $node_0_standby);
 
 $query = qq[SELECT COUNT(*) FROM sports;];
 $expected = 2;
@@ -208,16 +208,3 @@ like($psql_stderr, qr/.*ERROR.*invalid connection string syntax:.*/,
      "invalid connection string is detected");
 
 done_testing();
-
-# Wait until a peer has caught up. Similar to wait_for_apply but peer node name
-# is provided as an input. This is because after the failover, the standby uses
-# original primary node name.
-sub wait_for_apply_with_peer_name {
-    my ($self, $peer_node_name) = @_;
-    # On node <self>, wait until the send pointer on the replication slot with
-    # application_name "<peer>:send" to passes the xlog flush position on node
-    # <self> at the time of this call.
-    my $lsn = $self->lsn('flush');
-    die('no lsn to catch up to') if !defined $lsn;
-    $self->wait_for_catchup($peer_node_name . ":send", 'replay', $lsn);
-}

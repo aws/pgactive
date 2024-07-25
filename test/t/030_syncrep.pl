@@ -35,8 +35,19 @@ initandstart_pgactive_group($node_a);
 my $node_b = PostgreSQL::Test::Cluster->new('node_b');
 initandstart_logicaljoin_node($node_b, $node_a);
 
+my $anid = $node_a->safe_psql($pgactive_test_dbname,
+              qq[SELECT pgactive.pgactive_get_node_identifier();]);
+my $bnid = $node_b->safe_psql($pgactive_test_dbname,
+              qq[SELECT pgactive.pgactive_get_node_identifier();]);
+my $aperdb = "pgactive:" . $anid . ":perdb";
+my $bperdb = "pgactive:" . $bnid . ":perdb";
+my $aapply = "pgactive:" . $anid . ":apply";
+my $bapply = "pgactive:" . $bnid . ":apply";
+my $asend = "pgactive:" . $anid . ":send";
+my $bsend = "pgactive:" . $bnid . ":send";
+
 # application_name should be the same as the node name
-is($node_a->safe_psql('postgres', q[SELECT count(*) >= 4 FROM pg_stat_activity WHERE application_name IN ('pgactive supervisor', 'node_a:perdb', 'node_b:apply', 'node_b:send')]),
+is($node_a->safe_psql('postgres', qq[SELECT count(*) >= 4 FROM pg_stat_activity WHERE application_name IN ('pgactive:supervisor', '$aperdb', '$bapply', '$bsend')]),
 q[t],
 '2-node application_name check');
 
@@ -47,8 +58,17 @@ initandstart_logicaljoin_node($node_c, $node_a);
 my $node_d = PostgreSQL::Test::Cluster->new('node_d');
 initandstart_logicaljoin_node($node_d, $node_c);
 
+my $cnid = $node_c->safe_psql($pgactive_test_dbname,
+              qq[SELECT pgactive.pgactive_get_node_identifier();]);
+my $dnid = $node_d->safe_psql($pgactive_test_dbname,
+              qq[SELECT pgactive.pgactive_get_node_identifier();]);
+my $capply = "pgactive:" . $cnid . ":apply";
+my $dapply = "pgactive:" . $dnid . ":apply";
+my $csend = "pgactive:" . $cnid . ":send";
+my $dsend = "pgactive:" . $dnid . ":send";
+
 # other apply workers should be visible now
-is($node_a->safe_psql('postgres', q[SELECT count(*) >= 8 FROM pg_stat_activity WHERE application_name IN ('pgactive supervisor', 'node_a:perdb', 'node_b:apply', 'node_b:send', 'node_c:apply', 'node_c:send', 'node_d:apply', 'node_d:send')]),
+is($node_a->safe_psql('postgres', qq[SELECT count(*) >= 8 FROM pg_stat_activity WHERE application_name IN ('pgactive:supervisor', '$aperdb', '$bapply', '$bsend', '$capply', '$csend', '$dapply', '$dsend')]),
 q[t],
 '4-node application_name check');
 
@@ -80,11 +100,11 @@ $node_b->start;
 #-------------------------------------
 
 note "reconfiguring into synchronous pairs A<=>B, C<=>D (1-safe 1-sync)";
-$node_a->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '"node_b:send"']);
-$node_b->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '"node_a:send"']);
+$node_a->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '"$bsend"']);
+$node_b->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '"$asend"']);
 
-$node_c->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '"node_d:send"']);
-$node_d->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '"node_c:send"']);
+$node_c->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '"$dsend"']);
+$node_d->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '"$csend"']);
 
 for my $node (@nodes) {
   $node->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET pgactive.synchronous_commit = on]);
@@ -140,11 +160,11 @@ is($node_a->safe_psql($pgactive_test_dbname, q[SELECT 1 FROM t WHERE x = 'A: 1-1
 #-------------------------------------
 
 note "reconfiguring into 2-safe 2-sync A[B,C], B[A,D] C[A,D] D[B,C]";
-$node_a->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '2 ("node_b:send", "node_c:send")']);
-$node_b->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '2 ("node_a:send", "node_d:send")']);
+$node_a->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '2 ("$bsend", "$csend")']);
+$node_b->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '2 ("$asend", "$dsend")']);
 
-$node_c->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '2 ("node_d:send", "node_a:send")']);
-$node_d->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '2 ("node_c:send", "node_b:send")']);
+$node_c->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '2 ("$dsend", "$asend")']);
+$node_d->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '2 ("$csend", "$bsend")']);
 
 for my $node (@nodes) {
   $node->restart;
@@ -184,11 +204,11 @@ $node_c->start;
 #
 note "reconfiguring into 1-safe 2-sync A[B,C], B[A,D] C[A,D] D[B,C]";
 
-$node_a->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '1 ("node_b:send", "node_c:send")']);
-$node_b->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '1 ("node_a:send", "node_d:send")']);
+$node_a->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '1 ("$bsend", "$csend")']);
+$node_b->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '1 ("$asend", "$dsend")']);
 
-$node_c->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '1 ("node_d:send", "node_a:send")']);
-$node_d->safe_psql($pgactive_test_dbname, q[ALTER SYSTEM SET synchronous_standby_names = '1 ("node_c:send", "node_b:send")']);
+$node_c->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '1 ("$dsend", "$asend")']);
+$node_d->safe_psql($pgactive_test_dbname, qq[ALTER SYSTEM SET synchronous_standby_names = '1 ("$csend", "$bsend")']);
 
 for my $node (@nodes) {
   $node->restart;

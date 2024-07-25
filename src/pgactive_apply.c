@@ -2877,9 +2877,10 @@ pgactive_apply_main(Datum main_arg)
 
 	/*
 	 * Set our local application_name for our SPI connections. We want to see
-	 * the remote name in pg_stat_activity here.
+	 * the remote node identifier in pg_stat_activity here.
 	 */
-	appendStringInfo(&query, "%s:%s", pgactive_apply_config->node_name, "apply");
+	appendStringInfo(&query, "pgactive:" UINT64_FORMAT ":%s",
+					 pgactive_apply_config->remote_node.sysid, "apply");
 	if (pgactive_apply_worker->forward_changesets)
 		appendStringInfoString(&query, " catchup");
 

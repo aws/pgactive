@@ -36,7 +36,7 @@ $node_2->start;
 
 my $logstart_2 = get_log_size($node_2);
 
-# Detached node must unregister apply worker
+# Detached node must unregister per-db worker
 my $result = find_in_log($node_2,
 	qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to failure when connecting to ourself!,
 	$logstart_2);
@@ -44,7 +44,7 @@ ok($result, "unregistering per-db worker due to failure when connecting to ourse
 
 # There mustn't be any pgactive workers on restored instance
 $result = $node_2->safe_psql($pgactive_test_dbname, qq[SELECT COUNT(*) FROM pgactive.pgactive_get_workers_info();]);
-is($result, '0', "restored node " . $node_2->name() . "doesn't have pgactive workers");
+is($result, '0', "restored node " . $node_2->name() . " doesn't have pgactive workers");
 
 # Let's get rid of pgactive completely on restored instance
 $node_2->safe_psql($pgactive_test_dbname, qq[SELECT pgactive.pgactive_remove(true);]);
@@ -66,5 +66,43 @@ $result = find_in_log($node_1,
 	qr!LOG: ( [A-Z0-9]+:)? slot .* does not exist for node .*, skipping related apply worker start!,
 	$logstart_1);
 ok($result, "skipping related apply worker start due to missing replication slot");
+
+# Create a node with long name (i.e > NAMEDATALEN bytes) and bring up pgactive
+my $node_ln1 = PostgreSQL::Test::Cluster->new('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_1');
+initandstart_node($node_ln1);
+
+$node_ln1->safe_psql($pgactive_test_dbname,
+    q[CREATE TABLE fruits(id integer, name varchar);]);
+$node_ln1->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (1, 'Cherry');]);
+
+create_pgactive_group($node_ln1);
+
+# Join a node with long name (i.e > NAMEDATALEN bytes) to the pgactive group
+my $node_ln2 = PostgreSQL::Test::Cluster->new('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_2');
+initandstart_node($node_ln2, $pgactive_test_dbname);
+pgactive_logical_join($node_ln2, $node_ln1);
+
+$node_ln1->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (2, 'Apple');]);
+wait_for_apply($node_ln1, $node_ln2);
+
+$node_ln2->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (3, 'Mango');]);
+wait_for_apply($node_ln2, $node_ln1);
+
+# Check data is available on all pgactive nodes after join with long node
+# names (i.e > NAMEDATALEN bytes).
+my $expected = 3;
+my $query = qq[SELECT COUNT(*) FROM fruits;];
+
+my $res1 = $node_ln1->safe_psql($pgactive_test_dbname, $query);
+my $res2 = $node_ln2->safe_psql($pgactive_test_dbname, $query);
+
+is($res1, $expected, "node_ln1 with long node name has all the data");
+is($res1, $expected, "node_ln2 with long node name has all the data");
+
+$node_ln1->stop;
+$node_ln2->stop;
 
 done_testing();
