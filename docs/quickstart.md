@@ -278,7 +278,7 @@ local_tuple_origin_dboid    | 16385
 local_commit_time           | 
 ```
 
-If you don’t like how the conflicting change was resolved, you can manually fix the conflict by running your own query to update the value in the affected row.
+Incase a updated tuple after the conflict resolution is not meeting the accuracy due to many factors, database administrator can manually update the tuple by running an update DML and fix the the value.
 
 ## Clean up
 
@@ -294,8 +294,7 @@ After you have detached the nodes, you can run the pgactive.pgactive_remove() co
 
 ```
 SELECT pgactive.pgactive_remove();
-```
-
+``
 After you have successfully run these commands, you can drop the pgactive extension:
 
 ```
