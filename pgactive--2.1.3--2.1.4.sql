@@ -106,7 +106,34 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION pgactive_get_workers_info();
+CREATE FUNCTION pgactive_get_workers_info (
+    OUT sysid text,
+    OUT timeline oid,
+    OUT dboid oid,
+    OUT worker_type text,
+    OUT pid int4,
+    OUT unregistered boolean
+)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C VOLATILE STRICT;
+
+DROP FUNCTION pgactive_terminate_workers(text, oid, oid, text);
+CREATE OR REPLACE FUNCTION pgactive_terminate_workers(text, oid, oid, text)
+RETURNS boolean
+LANGUAGE SQL
+AS $$
+SELECT pg_catalog.pg_terminate_backend(pid) FROM pgactive.pgactive_get_workers_info()
+-- For per-db worker, we don't expect sysid and timeline, but rely on dboid.
+  WHERE unregistered = false AND
+        CASE WHEN worker_type = 'per-db' THEN (dboid, worker_type) = ($3, $4)
+        ELSE (sysid, timeline, dboid, worker_type) = ($1, $2, $3, $4) END;
+$$;
+
 REVOKE ALL ON FUNCTION pgactive_set_connection_replication_sets(text[], text, oid, oid, text, oid, oid) FROM public;
+REVOKE ALL ON FUNCTION pgactive_get_workers_info() FROM public;
+REVOKE ALL ON FUNCTION pgactive_terminate_workers(text, oid, oid, text) FROM public;
 
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;

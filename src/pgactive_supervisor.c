@@ -263,6 +263,7 @@ pgactive_supervisor_rescan_dbs()
 	while (HeapTupleIsValid(secTuple = systable_getnext(scan)))
 	{
 		FormData_pg_shseclabel *sec;
+		int			slotno;
 
 		sec = (FormData_pg_shseclabel *) GETSTRUCT(secTuple);
 
@@ -288,19 +289,24 @@ pgactive_supervisor_rescan_dbs()
 		 * shmem segment. But really, if you have that many DBs this cost is
 		 * nothing.
 		 */
-		if (find_perdb_worker_slot(sec->objoid, NULL) == -1)
+		slotno = find_perdb_worker_slot(sec->objoid, NULL);
+
+		if (slotno == pgactive_PER_DB_WORKER_SLOT_NOT_FOUND)
 		{
 			/* No perdb worker exists for this DB, make one */
 			pgactive_register_perdb_worker(sec->objoid);
 			Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 			n_new_workers++;
 		}
-		else
-			elog(DEBUG2, "per-db worker for database with OID %u already exists, not registering",
+		else if (slotno >= pgactive_PER_DB_WORKER_SLOT_FOUND)
+			elog(DEBUG1, "per-db worker for database with OID %u already exists, not registering",
+				 sec->objoid);
+		else if (slotno == pgactive_UNREGISTERED_PER_DB_WORKER_SLOT_FOUND)
+			elog(DEBUG1, "per-db worker for database with OID %u was previously unregistered, not registering",
 				 sec->objoid);
 	}
 
-	elog(DEBUG2, "found %i pgactive-labeled DBs; registered %i new per-db workers",
+	elog(DEBUG1, "found %i pgactive-labeled DBs; registered %i new per-db workers",
 		 pgactive_dbs, n_new_workers);
 
 	LWLockRelease(pgactiveWorkerCtl->lock);
@@ -310,7 +316,7 @@ pgactive_supervisor_rescan_dbs()
 
 	CommitTransactionCommand();
 
-	elog(DEBUG2, "finished scanning for pgactive-enabled databases");
+	elog(DEBUG1, "finished scanning for pgactive-enabled databases");
 
 	pgstat_report_activity(STATE_IDLE, NULL);
 }

@@ -32,6 +32,10 @@ $node_1->backup($backup_name);
 
 my $node_2 = PostgreSQL::Test::Cluster->new('node_2');
 $node_2->init_from_backup($node_1, $backup_name);
+$node_2->append_conf(
+	'postgresql.conf', qq(
+		log_min_messages = debug1
+));
 $node_2->start;
 
 my $logstart_2 = get_log_size($node_2);
@@ -42,8 +46,16 @@ my $result = find_in_log($node_2,
 	$logstart_2);
 ok($result, "unregistering per-db worker due to failure when connecting to ourself is detected");
 
+# Set the supervisor latch via a config file reload so that it detects the
+# above unregistered per-db worker.
+$node_2->reload;
+$result = find_in_log($node_2,
+	qr!DEBUG: ( [A-Z0-9]+:)? per-db worker for database with OID .* was previously unregistered, not registering!,
+	$logstart_2);
+ok($result, "previously unregistered per-db worker is detected");
+
 # There mustn't be any pgactive workers on restored instance
-$result = $node_2->safe_psql($pgactive_test_dbname, qq[SELECT COUNT(*) FROM pgactive.pgactive_get_workers_info();]);
+$result = $node_2->safe_psql($pgactive_test_dbname, qq[SELECT COUNT(*) FROM pgactive.pgactive_get_workers_info() WHERE unregistered = false;]);
 is($result, '0', "restored node " . $node_2->name() . " doesn't have pgactive workers");
 
 # Let's get rid of pgactive completely on restored instance

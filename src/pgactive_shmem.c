@@ -252,7 +252,7 @@ pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type, uint32 *ctl_idx)
  * Release a block allocated by pgactive_worker_shmem_alloc so it can be
  * re-used.
  *
- * The bgworker *must* no longer be running.
+ * The bgworker *must* no longer be running and unregistered.
  *
  * If passed, the bgworker handle is checked to ensure the worker
  * is not still running before the slot is released.
@@ -264,6 +264,23 @@ pgactive_worker_shmem_free(pgactiveWorker * worker,
 {
 	if (need_lock)
 		LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+
+	if (worker->worker_type == pgactive_WORKER_PERDB)
+	{
+		pgactivePerdbWorker *perdb = &pgactive_worker_slot->data.perdb;
+
+		/*
+		 * If unregistering per-db worker, don't release the shmem slot so
+		 * that the supervisor doesn't restart this worker.
+		 */
+		if (perdb->unregistered)
+		{
+			if (need_lock)
+				LWLockRelease(pgactiveWorkerCtl->lock);
+
+			return;
+		}
+	}
 
 	/* Already free? Do nothing */
 	if (worker->worker_type != pgactive_WORKER_EMPTY_SLOT)
@@ -342,6 +359,18 @@ pgactive_worker_shmem_release(void)
 	if (pgactive_worker_slot == NULL)
 		return;
 
+	if (pgactive_worker_slot->worker_type == pgactive_WORKER_PERDB)
+	{
+		pgactivePerdbWorker *perdb = &pgactive_worker_slot->data.perdb;
+
+		/*
+		 * If unregistering per-db worker, don't release the shmem slot so
+		 * that the supervisor doesn't restart this worker.
+		 */
+		if (perdb->unregistered)
+			return;
+	}
+
 	Assert(pgactive_worker_type != pgactive_WORKER_EMPTY_SLOT);
 	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
@@ -355,6 +384,50 @@ pgactive_worker_shmem_release(void)
 
 	pgactive_worker_slot = NULL;
 	LWLockRelease(pgactiveWorkerCtl->lock);
+}
+
+/*
+ * Unregister a pgactive worker
+ */
+void
+pgactive_worker_unregister(void)
+{
+	if (pgactive_worker_slot == NULL)
+		return;
+
+	Assert(pgactive_worker_type == pgactive_WORKER_PERDB ||
+		   pgactive_worker_type == pgactive_WORKER_APPLY);
+	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
+
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+
+	/*
+	 * Apply workers are typically registered with postgres for starting by
+	 * per-db workers. So, it is enough for us to tell supervisor to not
+	 * restart per-db worker (unregister).
+	 */
+	if (pgactive_worker_type == pgactive_WORKER_PERDB)
+	{
+		pgactivePerdbWorker *pw = &pgactive_worker_slot->data.perdb;
+
+		/*
+		 * An unregistered worker shouldn't have been started by supervisor at
+		 * all.
+		 */
+		Assert(pw->unregistered == false);
+
+		/* Inform supervisor that I'm unregistered to prevent a restart */
+		pw->unregistered = true;
+
+		/* NB: We don't release per-db worker shmem slot */
+	}
+	else
+		pgactive_worker_shmem_free(pgactive_worker_slot, NULL, false);
+
+	LWLockRelease(pgactiveWorkerCtl->lock);
+
+	/* Inform postgres that I'm unregistered to prevent a restart */
+	proc_exit(0);
 }
 
 /*

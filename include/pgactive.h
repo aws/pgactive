@@ -317,6 +317,9 @@ typedef struct pgactivePerdbWorker
 
 	/* Oid of the database the worker is attached to - populated after start */
 	Oid			p_dboid;
+
+	/* Was the worker requested to unregister? */
+	bool		unregistered;
 }			pgactivePerdbWorker;
 
 /*
@@ -690,6 +693,16 @@ extern volatile sig_atomic_t ConfigReloadPending;
 extern void SignalHandlerForConfigReload(SIGNAL_ARGS);
 #endif
 
+/*
+ * Return codes for finding pgactive per-db worker slot in shared memory
+ */
+typedef enum
+{
+	pgactive_UNREGISTERED_PER_DB_WORKER_SLOT_FOUND = -2,
+	pgactive_PER_DB_WORKER_SLOT_NOT_FOUND = -1,
+	pgactive_PER_DB_WORKER_SLOT_FOUND = 0
+} pgactivePerDBWorkerSlotState;
+
 extern int	find_perdb_worker_slot(Oid dboid,
 								   pgactiveWorker * *worker_found);
 
@@ -967,6 +980,8 @@ extern void destroy_temp_dump_dir(int code, Datum arg);
 
 extern int	find_apply_worker_slot(const pgactiveNodeId * const remote,
 								   pgactiveWorker * *worker_found);
+
+extern void pgactive_worker_unregister(void);
 
 /*
  * Emit a generic connection failure message based on GUC setting to help not

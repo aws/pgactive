@@ -2868,8 +2868,9 @@ pgactive_apply_main(Datum main_arg)
 	{
 		elog(LOG, "unregistering apply worker due to remote node " pgactive_NODEID_FORMAT " detach",
 			 pgactive_NODEID_FORMAT_ARGS(pgactive_apply_worker->remote_node));
-		pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
-		proc_exit(0);			/* unregister */
+
+		pgactive_worker_unregister();
+		pg_unreachable();
 	}
 
 	/* Read our connection configuration from the database */
