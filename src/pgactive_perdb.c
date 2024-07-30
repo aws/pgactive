@@ -65,6 +65,8 @@ IspgactivePerdbWorker(void)
 	return is_perdb_worker;
 }
 
+int			pgactive_connectability_check_duration = 300;
+
 /*
  * Scan shmem looking for a perdb worker for the named DB and
  * return its offset. If not found, return -1.
@@ -522,7 +524,7 @@ pgactive_maintain_db_workers(void)
 				{
 					elog(DEBUG1, "need to drop slot %s of detached node %s",
 						 NameStr(s->data.name),
-						 pgactive_nodeid_name(node, true, false));
+						 pgactive_nodeid_name(node, true));
 					drop = lappend(drop, pstrdup(NameStr(s->data.name)));
 				}
 			}
@@ -808,8 +810,8 @@ pgactive_maintain_db_workers(void)
 		/* Set the display name in 'ps' etc */
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
 				 "pgactive apply worker for %s to %s",
-				 pgactive_nodeid_name(&target, true, false),
-				 pgactive_nodeid_name(&myid, true, false));
+				 pgactive_nodeid_name(&target, true),
+				 pgactive_nodeid_name(&myid, true));
 
 		/* Allocate a new shmem slot for this apply worker */
 		worker = pgactive_worker_shmem_alloc(pgactive_WORKER_APPLY, &slot);
@@ -980,7 +982,8 @@ check_params_are_same(void)
 #endif
 
 		conn = pgactive_connect_nonrepl(info->node_dsn,
-										"pgactivenodeinfo", false);
+										"check params",
+										true, false);
 		if (PQstatus(conn) != CONNECTION_OK)
 		{
 #if PG_VERSION_NUM < 130000
@@ -1025,41 +1028,68 @@ check_local_node_connectability(void)
 	List	   *node_dsn;
 	pgactiveNodeDSNsInfo *info;
 	PGconn	   *conn;
-	char		appsuffix[NAMEDATALEN];
+	char		appname[NAMEDATALEN];
 	StringInfoData cmd;
 	char	   *result;
 	MemoryContext saved_ctx;
+	int64		waittime = 1000;
+	int64		remainingtime = pgactive_connectability_check_duration * 1000;
 
 	Assert(pgactive_worker_type == pgactive_WORKER_PERDB);
 
-	StartTransactionCommand();
-	saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
-	node_dsn = pgactive_get_node_dsns(true);
-	MemoryContextSwitchTo(saved_ctx);
+	snprintf(appname, NAMEDATALEN, "pgactive:" UINT64_FORMAT ":check connection",
+			 GenerateNodeIdentifier());
 
-	Assert(list_length(node_dsn) == 1);
-
-	info = (pgactiveNodeDSNsInfo *) linitial(node_dsn);
-
-	snprintf(appsuffix, NAMEDATALEN,
-			 "pgactive_" UINT64_FORMAT, GenerateNodeIdentifier());
-
-	conn = pgactive_connect_nonrepl(info->node_dsn,
-									appsuffix,
-									false);
-
-	if (PQstatus(conn) != CONNECTION_OK)
+	do
 	{
-		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
-			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+		StartTransactionCommand();
 
-		goto unregister;
-	}
+		if (remainingtime < waittime)
+			waittime = remainingtime;
+
+		saved_ctx = MemoryContextSwitchTo(TopMemoryContext);
+		node_dsn = pgactive_get_node_dsns(true);
+		MemoryContextSwitchTo(saved_ctx);
+
+		Assert(list_length(node_dsn) == 1);
+
+		info = (pgactiveNodeDSNsInfo *) linitial(node_dsn);
+
+		conn = pgactive_connect_nonrepl(info->node_dsn,
+										appname,
+										false,
+										false);
+		list_free(node_dsn);
+
+		if (PQstatus(conn) != CONNECTION_OK)
+		{
+			if (remainingtime > waittime)
+			{
+				AbortCurrentTransaction();
+
+				CHECK_FOR_INTERRUPTS();
+
+				(void) pgactiveWaitLatch(MyLatch,
+										 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
+										 waittime, PG_WAIT_EXTENSION);
+
+				ResetLatch(MyLatch);
+
+				remainingtime -= waittime;
+			}
+			else
+				elog(ERROR, "per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " failed during the connectability check",
+					 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+		}
+		else
+			remainingtime = 0;
+
+	} while (remainingtime > 0);
 
 	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT EXISTS ("
-					 "SELECT 1 FROM pg_stat_activity WHERE application_name = '%s:%s');",
-					 pgactive_get_my_cached_node_name(), appsuffix);
+	appendStringInfo(&cmd, "SELECT count(*) = 1 FROM pg_stat_activity "
+					 "WHERE pid = %d AND application_name = '%s';",
+					 PQbackendPID(conn), appname);
 
 	if (SPI_connect() != SPI_OK_CONNECT)
 		elog(ERROR, "SPI_connect failed");
@@ -1068,8 +1098,6 @@ check_local_node_connectability(void)
 	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_execute failed: %s", cmd.data);
 
-	Assert(SPI_processed == 1);
-	Assert(SPI_tuptable->tupdesc->natts == 1);
 	result = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
 	if (strcmp(result, "t") == 0)
@@ -1087,10 +1115,11 @@ check_local_node_connectability(void)
 		 * We have not connected to ourself i.e. the same postgres instance we
 		 * are on, so unregister.
 		 */
-		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure in connectability check",
+		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure when connecting to ourself",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 
-		goto unregister;
+		pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
+		proc_exit(0);			/* unregister */
 	}
 
 	PQfinish(conn);
@@ -1098,13 +1127,8 @@ check_local_node_connectability(void)
 		elog(ERROR, "SPI_finish failed");
 	PopActiveSnapshot();
 	CommitTransactionCommand();
-	list_free(node_dsn);
 
 	return;
-
-unregister:
-	pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
-	proc_exit(0);				/* unregister */
 }
 
 /*
@@ -1141,7 +1165,7 @@ pgactive_perdb_worker_main(Datum main_arg)
 	pgactive_make_my_nodeid(&myid);
 	elog(DEBUG1, "per-db worker for node " pgactive_NODEID_FORMAT " starting", pgactive_LOCALID_FORMAT_ARGS);
 
-	appendStringInfo(&si, "%s:perdb", pgactive_get_my_cached_node_name());
+	appendStringInfo(&si, "pgactive:" UINT64_FORMAT ":perdb", myid.sysid);
 	SetConfigOption("application_name", si.data, PGC_USERSET, PGC_S_SESSION);
 	SetConfigOption("lock_timeout", "10000", PGC_USERSET, PGC_S_SESSION);
 

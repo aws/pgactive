@@ -52,7 +52,8 @@ PG_FUNCTION_INFO_V1(pgactive_get_node_info);
  * Make standard postgres connection, ERROR on failure.
  */
 PGconn *
-pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool report_fatal)
+pgactive_connect_nonrepl(const char *connstring, const char *appname,
+						 bool is_appnamesuffix, bool report_fatal)
 {
 	PGconn	   *nonrepl_conn;
 	StringInfoData dsn;
@@ -61,11 +62,23 @@ pgactive_connect_nonrepl(const char *connstring, const char *appnamesuffix, bool
 	servername = get_connect_string(connstring);
 
 	initStringInfo(&dsn);
-	appendStringInfo(&dsn, "%s %s %s application_name='%s:%s'",
+	appendStringInfo(&dsn, "%s %s %s ",
 					 pgactive_default_apply_connection_options,
 					 pgactive_extra_apply_connection_options,
-					 (servername == NULL ? connstring : servername),
-					 pgactive_get_my_cached_node_name(), appnamesuffix);
+					 (servername == NULL ? connstring : servername));
+
+	Assert(appname != NULL);
+
+	if (is_appnamesuffix)
+	{
+		pgactiveNodeId myid;
+
+		pgactive_make_my_nodeid(&myid);
+		appendStringInfo(&dsn, "application_name='pgactive:" UINT64_FORMAT ":%s'",
+						 myid.sysid, appname);
+	}
+	else
+		appendStringInfo(&dsn, "application_name='%s'", appname);
 
 	/*
 	 * Test to see if there's an entry in the remote's pgactive.pgactive_nodes
@@ -443,7 +456,6 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
-	NameData	appname;
 	pgactiveNodeId node;
 
 	if (get_call_result_type(fcinfo, NULL, &tupleDesc) != TYPEFUNC_COMPOSITE)
@@ -460,16 +472,14 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 		 * Verify that we can make a replication connection to the node
 		 * identified by dsn so that pg_hba.conf issues get caught early.
 		 */
-		snprintf(NameStr(appname), NAMEDATALEN,
-				 "pgactiveverifyreplicationconnection");
-		conn = pgactive_connect(dsn, &appname, &node);
+		conn = pgactive_connect(dsn, "node info", &node);
 		PQfinish(conn);
 
 		/*
 		 * Establish a non-replication connection to the the node identified
 		 * by dsn to get the required info.
 		 */
-		conn = pgactive_connect_nonrepl(dsn, "pgactivelocalnodeinfo", true);
+		conn = pgactive_connect_nonrepl(dsn, "node info", true, true);
 	}
 	else
 	{
@@ -483,7 +493,7 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 		 * reports the same data as pgactive_get_node_info, but it's reported
 		 * about the local node via the remote node.
 		 */
-		conn = pgactive_connect_nonrepl(remote_dsn, "pgactiveremotenodeinfo", true);
+		conn = pgactive_connect_nonrepl(remote_dsn, "node info", true, true);
 	}
 
 	memset(values, 0, sizeof(values));

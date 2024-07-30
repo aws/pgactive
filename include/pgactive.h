@@ -447,6 +447,7 @@ extern bool pgactive_do_not_replicate;
 extern bool pgactive_discard_mismatched_row_attributes;
 extern int	pgactive_max_ddl_lock_delay;
 extern int	pgactive_ddl_lock_timeout;
+extern int	pgactive_connectability_check_duration;
 #ifdef USE_ASSERT_CHECKING
 extern int	pgactive_ddl_lock_acquire_timeout;
 #endif
@@ -713,8 +714,7 @@ extern int	pgactive_remote_node_seq_id(void);
 
 /* return a node name or (none) if unknown for given nodeid */
 extern const char *pgactive_nodeid_name(const pgactiveNodeId * const node,
-										bool missing_ok,
-										bool only_cache_lookup);
+										bool missing_ok);
 
 extern void
 			stringify_my_node_identity(char *sysid_str, Size sysid_str_size,
@@ -736,7 +736,7 @@ extern void pgactive_nodecache_invalidate(void);
 extern bool pgactive_local_node_read_only(void);
 extern char pgactive_local_node_status(void);
 extern int32 pgactive_local_node_seq_id(void);
-extern const char *pgactive_local_node_name(bool only_cache_lookup);
+extern const char *pgactive_local_node_name(void);
 
 extern void pgactive_set_node_read_only_guts(char *node_name, bool read_only, bool force);
 extern void pgactive_setup_my_cached_node_names(void);
@@ -745,7 +745,8 @@ extern const char *pgactive_get_my_cached_node_name(void);
 extern const char *pgactive_get_my_cached_remote_name(const pgactiveNodeId * const remote_nodeid);
 
 /* helpers shared by multiple worker types */
-extern struct pg_conn *pgactive_connect(const char *conninfo, Name appname,
+extern struct pg_conn *pgactive_connect(const char *conninfo,
+										const char *appnamesuffix,
 										pgactiveNodeId * out_nodeid);
 
 extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
@@ -756,7 +757,8 @@ extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
 															  char *out_snapshot);
 
 extern PGconn *pgactive_connect_nonrepl(const char *connstring,
-										const char *appnamesuffix,
+										const char *appname,
+										bool is_appnamesuffix,
 										bool report_fatal);
 
 /* Helper for PG_ENSURE_ERROR_CLEANUP to close a PGconn */

@@ -345,7 +345,7 @@ pgactive_get_remote_dboid(const char *conninfo_db)
  */
 PGconn *
 pgactive_connect(const char *conninfo,
-				 Name appname,
+				 const char *appnamesuffix,
 				 pgactiveNodeId * remote_node)
 {
 	PGconn	   *streamConn;
@@ -357,13 +357,15 @@ pgactive_connect(const char *conninfo,
 	char	   *remote_tlid;
 	char	   *servername;
 	StringInfo	cmd;
+	pgactiveNodeId myid;
 
 	initStringInfo(&conninfo_nrepl);
 	initStringInfo(&conninfo_repl);
 
+	pgactive_make_my_nodeid(&myid);
 	servername = get_connect_string(conninfo);
-	appendStringInfo(&conninfo_nrepl, "application_name='%s' %s %s %s",
-					 (appname == NULL ? "pgactive" : NameStr(*appname)),
+	appendStringInfo(&conninfo_nrepl, "application_name='pgactive:" UINT64_FORMAT ":%s' %s %s %s",
+					 myid.sysid, appnamesuffix,
 					 pgactive_default_apply_connection_options,
 					 pgactive_extra_apply_connection_options,
 					 (servername == NULL ? conninfo : servername));
@@ -745,21 +747,17 @@ pgactive_establish_connection_and_slot(const char *dsn,
 									   char *out_snapshot)
 {
 	PGconn	   *streamConn;
-	NameData	appname;
 	char	   *remote_repident_name;
 	pgactiveNodeId myid;
 	RepOriginId origin_id;
 
 	pgactive_make_my_nodeid(&myid);
 
-	snprintf(NameStr(appname), NAMEDATALEN, "%s:%s",
-			 pgactive_get_my_cached_node_name(), application_name_suffix);
-
 	/*
 	 * Establish pgactive conn and IDENTIFY_SYSTEM, ERROR on things like
 	 * connection failure.
 	 */
-	streamConn = pgactive_connect(dsn, &appname, out_nodeid);
+	streamConn = pgactive_connect(dsn, application_name_suffix, out_nodeid);
 
 	pgactive_slot_name(out_slot_name, &myid, out_nodeid->dboid);
 	remote_repident_name = pgactive_replident_name(out_nodeid, myid.dboid);
@@ -1078,6 +1076,15 @@ _PG_init(void)
 							-1, -1, INT_MAX,
 							PGC_SIGHUP,
 							GUC_UNIT_MS,
+							NULL, NULL, NULL);
+
+	DefineCustomIntVariable("pgactive.connectability_check_duration",
+							"Internal. Sets the amount of time (in seconds) per-db worker will keep retrying to connect.",
+							NULL,
+							&pgactive_connectability_check_duration,
+							300, 2, 600,
+							PGC_SIGHUP,
+							GUC_UNIT_S,
 							NULL, NULL, NULL);
 
 #ifdef USE_ASSERT_CHECKING
@@ -2088,7 +2095,6 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	pgactiveNodeId target;
 	char	   *sysid_str;
 	pgactiveWorker *worker;
-	bool		lock_acquired = false;
 	TransactionId xid = InvalidTransactionId;
 	TimestampTz committs = 0;
 	TimestampTz applied_at = 0;
@@ -2111,12 +2117,7 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	memset(values, 0, sizeof(values));
 	memset(isnull, 0, sizeof(isnull));
 
-	if (!LWLockHeldByMe(pgactiveWorkerCtl->lock))
-	{
-		LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
-		lock_acquired = true;
-	}
-
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
 	if (find_apply_worker_slot(&target, &worker) != -1)
 	{
 		pgactiveApplyWorker *apply;
@@ -2133,9 +2134,7 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 	values[0] = ObjectIdGetDatum(xid);
 	values[1] = TimestampTzGetDatum(committs);
 	values[2] = TimestampTzGetDatum(applied_at);
-
-	if (lock_acquired)
-		LWLockRelease(pgactiveWorkerCtl->lock);
+	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
@@ -2185,7 +2184,7 @@ GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
 	PGresult   *res;
 	StringInfoData cmd;
 
-	conn = pgactive_connect_nonrepl(dsn->data, "pgactiveapplyinfo", false);
+	conn = pgactive_connect_nonrepl(dsn->data, "xact info", true, false);
 
 	/* Make sure pgactive is actually present and active on the remote */
 	pgactive_ensure_ext_installed(conn);

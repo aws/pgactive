@@ -78,6 +78,6 @@ my $res = $node_2->safe_psql($alpha,
 is($res, 't', "pgactive extension doesn't exist on pg_restore-d node " . $node_2->name() ."");
 
 $res = $node_2->safe_psql($alpha, qq[SELECT COUNT(*) FROM fruits;]);
-is($res, '2', "pg_restore-d node " . $node_2->name() . "has all the data");
+is($res, '2', "pg_restore-d node " . $node_2->name() . " has all the data");
 
 done_testing();

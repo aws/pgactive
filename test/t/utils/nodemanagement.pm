@@ -448,16 +448,21 @@ sub check_join_status {
         qq(replication slot for $upstream_node_name on $join_node_name has been created)
     );
 
+    my $jnid = $join_node->safe_psql($pgactive_test_dbname,
+                qq[SELECT pgactive.pgactive_get_node_identifier();]);
+    my $unid = $upstream_node->safe_psql($pgactive_test_dbname,
+                qq[SELECT pgactive.pgactive_get_node_identifier();]);
+
     # The join target must have an active connection to the new node
     is(
-        $join_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = '$upstream_node_name:send')]),
+        $join_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = 'pgactive:$unid:send')]),
         't',
         qq(replication connection for $upstream_node_name on $join_node_name is present)
     );
 
     # The new node must have an active connection to the join target
     is(
-        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = '$join_node_name:send')]),
+        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE application_name = 'pgactive:$jnid:send')]),
         't',
         qq(replication connection for $join_node_name on $upstream_node_name is present)
     );
@@ -685,13 +690,19 @@ sub check_joinfail_status {
 
 # Wait until a peer has caught up
 sub wait_for_apply {
-    my ($self, $peer) = @_;
+    my ($self, $peer, $db) = @_;
+
+    $db = $pgactive_test_dbname if !defined($db);
+
     # On node <self>, wait until the send pointer on the replication slot with
-    # application_name "<peer>:send" to passes the xlog flush position on node
-    # <self> at the time of this call.
+    # application_name "pgactive:<peer node identifier>:send" to passes the
+    # xlog flush position on node <self> at the time of this call.
     my $lsn = $self->lsn('flush');
     die('no lsn to catch up to') if !defined $lsn;
-    $self->wait_for_catchup($peer->name . ":send", 'replay', $lsn);
+
+    my $peernid = $peer->safe_psql($db,
+                            qq[SELECT pgactive.pgactive_get_node_identifier();]);
+    $self->wait_for_catchup("pgactive:" . $peernid . ":send", 'replay', $lsn);
 }
 
 # Acquire a global ddl lock on $node in $mode using a background
@@ -872,19 +883,19 @@ sub create_and_check_data {
         q[CREATE TABLE fruits(id integer, name varchar);]);
     $node1->safe_psql($db,
         q[INSERT INTO fruits VALUES (1, 'Mango');]);
-    wait_for_apply($node1, $node2);
+    wait_for_apply($node1, $node2, $db);
 
     $node2->safe_psql($db,
         q[INSERT INTO fruits VALUES (2, 'Apple');]);
-    wait_for_apply($node2, $node1);
+    wait_for_apply($node2, $node1, $db);
 
     my $query = qq[SELECT COUNT(*) FROM fruits;];
     my $expected = 2;
     my $res1 = $node1->safe_psql($db, $query);
     my $res2 = $node2->safe_psql($db, $query);
 
-    is($res1, $expected, "pgactive node " . $node1->name() . "has all the data");
-    is($res2, $expected, "pgactive node " . $node2->name() . "has all the data");
+    is($res1, $expected, "pgactive node " . $node1->name() . " has all the data");
+    is($res2, $expected, "pgactive node " . $node2->name() . " has all the data");
 }
 
 1;

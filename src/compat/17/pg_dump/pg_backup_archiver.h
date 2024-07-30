@@ -68,10 +68,13 @@
 #define K_VERS_1_15 MAKE_ARCHIVE_VERSION(1, 15, 0)	/* add
 													 * compression_algorithm
 													 * in header */
+#define K_VERS_1_16 MAKE_ARCHIVE_VERSION(1, 16, 0)	/* BLOB METADATA entries
+													 * and multiple BLOBS,
+													 * relkind */
 
 /* Current archive version number (the format we can output) */
 #define K_VERS_MAJOR 1
-#define K_VERS_MINOR 15
+#define K_VERS_MINOR 16
 #define K_VERS_REV 0
 #define K_VERS_SELF MAKE_ARCHIVE_VERSION(K_VERS_MAJOR, K_VERS_MINOR, K_VERS_REV)
 
@@ -322,6 +325,9 @@ struct _archiveHandle
 	char	   *currTablespace; /* current tablespace, or NULL */
 	char	   *currTableAm;	/* current table access method, or NULL */
 
+	/* in --transaction-size mode, this counts objects emitted in cur xact */
+	int			txnCount;
+
 	void	   *lo_buf;
 	size_t		lo_buf_used;
 	size_t		lo_buf_size;
@@ -348,6 +354,7 @@ struct _tocEntry
 	char	   *tablespace;		/* null if not in a tablespace; empty string
 								 * means use database default */
 	char	   *tableam;		/* table access method, only for TABLE tags */
+	char		relkind;		/* relation kind, only for TABLE tags */
 	char	   *owner;
 	char	   *desc;
 	char	   *defn;
@@ -388,6 +395,7 @@ typedef struct _archiveOpts
 	const char *namespace;
 	const char *tablespace;
 	const char *tableam;
+	char		relkind;
 	const char *owner;
 	const char *description;
 	teSection	section;
@@ -448,6 +456,9 @@ extern void InitArchiveFmt_Tar(ArchiveHandle *AH);
 extern bool isValidTarHeader(char *header);
 
 extern void ReconnectToServer(ArchiveHandle *AH, const char *dbname);
+extern void IssueCommandPerBlob(ArchiveHandle *AH, TocEntry *te,
+								const char *cmdBegin, const char *cmdEnd);
+extern void IssueACLPerBlob(ArchiveHandle *AH, TocEntry *te);
 extern void DropLOIfExists(ArchiveHandle *AH, Oid oid);
 
 void		ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle *AH);
