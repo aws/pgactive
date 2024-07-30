@@ -103,7 +103,7 @@ If pgactive is in shared_preload_libraries, the preceding command will return th
  t
 ```
 
-### . Ensure pgactive is installed in the database with the following command:
+### 9. Ensure pgactive is installed in the database with the following command:
 
 ```
 CREATE EXTENSION IF NOT EXISTS pgactive;
