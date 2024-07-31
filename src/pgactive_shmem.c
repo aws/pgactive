@@ -242,9 +242,14 @@ pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type, uint32 *ctl_idx)
 			return new_entry;
 		}
 	}
+
 	ereport(ERROR,
-			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-			 errmsg("no free pgactive worker slots - pgactive.max_workers is too low")));
+			(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
+			 errmsg("could not find free slot for pgactve \"%s\"",
+					pgactiveWorkerTypeNames[worker_type]),
+			 errhint("Consider increasing configuration parameter \"%s\"",
+					 worker_type == pgactive_WORKER_WALSENDER ? "max_wal_senders" : "max_worker_processes")));
+
 	/* unreachable */
 }
 
@@ -295,7 +300,7 @@ pgactive_worker_shmem_free(pgactiveWorker * worker,
 			if (status == BGWH_STARTED)
 			{
 				LWLockRelease(pgactiveWorkerCtl->lock);
-				elog(ERROR, "BUG: Attempt to release shm segment for pgactive worker type=%d pid=%d that's still alive",
+				elog(ERROR, "cannot release shared memory slot for a live pgactive worker type=%d pid=%d",
 					 worker->worker_type, pid);
 			}
 		}

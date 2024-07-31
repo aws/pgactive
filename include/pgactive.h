@@ -364,6 +364,8 @@ typedef enum
 	pgactive_WORKER_WALSENDER
 }			pgactiveWorkerType;
 
+extern PGDLLIMPORT const char *const pgactiveWorkerTypeNames[];
+
 /*
  * pgactiveWorker entries describe shared memory slots that keep track of
  * all pgactive worker types. A slot may contain data for a number of different

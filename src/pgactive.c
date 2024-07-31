@@ -213,6 +213,16 @@ static const struct config_enum_entry pgactive_debug_trace_ddl_locks_level_optio
 };
 
 /*
+ * Lookup table for types of pgactive workers.
+ */
+const char *const pgactiveWorkerTypeNames[] = {
+	[pgactive_WORKER_EMPTY_SLOT] = "none",
+	[pgactive_WORKER_APPLY] = "apply worker",
+	[pgactive_WORKER_PERDB] = "per-db worker",
+	[pgactive_WORKER_WALSENDER] = "walsender",
+};
+
+/*
  * pgactive_error_severity --- get string representing elevel
  */
 const char *

@@ -49,8 +49,10 @@ static bool destroy_temp_dump_dirs_callback_registered = false;
  *
  * This is called by the supervisor during startup, and by user backends when
  * the first connection is added for a database.
+ *
+ * Returns true if the worker is started, otherwise false.
  */
-static void
+static bool
 pgactive_register_perdb_worker(Oid dboid)
 {
 	BackgroundWorkerHandle *bgw_handle;
@@ -66,13 +68,11 @@ pgactive_register_perdb_worker(Oid dboid)
 	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 	dbname = get_database_name(dboid);
 
-	elog(DEBUG2, "registering per-db worker for database \"%s\" with OID %u",
+	elog(LOG, "registering pgactive per-db worker for database \"%s\" with OID %u",
 		 dbname, dboid);
 
-	worker = pgactive_worker_shmem_alloc(
-										 pgactive_WORKER_PERDB,
-										 &worker_slot_number
-		);
+	worker = pgactive_worker_shmem_alloc(pgactive_WORKER_PERDB,
+										 &worker_slot_number);
 
 	perdb = &worker->data.perdb;
 	perdb->c_dboid = dboid;
@@ -107,12 +107,28 @@ pgactive_register_perdb_worker(Oid dboid)
 	bgw.bgw_main_arg = Int32GetDatum(worker_arg);
 
 	if (!RegisterDynamicBackgroundWorker(&bgw, &bgw_handle))
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("registering pgactive per-db dynamic background worker failed"),
+	{
+		/*
+		 * If we can't register the per-db worker now, let's free up the
+		 * worker slot in pgactive shared memory instead of emitting an error
+		 * disturbing all other existing pgactive worker processes. Upon
+		 * seeing the WARNING, users can act accordingly. The pgactive
+		 * supervisor will anyway try registering the per-db worker in its
+		 * next scan cycle.
+		 */
+		pgactive_worker_shmem_free(worker, NULL, false);
+
+		ereport(WARNING,
+				(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
+				 errmsg("could not register pgactive per-db worker for database \"%s\" with OID %u",
+						dbname, dboid),
 				 errhint("Consider increasing configuration parameter \"max_worker_processes\".")));
 
-	elog(DEBUG2, "successfully registered pgactive per-db worker for database \"%s\"", dbname);
+		return false;
+	}
+
+	elog(LOG, "successfully registered pgactive per-db worker for database \"%s\" with OID %u",
+		 dbname, dboid);
 
 	/*
 	 * Here, supervisor must ensure the per-db worker registered above is
@@ -150,10 +166,25 @@ pgactive_register_perdb_worker(Oid dboid)
 	 */
 	status = WaitForBackgroundWorkerStartup(bgw_handle, &pid);
 	if (status != BGWH_STARTED)
-		ereport(ERROR,
+	{
+		/*
+		 * If we can't register the per-db worker now, let's free up the
+		 * worker slot in pgactive shared memory instead of emitting an error
+		 * disturbing all other existing pgactive worker processes. Upon
+		 * seeing the WARNING, users can act accordingly. The pgactive
+		 * supervisor will anyway try registering the per-db worker in its
+		 * next scan cycle.
+		 */
+		pgactive_worker_shmem_free(worker, NULL, false);
+
+		ereport(WARNING,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("could not start per-db worker for %s", dbname),
+				 errmsg("could not start pgactive per-db worker for %s",
+						dbname),
 				 errhint("More details may be available in the server log.")));
+
+		return false;
+	}
 
 	/*
 	 * Wait for per-db worker to register itself in the worker's shared memory
@@ -189,12 +220,15 @@ pgactive_register_perdb_worker(Oid dboid)
 
 	Assert(!LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
+	/* Re-acquire lock for the caller */
 	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
 
 	Assert(perdb->c_dboid == perdb->p_dboid);
-	elog(DEBUG2, "successfully started pgactive per-db worker for database \"%s\", perdb->proclatch %p, perdb->p_dboid %d",
-		 dbname, perdb->proclatch, perdb->p_dboid);
+	elog(LOG, "successfully started pgactive per-db worker for database \"%s\" with OID %u",
+		 dbname, perdb->p_dboid);
 	pfree(dbname);
+
+	return true;
 }
 
 /*
@@ -293,10 +327,14 @@ pgactive_supervisor_rescan_dbs()
 
 		if (slotno == pgactive_PER_DB_WORKER_SLOT_NOT_FOUND)
 		{
-			/* No perdb worker exists for this DB, make one */
-			pgactive_register_perdb_worker(sec->objoid);
+			/*
+			 * No perdb worker exists for this DB, try to start one. If we
+			 * can't start now, try again in the next scan cycle.
+			 */
+			if (pgactive_register_perdb_worker(sec->objoid))
+				n_new_workers++;
+
 			Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
-			n_new_workers++;
 		}
 		else if (slotno >= pgactive_PER_DB_WORKER_SLOT_FOUND)
 			elog(DEBUG1, "per-db worker for database with OID %u already exists, not registering",
