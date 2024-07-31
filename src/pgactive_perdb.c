@@ -69,7 +69,8 @@ int			pgactive_connectability_check_duration = 300;
 
 /*
  * Scan shmem looking for a perdb worker for the named DB and
- * return its offset. If not found, return -1.
+ * return its offset. If not found, return
+ * pgactive_PER_DB_WORKER_SLOT_NOT_FOUND.
  *
  * Must hold the LWLock on the worker control segment in at
  * least share mode.
@@ -81,7 +82,7 @@ int
 find_perdb_worker_slot(Oid dboid, pgactiveWorker * *worker_found)
 {
 	int			i,
-				found = -1;
+				found = pgactive_PER_DB_WORKER_SLOT_NOT_FOUND;
 
 	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
 
@@ -95,9 +96,15 @@ find_perdb_worker_slot(Oid dboid, pgactiveWorker * *worker_found)
 
 			if (pw->p_dboid == dboid)
 			{
-				found = i;
-				if (worker_found != NULL)
-					*worker_found = w;
+				if (pw->unregistered == false)
+				{
+					found = i;
+					if (worker_found != NULL)
+						*worker_found = w;
+				}
+				else
+					found = pgactive_UNREGISTERED_PER_DB_WORKER_SLOT_FOUND;
+
 				break;
 			}
 		}
@@ -165,7 +172,7 @@ pgactive_perdb_xact_callback(XactEvent event, void *arg)
 				 * check for new connections.
 				 */
 				slotno = find_perdb_worker_slot(MyDatabaseId, &w);
-				if (slotno >= 0)
+				if (slotno >= pgactive_PER_DB_WORKER_SLOT_FOUND)
 				{
 					/*
 					 * The worker is registered, but might not be started yet
@@ -1118,8 +1125,8 @@ check_local_node_connectability(void)
 		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failure when connecting to ourself",
 			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
 
-		pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
-		proc_exit(0);			/* unregister */
+		pgactive_worker_unregister();
+		pg_unreachable();
 	}
 
 	PQfinish(conn);

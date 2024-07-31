@@ -571,7 +571,12 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 
 	/* figure out database to connect to */
 	if (worker_type == pgactive_WORKER_PERDB)
-		dboid = pgactive_worker_slot->data.perdb.c_dboid;
+	{
+		pgactivePerdbWorker *perdb = &pgactive_worker_slot->data.perdb;
+
+		dboid = perdb->c_dboid;
+		perdb->unregistered = false;
+	}
 	else if (worker_type == pgactive_WORKER_APPLY)
 	{
 		pgactiveApplyWorker *apply;
@@ -613,7 +618,9 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply");
 
 		LWLockRelease(pgactiveWorkerCtl->lock);
-		goto unregister;
+
+		pgactive_worker_unregister();
+		pg_unreachable();
 	}
 	LWLockRelease(pgactiveWorkerCtl->lock);
 
@@ -637,14 +644,18 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 		elog(LOG, "unregistering %s worker due to node " pgactive_NODEID_FORMAT " detach",
 			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply",
 			 pgactive_NODEID_FORMAT_ARGS(myid));
-		goto unregister;
+
+		pgactive_worker_unregister();
+		pg_unreachable();
 	}
 	else if (mystatus == '\0')
 	{
 		elog(LOG, "unregistering %s worker due to missing pgactive.pgactive_nodes row for node " pgactive_NODEID_FORMAT "",
 			 worker_type == pgactive_WORKER_PERDB ? "per-db" : "apply",
 			 pgactive_NODEID_FORMAT_ARGS(myid));
-		goto unregister;
+
+		pgactive_worker_unregister();
+		pg_unreachable();
 	}
 
 	/*
@@ -711,10 +722,6 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 					PGC_INTERNAL, PGC_S_OVERRIDE);
 
 	return;
-
-unregister:
-	pgactive_worker_shmem_free(pgactive_worker_slot, NULL, true);
-	proc_exit(0);				/* unregister */
 }
 
 /*
@@ -1723,7 +1730,17 @@ pgactive_get_worker_pid_byid(const pgactiveNodeId * const node, pgactiveWorkerTy
 	worker = pgactive_worker_get_entry(node, worker_type);
 
 	if (worker != NULL && worker->worker_proc != NULL)
-		pid = worker->worker_proc->pid;
+	{
+		if (worker->worker_type == pgactive_WORKER_PERDB)
+		{
+			pgactivePerdbWorker *perdb = &worker->data.perdb;
+
+			if (!perdb->unregistered)
+				pid = worker->worker_proc->pid;
+		}
+		else
+			pid = worker->worker_proc->pid;
+	}
 
 	LWLockRelease(pgactiveWorkerCtl->lock);
 
@@ -1733,7 +1750,7 @@ pgactive_get_worker_pid_byid(const pgactiveNodeId * const node, pgactiveWorkerTy
 Datum
 pgactive_get_workers_info(PG_FUNCTION_ARGS)
 {
-#define pgactive_GET_WORKERS_PID_COLS	5
+#define pgactive_GET_WORKERS_PID_COLS	6
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	int			i;
 
@@ -1751,6 +1768,7 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 		Oid			dboid = InvalidOid; /* keep compiler quiet */
 		char		sysid_str[33];
 		text	   *worker_type = NULL; /* keep compiler quiet */
+		bool		unregistered = false;
 
 		/* unused slot */
 		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
@@ -1777,6 +1795,7 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 			nulls[1] = true;
 			dboid = pw->p_dboid;
 			worker_type = cstring_to_text("per-db");
+			unregistered = pw->unregistered;
 		}
 		else if (w->worker_type == pgactive_WORKER_WALSENDER)
 		{
@@ -1797,6 +1816,7 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 		values[2] = ObjectIdGetDatum(dboid);
 		values[3] = PointerGetDatum(worker_type);
 		values[4] = Int32GetDatum(w->worker_pid);
+		values[5] = BoolGetDatum(unregistered);
 
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);
