@@ -241,6 +241,7 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				 "pg_database_size(current_database()) AS dbsize, "
 				 "current_setting('pgactive.max_nodes') AS max_nodes, "
 				 "current_setting('pgactive.skip_ddl_replication') AS skip_ddl_replication, "
+				 "(select count(1) from pgactive.pgactive_connections WHERE 'include_rs' = ANY(conn_replication_sets)) as nb_include_rs, "
 				 "count(1) FROM pgactive.pgactive_nodes WHERE node_status NOT IN (pgactive.pgactive_node_status_to_char('pgactive_NODE_STATUS_KILLED'));");
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -248,7 +249,7 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 				(errmsg("unable to get pgactive information from remote node"),
 				 errdetail("Querying remote failed with: %s", PQerrorMessage(conn))));
 
-	Assert(PQnfields(res) == 11);
+	Assert(PQnfields(res) == 12);
 	Assert(PQntuples(res) == 1);
 	remote_pgactive_version_str = PQgetvalue(res, 0, 0);
 	ri->version = pstrdup(remote_pgactive_version_str);
@@ -265,8 +266,10 @@ pgactive_get_remote_nodeinfo_internal(PGconn *conn, struct remote_node_info *ri)
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 8))));
 	ri->skip_ddl_replication = DatumGetBool(
 											DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 9))));
+	ri->nb_include_rs = DatumGetInt32(
+									  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 10))));
 	ri->cur_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 10))));
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 11))));
 	PQclear(res);
 
 	/*
@@ -405,7 +408,7 @@ pgactive_test_remote_connectback_internal(PGconn *conn,
 				 errdetail("Remote reported: %s", PQerrorMessage(conn))));
 	}
 
-	Assert(PQnfields(res) == 18);
+	Assert(PQnfields(res) == 19);
 
 	if (PQntuples(res) != 1)
 		elog(ERROR, "got %d tuples instead of expected 1", PQntuples(res));
@@ -437,12 +440,14 @@ pgactive_test_remote_connectback_internal(PGconn *conn,
 								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 13))));
 	ri->skip_ddl_replication = DatumGetBool(
 											DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, 0, 14))));
+	ri->nb_include_rs = DatumGetInt32(
+									  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 15))));
 	ri->cur_nodes = DatumGetInt32(
-								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 15))));
+								  DirectFunctionCall1(int4in, CStringGetDatum(PQgetvalue(res, 0, 16))));
 	ri->datcollate =
-		PQgetisnull(res, 0, 16) ? NULL : pstrdup(PQgetvalue(res, 0, 16));
-	ri->datctype =
 		PQgetisnull(res, 0, 17) ? NULL : pstrdup(PQgetvalue(res, 0, 17));
+	ri->datctype =
+		PQgetisnull(res, 0, 18) ? NULL : pstrdup(PQgetvalue(res, 0, 18));
 
 	PQclear(res);
 }
@@ -451,8 +456,8 @@ Datum
 pgactive_get_node_info(PG_FUNCTION_ARGS)
 {
 	char	   *dsn;
-	Datum		values[18];
-	bool		isnull[18];
+	Datum		values[19];
+	bool		isnull[19];
 	TupleDesc	tupleDesc;
 	HeapTuple	returnTuple;
 	PGconn	   *conn;
@@ -531,17 +536,18 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 		values[12] = Int64GetDatum(ri.indexessize);
 		values[13] = Int32GetDatum(ri.max_nodes);
 		values[14] = BoolGetDatum(ri.skip_ddl_replication);
-		values[15] = Int32GetDatum(ri.cur_nodes);
+		values[15] = Int32GetDatum(ri.nb_include_rs);
+		values[16] = Int32GetDatum(ri.cur_nodes);
 
 		if (ri.datcollate == NULL)
-			isnull[16] = true;
-		else
-			values[16] = CStringGetTextDatum(ri.datcollate);
-
-		if (ri.datctype == NULL)
 			isnull[17] = true;
 		else
-			values[17] = CStringGetTextDatum(ri.datctype);
+			values[17] = CStringGetTextDatum(ri.datcollate);
+
+		if (ri.datctype == NULL)
+			isnull[18] = true;
+		else
+			values[18] = CStringGetTextDatum(ri.datctype);
 
 		returnTuple = heap_form_tuple(tupleDesc, values, isnull);
 
