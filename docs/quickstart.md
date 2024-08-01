@@ -194,7 +194,8 @@ Your active-active PostgreSQL cluster is now initialized
 
 Replication lag measures the difference in the current state of data between instances. When using asynchronous active-active replication, a larger replication lag increases the risk of a conflict occurring if the same row is updated on different nodes increases. Monitoring replication lag lets you diagnose potential issues with your active-active replication setup and helps mitigate the risk of introducing conflicting changes into your system.
 
-pgactive provides two ways of measuring replication lag: transaction ID and time-based. Transaction IDs are used to determine the transactions that are committed on the originating active instance and what transactions are committed on the destination active instance. The difference in transaction IDs, represented as log sequence numbers (LSNs), shows the difference in total data size to be committed. Time-based replication lag is the total amount of time that the destination active instance is lagging behind the transactions that were committed on the origin instance. Measuring replication lag using time is generally preferred because it’s easier to understand if an instance is 2 seconds behind instead of 300 MB behind.
+pgactive provides two more ways of measuring replication lag in addition to the LSN-based lag that postgres offers. pgactive tracks for each of its replication slots the last sent and applied transaction IDs as well as last sent and applied transaction's commit timestamp using which one can understand the replication lag in a better way with a query something like below:
+
 
 pgactive makes both replication lag methods available using the pgactive.pgactive_node_slots view. You can get the replication stats on the node using the following query:
 
@@ -222,11 +223,17 @@ last_applied_xact_at       | 2023-08-31 12:26:40.074086+00
 You can use the following query to calculate the replication lag using both the transaction ID and time-based method:
 
 ```
-SELECT
-  node_name,
-  last_applied_xact_id::int - last_sent_xact_id::int AS lag_xid,
-  last_sent_xact_at - last_applied_xact_at AS lag_time
-FROM pgactive.pgactive_node_slots;
+postgres=# SELECT node_name, slot_name,
+        pg_size_pretty(pg_wal_lsn_diff(sent_lsn, replay_lsn)) AS lag_in_wal_bytes,
+        (last_sent_xact_id::bigint - last_applied_xact_id::bigint) AS lag_in_xact_id,
+        justify_interval(last_sent_xact_committs - last_applied_xact_committs) AS lag_in_xact_committs        
+  FROM pgactive.pgactive_node_slots;
+-[ RECORD 1 ]--------+-------------------------------------
+node_name            | app_node_1
+slot_name            | pgactive_5_7396225477239069071_0_5__
+lag_in_wal_bytes     | 1024 bytes
+lag_in_xact_id       | 5
+lag_in_xact_committs | 00:02:54
 ```
 
 ## Reviewing and correcting write conflicts
