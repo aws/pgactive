@@ -29,10 +29,12 @@
 PGDLLEXPORT Datum pgactive_generate_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_get_node_identifier(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum pgactive_nid_shmem_reset_all(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum _pgactive_set_data_only_node_init(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_generate_node_identifier);
 PG_FUNCTION_INFO_V1(pgactive_get_node_identifier);
 PG_FUNCTION_INFO_V1(pgactive_nid_shmem_reset_all);
+PG_FUNCTION_INFO_V1(_pgactive_set_data_only_node_init);
 
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 pgactiveNodeIdentifierControl *pgactiveNodeIdentifierCtl = NULL;
@@ -519,6 +521,7 @@ pgactive_nid_shmem_reset(Oid dboid)
 		{
 			w->dboid = InvalidOid;
 			w->nid = 0;
+			w->data_only_node_init = false;
 			break;
 		}
 	}
@@ -539,6 +542,7 @@ pgactive_nid_shmem_reset_all_guts(bool need_lock)
 
 		w->dboid = InvalidOid;
 		w->nid = 0;
+		w->data_only_node_init = false;
 	}
 
 	if (need_lock)
@@ -597,4 +601,79 @@ pgactive_nid_shmem_get(Oid dboid)
 	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 
 	return nid;
+}
+
+static pgactiveNodeIdentifier *
+pgactive_get_nid_shmem_pointer(Oid dboid)
+{
+	int			i;
+	pgactiveNodeIdentifier *found_ni = NULL;
+
+	for (i = 0; i < pgactive_max_databases; i++)
+	{
+		pgactiveNodeIdentifier *ni = &pgactiveNodeIdentifierCtl->nids[i];
+
+		if (ni->dboid == dboid)
+		{
+			if (ni->nid != 0)
+			{
+				found_ni = ni;
+				break;
+			}
+			else
+				ereport(FATAL,
+						(errcode(ERRCODE_INTERNAL_ERROR),
+						 errmsg("could not find node idenitifer for database with OID %u",
+								dboid)));
+		}
+	}
+
+	return found_ni;
+}
+
+void
+pgactive_set_data_only_node_init(Oid dboid, bool val)
+{
+	pgactiveNodeIdentifier *ni;
+
+	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_EXCLUSIVE);
+	ni = pgactive_get_nid_shmem_pointer(dboid);
+	if (!ni)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("could not set data_only_node_init parameter for database with OID %u",
+						dboid)));
+
+	ni->data_only_node_init = val;
+	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
+}
+
+bool
+pgactive_get_data_only_node_init(Oid dboid)
+{
+	bool		data_only_node_init;
+	pgactiveNodeIdentifier *ni;
+
+	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_SHARED);
+	ni = pgactive_get_nid_shmem_pointer(dboid);
+	if (!ni)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("could not get data_only_node_init parameter for database with OID %u",
+						dboid)));
+
+	data_only_node_init = ni->data_only_node_init;
+	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
+
+	return data_only_node_init;
+}
+
+Datum
+_pgactive_set_data_only_node_init(PG_FUNCTION_ARGS)
+{
+	Oid			dboid = PG_GETARG_OID(0);
+	bool		val = PG_GETARG_BOOL(1);
+
+	pgactive_set_data_only_node_init(dboid, val);
+	PG_RETURN_VOID();
 }
