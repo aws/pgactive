@@ -822,6 +822,25 @@ LANGUAGE C;
 
 REVOKE ALL ON FUNCTION _pgactive_set_data_only_node_init(oid, boolean) FROM public;
 
+CREATE FUNCTION pgactive_get_replication_set_tables(r_sets text[])
+RETURNS SETOF text
+VOLATILE
+STRICT
+LANGUAGE 'sql'
+AS $$
+  SELECT DISTINCT objname
+    FROM pg_seclabels
+    WHERE provider = 'pgactive'
+    AND objtype = 'table'
+    AND EXISTS (
+    SELECT 1
+    FROM json_array_elements_text(label::json->'sets') AS elem
+    WHERE elem::text = ANY (r_sets)
+  );
+$$;
+
+REVOKE ALL ON FUNCTION pgactive_get_replication_set_tables(text[]) FROM public;
+
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
 RESET search_path;
