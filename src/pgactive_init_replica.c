@@ -61,7 +61,16 @@
 char	   *pgactive_temp_dump_directory = NULL;
 
 static void pgactive_execute_command(const char *cmd, char *cmdargv[]);
-static void pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot);
+static void pgactive_get_replication_set_tables(pgactiveNodeInfo * node,
+												pgactiveNodeId * remote,
+												PGconn *conn,
+												List **tables,
+												bool *is_include_set,
+												bool *is_exclude_set);
+static void pgactive_init_exec_dump_restore(pgactiveNodeInfo * node,
+											char *snapshot,
+											pgactiveNodeId * remote,
+											PGconn *conn);
 static void pgactive_catchup_to_lsn(remote_node_info * ri, XLogRecPtr target_lsn);
 
 static XLogRecPtr
@@ -247,6 +256,81 @@ pgactive_execute_command(const char *cmd, char *cmdargv[])
 					cmd)));
 }
 
+static void
+pgactive_get_replication_set_tables(pgactiveNodeInfo * node,
+									pgactiveNodeId * remote,
+									PGconn *conn,
+									List **tables,
+									bool *is_include_set,
+									bool *is_exclude_set)
+{
+#define pgactive_INCLUDE_REPLICATION_SET_NAME "include_rs"
+#define pgactive_EXCLUDE_REPLICATION_SET_NAME "exclude_rs"
+
+	StringInfo	cmd = makeStringInfo();
+	PGresult   *res;
+	int			i;
+
+	*tables = NIL;
+	*is_include_set = false;
+	*is_exclude_set = false;
+
+	appendStringInfo(cmd,
+					 "SELECT pgactive.pgactive_get_replication_set_tables(ARRAY['%s']) AS relnames;",
+					 pgactive_INCLUDE_REPLICATION_SET_NAME);
+
+	res = PQexec(conn, cmd->data);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		elog(ERROR, "could not get include replication set tables: %s",
+			 PQerrorMessage(conn));
+
+	if (PQntuples(res) != 0)
+	{
+		*is_include_set = true;
+		goto found;
+	}
+
+	PQclear(res);
+	resetStringInfo(cmd);
+
+	appendStringInfo(cmd,
+					 "SELECT pgactive.pgactive_get_replication_set_tables(ARRAY['%s']) AS relnames;",
+					 pgactive_EXCLUDE_REPLICATION_SET_NAME);
+
+	res = PQexec(conn, cmd->data);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		elog(ERROR, "could not get exclude replication set tables: %s",
+			 PQerrorMessage(conn));
+
+	if (PQntuples(res) != 0)
+	{
+		*is_exclude_set = true;
+		goto found;
+	}
+
+	PQclear(res);
+	pfree(cmd->data);
+	pfree(cmd);
+	return;
+
+found:
+	for (i = 0; i < PQntuples(res); i++)
+	{
+		char	   *table;
+
+		table = PQgetvalue(res, i, 0);
+		*tables = lappend(*tables, pstrdup(table));
+	}
+
+	PQclear(res);
+	pfree(cmd->data);
+	pfree(cmd);
+	return;
+
+#undef pgactive_INCLUDE_REPLICATION_SET_NAME
+#undef pgactive_EXCLUDE_REPLICATION_SET_NAME
+}
+
 /*
  * Copy the contents of a remote node using pg_dump and apply it to the local
  * node using pg_restore. Runs during node join creation to bring up a new
@@ -259,8 +343,13 @@ pgactive_execute_command(const char *cmd, char *cmdargv[])
  * the node to pgactive group, otherwise, an error is emitted from here.
  */
 static void
-pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
+pgactive_init_exec_dump_restore(pgactiveNodeInfo * node,
+								char *snapshot,
+								pgactiveNodeId * remote,
+								PGconn *conn)
 {
+#define pgactive_MAX_NO_OF_NON_TABLE_OPTS	10
+
 	char		tmpdir[MAXPGPATH];
 	char		pgactive_dump_path[MAXPGPATH];
 	char		pgactive_restore_path[MAXPGPATH];
@@ -269,12 +358,17 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	uint32		bin_version;
 	char	   *o_servername;
 	char	   *l_servername;
-	char	   *cmdargv[20];
+	char	  **cmdargv;
 	int			cmdargc;
 	char		arg_jobs[12];
 	char		arg_tmp1[MAXPGPATH];
 	char		arg_tmp2[MAXPGPATH];
 	pgactiveNodeId myid;
+	List	   *tables = NIL;
+	ListCell   *lc;
+	bool		is_include_set = false;
+	bool		is_exclude_set = false;
+	List	   *table_args = NIL;
 
 	if (pgactive_find_other_exec(my_exec_path, pgactive_DUMP_CMD, &bin_version,
 								 &pgactive_dump_path[0]) < 0)
@@ -365,6 +459,16 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	PG_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 							CStringGetDatum(tmpdir));
 	{
+		/*
+		 * Calcluate the size of command args array = max {number of non-table
+		 * options for pg_dump and pg_restore} + number of include or exclude
+		 * tables.
+		 */
+		pgactive_get_replication_set_tables(node, remote, conn, &tables,
+											&is_include_set, &is_exclude_set);
+		cmdargv = (char **) palloc0((pgactive_MAX_NO_OF_NON_TABLE_OPTS + list_length(tables))
+									* sizeof(char *));
+
 		/* Get contents from remote node with pg_dump */
 		snprintf(arg_jobs, sizeof(arg_jobs), "--jobs=%d", pgactive_init_node_parallel_jobs);
 		snprintf(arg_tmp1, sizeof(arg_tmp1), "--snapshot=%s", snapshot);
@@ -384,9 +488,31 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 		if (pgactive_get_data_only_node_init(MyDatabaseId))
 			cmdargv[cmdargc++] = "--data-only";
 
+		foreach(lc, tables)
+		{
+			char	   *table = (char *) lfirst(lc);
+			char		table_arg[2 * NAMEDATALEN]; /* For option name + table
+													 * name */
+			char	   *ptr;
+
+			if (is_include_set)
+				snprintf(table_arg, (2 * NAMEDATALEN), "--table=%s", table);
+			else if (is_exclude_set)
+				snprintf(table_arg, (2 * NAMEDATALEN), "--exclude-table=%s", table);
+
+			ptr = pstrdup(table_arg);
+			table_args = lappend(table_args, ptr);
+			cmdargv[cmdargc++] = ptr;
+		}
+
 		cmdargv[cmdargc++] = NULL;
 
 		pgactive_execute_command(pgactive_dump_path, cmdargv);
+
+		list_free_deep(tables);
+		tables = NIL;
+		list_free_deep(table_args);
+		table_args = NIL;
 
 		/*
 		 * We don't need this flag anymore after the dump finishes, so reset
@@ -411,6 +537,7 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 		cmdargv[cmdargc++] = NULL;
 
 		pgactive_execute_command(pgactive_restore_path, cmdargv);
+		pfree(cmdargv);
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(destroy_temp_dump_dir,
 								PointerGetDatum(tmpdir));
@@ -422,6 +549,8 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 	pfree(origin_dsn);
 	pfree(local_dsn->data);
 	pfree(local_dsn);
+
+#undef pgactive_MAX_NO_OF_NON_TABLE_OPTS
 }
 
 /*
@@ -1152,7 +1281,8 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 			 * everything after this dump will be accessible via the catchup
 			 * mode slot created earlier.
 			 */
-			pgactive_init_exec_dump_restore(local_node, init_snapshot);
+			pgactive_init_exec_dump_restore(local_node, init_snapshot,
+											&remote, nonrepl_init_conn);
 
 			/*
 			 * TODO DYNCONF copy replication identifier state

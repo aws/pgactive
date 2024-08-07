@@ -202,6 +202,17 @@ $test_exclude_node_b->safe_psql($pgactive_test_dbname, q{CREATE EXTENSION pgacti
 pgactive_logical_join($test_exclude_node_b, $test_exclude_node_a);
 check_join_status($test_exclude_node_b, $test_exclude_node_a);
 
+# Logical join mustn't get the excluded table from upstream node
+my $query = qq[SELECT COUNT(*) FROM test_exclude;];
+
+($psql_ret, $psql_stdout, $psql_stderr) = ('', '', '');
+($psql_ret, $psql_stdout, $psql_stderr) =
+    $test_exclude_node_b->psql($pgactive_test_dbname, $query);
+like(
+    $psql_stderr,
+    qr/ERROR:  relation "test_exclude" does not exist/,
+    "excluded table \"test_exclude\" is not present after logical join");
+
 # Insert and ensure it is replicated
 $test_exclude_node_a->safe_psql($pgactive_test_dbname, q{insert into test values(1,1)});
 wait_for_apply($test_exclude_node_a, $test_exclude_node_b);
@@ -215,24 +226,6 @@ wait_for_apply($test_exclude_node_b, $test_exclude_node_a);
 
 is($test_exclude_node_a->safe_psql($pgactive_test_dbname, 'SELECT id,b FROM test where id = 2;'),
     '2|2', "non exclude insert successfully replicated (other way around)");
-
-# Insert and ensure it is not replicated
-$test_exclude_node_a->safe_psql($pgactive_test_dbname, q{insert into test_exclude values(1,1)});
-wait_for_apply($test_exclude_node_a, $test_exclude_node_b);
-
-is( $test_exclude_node_b->safe_psql(
-        $pgactive_test_dbname, 'SELECT count(*) FROM test_exclude where id = 1;'),
-    '0',
-    "exclude insert successfully not replicated");
-
-# other way around
-$test_exclude_node_b->safe_psql($pgactive_test_dbname, q{insert into test_exclude values(2,2)});
-wait_for_apply($test_exclude_node_b, $test_exclude_node_a);
-
-is( $test_exclude_node_a->safe_psql(
-        $pgactive_test_dbname, 'SELECT count(*) FROM test_exclude where id = 2;'),
-    '0',
-    "exclude insert successfully not replicated (other way around)");
 
 # A newly created table is replicated
 $test_exclude_node_a->safe_psql($pgactive_test_dbname,
@@ -284,6 +277,17 @@ $test_include_node_b->safe_psql($pgactive_test_dbname, q{CREATE EXTENSION pgacti
 pgactive_logical_join($test_include_node_b, $test_include_node_a);
 check_join_status($test_include_node_b, $test_include_node_a);
 
+# Logical join mustn't get the excluded table from upstream node
+$query = qq[SELECT COUNT(*) FROM test;];
+
+($psql_ret, $psql_stdout, $psql_stderr) = ('', '', '');
+($psql_ret, $psql_stdout, $psql_stderr) =
+    $test_include_node_b->psql($pgactive_test_dbname, $query);
+like(
+    $psql_stderr,
+    qr/ERROR:  relation "test" does not exist/,
+    "excluded table \"test\" is not present after logical join");
+
 # Insert and ensure it is replicated
 $test_include_node_a->safe_psql($pgactive_test_dbname, q{insert into test_include values(1,1)});
 wait_for_apply($test_include_node_a, $test_include_node_b);
@@ -297,24 +301,6 @@ wait_for_apply($test_include_node_b, $test_include_node_a);
 
 is($test_include_node_a->safe_psql($pgactive_test_dbname, 'SELECT id,b FROM test_include where id = 2;'),
     '2|2', "include insert successfully replicated (other way around)");
-
-# Insert and ensure it is not replicated
-$test_include_node_a->safe_psql($pgactive_test_dbname, q{insert into test values(1,1)});
-wait_for_apply($test_include_node_a, $test_include_node_b);
-
-is( $test_include_node_b->safe_psql(
-        $pgactive_test_dbname, 'SELECT count(*) FROM test where id = 1;'),
-    '0',
-    "non include insert successfully not replicated");
-
-# other way around
-$test_include_node_b->safe_psql($pgactive_test_dbname, q{insert into test values(2,2)});
-wait_for_apply($test_include_node_b, $test_include_node_a);
-
-is( $test_include_node_a->safe_psql(
-        $pgactive_test_dbname, 'SELECT count(*) FROM test where id = 2;'),
-    '0',
-    "non include insert successfully not replicated (other way around)");
 
 # A newly created table is not replicated
 $test_include_node_a->safe_psql($pgactive_test_dbname,
