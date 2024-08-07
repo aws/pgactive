@@ -158,9 +158,13 @@ $node_a->safe_psql($pgactive_test_dbname, q{SET pgactive.skip_ddl_replication = 
 # Move to new version 2.1.1.
 $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.1';});
 
+# Move to new version 2.1.2.
 $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.2';});
 
 # Move to new version 2.1.3.
 $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.3';});
+
+# Move to new version 2.1.4.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.4';});
 
 done_testing();

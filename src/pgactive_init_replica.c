@@ -253,6 +253,10 @@ pgactive_execute_command(const char *cmd, char *cmdargv[])
  * logical replica from an existing node. The remote dump is taken from the
  * start position of a slot on the remote end to ensure that we never replay
  * changes included in the dump and never miss changes.
+ *
+ * When asked, only pg_dump the data not the schema (data defnintions). User
+ * must ensure node has all required schema objects before logically joining
+ * the node to pgactive group, otherwise, an error is emitted from here.
  */
 static void
 pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
@@ -376,9 +380,19 @@ pgactive_init_exec_dump_restore(pgactiveNodeInfo * node, char *snapshot)
 		cmdargv[cmdargc++] = "--format=directory";
 		cmdargv[cmdargc++] = arg_tmp2;
 		cmdargv[cmdargc++] = origin_dsn->data;
+
+		if (pgactive_get_data_only_node_init(MyDatabaseId))
+			cmdargv[cmdargc++] = "--data-only";
+
 		cmdargv[cmdargc++] = NULL;
 
 		pgactive_execute_command(pgactive_dump_path, cmdargv);
+
+		/*
+		 * We don't need this flag anymore after the dump finishes, so reset
+		 * it
+		 */
+		pgactive_set_data_only_node_init(MyDatabaseId, false);
 
 		/*
 		 * Restore contents from remote node on to local node with pg_restore.
