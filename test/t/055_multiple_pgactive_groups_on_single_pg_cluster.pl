@@ -45,15 +45,14 @@ my $logstart = get_log_size($node_g2_c2);
 # Ensure database is empty before joining pgactive group
 $node_g2_c2->safe_psql($bravo, q[DROP TABLE fruits;]);
 
-$node_g2_c2->safe_psql($bravo, qq{
+# Must not use safe_psql since we expect an error here
+my ($psql_ret, $psql_stdout, $psql_stderr) = ('','', '');
+($psql_ret, $psql_stdout, $psql_stderr) = $node_g2_c2->psql($bravo, qq{
     SELECT pgactive.pgactive_join_group(
         node_name := 'node_g2_g1_c2',
         node_dsn := '$node_g2_c2_connstr',
         join_using_dsn := '$node_g1_c1_connstr');});
-
-my $result = find_in_log($node_g2_c2,
-	qr!ERROR: ( [A-Z0-9]+:)? replication slot .* already exists!,
-	$logstart);
-ok($result, "a database part of a pgactive group joining another pgactive group failure is detected");
+like($psql_stderr, qr/.*ERROR.*pgactive can't be enabled because there is an existing per-db worker for the current database/,
+     "a database part of a pgactive group joining another pgactive group failure is detected");
 
 done_testing();

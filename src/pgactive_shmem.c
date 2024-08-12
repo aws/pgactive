@@ -272,7 +272,7 @@ pgactive_worker_shmem_free(pgactiveWorker * worker,
 
 	if (worker->worker_type == pgactive_WORKER_PERDB)
 	{
-		pgactivePerdbWorker *perdb = &pgactive_worker_slot->data.perdb;
+		pgactivePerdbWorker *perdb = &worker->data.perdb;
 
 		/*
 		 * If unregistering per-db worker, don't release the shmem slot so

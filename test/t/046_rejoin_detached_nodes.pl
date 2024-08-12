@@ -17,13 +17,28 @@ use utils::nodemanagement;
 my $nodes = make_pgactive_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
 
+$node_0->append_conf(
+	'postgresql.conf', qq(
+		log_min_messages = debug1
+));
+$node_0->restart;
+
 # Detach a node from 2 node cluster
 note "Detach node_0 from 2 node cluster\n";
 pgactive_detach_nodes([$node_0], $node_1);
 check_detach_status([$node_0], $node_1);
 
+my $logstart_0 = get_log_size($node_0);
+
 # Remove pgactive from the detached node
 $node_0->safe_psql($pgactive_test_dbname, "select pgactive.pgactive_remove(true)");
+
+# per-db worker must be unregistered and gone on a node with pgactive removed
+my $result = find_in_log($node_0,
+       qr!LOG: ( [A-Z0-9]+:)? unregistering per-db worker on node .* due to removal of pgactive!,
+       $logstart_0);
+
+ok($result, "unregistering per-db worker on node_0 due to removal of pgactive is detected");
 
 # Create a table on the detached and removed node
 $node_0->safe_psql($pgactive_test_dbname, "create table db_not_empty(a int primary key)");

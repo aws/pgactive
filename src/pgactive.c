@@ -158,6 +158,7 @@ PGDLLEXPORT Datum _pgactive_check_file_system_mount_points(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum check_file_system_mount_points(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum _pgactive_has_required_privs(PG_FUNCTION_ARGS);
 PGDLLEXPORT Datum has_required_privs(PG_FUNCTION_ARGS);
+PGDLLEXPORT Datum pgactive_terminate_perdb_worker(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_apply_pause);
 PG_FUNCTION_INFO_V1(pgactive_apply_resume);
@@ -188,6 +189,7 @@ PG_FUNCTION_INFO_V1(_pgactive_check_file_system_mount_points);
 PG_FUNCTION_INFO_V1(check_file_system_mount_points);
 PG_FUNCTION_INFO_V1(_pgactive_has_required_privs);
 PG_FUNCTION_INFO_V1(has_required_privs);
+PG_FUNCTION_INFO_V1(pgactive_terminate_perdb_worker);
 
 static int	pgactive_get_worker_pid_byid(const pgactiveNodeId * const nodeid, pgactiveWorkerType worker_type);
 
@@ -590,18 +592,15 @@ pgactive_bgworker_init(uint32 worker_arg, pgactiveWorkerType worker_type)
 	else if (worker_type == pgactive_WORKER_APPLY)
 	{
 		pgactiveApplyWorker *apply;
-		pgactivePerdbWorker *perdb;
 
 		apply = &pgactive_worker_slot->data.apply;
 		apply->last_applied_xact_id = InvalidTransactionId;
 		apply->last_applied_xact_committs = 0;
 		apply->last_applied_xact_at = 0;
-		Assert(apply->perdb != NULL);
-		perdb = &apply->perdb->data.perdb;
-		dboid = perdb->c_dboid;
+		dboid = apply->dboid;
 	}
 	else
-		elog(FATAL, "don't know how to connect to this type of work: %u",
+		elog(FATAL, "don't know how to connect to this type of worker: %u",
 			 pgactive_worker_type);
 
 	Assert(OidIsValid(dboid));
@@ -2474,4 +2473,50 @@ pgactive_get_bigendian(void)
 #else
 	return false;
 #endif
+}
+
+/*
+ * Terminate per-db worker for a given database if exists one.
+ */
+Datum
+pgactive_terminate_perdb_worker(PG_FUNCTION_ARGS)
+{
+	Oid			dboid = PG_GETARG_OID(0);
+	int			slotno;
+	pgactiveWorker *w;
+	Oid			func_oid;
+
+	func_oid = DatumGetObjectId(DirectFunctionCall1(regprocedurein,
+													CStringGetDatum("pgactive._pgactive_has_required_privs()")));
+	if (!DatumGetBool(OidFunctionCall0(func_oid)))
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("must be superuser to terminate pgactive per-db worker")));
+
+	LWLockAcquire(pgactiveWorkerCtl->lock, LW_EXCLUSIVE);
+	slotno = find_perdb_worker_slot(dboid, &w);
+	if (slotno == pgactive_PER_DB_WORKER_SLOT_NOT_FOUND)
+		ereport(WARNING,
+				(errmsg("pgactive per-db worker for database with OID %u is not found",
+						dboid)));
+	else if (slotno == pgactive_PER_DB_WORKER_SLOT_FOUND)
+	{
+		int			pid = w->worker_pid;
+
+		/* If we have setsid(), signal the backend's whole process group */
+#ifdef HAVE_SETSID
+		if (kill(-pid, SIGUSR2))
+#else
+		if (kill(pid, SIGUSR2))
+#endif
+		{
+			/* Again, just a warning to allow loops */
+			ereport(WARNING,
+					(errmsg("could not send signal to pgactive per-db worker %d: %m",
+							pid)));
+		}
+	}
+	LWLockRelease(pgactiveWorkerCtl->lock);
+
+	PG_RETURN_VOID();
 }

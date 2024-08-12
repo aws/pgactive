@@ -347,6 +347,12 @@ pgactive_supervisor_rescan_dbs()
 	elog(DEBUG1, "found %i pgactive-labeled DBs; registered %i new per-db workers",
 		 pgactive_dbs, n_new_workers);
 
+	/*
+	 * Free shmem slots for all unregistered-and-pgactive-disabled perdb
+	 * workers.
+	 */
+	free_unregistered_perdb_workers();
+
 	LWLockRelease(pgactiveWorkerCtl->lock);
 
 	systable_endscan(scan);
