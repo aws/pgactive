@@ -3,6 +3,7 @@
 Table of contents
 - [pgactive configuration variables (GUC)](#pgactive-configuration-variables)
 - [Active-Active conflicts](#active-active-conflicts)
+- [Replication sets](#replication-sets)
 - [Functions](#functions)
 
 ## pgactive configuration variables
@@ -474,6 +475,21 @@ Row values may optionally be logged for row conflicts. This is controlled by the
 
 Because the conflict history table contains data on every table in the database so each row's schema might be different, if row values are logged they are stored as json fields. The json is created with row_to_json, just like if you'd called it on the row yourself from SQL. There is no corresponding json_to_row function in PostgreSQL at this time, so you'll need table-specific code (pl/pgsql, pl/python, pl/perl, whatever) if you want to reconstruct a composite-typed tuple from the logged json.
 
+## Replication sets
+
+Replication sets provide a way to define which tables are included or excluded from replication.
+By default, all the tables are replicated unless you made use of the pgactive_exclude_table_replication_set() or pgactive_include_table_replication_set() functions (to resp. exclude or include one or more tables).
+
+Note that:
+
+- exclude or include can only be performed after pgactive_create_group() and before pgactive_join_group()
+- once you used pgactive_exclude_table_replication_set() then you can not use pgactive_include_table_replication_set() anymore
+- once you used pgactive_include_table_replication_set() then you can not use pgactive_exclude_table_replication_set() anymore
+- if you excluded one or more tables, then after the pgactive_join_group() every newly created table will be included in the replication
+- if you included one or more tables, then after the pgactive_join_group() every newly created table will be excluded from the replication
+
+To see the replication set configuration for a particular table, you can use the pgactive.pgactive_get_table_replication_sets() function.
+
 ## Functions
 
 ### get\_last\_applied\_xact\_info
@@ -524,6 +540,14 @@ Return: void
 
 Detach node(s) from pgactive group.
 
+### pgactive\_exclude\_table\_replication\_set
+
+Arguments: p_relation regclass
+
+Return: void
+
+Exclude a table from the replication.
+
 ### pgactive\_get\_replication\_lag\_info
 
 Arguments: OUT slot_name name, OUT last_sent_xact_id oid, OUT last_sent_xact_committs timestamp with time zone, OUT last_sent_xact_at timestamp with time zone, OUT last_applied_xact_id oid, OUT last_applied_xact_committs timestamp with time zone, OUT last_applied_xact_at timestamp with time zone
@@ -539,6 +563,22 @@ Arguments: OUT rep_node_id oid, OUT rilocalid oid, OUT riremoteid text, OUT nr_c
 Return: SETOF record
 
 Get pgactive replication stats.
+
+### pgactive\_get\_table\_replication\_sets
+
+Arguments: relation regclass, OUT sets text[]
+
+Return: SETOF record
+
+Get pgactive replication sets for a relation.
+
+### pgactive\_include\_table\_replication\_set
+
+Arguments: p_relation regclass
+
+Return: void
+
+Include a table in the replication.
 
 ### pgactive\_join\_group
 
