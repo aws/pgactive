@@ -20,9 +20,10 @@
 
 #include "access/xact.h"
 
+#include "catalog/pg_database.h"
 #include "catalog/pg_type.h"
-
 #include "commands/dbcommands.h"
+#include "commands/seclabel.h"
 
 #include "executor/spi.h"
 
@@ -32,6 +33,7 @@
 
 /* For struct Port only! */
 #include "libpq/libpq-be.h"
+#include "libpq/pqsignal.h"
 
 #include "replication/origin.h"
 
@@ -54,18 +56,33 @@ static bool xacthook_connections_changed = false;
 
 static bool is_perdb_worker = true;
 
+int			pgactive_connectability_check_duration = 300;
+
+static volatile sig_atomic_t got_SIGUSR2 = false;
+
 static void check_params_are_same(void);
 static ReplicationSlot *pgactiveSearchNamedReplicationSlot(const char *name,
 														   bool need_lock);
 static void check_local_node_connectability(void);
+
+/*
+ * Occurs when signaled SIGUSR2 by the backend running pgactive_remove().
+ *
+ * The per-db worker is told to go away immediately. So, inform postgres that
+ * there is no need to restart and exit.
+ */
+static void
+pgactive_perdb_worker_sigusr2_handler(SIGNAL_ARGS)
+{
+	got_SIGUSR2 = true;
+	SetLatch(MyLatch);
+}
 
 bool
 IspgactivePerdbWorker(void)
 {
 	return is_perdb_worker;
 }
-
-int			pgactive_connectability_check_duration = 300;
 
 /*
  * Scan shmem looking for a perdb worker for the named DB and
@@ -111,6 +128,48 @@ find_perdb_worker_slot(Oid dboid, pgactiveWorker * *worker_found)
 	}
 
 	return found;
+}
+
+/*
+ * Free shmem slots for all unregistered-and-pgactive-disabled perdb workers.
+ */
+void
+free_unregistered_perdb_workers(void)
+{
+	int			i;
+
+	Assert(LWLockHeldByMe(pgactiveWorkerCtl->lock));
+
+	for (i = 0; i < pgactive_max_workers; i++)
+	{
+		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
+		pgactivePerdbWorker *pw;
+		ObjectAddress object;
+		char	   *label;
+
+		if (w->worker_type != pgactive_WORKER_PERDB)
+			continue;
+
+		pw = &w->data.perdb;
+
+		if (!pw->unregistered)
+			continue;
+
+		object.classId = DatabaseRelationId;
+		object.objectId = pw->p_dboid;
+		object.objectSubId = 0;
+
+		label = GetSecurityLabel(&object, pgactive_SECLABEL_PROVIDER);
+
+		if (label == NULL)
+		{
+			elog(DEBUG1, "released shared memory slot for unregistered and pgactive disabled per-db worker for database with OID %u",
+				 pw->p_dboid);
+
+			pw->unregistered = false;
+			pgactive_worker_shmem_free(w, NULL, false);
+		}
+	}
 }
 
 /*
@@ -1159,6 +1218,8 @@ pgactive_perdb_worker_main(Datum main_arg)
 	StringInfoData si;
 	pgactiveNodeId myid;
 
+	pqsignal(SIGUSR2, pgactive_perdb_worker_sigusr2_handler);
+
 	is_perdb_worker = true;
 
 	initStringInfo(&si);
@@ -1280,6 +1341,22 @@ pgactive_perdb_worker_main(Datum main_arg)
 							   180000L, PG_WAIT_EXTENSION);
 		ResetLatch(&MyProc->procLatch);
 		CHECK_FOR_INTERRUPTS();
+
+		/*
+		 * pgactive_remove() asked this perdb worker to exit immediately.
+		 * Unregister the worker so that the supervisor doesn't restart us
+		 * in-between.
+		 */
+		if (got_SIGUSR2)
+		{
+			got_SIGUSR2 = false;
+
+			elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to removal of pgactive",
+				 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+
+			pgactive_worker_unregister();
+			pg_unreachable();
+		}
 
 		if (rc & WL_LATCH_SET)
 		{

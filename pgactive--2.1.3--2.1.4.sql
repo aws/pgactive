@@ -323,6 +323,7 @@ DECLARE
     connectback_nodeinfo record;
     remoteinfo record;
 	contains_include_rs boolean;
+    current_dboid oid;
 BEGIN
 
 	contains_include_rs = false;
@@ -360,6 +361,20 @@ BEGIN
             MESSAGE = 'node_dsn can not be null',
             ERRCODE = 'invalid_parameter_value';
     END IF;
+
+  -- Prohibit enabling pgactive when there is an existing per-db worker.
+  SELECT oid FROM pg_database
+    WHERE datname = current_database() INTO current_dboid;
+	IF (
+		SELECT count(1)
+		FROM pgactive.pgactive_get_workers_info()
+		WHERE worker_type = 'per-db' AND dboid = current_dboid
+		) > 0
+	THEN
+    RAISE USING
+      MESSAGE = 'pgactive can''t be enabled because there is an existing per-db worker for the current database',
+      ERRCODE = 'object_not_in_prerequisite_state';
+  END IF;
 
     PERFORM pgactive._pgactive_begin_join_private(
         caller := '',
@@ -840,6 +855,182 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION pgactive_get_replication_set_tables(text[]) FROM public;
+
+-- Completely de-pgactive-ize a node. Updated to fix #281.
+CREATE OR REPLACE FUNCTION pgactive_remove (
+  force boolean DEFAULT false)
+RETURNS void
+LANGUAGE plpgsql
+-- SET pgactive.skip_ddl_locking = on is removed for now
+-- SET pgactive.permit_unsafe_ddl_commands = on is removed for now
+SET pgactive.skip_ddl_replication = on
+SET search_path = 'pgactive,pg_catalog'
+AS $$
+DECLARE
+  local_node_status "char";
+  _seqschema name;
+  _seqname name;
+  _seqmax bigint;
+  _tableoid oid;
+  _truncate_tg record;
+  current_dboid oid;
+BEGIN
+
+  SELECT node_status FROM pgactive.pgactive_nodes WHERE (node_sysid, node_timeline, node_dboid) = pgactive.pgactive_get_local_nodeid()
+  INTO local_node_status;
+
+  IF NOT (local_node_status = 'k' OR local_node_status IS NULL) THEN
+    IF force THEN
+      RAISE WARNING 'forcing deletion of possibly active pgactive node';
+
+      UPDATE pgactive.pgactive_nodes
+      SET node_status = 'k'
+      WHERE (node_sysid, node_timeline, node_dboid) = pgactive.pgactive_get_local_nodeid();
+
+      PERFORM pgactive._pgactive_pause_worker_management_private(false);
+
+      PERFORM pg_sleep(5);
+
+      RAISE NOTICE 'node forced to detached state, now removing';
+    ELSE
+      RAISE EXCEPTION 'this pgactive node might still be active, not removing';
+    END IF;
+  END IF;
+
+  RAISE NOTICE 'removing pgactive from node';
+
+   -- Strip the database security label
+  EXECUTE format('SECURITY LABEL FOR pgactive ON DATABASE %I IS NULL', current_database());
+
+  -- Suspend worker management, so when we terminate apply workers and
+  -- walsenders they won't get relaunched.
+  PERFORM pgactive._pgactive_pause_worker_management_private(true);
+
+  -- Terminate WAL sender(s) associated with this database.
+  PERFORM pgactive.pgactive_terminate_workers(node_sysid, node_timeline, node_dboid, 'walsender')
+  FROM pgactive.pgactive_nodes
+  WHERE (node_sysid, node_timeline, node_dboid) <> pgactive.pgactive_get_local_nodeid();
+
+  -- Terminate apply worker(s) associated with this database.
+  PERFORM pgactive.pgactive_terminate_workers(node_sysid, node_timeline, node_dboid, 'apply')
+  FROM pgactive.pgactive_nodes
+  WHERE (node_sysid, node_timeline, node_dboid) <> pgactive.pgactive_get_local_nodeid();
+
+  -- Delete all connections and all nodes except the current one
+  DELETE FROM pgactive.pgactive_connections
+  WHERE (conn_sysid, conn_timeline, conn_dboid) <> pgactive.pgactive_get_local_nodeid();
+
+  DELETE FROM pgactive.pgactive_nodes
+  WHERE (node_sysid, node_timeline, node_dboid) <> pgactive.pgactive_get_local_nodeid();
+
+  -- Let the perdb worker resume work and figure out everything's
+  -- going away.
+  PERFORM pgactive._pgactive_pause_worker_management_private(false);
+  PERFORM pgactive.pgactive_connections_changed();
+
+  -- Give it a few seconds
+  PERFORM pg_sleep(2);
+
+  -- Terminate per-db worker associated with this database.
+  SELECT oid FROM pg_database
+    WHERE datname = current_database() INTO current_dboid;
+  PERFORM pgactive.pgactive_terminate_perdb_worker(current_dboid);
+
+  -- Poke supervisor to clear the per-db worker's shared memory slot.
+  PERFORM pgactive.pgactive_connections_changed();
+
+  -- Clear out the rest of pgactive_nodes and pgactive_connections
+  DELETE FROM pgactive.pgactive_nodes;
+  DELETE FROM pgactive.pgactive_connections;
+
+  -- Drop peer replication slots for this DB
+  PERFORM pg_drop_replication_slot(slot_name)
+  FROM pg_catalog.pg_replication_slots,
+       pgactive.pgactive_parse_slot_name(slot_name) ps
+  WHERE ps.local_dboid = (select oid from pg_database where datname = current_database())
+       AND plugin = 'pgactive';
+
+  -- and replication origins
+  PERFORM pg_replication_origin_drop(roname)
+  FROM pg_catalog.pg_replication_origin,
+       pgactive.pgactive_parse_replident_name(roname) pi
+  WHERE pi.local_dboid = (select oid from pg_database where datname = current_database());
+
+  -- Strip the security labels we use for replication sets from all the tables
+  FOR _tableoid IN
+    SELECT objoid
+    FROM pg_catalog.pg_seclabel
+    INNER JOIN pg_catalog.pg_class ON (pg_seclabel.objoid = pg_class.oid)
+    WHERE provider = 'pgactive'
+      AND classoid = 'pg_catalog.pg_class'::regclass
+      AND pg_class.relkind = 'r'
+  LOOP
+    -- regclass's text out adds quoting and schema qualification if needed
+    EXECUTE format('SECURITY LABEL FOR pgactive ON TABLE %s IS NULL', _tableoid::regclass);
+  END LOOP;
+
+  -- Drop the on-truncate triggers. They'd otherwise get cascade-dropped when
+  -- the pgactive extension was dropped, but this way the system is clean. We can't
+  -- drop ones under the 'pgactive' schema.
+  FOR _truncate_tg IN
+    SELECT
+      n.nspname AS tgrelnsp,
+      c.relname AS tgrelname,
+      t.tgname AS tgname,
+      d.objid AS tgobjid,
+      d.refobjid AS tgrelid
+    FROM pg_depend d
+    INNER JOIN pg_class c ON (d.refclassid = 'pg_class'::regclass AND d.refobjid = c.oid)
+    INNER JOIN pg_namespace n ON (c.relnamespace = n.oid)
+    INNER JOIN pg_trigger t ON (d.classid = 'pg_trigger'::regclass and d.objid = t.oid)
+    INNER JOIN pg_depend d2 ON (d.classid = d2.classid AND d.objid = d2.objid)
+    WHERE tgname LIKE 'truncate_trigger_%'
+      AND d2.refclassid = 'pg_proc'::regclass
+      AND d2.refobjid = 'pgactive.pgactive_queue_truncate'::regproc
+      AND n.nspname <> 'pgactive'
+  LOOP
+    EXECUTE format('DROP TRIGGER %I ON %I.%I',
+         _truncate_tg.tgname, _truncate_tg.tgrelnsp, _truncate_tg.tgrelname);
+
+    -- The trigger' dependency entry will be dangling because of how we dropped
+    -- it.
+    DELETE FROM pg_depend
+    WHERE classid = 'pg_trigger'::regclass AND
+      (objid = _truncate_tg.tgobjid
+       AND (refclassid = 'pg_proc'::regclass AND refobjid = 'pgactive.pgactive_queue_truncate'::regproc)
+          OR
+          (refclassid = 'pg_class'::regclass AND refobjid = _truncate_tg.tgrelid)
+	  );
+
+  END LOOP;
+
+  -- Delete the other detritus from the extension. The user should really drop it,
+  -- but we should try to restore a clean state anyway.
+  DELETE FROM pgactive.pgactive_queued_commands;
+  DELETE FROM pgactive.pgactive_queued_drops;
+  DELETE FROM pgactive.pgactive_global_locks;
+  DELETE FROM pgactive.pgactive_conflict_handlers;
+  DELETE FROM pgactive.pgactive_conflict_history;
+  DELETE FROM pgactive.pgactive_replication_set_config;
+
+  PERFORM pgactive._pgactive_destroy_temporary_dump_directories_private();
+
+  -- We can't drop the pgactive extension, we just need to tell the user to do that.
+  RAISE NOTICE 'pgactive removed from this node. You can now DROP EXTENSION pgactive and, if this is the last pgactive node on this PostgreSQL instance, remove pgactive from shared_preload_libraries.';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pgactive_remove(boolean) FROM public;
+
+COMMENT ON FUNCTION pgactive_remove(boolean) IS
+'Remove all pgactive security labels, slots, replication origins, replication sets, etc from the local node.';
+
+CREATE FUNCTION pgactive_terminate_perdb_worker(dboid oid)
+RETURNS VOID
+AS 'MODULE_PATHNAME'
+LANGUAGE C VOLATILE STRICT;
+
+REVOKE ALL ON FUNCTION pgactive_terminate_perdb_worker(oid) FROM public;
 
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;

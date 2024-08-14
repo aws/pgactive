@@ -707,6 +707,7 @@ typedef enum
 
 extern int	find_perdb_worker_slot(Oid dboid,
 								   pgactiveWorker * *worker_found);
+extern void free_unregistered_perdb_workers(void);
 
 extern void pgactive_maintain_db_workers(void);
 
