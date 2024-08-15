@@ -169,12 +169,17 @@ format_action_description(
 						 remote_nspname, remote_relname);
 	}
 
-	appendStringInfo(si,
-					 " in commit before %X/%X, xid %u committed at %s (action #%u)",
-					 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
-					 replication_origin_xid,
-					 timestamptz_to_str(replorigin_session_origin_timestamp),
-					 xact_action_counter);
+	if (replorigin_session_origin_lsn != InvalidXLogRecPtr &&
+		replication_origin_xid != InvalidTransactionId &&
+		replorigin_session_origin_timestamp != 0)
+	{
+		appendStringInfo(si,
+						 " in commit before %X/%X, xid %u committed at %s (action #%u)",
+						 LSN_FORMAT_ARGS(replorigin_session_origin_lsn),
+						 replication_origin_xid,
+						 timestamptz_to_str(replorigin_session_origin_timestamp),
+						 xact_action_counter);
+	}
 
 	if (replorigin_session_origin != InvalidRepOriginId)
 	{
