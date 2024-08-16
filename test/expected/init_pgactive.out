@@ -32,8 +32,8 @@ SELECT pgactive.pgactive_is_active_in_db();
 (1 row)
 
 SELECT pgactive.pgactive_wait_for_node_ready();
-NOTICE:  Checking status of pgactive.pgactive_create_group
-NOTICE:  successfully created first node pgactive.pgactive_create_group
+NOTICE:  checking status of pgactive.pgactive_create_group
+NOTICE:  successfully created first node in pgactive group
  pgactive_wait_for_node_ready 
 ------------------------------
  

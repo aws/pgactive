@@ -1110,7 +1110,7 @@ BEGIN
               USING MESSAGE = format('successfully joined the node and restored database ''%s'' from node %s',
                                      remote_node.dbname, remote_node.node_name);
         ELSE
-          RAISE NOTICE 'successfully created first node pgactive.pgactive_create_group';
+          RAISE NOTICE 'successfully created first node in pgactive group';
         END IF;
         EXIT;
       END IF;
@@ -1130,8 +1130,8 @@ BEGIN
         PERFORM PID FROM pg_stat_activity where application_name = 'pgactive:'|| local_node.node_sysid ||':perdb';
         IF NOT FOUND THEN
           RAISE EXCEPTION 'could not detect a running pgactive perdb worker, current node state is %',  local_node.node_status
-          USING DETAIL = format( 'either pgactive perdb worker exited due to an error or it did not start in %s(s)', worker_timeout),
-          HINT = 'Please check in PostgreSQL log file for more details.';
+          USING DETAIL = format( 'Either pgactive perdb worker exited due to an error or it did not start in %s seconds.', worker_timeout),
+          HINT = 'Please check PostgreSQL log file for more details.';
         END IF;
       END IF;
 
