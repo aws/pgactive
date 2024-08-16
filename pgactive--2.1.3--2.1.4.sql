@@ -1044,13 +1044,13 @@ DECLARE
   remote_node record;
   t_lp_cnt integer := 0;
   p_lp_cnt integer := 0;
-  w_lp_cnt integer := 0;
+  w_lp_cnt integer;
   l_db_init_sz int8;
   l_db_sz int8;
   r_db text;
   p_pct integer;
-  sleep_sec integer := 10;
-  worker_timeout integer := 300;
+  sleep_sec integer;
+  worker_timeout integer;
 BEGIN
 
     IF timeout < 0 THEN
@@ -1060,11 +1060,22 @@ BEGIN
     IF progress_interval <= 0 THEN
       RAISE EXCEPTION '''progress_interval'' parameter must be > 0';
     END IF;
-
-    PERFORM PID from pg_stat_activity where application_name = 'pgactive:supervisor';
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'pgactive supervisor is not running';
-    END IF;
+    w_lp_cnt := 0;
+    sleep_sec := 5;
+    worker_timeout := 120;
+    LOOP
+      PERFORM pg_sleep( sleep_sec );
+      PERFORM PID from pg_stat_activity where application_name = 'pgactive:supervisor';
+      IF FOUND THEN
+        EXIT;
+      END IF;
+      IF w_lp_cnt > worker_timeout THEN
+        RAISE EXCEPTION 'pgactive supervisor is not running';
+      ELSE
+        RAISE NOTICE 'waiting for pgactive supervisor to start %/%', w_lp_cnt, worker_timeout;
+      END IF;
+      w_lp_cnt := w_lp_cnt + sleep_sec;
+    END LOOP;
 
     IF current_setting('transaction_isolation') <> 'read committed' THEN
         RAISE EXCEPTION 'can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
@@ -1076,15 +1087,17 @@ BEGIN
       INTO local_node;
 
     IF local_node.node_init_from_dsn is NULL THEN
-      RAISE NOTICE 'Checking status of pgactive.pgactive_create_group';
+      RAISE NOTICE 'checking status of pgactive.pgactive_create_group';
     ELSE
-      RAISE NOTICE 'Checking status of pgactive.pgactive_join_group';
+      RAISE NOTICE 'checking status of pgactive.pgactive_join_group';
       SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
         INTO remote_node;
       SELECT pg_size_pretty(remote_node.dbsize) INTO r_db;
       SELECT pg_database_size(local_node.node_dboid) INTO l_db_init_sz;
     END IF;
-
+    w_lp_cnt := 0;
+    sleep_sec := 10;
+    worker_timeout := 300;
     LOOP
       SELECT * FROM pgactive.pgactive_nodes
       WHERE (node_sysid, node_timeline, node_dboid)
@@ -1116,7 +1129,9 @@ BEGIN
         w_lp_cnt := 0;
         PERFORM PID FROM pg_stat_activity where application_name = 'pgactive:'|| local_node.node_sysid ||':perdb';
         IF NOT FOUND THEN
-          RAISE EXCEPTION 'pgactive perdb worker exited due to an error or it did not start in %(s), investigate postgresql logs', worker_timeout;
+          RAISE EXCEPTION 'could not detect a running pgactive perdb worker, current node state is %',  local_node.node_status
+          USING DETAIL = format( 'either pgactive perdb worker exited due to an error or it did not start in %s(s)', worker_timeout),
+          HINT = 'Please check in PostgreSQL log file for more details.';
         END IF;
       END IF;
 
