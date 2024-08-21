@@ -1032,6 +1032,133 @@ LANGUAGE C VOLATILE STRICT;
 
 REVOKE ALL ON FUNCTION pgactive_terminate_perdb_worker(oid) FROM public;
 
+DROP FUNCTION pgactive_wait_for_node_ready(integer, integer);
+
+CREATE FUNCTION pgactive_wait_for_node_ready(
+  timeout integer DEFAULT 0,
+  progress_interval integer DEFAULT 60)
+RETURNS void LANGUAGE plpgsql VOLATILE
+AS $body$
+DECLARE
+  local_node record;
+  remote_node record;
+  t_lp_cnt integer := 0;
+  p_lp_cnt integer := 0;
+  w_lp_cnt integer;
+  l_db_init_sz int8;
+  l_db_sz int8;
+  r_db text;
+  p_pct integer;
+  sleep_sec integer;
+  worker_timeout integer;
+BEGIN
+
+    IF timeout < 0 THEN
+      RAISE EXCEPTION '''timeout'' parameter must not be 0';
+    END IF;
+
+    IF progress_interval <= 0 THEN
+      RAISE EXCEPTION '''progress_interval'' parameter must be > 0';
+    END IF;
+    w_lp_cnt := 0;
+    sleep_sec := 5;
+    worker_timeout := 120;
+    LOOP
+      PERFORM pg_sleep( sleep_sec );
+      PERFORM PID from pg_stat_activity where application_name = 'pgactive:supervisor';
+      IF FOUND THEN
+        EXIT;
+      END IF;
+      IF w_lp_cnt > worker_timeout THEN
+        RAISE EXCEPTION 'pgactive supervisor is not running';
+      ELSE
+        RAISE NOTICE 'waiting for pgactive supervisor to start %/%', w_lp_cnt, worker_timeout;
+      END IF;
+      w_lp_cnt := w_lp_cnt + sleep_sec;
+    END LOOP;
+
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+        RAISE EXCEPTION 'can only wait for node join in an ISOLATION LEVEL READ COMMITTED transaction, not %',
+                        current_setting('transaction_isolation');
+    END IF;
+
+    SELECT * FROM pgactive.pgactive_nodes
+      WHERE (node_sysid, node_timeline, node_dboid) = pgactive.pgactive_get_local_nodeid()
+      INTO local_node;
+
+    IF local_node.node_init_from_dsn is NULL THEN
+      RAISE NOTICE 'checking status of pgactive.pgactive_create_group';
+    ELSE
+      RAISE NOTICE 'checking status of pgactive.pgactive_join_group';
+      SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
+        INTO remote_node;
+      SELECT pg_size_pretty(remote_node.dbsize) INTO r_db;
+      SELECT pg_database_size(local_node.node_dboid) INTO l_db_init_sz;
+    END IF;
+    w_lp_cnt := 0;
+    sleep_sec := 10;
+    worker_timeout := 300;
+    LOOP
+      SELECT * FROM pgactive.pgactive_nodes
+      WHERE (node_sysid, node_timeline, node_dboid)
+        = pgactive.pgactive_get_local_nodeid()
+      INTO local_node;
+
+      IF local_node.node_status = 'r' THEN
+        IF remote_node IS NOT NULL THEN
+          RAISE NOTICE
+              USING MESSAGE = format('successfully joined the node and restored database ''%s'' from node %s',
+                                     remote_node.dbname, remote_node.node_name);
+        ELSE
+          RAISE NOTICE 'successfully created first node in pgactive group';
+        END IF;
+        EXIT;
+      END IF;
+
+      IF timeout > 0 THEN
+        t_lp_cnt := t_lp_cnt + sleep_sec;
+        IF t_lp_cnt > timeout THEN
+          RAISE EXCEPTION 'node % cannot reach ready state within % seconds, current state is %',
+                          local_node.node_name, timeout, local_node.node_status;
+        END IF;
+      END IF;
+
+      PERFORM pg_sleep( sleep_sec );
+      w_lp_cnt := w_lp_cnt + sleep_sec;
+      IF w_lp_cnt > worker_timeout THEN
+        w_lp_cnt := 0;
+        PERFORM PID FROM pg_stat_activity where application_name = 'pgactive:'|| local_node.node_sysid ||':perdb';
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'could not detect a running pgactive perdb worker, current node state is %',  local_node.node_status
+          USING DETAIL = format( 'Either pgactive perdb worker exited due to an error or it did not start in %s seconds.', worker_timeout),
+          HINT = 'Please check PostgreSQL log file for more details.';
+        END IF;
+      END IF;
+
+      IF progress_interval > 0 AND local_node.node_init_from_dsn IS NOT NULL THEN
+        p_lp_cnt := p_lp_cnt + sleep_sec;
+
+        IF p_lp_cnt > progress_interval THEN
+          SELECT pg_database_size(local_node.node_dboid) INTO l_db_sz;
+          IF l_db_sz = 0 OR l_db_sz = l_db_init_sz THEN
+            RAISE NOTICE
+                USING MESSAGE = format('transferring of database ''%s'' (%s) from node %s in progress',
+                                       remote_node.dbname, r_db, remote_node.node_name);
+          ELSE
+            SELECT (l_db_sz/remote_node.dbsize) * 100 INTO p_pct;
+            RAISE NOTICE
+              USING MESSAGE = format('restoring database ''%s'', %s%% of %s complete',
+                                     remote_node.dbname, p_pct, r_db);
+          END IF;
+          p_lp_cnt := 0;
+        END IF;
+      END IF;
+    END LOOP;
+END;
+$body$;
+
+REVOKE ALL ON FUNCTION pgactive_wait_for_node_ready(integer, integer) FROM public;
+
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
 RESET search_path;

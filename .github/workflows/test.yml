@@ -5,10 +5,10 @@ on:
     - cron: '0 5 * * *'
   push:
     paths-ignore:
-      - 'doc/**'
+      - 'docs/**'
   pull_request:
     paths-ignore:
-      - 'doc/**'
+      - 'docs/**'
   workflow_dispatch:
 jobs:
   test:
