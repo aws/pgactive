@@ -11,10 +11,10 @@ index 3c1cd85..4a59be8 100644
  	/* various user-settable parameters */
  	bool		schemaOnly;
 diff --git a/src/compat/14/pg_dump/pg_dump.c b/src/compat/14/pg_dump/pg_dump.c
-index f8ec613..3b4eefe 100644
+index 001daf9..794c408 100644
 --- a/src/compat/14/pg_dump/pg_dump.c
 +++ b/src/compat/14/pg_dump/pg_dump.c
-@@ -371,6 +371,7 @@ main(int argc, char **argv)
+@@ -372,6 +372,7 @@ main(int argc, char **argv)
  		 */
  		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
  		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
@@ -22,7 +22,7 @@ index f8ec613..3b4eefe 100644
  		{"column-inserts", no_argument, &dopt.column_inserts, 1},
  		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
  		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -9313,6 +9314,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
+@@ -9360,6 +9361,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
  {
  	if (dopt->binary_upgrade)
  		return true;
@@ -31,7 +31,7 @@ index f8ec613..3b4eefe 100644
  	if (tbinfo->attisdropped[colno])
  		return false;
  	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -15087,7 +15090,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
+@@ -15134,7 +15137,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
  	res = ExecuteSqlQueryForSingleRow(fout, query->data);
  	fdwname = PQgetvalue(res, 0, 0);
  
@@ -40,7 +40,7 @@ index f8ec613..3b4eefe 100644
  	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
  	{
  		appendPQExpBufferStr(q, " TYPE ");
-@@ -15215,7 +15218,7 @@ dumpUserMappings(Archive *fout,
+@@ -15262,7 +15265,7 @@ dumpUserMappings(Archive *fout,
  		umoptions = PQgetvalue(res, i, i_umoptions);
  
  		resetPQExpBuffer(q);
@@ -49,7 +49,7 @@ index f8ec613..3b4eefe 100644
  		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
  
  		if (umoptions && strlen(umoptions) > 0)
-@@ -16502,6 +16505,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
+@@ -16549,6 +16552,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
  			}
  		}
  

@@ -1,8 +1,8 @@
 diff --git a/src/compat/17/pg_dump/pg_backup.h b/src/compat/17/pg_dump/pg_backup.h
-index 9ef2f20..51ea259 100644
+index fbf5f1c..b86c5cf 100644
 --- a/src/compat/17/pg_dump/pg_backup.h
 +++ b/src/compat/17/pg_dump/pg_backup.h
-@@ -162,6 +162,7 @@ typedef struct _dumpOptions
+@@ -164,6 +164,7 @@ typedef struct _dumpOptions
  	ConnParams	cparams;
  
  	int			binary_upgrade;
@@ -11,10 +11,10 @@ index 9ef2f20..51ea259 100644
  	/* various user-settable parameters */
  	bool		schemaOnly;
 diff --git a/src/compat/17/pg_dump/pg_dump.c b/src/compat/17/pg_dump/pg_dump.c
-index a5149ca..809b545 100644
+index 9737e1e..b29e6dd 100644
 --- a/src/compat/17/pg_dump/pg_dump.c
 +++ b/src/compat/17/pg_dump/pg_dump.c
-@@ -403,6 +403,7 @@ main(int argc, char **argv)
+@@ -414,6 +414,7 @@ main(int argc, char **argv)
  		 */
  		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
  		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
@@ -22,7 +22,7 @@ index a5149ca..809b545 100644
  		{"column-inserts", no_argument, &dopt.column_inserts, 1},
  		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
  		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -9338,6 +9339,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
+@@ -9278,6 +9279,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
  {
  	if (dopt->binary_upgrade)
  		return true;
@@ -31,7 +31,7 @@ index a5149ca..809b545 100644
  	if (tbinfo->attisdropped[colno])
  		return false;
  	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -14921,7 +14924,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
+@@ -14867,7 +14870,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
  	res = ExecuteSqlQueryForSingleRow(fout, query->data);
  	fdwname = PQgetvalue(res, 0, 0);
  
@@ -40,7 +40,7 @@ index a5149ca..809b545 100644
  	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
  	{
  		appendPQExpBufferStr(q, " TYPE ");
-@@ -15049,7 +15052,7 @@ dumpUserMappings(Archive *fout,
+@@ -14995,7 +14998,7 @@ dumpUserMappings(Archive *fout,
  		umoptions = PQgetvalue(res, i, i_umoptions);
  
  		resetPQExpBuffer(q);
@@ -49,7 +49,7 @@ index a5149ca..809b545 100644
  		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
  
  		if (umoptions && strlen(umoptions) > 0)
-@@ -16403,6 +16406,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
+@@ -16385,6 +16388,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
  			}
  		}
  
