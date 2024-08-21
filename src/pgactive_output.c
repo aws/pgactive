@@ -753,7 +753,6 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 {
 	pgactiveOutputData *data = ctx->output_plugin_private;
 	int			flags = 0;
-	TimestampTz committime;
 
 	AssertVariableIsOfType(&pg_decode_begin_txn, LogicalDecodeBeginCB);
 
@@ -784,10 +783,8 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	pq_sendint64(ctx->out, txn->end_lsn);
 #if PG_VERSION_NUM >= 150000
 	pq_sendint64(ctx->out, txn->xact_time.commit_time);
-	committime = txn->xact_time.commit_time;
 #else
 	pq_sendint64(ctx->out, txn->commit_time);
-	committime = txn->commit_time;
 #endif
 	pq_sendint(ctx->out, txn->xid, 4);
 
@@ -810,11 +807,6 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 
 	OutputPluginWrite(ctx, true);
 
-	/* Save last sent transaction info */
-	pgactive_walsender_worker->last_sent_xact_id = txn->xid;
-	pgactive_walsender_worker->last_sent_xact_committs = committime;
-	pgactive_walsender_worker->last_sent_xact_at = GetCurrentTimestamp();
-
 	return;
 }
 
@@ -836,6 +828,7 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 					 XLogRecPtr commit_lsn)
 {
 	int			flags = 0;
+	TimestampTz committime;
 
 	if (!should_forward_changeset(ctx, txn->origin_id))
 		return;
@@ -864,6 +857,17 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 #endif
 
 	OutputPluginWrite(ctx, true);
+
+#if PG_VERSION_NUM >= 150000
+	committime = txn->xact_time.commit_time;
+#else
+	committime = txn->commit_time;
+#endif
+
+	/* Save last sent transaction info */
+	pgactive_walsender_worker->last_sent_xact_id = txn->xid;
+	pgactive_walsender_worker->last_sent_xact_committs = committime;
+	pgactive_walsender_worker->last_sent_xact_at = GetCurrentTimestamp();
 }
 
 void

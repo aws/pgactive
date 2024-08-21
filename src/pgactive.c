@@ -2329,11 +2329,29 @@ pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 
 		values[0] = NameGetDatum(&ws->slot->data.name);
 		values[1] = ObjectIdGetDatum(ws->last_sent_xact_id);
-		values[2] = TimestampTzGetDatum(ws->last_sent_xact_committs);
-		values[3] = TimestampTzGetDatum(ws->last_sent_xact_at);
+
+		if (ws->last_sent_xact_committs != 0)
+			values[2] = TimestampTzGetDatum(ws->last_sent_xact_committs);
+		else
+			nulls[2] = true;
+
+		if (ws->last_sent_xact_at != 0)
+			values[3] = TimestampTzGetDatum(ws->last_sent_xact_at);
+		else
+			nulls[3] = true;
+
 		values[4] = ObjectIdGetDatum(last_applied_xact_id);
-		values[5] = TimestampTzGetDatum(last_applied_xact_committs);
-		values[6] = TimestampTzGetDatum(last_applied_xact_at);
+
+		if (last_applied_xact_committs != 0)
+			values[5] = TimestampTzGetDatum(last_applied_xact_committs);
+		else
+			nulls[5] = true;
+
+		if (last_applied_xact_at != 0)
+			values[6] = TimestampTzGetDatum(last_applied_xact_at);
+		else
+			nulls[6] = true;
+
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);
 	}
