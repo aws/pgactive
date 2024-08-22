@@ -3454,7 +3454,7 @@ _selectOutputSchema(ArchiveHandle *AH, const char *schemaName)
 
 		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK)
 			warn_or_exit_horribly(AH,
-								  "could not set search_path to \"%s\": %s",
+								  "could not set \"search_path\" to \"%s\": %s",
 								  schemaName, PQerrorMessage(AH->connection));
 
 		PQclear(res);
@@ -3515,7 +3515,7 @@ _selectTablespace(ArchiveHandle *AH, const char *tablespace)
 
 		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK)
 			warn_or_exit_horribly(AH,
-								  "could not set default_tablespace to %s: %s",
+								  "could not set \"default_tablespace\" to %s: %s",
 								  fmtId(want), PQerrorMessage(AH->connection));
 
 		PQclear(res);
@@ -3564,7 +3564,7 @@ _selectTableAccessMethod(ArchiveHandle *AH, const char *tableam)
 
 		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK)
 			warn_or_exit_horribly(AH,
-								  "could not set default_table_access_method: %s",
+								  "could not set \"default_table_access_method\": %s",
 								  PQerrorMessage(AH->connection));
 
 		PQclear(res);
@@ -3827,10 +3827,32 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData)
 	{
 		IssueACLPerBlob(AH, te);
 	}
-	else
+	else if (te->defn && strlen(te->defn) > 0)
 	{
-		if (te->defn && strlen(te->defn) > 0)
-			ahprintf(AH, "%s\n\n", te->defn);
+		ahprintf(AH, "%s\n\n", te->defn);
+
+		/*
+		 * If the defn string contains multiple SQL commands, txn_size mode
+		 * should count it as N actions not one.  But rather than build a full
+		 * SQL parser, approximate this by counting semicolons.  One case
+		 * where that tends to be badly fooled is function definitions, so
+		 * ignore them.  (restore_toc_entry will count one action anyway.)
+		 */
+		if (ropt->txn_size > 0 &&
+			strcmp(te->desc, "FUNCTION") != 0 &&
+			strcmp(te->desc, "PROCEDURE") != 0)
+		{
+			const char *p = te->defn;
+			int			nsemis = 0;
+
+			while ((p = strchr(p, ';')) != NULL)
+			{
+				nsemis++;
+				p++;
+			}
+			if (nsemis > 1)
+				AH->txnCount += nsemis - 1;
+		}
 	}
 
 	/*

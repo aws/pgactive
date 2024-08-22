@@ -11,10 +11,10 @@ index 4c4e968..a6668fe 100644
  	/* various user-settable parameters */
  	bool		schemaOnly;
 diff --git a/src/compat/13/pg_dump/pg_dump.c b/src/compat/13/pg_dump/pg_dump.c
-index 6576efa..7f08a08 100644
+index 3dbc2c4..5f77384 100644
 --- a/src/compat/13/pg_dump/pg_dump.c
 +++ b/src/compat/13/pg_dump/pg_dump.c
-@@ -359,6 +359,7 @@ main(int argc, char **argv)
+@@ -360,6 +360,7 @@ main(int argc, char **argv)
  		 */
  		{"attribute-inserts", no_argument, &dopt.column_inserts, 1},
  		{"binary-upgrade", no_argument, &dopt.binary_upgrade, 1},
@@ -22,7 +22,7 @@ index 6576efa..7f08a08 100644
  		{"column-inserts", no_argument, &dopt.column_inserts, 1},
  		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
  		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -9139,6 +9140,8 @@ shouldPrintColumn(DumpOptions *dopt, TableInfo *tbinfo, int colno)
+@@ -9186,6 +9187,8 @@ shouldPrintColumn(DumpOptions *dopt, TableInfo *tbinfo, int colno)
  {
  	if (dopt->binary_upgrade)
  		return true;
@@ -31,7 +31,7 @@ index 6576efa..7f08a08 100644
  	if (tbinfo->attisdropped[colno])
  		return false;
  	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -15088,7 +15091,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
+@@ -15135,7 +15138,7 @@ dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
  	res = ExecuteSqlQueryForSingleRow(fout, query->data);
  	fdwname = PQgetvalue(res, 0, 0);
  
@@ -40,7 +40,7 @@ index 6576efa..7f08a08 100644
  	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
  	{
  		appendPQExpBufferStr(q, " TYPE ");
-@@ -15216,7 +15219,7 @@ dumpUserMappings(Archive *fout,
+@@ -15263,7 +15266,7 @@ dumpUserMappings(Archive *fout,
  		umoptions = PQgetvalue(res, i, i_umoptions);
  
  		resetPQExpBuffer(q);
@@ -49,7 +49,7 @@ index 6576efa..7f08a08 100644
  		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
  
  		if (umoptions && strlen(umoptions) > 0)
-@@ -16542,6 +16545,35 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
+@@ -16589,6 +16592,35 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
  			destroyPQExpBuffer(q2);
  		}
  

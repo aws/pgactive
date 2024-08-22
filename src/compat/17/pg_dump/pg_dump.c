@@ -336,6 +336,7 @@ static bool nonemptyReloptions(const char *reloptions);
 static void appendReloptionsArrayAH(PQExpBuffer buffer, const char *reloptions,
 									const char *prefix, Archive *fout);
 static char *get_synchronized_snapshot(Archive *fout);
+static void set_restrict_relation_kind(Archive *AH, const char *value);
 static void setupDumpWorker(Archive *AH);
 static TableInfo *getRootTableInfo(const TableInfo *tbinfo);
 static bool forcePartitionRootLoad(const TableInfo *tbinfo);
@@ -1295,6 +1296,13 @@ setup_connection(Archive *AH, const char *dumpencoding,
 	}
 
 	/*
+	 * For security reasons, we restrict the expansion of non-system views and
+	 * access to foreign tables during the pg_dump process. This restriction
+	 * is adjusted when dumping foreign table data.
+	 */
+	set_restrict_relation_kind(AH, "view, foreign-table");
+
+	/*
 	 * Initialize prepared-query state to "nothing prepared".  We do this here
 	 * so that a parallel dump worker will have its own state.
 	 */
@@ -2162,6 +2170,10 @@ dumpTableData_copy(Archive *fout, const void *dcontext)
 	 */
 	if (tdinfo->filtercond || tbinfo->relkind == RELKIND_FOREIGN_TABLE)
 	{
+		/* Temporary allows to access to foreign tables to dump data */
+		if (tbinfo->relkind == RELKIND_FOREIGN_TABLE)
+			set_restrict_relation_kind(fout, "view");
+
 		appendPQExpBufferStr(q, "COPY (SELECT ");
 		/* klugery to get rid of parens in column list */
 		if (strlen(column_list) > 2)
@@ -2273,6 +2285,11 @@ dumpTableData_copy(Archive *fout, const void *dcontext)
 					   classname);
 
 	destroyPQExpBuffer(q);
+
+	/* Revert back the setting */
+	if (tbinfo->relkind == RELKIND_FOREIGN_TABLE)
+		set_restrict_relation_kind(fout, "view, foreign-table");
+
 	return 1;
 }
 
@@ -2298,6 +2315,10 @@ dumpTableData_insert(Archive *fout, const void *dcontext)
 				i;
 	int			rows_per_statement = dopt->dump_inserts;
 	int			rows_this_statement = 0;
+
+	/* Temporary allows to access to foreign tables to dump data */
+	if (tbinfo->relkind == RELKIND_FOREIGN_TABLE)
+		set_restrict_relation_kind(fout, "view");
 
 	/*
 	 * If we're going to emit INSERTs with column names, the most efficient
@@ -2537,6 +2558,10 @@ dumpTableData_insert(Archive *fout, const void *dcontext)
 	if (insertStmt != NULL)
 		destroyPQExpBuffer(insertStmt);
 	free(attgenerated);
+
+	/* Revert back the setting */
+	if (tbinfo->relkind == RELKIND_FOREIGN_TABLE)
+		set_restrict_relation_kind(fout, "view, foreign-table");
 
 	return 1;
 }
@@ -3535,7 +3560,7 @@ dumpStdStrings(Archive *AH)
 	const char *stdstrings = AH->std_strings ? "on" : "off";
 	PQExpBuffer qry = createPQExpBuffer();
 
-	pg_log_info("saving standard_conforming_strings = %s",
+	pg_log_info("saving \"standard_conforming_strings = %s\"",
 				stdstrings);
 
 	appendPQExpBuffer(qry, "SET standard_conforming_strings = '%s';\n",
@@ -3593,7 +3618,7 @@ dumpSearchPath(Archive *AH)
 	appendStringLiteralAH(qry, path->data, AH);
 	appendPQExpBufferStr(qry, ", false);\n");
 
-	pg_log_info("saving search_path = %s", path->data);
+	pg_log_info("saving \"search_path = %s\"", path->data);
 
 	ArchiveEntry(AH, nilCatalogId, createDumpId(),
 				 ARCHIVE_OPTS(.tag = "SEARCHPATH",
@@ -4709,6 +4734,28 @@ is_superuser(Archive *fout)
 		return true;
 
 	return false;
+}
+
+/*
+ * Set the given value to restrict_nonsystem_relation_kind value. Since
+ * restrict_nonsystem_relation_kind is introduced in minor version releases,
+ * the setting query is effective only where available.
+ */
+static void
+set_restrict_relation_kind(Archive *AH, const char *value)
+{
+	PQExpBuffer query = createPQExpBuffer();
+	PGresult   *res;
+
+	appendPQExpBuffer(query,
+					  "SELECT set_config(name, '%s', false) "
+					  "FROM pg_settings "
+					  "WHERE name = 'restrict_nonsystem_relation_kind'",
+					  value);
+	res = ExecuteSqlQuery(AH, query->data, PGRES_TUPLES_OK);
+
+	PQclear(res);
+	destroyPQExpBuffer(query);
 }
 
 /*
@@ -15767,6 +15814,7 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 	DumpOptions *dopt = fout->dopt;
 	PQExpBuffer q = createPQExpBuffer();
 	PQExpBuffer delq = createPQExpBuffer();
+	PQExpBuffer extra = createPQExpBuffer();
 	char	   *qrelname;
 	char	   *qualrelname;
 	int			numParents;
@@ -15833,7 +15881,7 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 		char	   *partkeydef = NULL;
 		char	   *ftoptions = NULL;
 		char	   *srvname = NULL;
-		char	   *foreign = "";
+		const char *foreign = "";
 
 		/*
 		 * Set reltypename, and collect any relkind-specific data that we
@@ -16191,51 +16239,98 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 			 tbinfo->relkind == RELKIND_FOREIGN_TABLE ||
 			 tbinfo->relkind == RELKIND_PARTITIONED_TABLE))
 		{
+			bool		firstitem;
+
+			/*
+			 * Drop any dropped columns.  Merge the pg_attribute manipulations
+			 * into a single SQL command, so that we don't cause repeated
+			 * relcache flushes on the target table.  Otherwise we risk O(N^2)
+			 * relcache bloat while dropping N columns.
+			 */
+			resetPQExpBuffer(extra);
+			firstitem = true;
 			for (j = 0; j < tbinfo->numatts; j++)
 			{
 				if (tbinfo->attisdropped[j])
 				{
-					appendPQExpBufferStr(q, "\n-- For binary upgrade, recreate dropped column.\n");
-					appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
-									  "SET attlen = %d, "
-									  "attalign = '%c', attbyval = false\n"
-									  "WHERE attname = ",
+					if (firstitem)
+					{
+						appendPQExpBufferStr(q, "\n-- For binary upgrade, recreate dropped columns.\n"
+											 "UPDATE pg_catalog.pg_attribute\n"
+											 "SET attlen = v.dlen, "
+											 "attalign = v.dalign, "
+											 "attbyval = false\n"
+											 "FROM (VALUES ");
+						firstitem = false;
+					}
+					else
+						appendPQExpBufferStr(q, ",\n             ");
+					appendPQExpBufferChar(q, '(');
+					appendStringLiteralAH(q, tbinfo->attnames[j], fout);
+					appendPQExpBuffer(q, ", %d, '%c')",
 									  tbinfo->attlen[j],
 									  tbinfo->attalign[j]);
-					appendStringLiteralAH(q, tbinfo->attnames[j], fout);
-					appendPQExpBufferStr(q, "\n  AND attrelid = ");
-					appendStringLiteralAH(q, qualrelname, fout);
-					appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
-
-					if (tbinfo->relkind == RELKIND_RELATION ||
-						tbinfo->relkind == RELKIND_PARTITIONED_TABLE)
-						appendPQExpBuffer(q, "ALTER TABLE ONLY %s ",
-										  qualrelname);
-					else
-						appendPQExpBuffer(q, "ALTER FOREIGN TABLE ONLY %s ",
-										  qualrelname);
-					appendPQExpBuffer(q, "DROP COLUMN %s;\n",
+					/* The ALTER ... DROP COLUMN commands must come after */
+					appendPQExpBuffer(extra, "ALTER %sTABLE ONLY %s ",
+									  foreign, qualrelname);
+					appendPQExpBuffer(extra, "DROP COLUMN %s;\n",
 									  fmtId(tbinfo->attnames[j]));
 				}
-				else if (!tbinfo->attislocal[j])
+			}
+			if (!firstitem)
+			{
+				appendPQExpBufferStr(q, ") v(dname, dlen, dalign)\n"
+									 "WHERE attrelid = ");
+				appendStringLiteralAH(q, qualrelname, fout);
+				appendPQExpBufferStr(q, "::pg_catalog.regclass\n"
+									 "  AND attname = v.dname;\n");
+				/* Now we can issue the actual DROP COLUMN commands */
+				appendBinaryPQExpBuffer(q, extra->data, extra->len);
+			}
+
+			/*
+			 * Fix up inherited columns.  As above, do the pg_attribute
+			 * manipulations in a single SQL command.
+			 */
+			firstitem = true;
+			for (j = 0; j < tbinfo->numatts; j++)
+			{
+				if (!tbinfo->attisdropped[j] &&
+					!tbinfo->attislocal[j])
 				{
-					appendPQExpBufferStr(q, "\n-- For binary upgrade, recreate inherited column.\n");
-					appendPQExpBufferStr(q, "UPDATE pg_catalog.pg_attribute\n"
-										 "SET attislocal = false\n"
-										 "WHERE attname = ");
+					if (firstitem)
+					{
+						appendPQExpBufferStr(q, "\n-- For binary upgrade, recreate inherited columns.\n");
+						appendPQExpBufferStr(q, "UPDATE pg_catalog.pg_attribute\n"
+											 "SET attislocal = false\n"
+											 "WHERE attrelid = ");
+						appendStringLiteralAH(q, qualrelname, fout);
+						appendPQExpBufferStr(q, "::pg_catalog.regclass\n"
+											 "  AND attname IN (");
+						firstitem = false;
+					}
+					else
+						appendPQExpBufferStr(q, ", ");
 					appendStringLiteralAH(q, tbinfo->attnames[j], fout);
-					appendPQExpBufferStr(q, "\n  AND attrelid = ");
-					appendStringLiteralAH(q, qualrelname, fout);
-					appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
 				}
 			}
+			if (!firstitem)
+				appendPQExpBufferStr(q, ");\n");
 
 			/*
 			 * Add inherited CHECK constraints, if any.
 			 *
 			 * For partitions, they were already dumped, and conislocal
 			 * doesn't need fixing.
+			 *
+			 * As above, issue only one direct manipulation of pg_constraint.
+			 * Although it is tempting to merge the ALTER ADD CONSTRAINT
+			 * commands into one as well, refrain for now due to concern about
+			 * possible backend memory bloat if there are many such
+			 * constraints.
 			 */
+			resetPQExpBuffer(extra);
+			firstitem = true;
 			for (k = 0; k < tbinfo->ncheck; k++)
 			{
 				ConstraintInfo *constr = &(tbinfo->checkexprs[k]);
@@ -16243,18 +16338,31 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 				if (constr->separate || constr->conislocal || tbinfo->ispartition)
 					continue;
 
-				appendPQExpBufferStr(q, "\n-- For binary upgrade, set up inherited constraint.\n");
+				if (firstitem)
+					appendPQExpBufferStr(q, "\n-- For binary upgrade, set up inherited constraints.\n");
 				appendPQExpBuffer(q, "ALTER %sTABLE ONLY %s ADD CONSTRAINT %s %s;\n",
 								  foreign, qualrelname,
 								  fmtId(constr->dobj.name),
 								  constr->condef);
-				appendPQExpBufferStr(q, "UPDATE pg_catalog.pg_constraint\n"
-									 "SET conislocal = false\n"
-									 "WHERE contype = 'c' AND conname = ");
-				appendStringLiteralAH(q, constr->dobj.name, fout);
-				appendPQExpBufferStr(q, "\n  AND conrelid = ");
-				appendStringLiteralAH(q, qualrelname, fout);
-				appendPQExpBufferStr(q, "::pg_catalog.regclass;\n");
+				/* Update pg_constraint after all the ALTER TABLEs */
+				if (firstitem)
+				{
+					appendPQExpBufferStr(extra, "UPDATE pg_catalog.pg_constraint\n"
+										 "SET conislocal = false\n"
+										 "WHERE contype = 'c' AND conrelid = ");
+					appendStringLiteralAH(extra, qualrelname, fout);
+					appendPQExpBufferStr(extra, "::pg_catalog.regclass\n");
+					appendPQExpBufferStr(extra, "  AND conname IN (");
+					firstitem = false;
+				}
+				else
+					appendPQExpBufferStr(extra, ", ");
+				appendStringLiteralAH(extra, constr->dobj.name, fout);
+			}
+			if (!firstitem)
+			{
+				appendPQExpBufferStr(extra, ");\n");
+				appendBinaryPQExpBuffer(q, extra->data, extra->len);
 			}
 
 			if (numParents > 0 && !tbinfo->ispartition)
@@ -16470,7 +16578,7 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 			if (tbinfo->relkind == RELKIND_FOREIGN_TABLE &&
 				tbinfo->attfdwoptions[j][0] != '\0')
 				appendPQExpBuffer(q,
-								  "ALTER FOREIGN TABLE %s ALTER COLUMN %s OPTIONS (\n"
+								  "ALTER FOREIGN TABLE ONLY %s ALTER COLUMN %s OPTIONS (\n"
 								  "    %s\n"
 								  ");\n",
 								  qualrelname,
@@ -16571,6 +16679,7 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 
 	destroyPQExpBuffer(q);
 	destroyPQExpBuffer(delq);
+	destroyPQExpBuffer(extra);
 	free(qrelname);
 	free(qualrelname);
 }
