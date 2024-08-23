@@ -77,10 +77,10 @@ can define foreign servers for each connection information of pgactive nodes in 
 ### Joining a node
 
 When a new pgactive node is joined to an existing pgactive group, node is subscribed to an upstream peer, the system must copy the existing data from the peer node(s) to the local node before replication can begin. This copy has to be carefully coordinated so that the local and remote data starts out ***identical***, so it's not sufficient to just use pg_dump yourself. The extension provides built-in facilities for making this initial copy.
-Every pgactive node must be ***online and reachable*** when an attempt to join a new node is made. Otherwise the join will hang indefinitely or fail. pgactive is a mesh where every node must be able to communicate with every other node, and while it is tolerant of network partitions and interruptions all nodes need to know about every other node that exist. See [pgactive mesh network](technotes-mesh.md).
+Every pgactive node must be ***online and reachable*** when an attempt to join a new node is made. Otherwise the join will hang indefinitely or fail. pgactive is a mesh where every node must be able to communicate with every other node, and while it is tolerant of network partitions and interruptions all nodes need to know about every other node that exist.
 There are two ways to join a new pgactive node: logical or physical copy. After the initial copy is done there is no significant difference between physical or logical initialization of a pgactive node, so the choice is down to which setup method will be quickest and easiest for your particular needs.
 In a logical copy, a blank database in an existing standalone PostgreSQL instance is enabled for pgactive via SQL functions calls. The pgactive extension makes a connection to an upstream node designated by the user and takes a schema and data dump of that node. The dump is then applied to the local blank database before replication begins. Only the specified database is copied. With a logical copy you don't have to create new init scripts, run separate instances on separate ports, etc, as everything happens in your existing PostgreSQL instance.
-In a physical copy, the [pgactive_init_copy](command-pgactive-init-copy.md) is used to clone a user-designated upstream node. This clone is then reconfigured and started up as a new node before replication begins. All databases on the remote node are copied, though only the specified database is initially activated for pgactive. (Support for multiple database join may be added at a later date). After a physical node join or subscribe the admin will generally need to separately register the new PostgreSQL instance with the operating system to auto-start, as PostgreSQL does not do this automatically. You may also need to select a different PostgreSQL port if there is already a local PostgreSQL instance.
+In a physical copy, the pgactive_init_copy is used to clone a user-designated upstream node. This clone is then reconfigured and started up as a new node before replication begins. All databases on the remote node are copied, though only the specified database is initially activated for pgactive. (Support for multiple database join may be added at a later date). After a physical node join or subscribe the admin will generally need to separately register the new PostgreSQL instance with the operating system to auto-start, as PostgreSQL does not do this automatically. You may also need to select a different PostgreSQL port if there is already a local PostgreSQL instance.
 The advantages and disadvantages of each approach roughly mirror those of a logical backup using pg_dump and pg_restore vs a physical copy using pg_basebackup. See the [PostgreSQL backup](http://www.postgresql.org/docs/current/static/backup.html) for more information.
 In general it's more convenient to use logical join when you have an existing PostgreSQL instance, a reasonably small database, and other databases you might not also want to copy/replicate. Physical join is more appropriate for big databases that are the only database in a given PostgreSQL install.
 
@@ -91,7 +91,7 @@ Because a pgactive node can recover from extended outages it is necessary to exp
 
 Each node saves up change information using one replication slot for each peer node so it can replay changes to a temporarily unreachable node. If a peer node remains offline indefinitely this accumulating change information will cause the node to run out of storage space for PostgreSQL transaction logs (WAL, in pg_xlog), likely causing the database server to shut down with an error like:
 
-    PANIC: could not write to file "pg_xlog/xlogtemp.559": No space left on device
+PANIC: could not write to file "pg_xlog/xlogtemp.559": No space left on device
 
 or report other out-of-disk related symptoms.
 
@@ -219,7 +219,7 @@ pgactive does not have a distributed transaction manager or lock manager. That's
 
 In most cases appropriate application design can be used to avoid conflicts and/or the application can be made tolerant of conflicts.
 Conflicts can only happen if there are things happening at the same time on multiple nodes, so the simplest way to avoid conflicts is to only ever write to one node, or to only ever write to independent subsets of the database on each node. For example, each node might have a separate schema, and while they all exchange data with each other, writes are only ever performed on the node that "owns" a given schema.
-For `INSERT` vs `INSERT` conflicts, use of [Global sequences](global-sequences.md) can completely prevent conflicts.
+For `INSERT` vs `INSERT` conflicts, use of Global sequences can completely prevent conflicts.
 pgactive users may sometimes find it useful to perform distributed locking at the application level in cases where conflicts are not acceptable.
 The best course of action is frequently to allow conflicts to occur and design the application to work with pgactive's conflict resolution mechanisms to cope with the conflict.
 
@@ -227,10 +227,10 @@ The best course of action is frequently to allow conflicts to occur and design t
 
 ### Conflict logging
 
-To make diagnosis and handling of active-active conflicts easier, pgactive supports logging of each conflict incident in a [`pgactive.pgactive_conflict_history`](catalog-pgactive-conflict-history.md) table.
-Conflict logging to this table is only enabled when [pgactive.log_conflicts_to_table](pgactive-configuration-variables.md#GUC-pgactive-LOG-CONFLICTS-TO-TABLE) is `true` pgactive also logs conflicts to the PostgreSQL log file if `log_min_messages` is `LOG `or lower and [pgactive.log_conflicts_to_logfile](pgactive-configuration-variables.md#GUC-pgactive-LOG-CONFLICTS-TO-LOGFILE) is `true`, irrespective of the value of `pgactive.log_conflicts_to_table`.
+To make diagnosis and handling of active-active conflicts easier, pgactive supports logging of each conflict incident in a `pgactive.pgactive_conflict_history` table.
+Conflict logging to this table is only enabled when pgactive.log_conflicts_to_table is `true` pgactive also logs conflicts to the PostgreSQL log file if `log_min_messages` is `LOG `or lower and pgactive.log_conflicts_to_logfile is `true`, irrespective of the value of `pgactive.log_conflicts_to_table`.
 You can use the conflict history table to determine how rapidly your application creates conflicts and where those conflicts occur, allowing you to improve the application to reduce conflict rates. It also helps detect cases where conflict resolutions may not have produced the desired results, allowing you to identify places where a user defined conflict trigger or an application design change may be desirable.
-Row values may optionally be logged for row conflicts. This is controlled by the global database-wide option [`pgactive.log_conflicts_to_table`](pgactive-configuration-variables.md#GUC-pgactive-LOG-CONFLICTS-TO-TABLE). There is no per-table control over row value logging at this time. Nor is there any limit applied on the number of fields a row may have, number of elements dumped in arrays, length of fields, etc, so it may not be wise to enable this if you regularly work with multi-megabyte rows that may trigger conflicts.
+Row values may optionally be logged for row conflicts. This is controlled by the global database-wide option `pgactive.log_conflicts_to_table`. There is no per-table control over row value logging at this time. Nor is there any limit applied on the number of fields a row may have, number of elements dumped in arrays, length of fields, etc, so it may not be wise to enable this if you regularly work with multi-megabyte rows that may trigger conflicts.
 Because the conflict history table contains data on every table in the database so each row's schema might be different, if row values are logged they are stored as JSON fields. The JSON is created with `row_to_json()`, just like if you'd called it on the row yourself from SQL. There is no corresponding `json_to_row()` function in PostgreSQL at this time, so you'll need table-specific code (pl/pgsql, pl/python, pl/perl, whatever) if you want to reconstruct a composite-typed tuple from the logged JSON.
 
 
@@ -246,7 +246,7 @@ The major differences between physical replication and logical replication as im
 * Temporary tables may be used on replicas.
 * Tables that aren't being replicated from elsewhere may be written to pgactive.
 * Replication is per-database, whereas physical replication can and must replicate all databases.
-* pgactive's logical replication implementation imposes some restrictions on supported DDL (see: [DDL replication](ddl-replication.md)) that do not apply for physical replication
+* pgactive's logical replication implementation imposes some restrictions on supported DDL (see: DDL replication) that do not apply for physical replication
 * Because it's database-level not cluster-level, commands that affect all databases, like `ALTER SYSTEM` or `CREATE ROLE` are *not* replicated by pgactive and must be managed by the administrator.
 * Disk random I/O requirements and flush frequency may be higher than for physical replication.
 * Only completed transactions are replicated. Big transactions may have longer replication delays because replication doesn't start until the transaction completes. Aborted transactions' writes are never replicated at all.
