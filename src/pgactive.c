@@ -1759,7 +1759,7 @@ pgactive_get_worker_pid_byid(const pgactiveNodeId * const node, pgactiveWorkerTy
 Datum
 pgactive_get_workers_info(PG_FUNCTION_ARGS)
 {
-#define pgactive_GET_WORKERS_PID_COLS	6
+#define pgactive_GET_WORKERS_PID_COLS	8
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	int			i;
 
@@ -1781,10 +1781,6 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 
 		/* unused slot */
 		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
-			continue;
-
-		/* unconnected slot */
-		if (w->worker_proc == NULL)
 			continue;
 
 		if (w->worker_type == pgactive_WORKER_APPLY)
@@ -1826,6 +1822,18 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 		values[3] = PointerGetDatum(worker_type);
 		values[4] = Int32GetDatum(w->worker_pid);
 		values[5] = BoolGetDatum(unregistered);
+
+		if (w->last_error_info.errcode != PGACTIVE_ERRCODE_NONE)
+		{
+			Assert(w->last_error_info.errtime != 0);
+			values[6] = CStringGetTextDatum(pgactiveErrorMessages[w->last_error_info.errcode]);
+			values[7] = TimestampTzGetDatum(w->last_error_info.errtime);
+		}
+		else
+		{
+			nulls[6] = true;
+			nulls[7] = true;
+		}
 
 		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
 							 values, nulls);

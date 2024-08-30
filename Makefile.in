@@ -26,6 +26,7 @@ SHLIB_LINK = $(libpq)
 
 OBJS = src/pgactive.o \
 	src/pgactive_apply.o \
+	src/pgactive_elog.o \
 	src/pgactive_dbcache.o \
 	src/pgactive_ddlrep.o \
 	src/pgactive_ddlrep_truncate.o \

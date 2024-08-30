@@ -975,14 +975,15 @@ check_params_ensure_error_cleanup(PGconn *conn, char *node_name)
 		pgactive_get_remote_nodeinfo_internal(conn, &ri);
 
 		if (pgactive_max_nodes != ri.max_nodes)
-			ereport(ERROR,
-					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node %s value (%d)",
-							pgactive_max_nodes,
-							pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
-							node_name,
-							ri.max_nodes),
-					 errhint("The parameter must be set to the same value on all pgactive members.")));
+			ereport_pgactive(ERROR,
+							 PGACTIVE_ERROR_CODE_MAX_NODES_PARAM_MISMATCH,
+							 (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+							  errmsg("pgactive.max_nodes parameter value (%d) on local node " pgactive_NODEID_FORMAT_WITHNAME " doesn't match with remote node %s value (%d)",
+									 pgactive_max_nodes,
+									 pgactive_LOCALID_FORMAT_WITHNAME_ARGS,
+									 node_name,
+									 ri.max_nodes),
+							  errhint("The parameter must be set to the same value on all pgactive members.")));
 
 		if (prev_pgactive_skip_ddl_replication != ri.skip_ddl_replication)
 			ereport(ERROR,
@@ -1312,6 +1313,14 @@ pgactive_perdb_worker_main(Datum main_arg)
 
 	/* Launch the apply workers */
 	pgactive_maintain_db_workers();
+
+	/*
+	 * Reset if there's any last error info. We do this before getting into
+	 * the real business of the per-db worker, that is, after having performed
+	 * all initial checks, init_replica and one round of launching apply
+	 * workers.
+	 */
+	pgactive_reset_worker_last_error_info(pgactive_worker_slot);
 
 	while (!ProcDiePending)
 	{

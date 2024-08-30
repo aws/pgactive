@@ -212,7 +212,9 @@ CREATE FUNCTION pgactive_get_workers_info (
     OUT dboid oid,
     OUT worker_type text,
     OUT pid int4,
-    OUT unregistered boolean
+    OUT unregistered boolean,
+    OUT last_error text,
+    OUT last_error_time timestamptz
 )
 RETURNS SETOF record
 AS 'MODULE_PATHNAME'
