@@ -67,6 +67,7 @@
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/numeric.h"
 #include "catalog/pg_database.h"
 #include "utils/pg_lsn.h"
 #include "utils/snapmgr.h"
@@ -197,13 +198,7 @@ static bool pgactive_terminate_workers_byid(const pgactiveNodeId * const nodeid,
 
 static void pgactive_object_relabel(const ObjectAddress *object, const char *seclabel);
 
-static void GetConnectionDSN(uint64 sysid, StringInfoData *dsn);
-static void GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
-												 pgactiveNodeId myid,
-												 StringInfoData *dsn,
-												 TransactionId *xid,
-												 TimestampTz *committs,
-												 TimestampTz *applied_at);
+static void GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo);
 
 static const struct config_enum_entry pgactive_debug_trace_ddl_locks_level_options[] = {
 	{"debug", DDL_LOCK_TRACE_DEBUG, false},
@@ -2178,94 +2173,108 @@ pgactive_get_last_applied_xact_info(PG_FUNCTION_ARGS)
 }
 
 static void
-GetConnectionDSN(uint64 sysid, StringInfoData *dsn)
+GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 {
-	char		sysid_str[33];
-	char	   *result;
-	StringInfoData cmd;
-
-	snprintf(sysid_str, sizeof(sysid_str), UINT64_FORMAT, sysid);
-
-	initStringInfo(&cmd);
-	appendStringInfo(&cmd, "SELECT conn_dsn FROM pgactive.pgactive_connections WHERE conn_sysid = '%s';",
-					 sysid_str);
-
-	if (SPI_connect() != SPI_OK_CONNECT)
-		elog(ERROR, "SPI_connect failed");
-
-	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
-		elog(ERROR, "SPI_execute failed: %s", cmd.data);
-
-	Assert(SPI_processed == 1);
-	Assert(SPI_tuptable->tupdesc->natts == 1);
-
-	result = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-
-	appendStringInfo(dsn, "%s", result);
-
-	if (SPI_finish() != SPI_OK_FINISH)
-		elog(ERROR, "SPI_finish failed");
-
-	pfree(cmd.data);
-}
-
-static void
-GetLastAppliedXactInfoFromRemoteNode(char *sysid_str,
-									 pgactiveNodeId myid,
-									 StringInfoData *dsn,
-									 TransactionId *xid,
-									 TimestampTz *committs,
-									 TimestampTz *applied_at)
-{
+#define GET_REPLICATION_LAG_INFO_COLS	14
 	PGconn	   *conn;
 	PGresult   *res;
+	//ReturnSetInfo *rsinfo = rs;
 	StringInfoData cmd;
+	int row, col;
 
-	conn = pgactive_connect_nonrepl(dsn->data, "xact info", true, false);
+	initStringInfo(&cmd);
+	appendStringInfo(&cmd,
+		"SELECT pn.node_name, pn.node_sysid, psr.application_name, prs.slot_name::text, prs.active::boolean, prs.active_pid::int, \
+			pg_wal_lsn_diff(pg_current_wal_lsn(), COALESCE(psr.sent_lsn, prs.confirmed_flush_lsn))::bigint  pending_wal_decoding, \
+			pg_wal_lsn_diff(pg_current_wal_lsn(), psr.replay_lsn)::bigint pending_wal_to_apply, prs.restart_lsn, \
+			prs.confirmed_flush_lsn, psr.sent_lsn, psr.write_lsn, psr.flush_lsn, psr.replay_lsn \
+		FROM pgactive.pgactive_nodes pn \
+		JOIN pg_replication_slots prs on prs.slot_name ~ pn.node_sysid \
+		LEFT JOIN pg_stat_replication psr on psr.application_name ~ pn.node_sysid \
+		WHERE prs.plugin = 'pgactive'");
+
+	conn = pgactive_connect_nonrepl(dsn->data, "lag info", true, false);
+	if ( PQstatus(conn) != CONNECTION_OK )
+		return;
 
 	/* Make sure pgactive is actually present and active on the remote */
 	pgactive_ensure_ext_installed(conn);
-
-	*xid = InvalidTransactionId;
-	*committs = 0;
-	*applied_at = 0;
-
 	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 							PointerGetDatum(&conn));
 	{
-		initStringInfo(&cmd);
-		appendStringInfo(&cmd, "SELECT * FROM pgactive.pgactive_get_last_applied_xact_info('%s', %u, %u);",
-						 sysid_str, myid.timeline, myid.dboid);
 
 		res = PQexec(conn, cmd.data);
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
-			elog(ERROR, "unable to fetch apply info: status %s: %s",
+			elog(ERROR, "unable to fetch replication info: status %s: %s",
 				 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
 		}
 
 		if (PQntuples(res) == 0)
 			goto done;
 
-		if (PQntuples(res) != 1 || PQnfields(res) != 3)
+		if ( PQnfields(res) != GET_REPLICATION_LAG_INFO_COLS)
 		{
-			elog(ERROR, "could not fetch apply info: got %d rows and %d columns, expected 1 row and 3 columns",
-				 PQntuples(res), PQnfields(res));
+			elog(ERROR, "could not fetch replication info: got %d columns, expected %d columns",
+				 PQnfields(res), GET_REPLICATION_LAG_INFO_COLS);
 		}
-
-		*xid = DatumGetObjectId(DirectFunctionCall1(oidin,
-													CStringGetDatum(PQgetvalue(res, 0, 0))));
-		*committs = DatumGetTimestampTz(
-										DirectFunctionCall3(timestamptz_in,
-															CStringGetDatum(PQgetvalue(res, 0, 1)),
-															ObjectIdGetDatum(InvalidOid),
-															Int32GetDatum(-1)));
-		*applied_at = DatumGetTimestampTz(
-										  DirectFunctionCall3(timestamptz_in,
-															  CStringGetDatum(PQgetvalue(res, 0, 2)),
-															  ObjectIdGetDatum(InvalidOid),
-															  Int32GetDatum(-1)));
+		for ( row = 0; row < PQntuples(res); row++ ) {
+			Datum values[GET_REPLICATION_LAG_INFO_COLS] = {0};
+			bool nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
+			for ( col = 0; col < PQnfields(res); col++ )
+			{
+				if (PQgetisnull(res, row, col)) {
+					nulls[col]=true;
+				} else {
+					switch (col) {
+						case 0:
+							values[col]=CStringGetTextDatum(PQgetvalue(res, row, col));
+							break;
+						case 1:
+							values[col]=CStringGetTextDatum(PQgetvalue(res, row, col));
+							break;
+						case 2:
+							values[col]=CStringGetTextDatum(PQgetvalue(res, row, col));
+							break;
+						case 3:
+							values[col]=CStringGetTextDatum(PQgetvalue(res, row, col));
+							break;
+						case 4:
+							values[col]=BoolGetDatum(PQgetvalue(res, row, col));
+							break;
+						case 5:
+							values[col]=Int32GetDatum(atoi(PQgetvalue(res, row, col)));
+							break;
+						case 6:
+							values[col]=Int64GetDatum(atol(PQgetvalue(res, row, col)));
+							break;
+						case 7:
+							values[col]=Int64GetDatum(atol(PQgetvalue(res, row, col)));
+							break;
+						case 8:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+						case 9:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+						case 10:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+						case 11:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+						case 12:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+						case 13:
+							values[col]=DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+							break;
+					}
+				}
+			}
+			tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc, values, nulls);
+		}
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
 								PointerGetDatum(&conn));
@@ -2274,6 +2283,7 @@ done:
 	pfree(cmd.data);
 	PQclear(res);
 	PQfinish(conn);
+#undef GET_REPLICATION_LAG_INFO_COLS
 }
 
 /* For 2.1.0 backward compatibility */
@@ -2286,87 +2296,44 @@ get_replication_lag_info(PG_FUNCTION_ARGS)
 Datum
 pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 {
-#define GET_REPLICATION_LAG_INFO_COLS	7
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
-	int			i;
-	pgactiveNodeId myid;
-	char		local_sysid_str[33];
+	char	   *result;
+	StringInfoData cmd;
+	int i;
 
-	pgactive_make_my_nodeid(&myid);
-	snprintf(local_sysid_str, sizeof(local_sysid_str), UINT64_FORMAT,
-			 myid.sysid);
 
 	/* Construct the tuplestore and tuple descriptor */
 	InitMaterializedSRF(fcinfo, 0);
 
-	LWLockAcquire(pgactiveWorkerCtl->lock, LW_SHARED);
-	for (i = 0; i < pgactive_max_workers; i++)
-	{
-		pgactiveWorker *w = &pgactiveWorkerCtl->slots[i];
-		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
-		bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
-		pgactiveWalsenderWorker *ws;
+	initStringInfo(&cmd);
+	appendStringInfo(&cmd, "SELECT node_dsn FROM pgactive.pgactive_nodes WHERE node_status = 'r';");
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_execute failed: %s", cmd.data);
+
+	Assert(SPI_processed > 0);
+
+	for (i = 0; i < SPI_processed; i++) {
 		StringInfoData conn_dsn;
-		TransactionId last_applied_xact_id;
-		TimestampTz last_applied_xact_committs;
-		TimestampTz last_applied_xact_at;
-
-		/* unused slot */
-		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
-			continue;
-
-		/* unconnected slot */
-		if (w->worker_proc == NULL)
-			continue;
-
-		/* we'll deal with walsender workers only */
-		if (w->worker_type == pgactive_WORKER_APPLY ||
-			w->worker_type == pgactive_WORKER_PERDB)
-			continue;
-
-		Assert(w->worker_type == pgactive_WORKER_WALSENDER);
-		ws = &w->data.walsnd;
-
 		initStringInfo(&conn_dsn);
-		GetConnectionDSN(ws->remote_node.sysid, &conn_dsn);
-		GetLastAppliedXactInfoFromRemoteNode(local_sysid_str, myid, &conn_dsn,
-											 &last_applied_xact_id,
-											 &last_applied_xact_committs,
-											 &last_applied_xact_at);
+
+		result = SPI_getvalue(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1);
+		appendStringInfo(&conn_dsn, "%s", result);
+
+		GetReplicationStats(&conn_dsn, rsinfo);
+
 		pfree(conn_dsn.data);
-
-		values[0] = NameGetDatum(&ws->slot->data.name);
-		values[1] = ObjectIdGetDatum(ws->last_sent_xact_id);
-
-		if (ws->last_sent_xact_committs != 0)
-			values[2] = TimestampTzGetDatum(ws->last_sent_xact_committs);
-		else
-			nulls[2] = true;
-
-		if (ws->last_sent_xact_at != 0)
-			values[3] = TimestampTzGetDatum(ws->last_sent_xact_at);
-		else
-			nulls[3] = true;
-
-		values[4] = ObjectIdGetDatum(last_applied_xact_id);
-
-		if (last_applied_xact_committs != 0)
-			values[5] = TimestampTzGetDatum(last_applied_xact_committs);
-		else
-			nulls[5] = true;
-
-		if (last_applied_xact_at != 0)
-			values[6] = TimestampTzGetDatum(last_applied_xact_at);
-		else
-			nulls[6] = true;
-
-		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc,
-							 values, nulls);
 	}
-	LWLockRelease(pgactiveWorkerCtl->lock);
+
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+
+	pfree(cmd.data);
 
 	PG_RETURN_VOID();
-#undef GET_REPLICATION_LAG_INFO_COLS
 }
 
 /* For 2.1.0 backward compatibility */
