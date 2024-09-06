@@ -615,8 +615,8 @@ PACKAGE_NAME='pgactive'
 PACKAGE_TARNAME='pgactive'
 PACKAGE_VERSION='pgactive-next'
 PACKAGE_STRING='pgactive pgactive-next'
-PACKAGE_BUGREPORT='pgsql-bugs@postgresql.org'
-PACKAGE_URL='http://2ndquadrant.com/en/resources/pgactive/'
+PACKAGE_BUGREPORT='https://github.com/aws/pgactive/issues/new/choose'
+PACKAGE_URL='https://github.com/aws/pgactive'
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
@@ -1323,8 +1323,8 @@ Some influential environment variables:
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
-Report bugs to <pgsql-bugs@postgresql.org>.
-pgactive home page: <http://2ndquadrant.com/en/resources/pgactive/>.
+Report bugs to <https://github.com/aws/pgactive/issues/new/choose>.
+pgactive home page: <https://github.com/aws/pgactive/>.
 _ACEOF
 ac_status=$?
 fi
@@ -3922,8 +3922,8 @@ $config_files
 Configuration headers:
 $config_headers
 
-Report bugs to <pgsql-bugs@postgresql.org>.
-pgactive home page: <http://2ndquadrant.com/en/resources/pgactive/>."
+Report bugs to <https://github.com/aws/pgactive/issues/new/choose>.
+pgactive home page: <https://github.com/aws/pgactive>."
 
 _ACEOF
 ac_cs_config=`printf "%s\n" "$ac_configure_args" | sed "$ac_safe_unquote"`

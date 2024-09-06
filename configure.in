@@ -1,4 +1,4 @@
-AC_INIT([pgactive], [pgactive-next], [pgsql-bugs@postgresql.org], [pgactive], [http://2ndquadrant.com/en/resources/pgactive/])
+AC_INIT([pgactive], [pgactive-next], [https://github.com/aws/pgactive/issues/new/choose], [pgactive], [https://github.com/aws/pgactive])
 AC_COPYRIGHT([Copyright (c) 1996-2015, PostgreSQL Global Development Group])
 
 AC_SUBST(configure_args, [$ac_configure_args])
