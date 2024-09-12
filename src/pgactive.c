@@ -2178,7 +2178,6 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 #define GET_REPLICATION_LAG_INFO_COLS	14
 	PGconn	   *conn;
 	PGresult   *res;
-	//ReturnSetInfo *rsinfo = rs;
 	StringInfoData cmd;
 	int row, col;
 
@@ -2189,12 +2188,12 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 			pg_wal_lsn_diff(pg_current_wal_lsn(), psr.replay_lsn)::bigint pending_wal_to_apply, prs.restart_lsn, \
 			prs.confirmed_flush_lsn, psr.sent_lsn, psr.write_lsn, psr.flush_lsn, psr.replay_lsn \
 		FROM pgactive.pgactive_nodes pn \
-		JOIN pg_replication_slots prs on prs.slot_name ~ pn.node_sysid \
-		LEFT JOIN pg_stat_replication psr on psr.application_name ~ pn.node_sysid \
+		JOIN pg_catalog.pg_replication_slots prs on prs.slot_name ~ pn.node_sysid \
+		LEFT JOIN pg_catalog.pg_stat_replication psr on psr.application_name ~ pn.node_sysid \
 		WHERE prs.plugin = 'pgactive'");
 
 	conn = pgactive_connect_nonrepl(dsn->data, "lag info", true, false);
-	if ( PQstatus(conn) != CONNECTION_OK )
+	if (PQstatus(conn) != CONNECTION_OK)
 		return;
 
 	/* Make sure pgactive is actually present and active on the remote */
@@ -2214,20 +2213,25 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 		if (PQntuples(res) == 0)
 			goto done;
 
-		if ( PQnfields(res) != GET_REPLICATION_LAG_INFO_COLS)
+		if (PQnfields(res) != GET_REPLICATION_LAG_INFO_COLS)
 		{
 			elog(ERROR, "could not fetch replication info: got %d columns, expected %d columns",
 				 PQnfields(res), GET_REPLICATION_LAG_INFO_COLS);
 		}
-		for ( row = 0; row < PQntuples(res); row++ ) {
+		for (row = 0; row < PQntuples(res); row++)
+		{
 			Datum values[GET_REPLICATION_LAG_INFO_COLS] = {0};
 			bool nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
-			for ( col = 0; col < PQnfields(res); col++ )
+			for (col = 0; col < PQnfields(res); col++)
 			{
-				if (PQgetisnull(res, row, col)) {
+				if (PQgetisnull(res, row, col))
+				{
 					nulls[col]=true;
-				} else {
-					switch (col) {
+				}
+				else
+				{
+					switch (col)
+					{
 						case 0:
 							values[col]=CStringGetTextDatum(PQgetvalue(res, row, col));
 							break;
@@ -2314,9 +2318,13 @@ pgactive_get_replication_lag_info(PG_FUNCTION_ARGS)
 	if (SPI_execute(cmd.data, false, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_execute failed: %s", cmd.data);
 
-	Assert(SPI_processed > 0);
+	if (SPI_processed < 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("pgactive is not active in this database")));
 
-	for (i = 0; i < SPI_processed; i++) {
+	for (i = 0; i < SPI_processed; i++)
+	{
 		StringInfoData conn_dsn;
 		initStringInfo(&conn_dsn);
 
