@@ -2615,6 +2615,7 @@ pgactive_apply_work(PGconn *streamConn)
 	int			fd;
 	char	   *copybuf = NULL;
 	XLogRecPtr	last_received = InvalidXLogRecPtr;
+	static bool first_time = true;
 
 	fd = PQsocket(streamConn);
 
@@ -2778,6 +2779,17 @@ pgactive_apply_work(PGconn *streamConn)
 		/* confirm all writes at once */
 		pgactive_send_feedback(streamConn, last_received,
 							   GetCurrentTimestamp(), false);
+
+		if (first_time)
+		{
+			/*
+			 * Reset if there's any last error info. We do this after applying
+			 * at least one change. Because that is an indication of the apply
+			 * worker's recovery from the error.
+			 */
+			pgactive_reset_worker_last_error_info(pgactive_worker_slot);
+			first_time = false;
+		}
 
 		/*
 		 * If the user has paused replication with pgactive_apply_pause(), we
@@ -2983,6 +2995,9 @@ pgactive_apply_main(Datum main_arg)
 	}
 	PG_CATCH();
 	{
+		pgactive_set_worker_last_error_info(pgactive_worker_slot,
+											PGACTIVE_ERROR_CODE_APPLY_FAILURE);
+
 		if (IsTransactionState())
 			pgactive_count_rollback();
 		PG_RE_THROW();

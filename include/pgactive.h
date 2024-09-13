@@ -31,6 +31,7 @@
 #include "libpq-fe.h"
 
 #include "pgactive_config.h"
+#include "pgactive_elog.h"
 #include "pgactive_internal.h"
 #include "pgactive_version.h"
 #include "pgactive_compat.h"
@@ -383,6 +384,8 @@ typedef struct pgactiveWorker
 	/* proc entry of worker if running, or NULL */
 	PGPROC	   *worker_proc;
 
+	/* last error info of worker */
+	pgactiveLastErrorInfo last_error_info;
 	union data
 	{
 		pgactiveApplyWorker apply;

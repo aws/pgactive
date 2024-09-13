@@ -60,6 +60,14 @@ my $result = find_in_log($node_b,
 	$logstart_b);
 ok($result, "pgactive.max_nodes parameter value mismatch between local node and remote node is detected");
 
+# Check if the per-db worker's last error was logged and reported correctly
+my $res = $node_b->safe_psql($pgactive_test_dbname,
+  qq[SELECT COUNT(*) = 1 AS ok FROM pgactive.pgactive_get_workers_info()
+        WHERE worker_type = 'per-db' AND
+        last_error = 'pgactive_max_nodes_parameter_mismatch' AND
+        last_error_time IS NOT NULL;]);
+is($res, 't', "pgactive error info has been reported correctly");
+
 # Change pgactive.max_nodes value on node to make it successfully start per-db and
 # apply workers.
 $node_b->append_conf('postgresql.conf', qq(pgactive.max_nodes = 2));
@@ -170,6 +178,22 @@ is($node_0->safe_psql($pgactive_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
    '2', "Changes available on node_0");
 is($node_1->safe_psql($pgactive_test_dbname, q[SELECT COUNT(*) FROM fruits;]),
    '2', "Changes available on node_1");
+
+# Check if the apply worker's last error was logged and reported correctly
+$node_1->append_conf('postgresql.conf', q{pgactive.skip_ddl_replication = true});
+$node_1->restart;
+
+# Induce the apply error
+$node_1->safe_psql($pgactive_test_dbname,
+    q[ALTER TABLE fruits DROP COLUMN name;]);
+$node_0->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (3, 'Mango');]);
+
+$node_1->poll_query_until($pgactive_test_dbname,
+  qq[SELECT COUNT(*) = 1 AS ok FROM pgactive.pgactive_get_workers_info()
+        WHERE worker_type = 'apply' AND
+        last_error = 'pgactive_apply_failure' AND
+        last_error_time IS NOT NULL;]);
 
 $node_0->stop;
 $node_1->stop;
