@@ -63,7 +63,7 @@ static int	numExtensions;
 static int	numPublications;
 
 /* This is an array of object identities, not actual DumpableObjects */
-static ExtensionMemberId *extmembers;
+static ExtensionMemberId * extmembers;
 static int	numextmembers;
 
 static void flagInhTables(Archive *fout, TableInfo *tbinfo, int numTables,
@@ -992,7 +992,7 @@ findIndexByOid(Oid oid, DumpableObject **idxinfoindex, int numIndexes)
  *	  accept and save data about which objects belong to extensions
  */
 void
-setExtensionMembership(ExtensionMemberId *extmems, int nextmems)
+setExtensionMembership(ExtensionMemberId * extmems, int nextmems)
 {
 	/* Sort array in preparation for binary searches */
 	if (nextmems > 1)
@@ -1048,8 +1048,8 @@ findOwningExtension(CatalogId catalogId)
 static int
 ExtensionMemberIdCompare(const void *p1, const void *p2)
 {
-	const ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
-	const ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
+	const		ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
+	const		ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
 	int			cmpval;
 
 	/*

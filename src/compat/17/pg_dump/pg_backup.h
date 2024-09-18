@@ -164,7 +164,7 @@ typedef struct _dumpOptions
 	ConnParams	cparams;
 
 	int			binary_upgrade;
-	int                     pgactive_init_node;
+	int			pgactive_init_node;
 
 	/* various user-settable parameters */
 	bool		schemaOnly;

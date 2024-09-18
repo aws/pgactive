@@ -46,7 +46,7 @@ typedef struct _outputContext
 {
 	void	   *OF;
 	int			gzOut;
-} OutputContext;
+}			OutputContext;
 
 /*
  * State for tracking TocEntrys that are ready to process during a parallel
@@ -64,7 +64,7 @@ typedef struct _parallelReadyList
 	int			first_te;		/* index of first valid entry in tes[] */
 	int			last_te;		/* index of last valid entry in tes[] */
 	bool		sorted;			/* are valid entries currently sorted? */
-} ParallelReadyList;
+}			ParallelReadyList;
 
 
 static ArchiveHandle *_allocAH(const char *FileSpec, const ArchiveFormat fmt,
@@ -113,17 +113,17 @@ static void restore_toc_entries_postfork(ArchiveHandle *AH,
 static void pending_list_header_init(TocEntry *l);
 static void pending_list_append(TocEntry *l, TocEntry *te);
 static void pending_list_remove(TocEntry *te);
-static void ready_list_init(ParallelReadyList *ready_list, int tocCount);
-static void ready_list_free(ParallelReadyList *ready_list);
-static void ready_list_insert(ParallelReadyList *ready_list, TocEntry *te);
-static void ready_list_remove(ParallelReadyList *ready_list, int i);
-static void ready_list_sort(ParallelReadyList *ready_list);
+static void ready_list_init(ParallelReadyList * ready_list, int tocCount);
+static void ready_list_free(ParallelReadyList * ready_list);
+static void ready_list_insert(ParallelReadyList * ready_list, TocEntry *te);
+static void ready_list_remove(ParallelReadyList * ready_list, int i);
+static void ready_list_sort(ParallelReadyList * ready_list);
 static int	TocEntrySizeCompare(const void *p1, const void *p2);
 static void move_to_ready_list(TocEntry *pending_list,
-							   ParallelReadyList *ready_list,
+							   ParallelReadyList * ready_list,
 							   RestorePass pass);
 static TocEntry *pop_next_work_item(ArchiveHandle *AH,
-									ParallelReadyList *ready_list,
+									ParallelReadyList * ready_list,
 									ParallelState *pstate);
 static void mark_dump_job_done(ArchiveHandle *AH,
 							   TocEntry *te,
@@ -138,7 +138,7 @@ static bool has_lock_conflicts(TocEntry *te1, TocEntry *te2);
 static void repoint_table_dependencies(ArchiveHandle *AH);
 static void identify_locking_dependencies(ArchiveHandle *AH, TocEntry *te);
 static void reduce_dependencies(ArchiveHandle *AH, TocEntry *te,
-								ParallelReadyList *ready_list);
+								ParallelReadyList * ready_list);
 static void mark_create_done(ArchiveHandle *AH, TocEntry *te);
 static void inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te);
 
@@ -4275,7 +4275,7 @@ pending_list_remove(TocEntry *te)
  * Initialize the ready_list with enough room for up to tocCount entries.
  */
 static void
-ready_list_init(ParallelReadyList *ready_list, int tocCount)
+ready_list_init(ParallelReadyList * ready_list, int tocCount)
 {
 	ready_list->tes = (TocEntry **)
 		pg_malloc(tocCount * sizeof(TocEntry *));
@@ -4288,14 +4288,14 @@ ready_list_init(ParallelReadyList *ready_list, int tocCount)
  * Free storage for a ready_list.
  */
 static void
-ready_list_free(ParallelReadyList *ready_list)
+ready_list_free(ParallelReadyList * ready_list)
 {
 	pg_free(ready_list->tes);
 }
 
 /* Add te to the ready_list */
 static void
-ready_list_insert(ParallelReadyList *ready_list, TocEntry *te)
+ready_list_insert(ParallelReadyList * ready_list, TocEntry *te)
 {
 	ready_list->tes[++ready_list->last_te] = te;
 	/* List is (probably) not sorted anymore. */
@@ -4304,7 +4304,7 @@ ready_list_insert(ParallelReadyList *ready_list, TocEntry *te)
 
 /* Remove the i'th entry in the ready_list */
 static void
-ready_list_remove(ParallelReadyList *ready_list, int i)
+ready_list_remove(ParallelReadyList * ready_list, int i)
 {
 	int			f = ready_list->first_te;
 
@@ -4328,7 +4328,7 @@ ready_list_remove(ParallelReadyList *ready_list, int i)
 
 /* Sort the ready_list into the desired order */
 static void
-ready_list_sort(ParallelReadyList *ready_list)
+ready_list_sort(ParallelReadyList * ready_list)
 {
 	if (!ready_list->sorted)
 	{
@@ -4374,7 +4374,7 @@ TocEntrySizeCompare(const void *p1, const void *p2)
  */
 static void
 move_to_ready_list(TocEntry *pending_list,
-				   ParallelReadyList *ready_list,
+				   ParallelReadyList * ready_list,
 				   RestorePass pass)
 {
 	TocEntry   *te;
@@ -4408,7 +4408,7 @@ move_to_ready_list(TocEntry *pending_list,
  * no remaining dependencies, but we have to check for lock conflicts.
  */
 static TocEntry *
-pop_next_work_item(ArchiveHandle *AH, ParallelReadyList *ready_list,
+pop_next_work_item(ArchiveHandle *AH, ParallelReadyList * ready_list,
 				   ParallelState *pstate)
 {
 	/*
@@ -4758,7 +4758,7 @@ identify_locking_dependencies(ArchiveHandle *AH, TocEntry *te)
  */
 static void
 reduce_dependencies(ArchiveHandle *AH, TocEntry *te,
-					ParallelReadyList *ready_list)
+					ParallelReadyList * ready_list)
 {
 	int			i;
 

@@ -590,7 +590,7 @@ typedef struct _blobInfo
 	DumpableObject dobj;
 	DumpableAcl dacl;
 	const char *rolname;
-} BlobInfo;
+}			BlobInfo;
 
 /*
  * The PolicyInfo struct is used to represent policies on a table and

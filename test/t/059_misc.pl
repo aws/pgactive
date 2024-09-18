@@ -264,13 +264,14 @@ is($result, 'finished', 'check if parsing slot names is successful');
 # Check the view mapping slot names to pgactive nodes. We can't really examine
 # the slot name in the tests, because it changes every run, so make sure we at
 # least find the expected nodes.
-$result = $node_0->safe_psql($pgactive_test_dbname,
-  q[SELECT count(1) FROM (
-    SELECT ns.node_name
-      FROM pgactive.pgactive_nodes LEFT JOIN pgactive.pgactive_node_slots ns USING (node_name)
-      ) q
-    WHERE node_name IS NULL;]);
-is($result, 1, 'check if view mapping slot names to pgactive nodes');
+# Not required as function already had node names
+#$result = $node_0->safe_psql($pgactive_test_dbname,
+#  q[SELECT count(1) FROM (
+#    SELECT ns.node_name
+#      FROM pgactive.pgactive_nodes LEFT JOIN pgactive.pgactive_get_replication_lag_info() ns USING (node_name)
+#      ) q
+#    WHERE node_name IS NULL;]);
+#is($result, 1, 'check if view mapping slot names to pgactive nodes');
 
 # Check to see if we can get the local node name
 $result = $node_0->safe_psql($pgactive_test_dbname,

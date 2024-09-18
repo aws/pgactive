@@ -436,14 +436,14 @@ sub check_join_status {
 
     # The new node's slot on the join target must be created
     is(
-        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_node_slots WHERE node_name = '$join_node_name')]),
+        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info() WHERE node_name = '$join_node_name')]),
         't',
         qq(replication slot for $join_node_name on $upstream_node_name has been created)
     );
 
     # The join target's slot on the new node must be created
     is(
-        $join_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_node_slots WHERE node_name = '$upstream_node_name')]),
+        $join_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info() WHERE node_name = '$upstream_node_name')]),
         't',
         qq(replication slot for $upstream_node_name on $join_node_name has been created)
     );
@@ -470,8 +470,9 @@ sub check_join_status {
 
 sub wait_detach_completion {
     my ($detach_node, $upstream_node) = @_;
+    my $detach_node_name = $detach_node->name();
 
-    if (!$upstream_node->poll_query_until($pgactive_test_dbname, qq[SELECT NOT EXISTS (SELECT 1 FROM pgactive.pgactive_node_slots WHERE node_name = '] . $detach_node->name . "')")) {
+    if (!$upstream_node->poll_query_until($pgactive_test_dbname, qq[SELECT NOT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info() WHERE node_name = '$detach_node_name' and active)])) {
         cluck("replication slot for node " . $detach_node->name . " on " . $upstream_node->name . " was not removed, trying to continue anyway");
     }
 }
@@ -488,7 +489,7 @@ sub pgactive_detach_nodes {
 
     for my $detach_node (@{$pgactive_detach_nodes}) {
         my $detach_node_name = $detach_node->name();
-        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_node_slots WHERE node_name = '$detach_node_name')])
+        $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info() WHERE node_name = '$detach_node_name')])
             or BAIL_OUT("could not find existing slot for $detach_node_name on $upstream_node_name before detaching");
     }
 
@@ -552,7 +553,7 @@ sub check_detach_status {
 
         # The downstream's slot on the upstream MUST be gone
         is(
-            $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_node_slots WHERE node_name = '$detach_node_name')]),
+            $upstream_node->safe_psql($pgactive_test_dbname, qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info() WHERE active and node_name = '$detach_node_name')]),
             'f',
             qq(replication slot for $detach_node_name on $upstream_node_name has been removed)
         );

@@ -192,12 +192,14 @@ Your active-active PostgreSQL cluster is now initialized
 
 ### Monitoring replication lag
 
-Monitoring and alerting replication lag is crucial for pgactive. pgactive can have lag at the decoding node or/and at the applying node. When receiving node is down due to maintenance, networking issue, or hardware issue, WAL will accumulate on the WAL sender node and if issue if not rectified on-time, sender node may run of disc space or WAL accumulate can get to a point where receiving node may never catch up. When at receiving node WAL apply results in error due to schema differences, unique/primary key violation, or other reasons, WAL will get accumulated on receiving node and eventually node will run out of disc space if issue is not rectified on time.
+Monitoring and alerting replication lag is crucial for pgactive. pgactive can have lag at the decoding node or/and at the applying node. When receiving node is down due to maintenance, networking issue, or hardware issue, WAL will accumulate on the WAL sender node and if issue is not rectified on-time, sender node may run of disc space or WAL accumulate can get to a point where receiving node may never catch up. When at receiving node WAL apply results in error due to schema differences, unique/primary key violation, or other reasons, WAL will get accumulated on receiving node and eventually node will run out of disc space if issue is not rectified on time.
 
 
 Monitoring replication lag lets you diagnose potential issues with your active-active replication and helps mitigate the risk of introducing conflicting changes into your system or running of disc space.
 
-pgactive provide a handy function `pgactive.pgactive_get_replication_lag_info()` which provides at a glance lag info for the whole cluster.
+pgactive provide a handy function `pgactive.pgactive_get_replication_lag_info()`, this function can be executed from any pgactive node to capture at a glance lag info for the whole cluster.
+
+Following output is from a three node pgactive setup where `pgactive.pgactive_get_replication_lag_info()` was executed on pgactive1 node.  In this output, lag between pgactive1 and pagactive2, pgactive2 and pgactive3, and pgactive3 and pgactive1 is shown.
 
 ```
 postgres=# SELECT * FROM pgactive.pgactive_get_replication_lag_info();

@@ -74,7 +74,7 @@ struct CompressorState
 #endif
 };
 
-static void ParseCompressionOption(int compression, CompressionAlgorithm *alg,
+static void ParseCompressionOption(int compression, CompressionAlgorithm * alg,
 								   int *level);
 
 /* Routines that support zlib compressed data I/O */
@@ -99,7 +99,7 @@ static void WriteDataToArchiveNone(ArchiveHandle *AH, CompressorState *cs,
  * zlib compression level in *level.
  */
 static void
-ParseCompressionOption(int compression, CompressionAlgorithm *alg, int *level)
+ParseCompressionOption(int compression, CompressionAlgorithm * alg, int *level)
 {
 	if (compression == Z_DEFAULT_COMPRESSION ||
 		(compression > 0 && compression <= 9))
@@ -569,7 +569,7 @@ cfopen(const char *path, const char *mode, int compression)
 
 
 int
-cfread(void *ptr, int size, cfp *fp)
+cfread(void *ptr, int size, cfp * fp)
 {
 	int			ret;
 
@@ -600,7 +600,7 @@ cfread(void *ptr, int size, cfp *fp)
 }
 
 int
-cfwrite(const void *ptr, int size, cfp *fp)
+cfwrite(const void *ptr, int size, cfp * fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -611,7 +611,7 @@ cfwrite(const void *ptr, int size, cfp *fp)
 }
 
 int
-cfgetc(cfp *fp)
+cfgetc(cfp * fp)
 {
 	int			ret;
 
@@ -639,7 +639,7 @@ cfgetc(cfp *fp)
 }
 
 char *
-cfgets(cfp *fp, char *buf, int len)
+cfgets(cfp * fp, char *buf, int len)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -650,7 +650,7 @@ cfgets(cfp *fp, char *buf, int len)
 }
 
 int
-cfclose(cfp *fp)
+cfclose(cfp * fp)
 {
 	int			result;
 
@@ -677,7 +677,7 @@ cfclose(cfp *fp)
 }
 
 int
-cfeof(cfp *fp)
+cfeof(cfp * fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -688,7 +688,7 @@ cfeof(cfp *fp)
 }
 
 const char *
-get_cfp_error(cfp *fp)
+get_cfp_error(cfp * fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
