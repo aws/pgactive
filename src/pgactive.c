@@ -2199,89 +2199,85 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 
 	/* Make sure pgactive is actually present and active on the remote */
 	pgactive_ensure_ext_installed(conn);
-	PG_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-							PointerGetDatum(&conn));
+
+	res = PQexec(conn, cmd.data);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-
-		res = PQexec(conn, cmd.data);
-
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-		{
-			elog(ERROR, "unable to fetch replication info: status %s: %s",
-				 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
-		}
-
-		if (PQntuples(res) == 0)
-			goto done;
-
-		if (PQnfields(res) != GET_REPLICATION_LAG_INFO_COLS)
-		{
-			elog(ERROR, "could not fetch replication info: got %d columns, expected %d columns",
-				 PQnfields(res), GET_REPLICATION_LAG_INFO_COLS);
-		}
-		for (row = 0; row < PQntuples(res); row++)
-		{
-			Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
-			bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
-
-			for (col = 0; col < PQnfields(res); col++)
-			{
-				if (PQgetisnull(res, row, col))
-				{
-					nulls[col] = true;
-					continue;
-				}
-				switch (col)
-				{
-					case 0:
-						values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
-						break;
-					case 1:
-						values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
-						break;
-					case 2:
-						values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
-						break;
-					case 3:
-						values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
-						break;
-					case 4:
-						values[col] = DatumGetBool(DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 5:
-						values[col] = Int32GetDatum(atoi(PQgetvalue(res, row, col)));
-						break;
-					case 6:
-						values[col] = Int64GetDatum(atol(PQgetvalue(res, row, col)));
-						break;
-					case 7:
-						values[col] = Int64GetDatum(atol(PQgetvalue(res, row, col)));
-						break;
-					case 8:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 9:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 10:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 11:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 12:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-					case 13:
-						values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
-						break;
-				}
-			}
-			tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc, values, nulls);
-		}
+		elog(WARNING, "unable to fetch replication info: status %s: %s",
+			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+		goto done;
 	}
-	PG_END_ENSURE_ERROR_CLEANUP(pgactive_cleanup_conn_close,
-								PointerGetDatum(&conn));
+
+	if (PQntuples(res) == 0)
+		goto done;
+
+	if (PQnfields(res) != GET_REPLICATION_LAG_INFO_COLS)
+	{
+		elog(WARNING, "could not fetch replication info: got %d columns, expected %d columns",
+			 PQnfields(res), GET_REPLICATION_LAG_INFO_COLS);
+		goto done;
+	}
+	for (row = 0; row < PQntuples(res); row++)
+	{
+		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
+		bool		nulls[GET_REPLICATION_LAG_INFO_COLS] = {0};
+
+		for (col = 0; col < PQnfields(res); col++)
+		{
+			if (PQgetisnull(res, row, col))
+			{
+				nulls[col] = true;
+				continue;
+			}
+			switch (col)
+			{
+				case 0:
+					values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
+					break;
+				case 1:
+					values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
+					break;
+				case 2:
+					values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
+					break;
+				case 3:
+					values[col] = CStringGetTextDatum(PQgetvalue(res, row, col));
+					break;
+				case 4:
+					values[col] = DatumGetBool(DirectFunctionCall1(boolin, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 5:
+					values[col] = Int32GetDatum(atoi(PQgetvalue(res, row, col)));
+					break;
+				case 6:
+					values[col] = Int64GetDatum(atol(PQgetvalue(res, row, col)));
+					break;
+				case 7:
+					values[col] = Int64GetDatum(atol(PQgetvalue(res, row, col)));
+					break;
+				case 8:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 9:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 10:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 11:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 12:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+				case 13:
+					values[col] = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid, CStringGetDatum(PQgetvalue(res, row, col))));
+					break;
+			}
+		}
+		tuplestore_putvalues(rsinfo->setResult, rsinfo->setDesc, values, nulls);
+	}
 
 done:
 	pfree(cmd.data);

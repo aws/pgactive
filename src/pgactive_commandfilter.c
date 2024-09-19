@@ -792,9 +792,8 @@ prevent_drop_extension_pgactive(DropStmt *stmt)
 	/*
 	 * replace pgactive_permit_unsafe_commands by
 	 * pgactive_skip_ddl_replication for now
+	 *
 	 */
-	if (pgactive_skip_ddl_replication)
-		return;
 
 	/* Only interested in DROP EXTENSION */
 	if (stmt->removeType != OBJECT_EXTENSION)
@@ -910,6 +909,9 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							 errmsg("dropping of pgactive node identifier getter function is not allowed")));
 			}
+			/* prevent DROP EXTENSION pgactive; */
+			if (pgactive_is_pgactive_activated_db(MyDatabaseId))
+				prevent_drop_extension_pgactive((DropStmt *) parsetree);
 			break;
 		case T_AlterFunctionStmt:	/* ALTER FUNCTION */
 			altering_pgactive_nid_func =

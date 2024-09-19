@@ -14,10 +14,8 @@ BINDIR=$(@PG_CONFIG@ --bindir)
 REGRESS_BASE=$(@PG_CONFIG@ --pkglibdir)/pgxs/
 DBNAME=regression
 
+rm -rf @srcdir@/test/tmp_check
 mkdir -p @srcdir@/test/tmp_check
-rm -rf @srcdir@/test/tmp_check/data
-rm -rf @srcdir@/test/tmp_check/postmaster.log
-rm -rf @srcdir@/test/tmp_check/initdb.log
 mkdir @srcdir@/test/tmp_check/data
 
 set +e
