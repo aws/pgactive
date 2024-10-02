@@ -44,6 +44,10 @@
 #include "utils/builtins.h"
 #include "utils/pg_lsn.h"
 
+PGDLLEXPORT Datum pgactive_node_name_present(PG_FUNCTION_ARGS);
+
+PG_FUNCTION_INFO_V1(pgactive_node_name_present);
+
 PGDLLEXPORT Datum pgactive_get_node_info(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(pgactive_get_node_info);
@@ -559,4 +563,54 @@ pgactive_get_node_info(PG_FUNCTION_ARGS)
 	PQfinish(conn);
 
 	PG_RETURN_DATUM(HeapTupleGetDatum(returnTuple));
+}
+
+Datum
+pgactive_node_name_present(PG_FUNCTION_ARGS)
+{
+	char	   *node_name;
+	char	   *dsn;
+	int			is_present = 0;
+	PGconn	   *conn;
+	PGresult   *res;
+	StringInfoData cmd;
+
+	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
+		PG_RETURN_NULL();
+
+	node_name = text_to_cstring(PG_GETARG_TEXT_P(0));
+
+	dsn = text_to_cstring(PG_GETARG_TEXT_P(1));
+
+	initStringInfo(&cmd);
+	appendStringInfo(&cmd, "select count(1) from pgactive.pgactive_nodes where node_name = '%s' and node_status != 'k'", node_name);
+
+	conn = pgactive_connect_nonrepl(dsn, "pgactive", false, false);
+	if (PQstatus(conn) != CONNECTION_OK)
+	{
+		elog(ERROR, "unable to connect to remote node node:  %s", dsn);
+	}
+
+	res = PQexec(conn, cmd.data);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		elog(ERROR, "unable to fetch node info: status %s: %s",
+			 PQresStatus(PQresultStatus(res)), PQresultErrorMessage(res));
+	}
+
+	if (PQntuples(res) != 1 || PQnfields(res) != 1)
+	{
+		elog(ERROR, "could not fetch info: got %d rows and %d columns, expected 1 row and 1 columns",
+			 PQntuples(res), PQnfields(res));
+	}
+
+
+	is_present = atoi(PQgetvalue(res, 0, 0));
+
+	pfree(cmd.data);
+	PQclear(res);
+	PQfinish(conn);
+	PG_RETURN_INT32(is_present);
+
 }
