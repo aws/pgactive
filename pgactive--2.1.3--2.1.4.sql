@@ -385,12 +385,12 @@ BEGIN
   END IF;
     IF join_using_dsn IS NOT NULL and NOT bypass_node_identifier_creation THEN
         IF (
-			SELECT * 
+			SELECT *
 			FROM pgactive._pgactive_node_name_present_private(node_name, join_using_dsn)
 			) > 0 THEN
             RAISE USING
                 MESSAGE = 'node_name already present on remote',
-                DETAIL = format($$Node name '%s' is present on remote with node_status != 'k'.$$, node_name),
+                DETAIL = format($$Node name '%s' is already present on remote with node_status != 'k'.$$, node_name),
                 HINT = 'Either detach the node on remote or use a new node name.',
                 ERRCODE = 'object_not_in_prerequisite_state';
         END IF;
