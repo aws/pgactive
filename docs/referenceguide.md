@@ -343,28 +343,28 @@ pgactive key tables are following:
 
 ```
                 Table "pgactive.pgactive_nodes"
-       Column       |   Type   | Collation | Nullable | Default 
+       Column       |   Type   | Collation | Nullable | Default
 --------------------+----------+-----------+----------+---------
- node_sysid         | text     |           | not null | 
- node_timeline      | oid      |           | not null | 
- node_dboid         | oid      |           | not null | 
- node_status        | "char"   |           | not null | 
- node_name          | text     |           | not null | 
- node_dsn           | text     |           |          | 
- node_init_from_dsn | text     |           |          | 
+ node_sysid         | text     |           | not null |
+ node_timeline      | oid      |           | not null |
+ node_dboid         | oid      |           | not null |
+ node_status        | "char"   |           | not null |
+ node_name          | text     |           | not null |
+ node_dsn           | text     |           |          |
+ node_init_from_dsn | text     |           |          |
  node_read_only     | boolean  |           |          | false
- node_seq_id        | smallint |           |          | 
+ node_seq_id        | smallint |           |          |
 ```
 
 #### node_sysid
 
-Unique id for a node, generate during pgactive_create_group or pgactive_join_group
+Unique id for a node, generated during pgactive_create_group or pgactive_join_group
 
 #### node_status
 
 Readiness of the node: 
 
-- [b]eginning setup 
+- [b]eginning setup
 - [i]nitializing
 - [c]atchup
 - creating [o]utbound slots
@@ -389,14 +389,14 @@ DSN from which this node was created.
 
 ```
               Table "pgactive.pgactive_connections"
-        Column         |  Type   | Collation | Nullable | Default 
+        Column         |  Type   | Collation | Nullable | Default
 -----------------------+---------+-----------+----------+---------
- conn_sysid            | text    |           | not null | 
- conn_timeline         | oid     |           | not null | 
- conn_dboid            | oid     |           | not null | 
- conn_dsn              | text    |           | not null | 
- conn_apply_delay      | integer |           |          | 
- conn_replication_sets | text[]  |           |          | 
+ conn_sysid            | text    |           | not null |
+ conn_timeline         | oid     |           | not null |
+ conn_dboid            | oid     |           | not null |
+ conn_dsn              | text    |           | not null |
+ conn_apply_delay      | integer |           |          |
+ conn_replication_sets | text[]  |           |          |
 ```
 
 ####  conn_sysid
