@@ -263,7 +263,7 @@ static char *convertTSFunction(Archive *fout, Oid funcOid);
 static Oid	findLastBuiltinOid_V71(Archive *fout);
 static const char *getFormattedTypeName(Archive *fout, Oid oid, OidOptions opts);
 static void getBlobs(Archive *fout);
-static void dumpBlob(Archive *fout, BlobInfo * binfo);
+static void dumpBlob(Archive *fout, BlobInfo *binfo);
 static int	dumpBlobs(Archive *fout, void *arg);
 static void dumpPolicy(Archive *fout, PolicyInfo *polinfo);
 static void dumpPublication(Archive *fout, PublicationInfo *pubinfo);
@@ -3504,7 +3504,7 @@ getBlobs(Archive *fout)
  * dump the definition (metadata) of the given large object
  */
 static void
-dumpBlob(Archive *fout, BlobInfo * binfo)
+dumpBlob(Archive *fout, BlobInfo *binfo)
 {
 	PQExpBuffer cquery = createPQExpBuffer();
 	PQExpBuffer dquery = createPQExpBuffer();
@@ -4470,12 +4470,12 @@ append_depends_on_extension(Archive *fout,
 {
 	if (dobj->depends_on_ext)
 	{
-		char	   *nm;
+		char   *nm;
 		PGresult   *res;
-		PQExpBuffer query;
-		int			ntups;
-		int			i_extname;
-		int			i;
+		PQExpBuffer	query;
+		int		ntups;
+		int		i_extname;
+		int		i;
 
 		/* dodge fmtId() non-reentrancy */
 		nm = pg_strdup(objname);
@@ -7385,10 +7385,7 @@ getIndexes(Archive *fout, TableInfo tblinfo[], int numTables)
 			indxinfo[j].indisclustered = (PQgetvalue(res, j, i_indisclustered)[0] == 't');
 			indxinfo[j].indisreplident = (PQgetvalue(res, j, i_indisreplident)[0] == 't');
 			indxinfo[j].parentidx = atooid(PQgetvalue(res, j, i_parentidx));
-			indxinfo[j].partattaches = (SimplePtrList)
-			{
-				NULL, NULL
-			};
+			indxinfo[j].partattaches = (SimplePtrList) { NULL, NULL };
 			contype = *(PQgetvalue(res, j, i_contype));
 
 			if (contype == 'p' || contype == 'u' || contype == 'x')
@@ -7581,7 +7578,7 @@ getConstraints(Archive *fout, TableInfo tblinfo[], int numTables)
 
 		for (j = 0; j < ntups; j++)
 		{
-			TableInfo  *reftable;
+			TableInfo *reftable;
 
 			constrinfo[j].dobj.objType = DO_FK_CONSTRAINT;
 			constrinfo[j].dobj.catId.tableoid = atooid(PQgetvalue(res, j, i_contableoid));
@@ -15712,7 +15709,7 @@ dumpTable(Archive *fout, TableInfo *tbinfo)
 	if (tbinfo->dobj.dump & DUMP_COMPONENT_ACL)
 	{
 		const char *objtype =
-			(tbinfo->relkind == RELKIND_SEQUENCE) ? "SEQUENCE" : "TABLE";
+		(tbinfo->relkind == RELKIND_SEQUENCE) ? "SEQUENCE" : "TABLE";
 
 		tableAclDumpId =
 			dumpACL(fout, tbinfo->dobj.dumpId, InvalidDumpId,
@@ -16485,11 +16482,11 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 
 				appendPQExpBufferStr(q, "\n-- For pgactive init, recreate dropped column.\n");
 				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
-								  "SET attlen = %d, "
-								  "attalign = '%c', attbyval = false\n"
-								  "WHERE attname = ",
-								  tbinfo->attlen[j],
-								  tbinfo->attalign[j]);
+									 "SET attlen = %d, "
+									 "attalign = '%c', attbyval = false\n"
+									 "WHERE attname = ",
+									 tbinfo->attlen[j],
+									 tbinfo->attalign[j]);
 				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
 				appendPQExpBufferStr(q, "\n  AND attrelid = ");
 				appendStringLiteralAH(q, qualrelname, fout);
@@ -16504,7 +16501,6 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
 			}
 		}
-
 		/*
 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
@@ -18376,7 +18372,7 @@ processExtensionTables(Archive *fout, ExtensionInfo extinfo[],
 				TableInfo  *configtbl;
 				Oid			configtbloid = atooid(extconfigarray[j]);
 				bool		dumpobj =
-					curext->dobj.dump & DUMP_COMPONENT_DEFINITION;
+				curext->dobj.dump & DUMP_COMPONENT_DEFINITION;
 
 				configtbl = findTableByOid(configtbloid);
 				if (configtbl == NULL)

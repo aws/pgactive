@@ -65,22 +65,22 @@ static int	numExtensions;
 static int	numPublications;
 
 /* This is an array of object identities, not actual DumpableObjects */
-static ExtensionMemberId * extmembers;
+static ExtensionMemberId *extmembers;
 static int	numextmembers;
 
 static void flagInhTables(Archive *fout, TableInfo *tbinfo, int numTables,
-						  InhInfo *inhinfo, int numInherits);
+			  InhInfo *inhinfo, int numInherits);
 static void flagInhIndexes(Archive *fout, TableInfo *tblinfo, int numTables);
 static void flagInhAttrs(DumpOptions *dopt, TableInfo *tblinfo, int numTables);
 static DumpableObject **buildIndexArray(void *objArray, int numObjs,
-										Size objSize);
+				Size objSize);
 static int	DOCatalogIdCompare(const void *p1, const void *p2);
 static int	ExtensionMemberIdCompare(const void *p1, const void *p2);
 static void findParentsByOid(TableInfo *self,
-							 InhInfo *inhinfo, int numInherits);
+				 InhInfo *inhinfo, int numInherits);
 static int	strInArray(const char *pattern, char **arr, int arr_size);
 static IndxInfo *findIndexByOid(Oid oid, DumpableObject **idxinfoindex,
-								int numIndexes);
+			   int numIndexes);
 
 
 /*
@@ -972,7 +972,7 @@ findIndexByOid(Oid oid, DumpableObject **idxinfoindex, int numIndexes)
  *	  accept and save data about which objects belong to extensions
  */
 void
-setExtensionMembership(ExtensionMemberId * extmems, int nextmems)
+setExtensionMembership(ExtensionMemberId *extmems, int nextmems)
 {
 	/* Sort array in preparation for binary searches */
 	if (nextmems > 1)
@@ -1028,8 +1028,8 @@ findOwningExtension(CatalogId catalogId)
 static int
 ExtensionMemberIdCompare(const void *p1, const void *p2)
 {
-	const		ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
-	const		ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
+	const ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
+	const ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
 	int			cmpval;
 
 	/*

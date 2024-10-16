@@ -136,7 +136,7 @@ typedef struct _dumpableObject
 	DumpComponents dump;		/* bitmask of components to dump */
 	DumpComponents dump_contains;	/* as above, but for contained objects */
 	bool		ext_member;		/* true if object is member of extension */
-	bool		depends_on_ext; /* true if object depends on an extension */
+	bool		depends_on_ext;	/* true if object depends on an extension */
 	DumpId	   *dependencies;	/* dumpIds of objects this one depends on */
 	int			nDeps;			/* number of valid dependencies */
 	int			allocDeps;		/* allocated size of dependencies[] */
@@ -373,7 +373,7 @@ typedef struct _indxInfo
 	bool		indisclustered;
 	bool		indisreplident;
 	Oid			parentidx;		/* if a partition, parent index OID */
-	SimplePtrList partattaches; /* if partitioned, partition attach objects */
+	SimplePtrList partattaches;	/* if partitioned, partition attach objects */
 
 	/* if there is an associated constraint object, its dumpId: */
 	DumpId		indexconstraint;
@@ -575,7 +575,7 @@ typedef struct _blobInfo
 	char	   *rblobacl;
 	char	   *initblobacl;
 	char	   *initrblobacl;
-}			BlobInfo;
+} BlobInfo;
 
 /*
  * The PolicyInfo struct is used to represent policies on a table and
@@ -641,7 +641,7 @@ typedef struct _extensionMemberId
 {
 	CatalogId	catId;			/* tableoid+oid of some member object */
 	ExtensionInfo *ext;			/* owning extension */
-}			ExtensionMemberId;
+} ExtensionMemberId;
 
 /* global decls */
 extern bool force_quotes;		/* double-quotes for identifiers flag */
@@ -677,7 +677,7 @@ extern NamespaceInfo *findNamespaceByOid(Oid oid);
 extern ExtensionInfo *findExtensionByOid(Oid oid);
 extern PublicationInfo *findPublicationByOid(Oid oid);
 
-extern void setExtensionMembership(ExtensionMemberId * extmems, int nextmems);
+extern void setExtensionMembership(ExtensionMemberId *extmems, int nextmems);
 extern ExtensionInfo *findOwningExtension(CatalogId catalogId);
 
 extern void parseOidArray(const char *str, Oid *array, int arraysize);

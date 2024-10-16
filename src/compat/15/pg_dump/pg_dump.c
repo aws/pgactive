@@ -281,7 +281,7 @@ static char *getFormattedOperatorName(const char *oproid);
 static char *convertTSFunction(Archive *fout, Oid funcOid);
 static const char *getFormattedTypeName(Archive *fout, Oid oid, OidOptions opts);
 static void getBlobs(Archive *fout);
-static void dumpBlob(Archive *fout, const BlobInfo * binfo);
+static void dumpBlob(Archive *fout, const BlobInfo *binfo);
 static int	dumpBlobs(Archive *fout, const void *arg);
 static void dumpPolicy(Archive *fout, const PolicyInfo *polinfo);
 static void dumpPublication(Archive *fout, const PublicationInfo *pubinfo);
@@ -3259,8 +3259,8 @@ dumpDatabase(Archive *fout)
 		appendPQExpBufferStr(loOutQry, "\n-- For binary upgrade, preserve pg_largeobject and index relfilenodes\n");
 		for (int i = 0; i < PQntuples(lo_res); ++i)
 		{
-			Oid			oid;
-			Oid			relfilenode;
+			Oid		oid;
+			Oid		relfilenode;
 
 			appendPQExpBuffer(loHorizonQry, "UPDATE pg_catalog.pg_class\n"
 							  "SET relfrozenxid = '%u', relminmxid = '%u'\n"
@@ -3561,7 +3561,7 @@ getBlobs(Archive *fout)
  * dump the definition (metadata) of the given large object
  */
 static void
-dumpBlob(Archive *fout, const BlobInfo * binfo)
+dumpBlob(Archive *fout, const BlobInfo *binfo)
 {
 	PQExpBuffer cquery = createPQExpBuffer();
 	PQExpBuffer dquery = createPQExpBuffer();
@@ -15110,7 +15110,7 @@ dumpTable(Archive *fout, const TableInfo *tbinfo)
 	if (tbinfo->dobj.dump & DUMP_COMPONENT_ACL)
 	{
 		const char *objtype =
-			(tbinfo->relkind == RELKIND_SEQUENCE) ? "SEQUENCE" : "TABLE";
+		(tbinfo->relkind == RELKIND_SEQUENCE) ? "SEQUENCE" : "TABLE";
 
 		tableAclDumpId =
 			dumpACL(fout, tbinfo->dobj.dumpId, InvalidDumpId,
@@ -15843,11 +15843,11 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 
 				appendPQExpBufferStr(q, "\n-- For pgactive init, recreate dropped column.\n");
 				appendPQExpBuffer(q, "UPDATE pg_catalog.pg_attribute\n"
-								  "SET attlen = %d, "
-								  "attalign = '%c', attbyval = false\n"
-								  "WHERE attname = ",
-								  tbinfo->attlen[j],
-								  tbinfo->attalign[j]);
+									 "SET attlen = %d, "
+									 "attalign = '%c', attbyval = false\n"
+									 "WHERE attname = ",
+									 tbinfo->attlen[j],
+									 tbinfo->attalign[j]);
 				appendStringLiteralAH(q, tbinfo->attnames[j], fout);
 				appendPQExpBufferStr(q, "\n  AND attrelid = ");
 				appendStringLiteralAH(q, qualrelname, fout);
@@ -15862,7 +15862,6 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 				appendPQExpBuffer(q, "DROP COLUMN %s;\n", fmtId(tbinfo->attnames[j]));
 			}
 		}
-
 		/*
 		 * In binary_upgrade mode, arrange to restore the old relfrozenxid and
 		 * relminmxid of all vacuumable relations.  (While vacuum.c processes
@@ -17838,7 +17837,7 @@ processExtensionTables(Archive *fout, ExtensionInfo extinfo[],
 				TableInfo  *configtbl;
 				Oid			configtbloid = atooid(extconfigarray[j]);
 				bool		dumpobj =
-					curext->dobj.dump & DUMP_COMPONENT_DEFINITION;
+				curext->dobj.dump & DUMP_COMPONENT_DEFINITION;
 
 				configtbl = findTableByOid(configtbloid);
 				if (configtbl == NULL)

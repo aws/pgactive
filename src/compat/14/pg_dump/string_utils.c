@@ -866,7 +866,7 @@ processSQLNamePattern(PGconn *conn, PQExpBuffer buf, const char *pattern,
 	 */
 	patternToSQLRegex(PQclientEncoding(conn),
 					  (schemavar ? dbnamebuf : NULL),
-					  (schemavar ? &schemabuf : NULL),
+					  (schemavar ? &schemabuf: NULL),
 					  &namebuf, pattern, force_escape, true, dotcnt);
 
 	/*

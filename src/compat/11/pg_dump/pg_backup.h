@@ -143,7 +143,7 @@ typedef struct _dumpOptions
 	bool		oids;
 
 	int			binary_upgrade;
-	int			pgactive_init_node;
+	int                     pgactive_init_node;
 
 	/* various user-settable parameters */
 	bool		schemaOnly;
@@ -266,15 +266,15 @@ extern PGconn *GetConnection(Archive *AHX);
 
 /* Called to add a TOC entry */
 extern void ArchiveEntry(Archive *AHX,
-						 CatalogId catalogId, DumpId dumpId,
-						 const char *tag,
-						 const char *namespace, const char *tablespace,
-						 const char *owner, bool withOids,
-						 const char *desc, teSection section,
-						 const char *defn,
-						 const char *dropStmt, const char *copyStmt,
-						 const DumpId *deps, int nDeps,
-						 DataDumperPtr dumpFn, void *dumpArg);
+			 CatalogId catalogId, DumpId dumpId,
+			 const char *tag,
+			 const char *namespace, const char *tablespace,
+			 const char *owner, bool withOids,
+			 const char *desc, teSection section,
+			 const char *defn,
+			 const char *dropStmt, const char *copyStmt,
+			 const DumpId *deps, int nDeps,
+			 DataDumperPtr dumpFn, void *dumpArg);
 
 /* Called to write *data* to the archive */
 extern void WriteData(Archive *AH, const void *data, size_t dLen);
@@ -295,8 +295,8 @@ extern Archive *OpenArchive(const char *FileSpec, const ArchiveFormat fmt);
 
 /* Create a new archive */
 extern Archive *CreateArchive(const char *FileSpec, const ArchiveFormat fmt,
-							  const int compression, bool dosync, ArchiveMode mode,
-							  SetupWorkerPtrType setupDumpWorker);
+			  const int compression, bool dosync, ArchiveMode mode,
+			  SetupWorkerPtrType setupDumpWorker);
 
 /* The --list option */
 extern void PrintTOCSummary(Archive *AH);

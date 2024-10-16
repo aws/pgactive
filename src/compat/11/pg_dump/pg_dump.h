@@ -136,7 +136,7 @@ typedef struct _dumpableObject
 	DumpComponents dump;		/* bitmask of components to dump */
 	DumpComponents dump_contains;	/* as above, but for contained objects */
 	bool		ext_member;		/* true if object is member of extension */
-	bool		depends_on_ext; /* true if object depends on an extension */
+	bool		depends_on_ext;	/* true if object depends on an extension */
 	DumpId	   *dependencies;	/* dumpIds of objects this one depends on */
 	int			nDeps;			/* number of valid dependencies */
 	int			allocDeps;		/* allocated size of dependencies[] */
@@ -572,7 +572,7 @@ typedef struct _blobInfo
 	char	   *rblobacl;
 	char	   *initblobacl;
 	char	   *initrblobacl;
-}			BlobInfo;
+} BlobInfo;
 
 /*
  * The PolicyInfo struct is used to represent policies on a table and
@@ -638,7 +638,7 @@ typedef struct _extensionMemberId
 {
 	CatalogId	catId;			/* tableoid+oid of some member object */
 	ExtensionInfo *ext;			/* owning extension */
-}			ExtensionMemberId;
+} ExtensionMemberId;
 
 /* global decls */
 extern bool force_quotes;		/* double-quotes for identifiers flag */
@@ -675,13 +675,13 @@ extern NamespaceInfo *findNamespaceByOid(Oid oid);
 extern ExtensionInfo *findExtensionByOid(Oid oid);
 extern PublicationInfo *findPublicationByOid(Oid oid);
 
-extern void setExtensionMembership(ExtensionMemberId * extmems, int nextmems);
+extern void setExtensionMembership(ExtensionMemberId *extmems, int nextmems);
 extern ExtensionInfo *findOwningExtension(CatalogId catalogId);
 
 extern void parseOidArray(const char *str, Oid *array, int arraysize);
 
 extern void sortDumpableObjects(DumpableObject **objs, int numObjs,
-								DumpId preBoundaryId, DumpId postBoundaryId);
+					DumpId preBoundaryId, DumpId postBoundaryId);
 extern void sortDumpableObjectsByTypeName(DumpableObject **objs, int numObjs);
 extern void sortDataAndIndexObjectsBySize(DumpableObject **objs, int numObjs);
 
@@ -718,20 +718,20 @@ extern TSDictInfo *getTSDictionaries(Archive *fout, int *numTSDicts);
 extern TSTemplateInfo *getTSTemplates(Archive *fout, int *numTSTemplates);
 extern TSConfigInfo *getTSConfigurations(Archive *fout, int *numTSConfigs);
 extern FdwInfo *getForeignDataWrappers(Archive *fout,
-									   int *numForeignDataWrappers);
+					   int *numForeignDataWrappers);
 extern ForeignServerInfo *getForeignServers(Archive *fout,
-											int *numForeignServers);
+				  int *numForeignServers);
 extern DefaultACLInfo *getDefaultACLs(Archive *fout, int *numDefaultACLs);
 extern void getExtensionMembership(Archive *fout, ExtensionInfo extinfo[],
-								   int numExtensions);
+					   int numExtensions);
 extern void processExtensionTables(Archive *fout, ExtensionInfo extinfo[],
-								   int numExtensions);
+					   int numExtensions);
 extern EventTriggerInfo *getEventTriggers(Archive *fout, int *numEventTriggers);
 extern void getPolicies(Archive *fout, TableInfo tblinfo[], int numTables);
 extern PublicationInfo *getPublications(Archive *fout,
 										int *numPublications);
 extern void getPublicationTables(Archive *fout, TableInfo tblinfo[],
-								 int numTables);
+					 int numTables);
 extern void getSubscriptions(Archive *fout);
 
 #endif							/* PG_DUMP_H */

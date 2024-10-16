@@ -94,7 +94,7 @@ static int	_WorkerJobRestoreDirectory(ArchiveHandle *AH, TocEntry *te);
 static int	_WorkerJobDumpDirectory(ArchiveHandle *AH, TocEntry *te);
 
 static void setFilePath(ArchiveHandle *AH, char *buf,
-						const char *relativeFilename);
+			const char *relativeFilename);
 
 /*
  *	Init routine required by ALL formats. This is a global routine
@@ -410,7 +410,7 @@ _PrintFileData(ArchiveHandle *AH, char *filename)
 	}
 
 	free(buf);
-	if (cfclose(cfp) != 0)
+	if (cfclose(cfp) !=0)
 		exit_horribly(modulename, "could not close data file \"%s\": %s\n",
 					  filename, strerror(errno));
 }

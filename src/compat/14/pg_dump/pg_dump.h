@@ -584,7 +584,7 @@ typedef struct _blobInfo
 	char	   *rblobacl;
 	char	   *initblobacl;
 	char	   *initrblobacl;
-}			BlobInfo;
+} BlobInfo;
 
 /*
  * The PolicyInfo struct is used to represent policies on a table and
@@ -653,7 +653,7 @@ typedef struct _extensionMemberId
 {
 	CatalogId	catId;			/* tableoid+oid of some member object */
 	ExtensionInfo *ext;			/* owning extension */
-}			ExtensionMemberId;
+} ExtensionMemberId;
 
 /*
  *	common utility functions
@@ -680,7 +680,7 @@ extern NamespaceInfo *findNamespaceByOid(Oid oid);
 extern ExtensionInfo *findExtensionByOid(Oid oid);
 extern PublicationInfo *findPublicationByOid(Oid oid);
 
-extern void setExtensionMembership(ExtensionMemberId * extmems, int nextmems);
+extern void setExtensionMembership(ExtensionMemberId *extmems, int nextmems);
 extern ExtensionInfo *findOwningExtension(CatalogId catalogId);
 
 extern void parseOidArray(const char *str, Oid *array, int arraysize);
