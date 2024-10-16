@@ -3,6 +3,7 @@
 Table of contents
 - [pgactive configuration variables (GUC)](#pgactive-configuration-variables)
 - [Active-Active conflicts](#active-active-conflicts)
+- [pgactive schema](#pgactive-schema)
 - [Replication sets](#replication-sets)
 - [Functions](#functions)
 
@@ -329,6 +330,86 @@ You can use the conflict history table to determine how rapidly your application
 Row values may optionally be logged for row conflicts. This is controlled by the global database-wide option pgactive.log_conflicts_to_table. There is no per-table control over row value logging at this time. Nor is there any limit applied on the number of fields a row may have, number of elements dumped in arrays, length of fields, etc, so it may not be wise to enable this if you regularly work with multi-megabyte rows that may trigger conflicts.
 
 Because the conflict history table contains data on every table in the database so each row's schema might be different, if row values are logged they are stored as json fields. The json is created with row_to_json, just like if you'd called it on the row yourself from SQL. There is no corresponding json_to_row function in PostgreSQL at this time, so you'll need table-specific code (pl/pgsql, pl/python, pl/perl, whatever) if you want to reconstruct a composite-typed tuple from the logged json.
+
+## pgactive schema
+
+* pgactive schema is evolving, schema is subject to change
+
+* Do not change these tables for table data.
+
+pgactive key tables are following:
+
+### pgactive_nodes
+
+```
+                Table "pgactive.pgactive_nodes"
+       Column       |   Type   | Collation | Nullable | Default
+--------------------+----------+-----------+----------+---------
+ node_sysid         | text     |           | not null |
+ node_timeline      | oid      |           | not null |
+ node_dboid         | oid      |           | not null |
+ node_status        | "char"   |           | not null |
+ node_name          | text     |           | not null |
+ node_dsn           | text     |           |          |
+ node_init_from_dsn | text     |           |          |
+ node_read_only     | boolean  |           |          | false
+ node_seq_id        | smallint |           |          |
+```
+
+#### node_sysid
+
+Unique id for a node, generated during pgactive_create_group or pgactive_join_group
+
+#### node_status
+
+Readiness of the node: 
+
+- [b]eginning setup
+- [i]nitializing
+- [c]atchup
+- creating [o]utbound slots
+- [r]eady
+- [k]illed
+
+This column doesn't indicate if a node is connected or disconnected.
+
+#### node_name
+
+User provided unique node name.
+
+#### node_dsn
+
+Connection string or user mapping name
+
+#### node_init_from_dsn
+
+DSN from which this node was created.
+
+### pgactive_connections
+
+```
+              Table "pgactive.pgactive_connections"
+        Column         |  Type   | Collation | Nullable | Default
+-----------------------+---------+-----------+----------+---------
+ conn_sysid            | text    |           | not null |
+ conn_timeline         | oid     |           | not null |
+ conn_dboid            | oid     |           | not null |
+ conn_dsn              | text    |           | not null |
+ conn_apply_delay      | integer |           |          |
+ conn_replication_sets | text[]  |           |          |
+```
+
+####  conn_sysid
+
+Node identifier for the node this entry refers to
+
+#### conn_dsn
+
+Same as pgactive.pgactive_nodes "node_dsn".
+
+#### conn_apply_delay
+
+If set, milliseconds to wait before applying each transaction from the remote node. Mainly for debugging. If null, the global default applies.
 
 ## Replication sets
 
