@@ -296,6 +296,12 @@ $$;
 
 REVOKE ALL ON FUNCTION pgactive_set_connection_replication_sets(text[], text) FROM public;
 
+CREATE FUNCTION _pgactive_node_name_present_private (
+	node_name text,
+  remote_dsn text)
+RETURNS integer
+AS 'MODULE_PATHNAME','pgactive_node_name_present'
+LANGUAGE C;
 
 --
 -- The public interface for node join/addition, to be run to join a currently
@@ -377,7 +383,18 @@ BEGIN
       MESSAGE = 'pgactive can''t be enabled because there is an existing per-db worker for the current database',
       ERRCODE = 'object_not_in_prerequisite_state';
   END IF;
-
+    IF join_using_dsn IS NOT NULL and NOT bypass_node_identifier_creation THEN
+        IF (
+			SELECT *
+			FROM pgactive._pgactive_node_name_present_private(node_name, join_using_dsn)
+			) > 0 THEN
+            RAISE USING
+                MESSAGE = 'node_name already present on remote',
+                DETAIL = format($$Node name '%s' is already present on remote with node_status != 'k'.$$, node_name),
+                HINT = 'Either detach the node on remote or use a new node name.',
+                ERRCODE = 'object_not_in_prerequisite_state';
+        END IF;
+    END IF;
     PERFORM pgactive._pgactive_begin_join_private(
         caller := '',
         node_name := node_name,
