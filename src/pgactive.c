@@ -2184,7 +2184,7 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 
 	initStringInfo(&cmd);
 	appendStringInfo(&cmd,
-					 "SELECT pn.node_name, pn.node_sysid, psr.application_name, prs.slot_name::text, prs.active::boolean, prs.active_pid::int, \
+					 "SELECT pn.node_name, pn.node_sysid, psr.application_name, prs.slot_name::text, prs.active::boolean, prs.active_pid, \
 			pg_wal_lsn_diff(pg_current_wal_lsn(), COALESCE(psr.sent_lsn, prs.confirmed_flush_lsn))::bigint  pending_wal_decoding, \
 			pg_wal_lsn_diff(pg_current_wal_lsn(), psr.replay_lsn)::bigint pending_wal_to_apply, prs.restart_lsn, \
 			prs.confirmed_flush_lsn, psr.sent_lsn, psr.write_lsn, psr.flush_lsn, psr.replay_lsn \
@@ -2194,6 +2194,7 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 		WHERE prs.plugin = 'pgactive'");
 
 	conn = pgactive_connect_nonrepl(dsn->data, "lag info", true, false);
+
 	if (PQstatus(conn) != CONNECTION_OK)
 		return;
 
@@ -2218,6 +2219,7 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 			 PQnfields(res), GET_REPLICATION_LAG_INFO_COLS);
 		goto done;
 	}
+
 	for (row = 0; row < PQntuples(res); row++)
 	{
 		Datum		values[GET_REPLICATION_LAG_INFO_COLS] = {0};
@@ -2225,11 +2227,13 @@ GetReplicationStats(StringInfoData *dsn, ReturnSetInfo *rsinfo)
 
 		for (col = 0; col < PQnfields(res); col++)
 		{
+
 			if (PQgetisnull(res, row, col))
 			{
 				nulls[col] = true;
 				continue;
 			}
+
 			switch (col)
 			{
 				case 0:
