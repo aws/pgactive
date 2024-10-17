@@ -1178,6 +1178,33 @@ $body$;
 
 REVOKE ALL ON FUNCTION pgactive_wait_for_node_ready(integer, integer) FROM public;
 
+DROP VIEW pgactive.pgactive_node_slots;
+
+DROP FUNCTION pgactive_get_replication_lag_info();
+
+CREATE FUNCTION pgactive_get_replication_lag_info(
+    OUT node_name text,
+    OUT node_sysid text,
+    OUT application_name text,
+    OUT slot_name text,
+    OUT active boolean,
+    OUT active_pid integer,
+    OUT pending_wal_decoding bigint,
+    OUT pending_wal_to_apply bigint,
+    OUT restart_lsn pg_lsn,
+    OUT confirmed_flush_lsn pg_lsn,
+    OUT sent_lsn pg_lsn,
+    OUT write_lsn pg_lsn,
+    OUT flush_lsn pg_lsn,
+    OUT replay_lsn pg_lsn
+)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C VOLATILE STRICT;
+
+COMMENT ON FUNCTION pgactive_get_replication_lag_info() IS
+'Gets replication lag info.';
+
 -- RESET pgactive.permit_unsafe_ddl_commands; is removed for now
 RESET pgactive.skip_ddl_replication;
 RESET search_path;

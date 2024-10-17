@@ -498,13 +498,20 @@ Description: Exclude a table from the replication.
 Arguments: None
 
 Returns: SETOF record
-    - slot_name name
-    - last_sent_xact_id oid
-    - last_sent_xact_committs timestamp with time zone
-    - last_sent_xact_at timestamp with time zone
-    - last_applied_xact_id oid
-    - last_applied_xact_committs timestamp with time zone
-    - last_applied_xact_at timestamp with time zone
+    - node_name text
+    - node_sysid text
+    - application_name text
+    - slot_name text
+    - active boolean
+    - active_pid integer
+    - pending_wal_decoding bigint - Approximate size of WAL in bytes to be decoded on the sender node
+    - pending_wal_to_apply bigint - Approximate size of WAL in bytes to be applied on receiving node
+    - restart_lsn pg_lsn
+    - confirmed_flush_lsn pg_lsn
+    - sent_lsn pg_lsn
+    - write_lsn pg_lsn
+    - flush_lsn pg_lsn
+    - replay_lsn pg_lsn
 
 Description: Gets replication lag info.
 

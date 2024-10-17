@@ -80,8 +80,9 @@ $pghost = $node_1->host;
 my $node_1_connstr = "port=$pgport host=$pghost dbname=$pgactive_test_dbname";
 
 my $node_0_datadir = $node_0->data_dir;
+my $node_1_name = $node_1->name();
 my $node_0_replslotname = $node_0->safe_psql($pgactive_test_dbname,
-    qq[SELECT slot_name FROM pgactive.pgactive_node_slots;]);
+    qq[SELECT slot_name FROM pgactive.pgactive_get_replication_lag_info() WHERE node_name = '$node_1_name';]);
 my $node_0_replslotdir = "$node_0_datadir/pg_replslot/$node_0_replslotname";
 
 # Stop pgactive node a.k.a primary to simulate a failover to standby

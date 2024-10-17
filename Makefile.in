@@ -207,6 +207,7 @@ all: pgactive_init_copy pgactive_dump
 check: regress_check prove_check
 
 regress_check: all install
+	rm -rf test/results
 	mkdir -p test/results/ddl test/results/ddl_fn test/results/dml
 
 	./test/run_tests --config $(pgactive_abs_srcdir)/test/pgactive_regress.conf \

@@ -16,6 +16,7 @@ use utils::nodemanagement;
 # Create an upstream node and bring up pgactive
 my $nodes = make_pgactive_group(2,'node_');
 my ($node_0,$node_1) = @$nodes;
+my $node_1_name = $node_1->name();
 
 exec_ddl($node_0, q[CREATE TABLE public.city(city_sid INT PRIMARY KEY, name VARCHAR, UNIQUE(name));]);
 wait_for_apply($node_0, $node_1);
@@ -153,7 +154,7 @@ wait_for_apply($node_0, $node_1);
 # Wait until apply worker on node_1 applies the xact sent by node_0
 my $caughtup_query =
   qq[SELECT EXISTS (SELECT 1 FROM pgactive.pgactive_get_replication_lag_info()
-     WHERE last_applied_xact_id >= $xid);];
+     WHERE node_name = '$node_1_name' and pending_wal_to_apply = 0);];
 $node_0->poll_query_until($pgactive_test_dbname, $caughtup_query)
   or die "Timed out while waiting for apply worker on node_1 applies the xact sent by node_0";
 
