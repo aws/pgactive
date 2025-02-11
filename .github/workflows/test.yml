@@ -1,8 +1,8 @@
 name: pgactive CI
 on:
-  schedule:
-    # Runs every day at 5am.
-    - cron: '0 5 * * *'
+  #schedule:
+  #  # Runs every day at 5am.
+  #  - cron: '0 5 * * *'
   push:
     paths-ignore:
       - 'docs/**'
@@ -35,14 +35,14 @@ jobs:
 
     steps:
       - name: Checkout pgactive
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: pgactive
 
       - name: Checkout Postgres
         run: |
-          sudo apt-get -y -q install libipc-run-perl
-          git clone --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
+          sudo apt-get -y -q install libipc-run-perl build-essential libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config libicu-dev
+          git clone --depth 1 --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
 
       - if: ${{ matrix.version == 'REL_11_STABLE' }}
         name: Apply per-test-script runtime display patch (REL_11_STABLE only)
@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
