@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
