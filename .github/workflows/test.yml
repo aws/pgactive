@@ -41,7 +41,7 @@ jobs:
 
       - name: Checkout Postgres
         run: |
-          sudo apt-get -y -q install libipc-run-perl
+          sudo apt-get -y -q install libipc-run-perl libreadline-dev
           git clone --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
 
       - if: ${{ matrix.version == 'REL_11_STABLE' }}
