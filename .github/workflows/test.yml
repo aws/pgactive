@@ -1,8 +1,8 @@
 name: pgactive CI
 on:
-  schedule:
-    # Runs every day at 5am.
-    - cron: '0 5 * * *'
+  #schedule:
+  #  # Runs every day at 5am.
+  #  - cron: '0 5 * * *'
   push:
     paths-ignore:
       - 'docs/**'
@@ -41,8 +41,8 @@ jobs:
 
       - name: Checkout Postgres
         run: |
-          sudo apt-get -y -q install libipc-run-perl libreadline-dev
-          git clone --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
+          sudo apt-get -y -q install libipc-run-perl build-essential libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config libicu-dev
+          git clone --depth 1 --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
 
       - if: ${{ matrix.version == 'REL_11_STABLE' }}
         name: Apply per-test-script runtime display patch (REL_11_STABLE only)
