@@ -149,6 +149,10 @@ pgactive_DUMP_OBJS = $(pgactive_DUMP_DIR)/pg_dump.o \
 	$(pgactive_DUMP_DIR)/dumputils.o \
 	$(pgactive_DUMP_DIR)/compress_io.o
 
+ifeq ($(shell test $(MAJORVERSION) -ge 18; echo $$?),0)
+	pgactive_DUMP_OBJS += $(pgactive_DUMP_DIR)/connectdb.o
+endif
+
 PG_CONFIG_LIBS = $(shell $(PG_CONFIG) --libs) 
 
 pgactive_DUMP_LIBS = $(PG_CONFIG_LIBS) -lpgfeutils

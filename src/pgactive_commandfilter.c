@@ -59,7 +59,7 @@ static ClientAuthentication_hook_type next_ClientAuthentication_hook = NULL;
 bool           pgactive_permit_unsafe_commands = false; */
 
 #if PG_VERSION_NUM >= 120000
-bool		default_with_oids = false;
+static bool default_with_oids = false;
 #endif
 
 static void error_unsupported_command(const char *cmdtag);

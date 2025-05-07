@@ -1074,8 +1074,11 @@ write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 	{
 		HeapTuple	typtup;
 		Form_pg_type typclass;
-
+#if PG_VERSION_NUM >= 180000
+		FormData_pg_attribute *att = TupleDescAttr(desc, i);
+#else
 		Form_pg_attribute att = &desc->attrs[i];
+#endif
 
 		bool		use_binary = false;
 		bool		use_sendrecv = false;

@@ -76,6 +76,7 @@ jobs:
           src/compat/15/pg_dump/*
           src/compat/16/pg_dump/*
           src/compat/17/pg_dump/*
+          src/compat/18/pg_dump/*
           EOF
           src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --diff $GITHUB_WORKSPACE/pgactive > pgindent.diffs
           test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0

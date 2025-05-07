@@ -42,7 +42,11 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 
+#if PG_VERSION_NUM >= 180000
+static bool pgactiveExecutorStart(QueryDesc *queryDesc, int eflags);
+#else
 static void pgactiveExecutorStart(QueryDesc *queryDesc, int eflags);
+#endif
 CommandTag	CreateWritableStmtTag(PlannedStmt *plannedstmt);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
@@ -257,6 +261,9 @@ retry:
 	found = false;
 	scan = index_beginscan(rel->rel, idxrel,
 						   &snap,
+#if PG_VERSION_NUM >= 180000
+						   NULL,
+#endif
 						   RelationGetNumberOfAttributes(idxrel),
 						   0);
 	index_rescan(scan, skey, RelationGetNumberOfAttributes(idxrel), NULL, 0);
@@ -475,7 +482,11 @@ CreateWritableStmtTag(PlannedStmt *plannedstmt)
  *
  * Runs in all backends and workers.
  */
+#if PG_VERSION_NUM >= 180000
+static bool
+#else
 static void
+#endif
 pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	bool		performs_writes = false;
@@ -610,6 +621,9 @@ done:
 		(*PrevExecutorStart_hook) (queryDesc, eflags);
 	else
 		standard_ExecutorStart(queryDesc, eflags);
+#if PG_VERSION_NUM >= 180000
+	return true;
+#endif
 }
 
 
