@@ -109,10 +109,19 @@ static char *node_name = NULL;
 
 static void signal_handler(int sig);
 static void usage(void);
+#if PG_VERSION_NUM >= 180000
+pg_noreturn static void finish_die();
+#else
 static void finish_die() pg_attribute_noreturn();
+#endif
+#if PG_VERSION_NUM >= 180000
+pg_noreturn static void die(const char *fmt,...)
+			__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+#else
 static void die(const char *fmt,...)
 			__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)))
 			pg_attribute_noreturn();
+#endif
 static void print_msg(VerbosityLevelEnum level, const char *fmt,...)
 			__attribute__((format(PG_PRINTF_ATTRIBUTE, 2, 3)));
 
