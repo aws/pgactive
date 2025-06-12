@@ -40,10 +40,10 @@ static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 pgactiveNodeIdentifierControl *pgactiveNodeIdentifierCtl = NULL;
 
 /* callback to cleanup on abort */
-bool		cb_registered = false;
+static bool cb_registered = false;
 
 /* global indicator we are manipulating pgactive artifacts */
-bool		pgactiveart = false;
+static bool pgactiveart = false;
 
 #define SET_pgactiveART \
 do { \

@@ -1,0 +1,1388 @@
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_create(val int); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_create
+                          Table "public.test_tbl_simple_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_simple_create
+                          Table "public.test_tbl_simple_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_create; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_create
+\c regression
+\d+ test_tbl_simple_create
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNLOGGED TABLE public.test_tbl_unlogged_create(val int); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_unlogged_create
+                     Unlogged table "public.test_tbl_unlogged_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_unlogged_create
+                     Unlogged table "public.test_tbl_unlogged_create"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_unlogged_create; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_unlogged_create
+\c regression
+\d+ test_tbl_unlogged_create
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_simple_pk(val int PRIMARY KEY); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_pk
+                            Table "public.test_tbl_simple_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
+Not-null constraints:
+    "test_tbl_simple_pk_val_not_null" NOT NULL "val"
+
+\c postgres
+\d+ test_tbl_simple_pk
+                            Table "public.test_tbl_simple_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_simple_pk_pkey" PRIMARY KEY, btree (val)
+Not-null constraints:
+    "test_tbl_simple_pk_val_not_null" NOT NULL "val"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_simple_pk; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_simple_pk
+\c regression
+\d+ test_tbl_simple_pk
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_combined_pk(val int, val1 int, PRIMARY KEY (val, val1)); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_combined_pk
+                           Table "public.test_tbl_combined_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+ val1   | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+Not-null constraints:
+    "test_tbl_combined_pk_val_not_null" NOT NULL "val"
+    "test_tbl_combined_pk_val1_not_null" NOT NULL "val1"
+
+\c postgres
+\d+ test_tbl_combined_pk
+                           Table "public.test_tbl_combined_pk"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           | not null |         | plain   |              | 
+ val1   | integer |           | not null |         | plain   |              | 
+Indexes:
+    "test_tbl_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+Not-null constraints:
+    "test_tbl_combined_pk_val_not_null" NOT NULL "val"
+    "test_tbl_combined_pk_val1_not_null" NOT NULL "val1"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_combined_pk; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_combined_pk
+\c regression
+\d+ test_tbl_combined_pk
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+Not-null constraints:
+    "test_tbl_serial_val_not_null" NOT NULL "val"
+
+\c postgres
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+Not-null constraints:
+    "test_tbl_serial_val_not_null" NOT NULL "val"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+\c regression
+\d+ test_tbl_serial
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial(val SERIAL); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+Not-null constraints:
+    "test_tbl_serial_val_not_null" NOT NULL "val"
+
+\c postgres
+\d+ test_tbl_serial
+                                                Table "public.test_tbl_serial"
+ Column |  Type   | Collation | Nullable |                   Default                    | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_val_seq'::regclass) | plain   |              | 
+Not-null constraints:
+    "test_tbl_serial_val_not_null" NOT NULL "val"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_pk(val SERIAL PRIMARY KEY); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_pk
+                                                Table "public.test_tbl_serial_pk"
+ Column |  Type   | Collation | Nullable |                     Default                     | Storage | Stats target | Description 
+--------+---------+-----------+----------+-------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_pk_val_seq'::regclass) | plain   |              | 
+Indexes:
+    "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
+Not-null constraints:
+    "test_tbl_serial_pk_val_not_null" NOT NULL "val"
+
+\c postgres
+\d+ test_tbl_serial_pk
+                                                Table "public.test_tbl_serial_pk"
+ Column |  Type   | Collation | Nullable |                     Default                     | Storage | Stats target | Description 
+--------+---------+-----------+----------+-------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_pk_val_seq'::regclass) | plain   |              | 
+Indexes:
+    "test_tbl_serial_pk_pkey" PRIMARY KEY, btree (val)
+Not-null constraints:
+    "test_tbl_serial_pk_val_not_null" NOT NULL "val"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_pk; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_pk
+\c regression
+\d+ test_tbl_serial_pk
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_serial_combined_pk(val SERIAL, val1 INTEGER, PRIMARY KEY (val, val1)); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_serial_combined_pk
+                                                Table "public.test_tbl_serial_combined_pk"
+ Column |  Type   | Collation | Nullable |                         Default                          | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_combined_pk_val_seq'::regclass) | plain   |              | 
+ val1   | integer |           | not null |                                                          | plain   |              | 
+Indexes:
+    "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+Not-null constraints:
+    "test_tbl_serial_combined_pk_val_not_null" NOT NULL "val"
+    "test_tbl_serial_combined_pk_val1_not_null" NOT NULL "val1"
+
+\c postgres
+\d+ test_tbl_serial_combined_pk
+                                                Table "public.test_tbl_serial_combined_pk"
+ Column |  Type   | Collation | Nullable |                         Default                          | Storage | Stats target | Description 
+--------+---------+-----------+----------+----------------------------------------------------------+---------+--------------+-------------
+ val    | integer |           | not null | nextval('test_tbl_serial_combined_pk_val_seq'::regclass) | plain   |              | 
+ val1   | integer |           | not null |                                                          | plain   |              | 
+Indexes:
+    "test_tbl_serial_combined_pk_pkey" PRIMARY KEY, btree (val, val1)
+Not-null constraints:
+    "test_tbl_serial_combined_pk_val_not_null" NOT NULL "val"
+    "test_tbl_serial_combined_pk_val1_not_null" NOT NULL "val1"
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_create_index (val int, val2 int); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX test1_idx ON public.test_tbl_create_index(val); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" UNIQUE, btree (val)
+    "test2_idx" btree (lower(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" UNIQUE, btree (val)
+    "test2_idx" btree (lower(val2::text))
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test2_idx; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+
+\c postgres
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX test2_idx ON public.test_tbl_create_index USING gist (val, UPPER(val2::text)); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" btree (val, val2)
+    "test2_idx" gist (val, upper(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test1_idx" btree (val, val2)
+    "test2_idx" gist (val, upper(val2::text))
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX public.test1_idx; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
+CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+\c postgres
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); $DDL$);
+ERROR:  CREATE INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
+CONTEXT:  during replay of DDL statement:  CREATE INDEX CONCURRENTLY test1_idx ON public.test_tbl_create_index(val, val2); 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); $DDL$);
+ERROR:  CREATE INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run CREATE INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
+CONTEXT:  during replay of DDL statement:  CREATE UNIQUE INDEX CONCURRENTLY test2_idx ON public.test_tbl_create_index (lower(val2::text)); 
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+\c regression
+\d+ test_tbl_create_index
+                           Table "public.test_tbl_create_index"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ val    | integer |           |          |         | plain   |              | 
+ val2   | integer |           |          |         | plain   |              | 
+Indexes:
+    "test2_idx" gist (val, upper(val2::text))
+
+-- Not supported via pgactive.pgactive_replicate_ddl_command, see //github.com/2ndQuadrant/pgactive-private/issues/124
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test1_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
+CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test1_idx; 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP INDEX CONCURRENTLY public.test2_idx; $DDL$);
+ERROR:  DROP INDEX CONCURRENTLY is not supported in pgactive.replicate_ddl_command
+HINT:  Run DROP INDEX CONCURRENTLY on each node individually with pgactive.skip_ddl_replication set.
+CONTEXT:  during replay of DDL statement:  DROP INDEX CONCURRENTLY public.test2_idx; 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_create_index; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_arrays_tbl(val int[], val1 text[]); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_arrays_tbl
+                      Table "public.test_simple_create_with_arrays_tbl"
+ Column |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-----------+-----------+----------+---------+----------+--------------+-------------
+ val    | integer[] |           |          |         | extended |              | 
+ val1   | text[]    |           |          |         | extended |              | 
+
+\c postgres
+\d+ test_simple_create_with_arrays_tbl
+                      Table "public.test_simple_create_with_arrays_tbl"
+ Column |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+-----------+-----------+----------+---------+----------+--------------+-------------
+ val    | integer[] |           |          |         | extended |              | 
+ val1   | text[]    |           |          |         | extended |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_arrays_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS ENUM('a','b','c'); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_enums_tbl(val public.test_t, val1 public.test_t); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_enums_tbl
+                    Table "public.test_simple_create_with_enums_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+--------+-----------+----------+---------+---------+--------------+-------------
+ val    | test_t |           |          |         | plain   |              | 
+ val1   | test_t |           |          |         | plain   |              | 
+
+\c regression
+\d+ test_simple_create_with_enums_tbl
+                    Table "public.test_simple_create_with_enums_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+--------+-----------+----------+---------+---------+--------------+-------------
+ val    | test_t |           |          |         | plain   |              | 
+ val1   | test_t |           |          |         | plain   |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_enums_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_enums_tbl
+\dT test_t
+     List of data types
+ Schema | Name | Description 
+--------+------+-------------
+(0 rows)
+
+\c postgres
+\d+ test_simple_create_with_enums_tbl
+\dT test_t
+     List of data types
+ Schema | Name | Description 
+--------+------+-------------
+(0 rows)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TYPE public.test_t AS (f1 text, f2 float, f3 integer); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_simple_create_with_composites_tbl(val public.test_t, val1 public.test_t); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_composites_tbl
+                  Table "public.test_simple_create_with_composites_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ val    | test_t |           |          |         | extended |              | 
+ val1   | test_t |           |          |         | extended |              | 
+
+\c regression
+\d+ test_simple_create_with_composites_tbl
+                  Table "public.test_simple_create_with_composites_tbl"
+ Column |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+--------+-----------+----------+---------+----------+--------------+-------------
+ val    | test_t |           |          |         | extended |              | 
+ val1   | test_t |           |          |         | extended |              | 
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_simple_create_with_composites_tbl; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TYPE public.test_t; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_simple_create_with_composites_tbl
+\dT test_t
+     List of data types
+ Schema | Name | Description 
+--------+------+-------------
+(0 rows)
+
+\c postgres
+\d+ test_simple_create_with_composites_tbl
+\dT test_t
+     List of data types
+ Schema | Name | Description 
+--------+------+-------------
+(0 rows)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_serial_combined_pk; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_parent(f1 text, f2 date DEFAULT '2014-01-02'); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+\set VERBOSITY terse
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld1(f1 text, f2 date DEFAULT '2014-01-02') INHERITS (public.test_tbl_inh_parent); $DDL$);
+NOTICE:  merging column "f1" with inherited definition
+NOTICE:  merging column "f2" with inherited definition
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld2(f1 text, f2 date) INHERITS (public.test_tbl_inh_parent); $DDL$);
+NOTICE:  merging column "f1" with inherited definition
+NOTICE:  merging column "f2" with inherited definition
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.test_tbl_inh_chld3(f1 text) INHERITS (public.test_tbl_inh_parent, public.test_tbl_inh_chld1); $DDL$);
+NOTICE:  merging multiple inherited definitions of column "f1"
+NOTICE:  merging multiple inherited definitions of column "f2"
+NOTICE:  merging column "f1" with inherited definition
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+\set VERBOSITY default
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_*
+                                 Table "public.test_tbl_inh_chld1"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+Child tables: test_tbl_inh_chld3
+
+                                 Table "public.test_tbl_inh_chld2"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+
+                                 Table "public.test_tbl_inh_chld3"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent,
+          test_tbl_inh_chld1
+
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+\c regression
+\d+ test_tbl_inh_*
+                                 Table "public.test_tbl_inh_chld1"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+Child tables: test_tbl_inh_chld3
+
+                                 Table "public.test_tbl_inh_chld2"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent
+
+                                 Table "public.test_tbl_inh_chld3"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Inherits: test_tbl_inh_parent,
+          test_tbl_inh_chld1
+
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE RULE test_tbl_inh_parent_rule_ins_1 AS ON INSERT TO public.test_tbl_inh_parent
+          WHERE (f1 LIKE '%1%') DO INSTEAD
+          INSERT INTO public.test_tbl_inh_chld1 VALUES (NEW.*);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE RULE test_tbl_inh_parent_rule_ins_2 AS ON INSERT TO public.test_tbl_inh_parent
+          WHERE (f1 LIKE '%2%') DO INSTEAD
+          INSERT INTO public.test_tbl_inh_chld2 VALUES (NEW.*);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_parent
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Rules:
+    test_tbl_inh_parent_rule_ins_1 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%1%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld1 (f1, f2)
+  VALUES (new.f1, new.f2)
+    test_tbl_inh_parent_rule_ins_2 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%2%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld2 (f1, f2)
+  VALUES (new.f1, new.f2)
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+\c postgres
+\d+ test_tbl_inh_parent
+                                Table "public.test_tbl_inh_parent"
+ Column | Type | Collation | Nullable |      Default       | Storage  | Stats target | Description 
+--------+------+-----------+----------+--------------------+----------+--------------+-------------
+ f1     | text |           |          |                    | extended |              | 
+ f2     | date |           |          | '01-02-2014'::date | plain    |              | 
+Rules:
+    test_tbl_inh_parent_rule_ins_1 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%1%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld1 (f1, f2)
+  VALUES (new.f1, new.f2)
+    test_tbl_inh_parent_rule_ins_2 AS
+    ON INSERT TO test_tbl_inh_parent
+   WHERE new.f1 ~~ '%2%'::text DO INSTEAD  INSERT INTO test_tbl_inh_chld2 (f1, f2)
+  VALUES (new.f1, new.f2)
+Child tables: test_tbl_inh_chld1,
+              test_tbl_inh_chld2,
+              test_tbl_inh_chld3
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_chld1; $DDL$);
+ERROR:  cannot drop table public.test_tbl_inh_chld1 because other objects depend on it
+DETAIL:  table public.test_tbl_inh_chld3 depends on table public.test_tbl_inh_chld1
+rule test_tbl_inh_parent_rule_ins_1 on table public.test_tbl_inh_parent depends on table public.test_tbl_inh_chld1
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+CONTEXT:  during replay of DDL statement:  DROP TABLE public.test_tbl_inh_chld1; 
+\set VERBOSITY terse
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.test_tbl_inh_parent CASCADE; $DDL$);
+NOTICE:  drop cascades to 3 other objects
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+\set VERBOSITY default
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_inh_*
+\c regression
+\d+ test_tbl_inh_*
+CREATE TABLE test_tbl_exclude(val int PRIMARY KEY,EXCLUDE USING gist(id with =));
+ERROR:  EXCLUDE constraints are unsafe with pgactive active
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\d+ test_tbl_exclude
+\c postgres
+\d+ test_tbl_exclude
+\c regression
+-- ensure tables WITH OIDs can't be created
+SHOW default_with_oids;
+ default_with_oids 
+-------------------
+ off
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH oids; $DDL$);
+ERROR:  syntax error at or near "oids"
+LINE 1: SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE ...
+                                                  ^
+CONTEXT:  during replay of DDL statement:  CREATE TABLE public.tbl_with_oids() WITH oids; 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids(); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SET default_with_oids = true;
+ERROR:  tables declared WITH OIDS are not supported
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_with_oids() WITH OIDS; $DDL$);
+ERROR:  syntax error at or near "OIDS"
+LINE 1: SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE ...
+                                                  ^
+CONTEXT:  during replay of DDL statement:  CREATE TABLE public.tbl_with_oids() WITH OIDS; 
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_without_oids() WITHOUT oids; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE public.tbl_without_oids; $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SET default_with_oids = false;
+-- ensure storage attributes in SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.are replicated properly $DDL$);
+\c postgres
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ CREATE TABLE public.tbl_showfillfactor (name char(500), unique (name) with (fillfactor=65)) with (fillfactor=75); $DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+\d+ tbl_showfillfactor
+                                Table "public.tbl_showfillfactor"
+ Column |      Type      | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+----------------+-----------+----------+---------+----------+--------------+-------------
+ name   | character(500) |           |          |         | extended |              | 
+Indexes:
+    "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
+Options: fillfactor=75
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c regression
+\d+ tbl_showfillfactor
+                                Table "public.tbl_showfillfactor"
+ Column |      Type      | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+----------------+-----------+----------+---------+----------+--------------+-------------
+ name   | character(500) |           |          |         | extended |              | 
+Indexes:
+    "tbl_showfillfactor_name_key" UNIQUE CONSTRAINT, btree (name) WITH (fillfactor='65')
+Options: fillfactor=75
+
+\set VERBOSITY terse
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$ DROP TABLE tbl_showfillfactor;$DDL$);
+ERROR:  relation "tbl_showfillfactor" does not exist
+\set VERBOSITY default
+--- AGGREGATE ---
+\c postgres
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE AGGREGATE public.test_avg (
+   sfunc = int4_avg_accum, basetype = int4, stype = _int8,
+   finalfunc = int8_avg,
+   initcond1 = '{0,0}',
+   sortop = =
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+-- without finalfunc; test obsolete spellings 'sfunc1' etc
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE AGGREGATE public.test_sum (
+   sfunc1 = int4pl, basetype = int4, stype1 = int4,
+   initcond1 = '0'
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+-- zero-argument aggregate
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE AGGREGATE public.test_cnt (*) (
+   sfunc = int8inc, stype = int8,
+   initcond = '0'
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                         List of functions
+ Schema |   Name   | Result data type | Argument data types | Type 
+--------+----------+------------------+---------------------+------
+ public | test_avg | numeric          | integer             | agg
+ public | test_cnt | bigint           |                     | agg
+ public | test_sum | integer          | integer             | agg
+(3 rows)
+
+\c regression
+\dfa test_*
+                         List of functions
+ Schema |   Name   | Result data type | Argument data types | Type 
+--------+----------+------------------+---------------------+------
+ public | test_avg | numeric          | integer             | agg
+ public | test_cnt | bigint           |                     | agg
+ public | test_sum | integer          | integer             | agg
+(3 rows)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP AGGREGATE public.test_avg(int4);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP AGGREGATE public.test_sum(int4);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP AGGREGATE public.test_cnt(*);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+\c postgres
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+create type public.aggtype as (a integer, b integer, c text);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+create function public.aggf_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
+language sql strict immutable;
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+create function public.aggfns_trans(public.aggtype[],integer,integer,text) returns public.aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::public.aggtype)'
+language sql immutable;
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+create aggregate public.test_aggfstr(integer,integer,text) (
+   sfunc = public.aggf_trans, stype = public.aggtype[],
+   initcond = '{}'
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                            List of functions
+ Schema |     Name     | Result data type |  Argument data types   | Type 
+--------+--------------+------------------+------------------------+------
+ public | test_aggfstr | aggtype[]        | integer, integer, text | agg
+(1 row)
+
+\c regression
+\dfa test_*
+                            List of functions
+ Schema |     Name     | Result data type |  Argument data types   | Type 
+--------+--------------+------------------+------------------------+------
+ public | test_aggfstr | aggtype[]        | integer, integer, text | agg
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP AGGREGATE public.test_aggfstr(integer,integer,text);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP FUNCTION public.aggf_trans(public.aggtype[],integer,integer,text);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP FUNCTION public.aggfns_trans(public.aggtype[],integer,integer,text);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP TYPE public.aggtype;
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+\c postgres
+\dfa test_*
+                       List of functions
+ Schema | Name | Result data type | Argument data types | Type 
+--------+------+------------------+---------------------+------
+(0 rows)
+
+--- OPERATOR ---
+\c postgres
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE OPERATOR public.## (
+   leftarg = path,
+   rightarg = path,
+   procedure = path_inter,
+   commutator = OPERATOR(public.##)
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE OPERATOR public.@#@ (
+   rightarg = int8,		-- left unary
+   procedure = factorial
+);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+CREATE OPERATOR public.#@# (
+   leftarg = int8,		-- right unary
+   procedure = factorial
+);
+$DDL$);
+ERROR:  operator right argument type must be specified
+DETAIL:  Postfix operators are not supported.
+CONTEXT:  during replay of DDL statement: 
+CREATE OPERATOR public.#@# (
+   leftarg = int8,		-- right unary
+   procedure = factorial
+);
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\do public.##
+                                      List of operators
+ Schema | Name | Left arg type | Right arg type | Result type |          Description          
+--------+------+---------------+----------------+-------------+-------------------------------
+ public | ##   | path          | path           | boolean     | implementation of ?# operator
+(1 row)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | @#@  |               | bigint         | numeric     | factorial
+(1 row)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\c regression
+\do public.##
+                                      List of operators
+ Schema | Name | Left arg type | Right arg type | Result type |          Description          
+--------+------+---------------+----------------+-------------+-------------------------------
+ public | ##   | path          | path           | boolean     | implementation of ?# operator
+(1 row)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+ public | @#@  |               | bigint         | numeric     | factorial
+(1 row)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP OPERATOR public.##(path, path);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP OPERATOR public.@#@(none,int8);
+$DDL$);
+ pgactive_replicate_ddl_command 
+--------------------------------
+ 
+(1 row)
+
+SELECT pgactive.pgactive_replicate_ddl_command($DDL$
+DROP OPERATOR public.#@#(int8,none);
+$DDL$);
+ERROR:  postfix operators are not supported
+CONTEXT:  during replay of DDL statement: 
+DROP OPERATOR public.#@#(int8,none);
+
+\do public.##
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+SELECT pgactive.pgactive_wait_for_slots_confirmed_flush_lsn(NULL,NULL);
+ pgactive_wait_for_slots_confirmed_flush_lsn 
+---------------------------------------------
+ 
+(1 row)
+
+\c postgres
+\do public.##
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.@#@
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
+\do public.#@#
+                             List of operators
+ Schema | Name | Left arg type | Right arg type | Result type | Description 
+--------+------+---------------+----------------+-------------+-------------
+(0 rows)
+
