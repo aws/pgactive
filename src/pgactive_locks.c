@@ -1513,7 +1513,9 @@ pgactive_process_acquire_ddl_lock(const pgactiveNodeId * const node, pgactiveLoc
 			/* simple_heap_insert(rel, tup); */
 			pgactive_locks_set_commit_pending_state(pgactive_LOCKSTATE_PEER_BEGIN_CATCHUP);
 			/* CatalogTupleUpdate(rel, &tup->t_self, tup); */
+			PushActiveSnapshot(GetTransactionSnapshot());
 			CatalogTupleInsert(rel, tup);
+			PopActiveSnapshot();
 			ForceSyncCommit();	/* async commit would be too complicated */
 			table_close(rel, NoLock);
 			CommitTransactionCommand();

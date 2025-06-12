@@ -40,6 +40,7 @@
 #include "utils/elog.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
+#include "utils/snapmgr.h"
 
 static bool destroy_temp_dump_dirs_callback_registered = false;
 
@@ -380,6 +381,8 @@ pgactive_supervisor_createdb()
 
 	StartTransactionCommand();
 
+	PushActiveSnapshot(GetTransactionSnapshot());
+
 	/* If the DB already exists, no need to create it */
 	dboid = get_database_oid(pgactive_SUPERVISOR_DBNAME, true);
 
@@ -415,6 +418,8 @@ pgactive_supervisor_createdb()
 	{
 		elog(DEBUG3, "database " pgactive_SUPERVISOR_DBNAME " (oid=%i) already exists, not creating", dboid);
 	}
+
+	PopActiveSnapshot();
 
 	CommitTransactionCommand();
 

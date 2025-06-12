@@ -367,6 +367,8 @@ pgactive_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 
 	Assert(IsTransactionState());
 
+	PushActiveSnapshot(GetTransactionSnapshot());
+
 	/*
 	 * We don't allow the user to clear read-only status while the local node
 	 * is initing.
@@ -422,6 +424,8 @@ pgactive_set_node_read_only_guts(char *node_name, bool read_only, bool force)
 		elog(ERROR, "node %s not found.", node_name);
 
 	systable_endscan(scan);
+
+	PopActiveSnapshot();
 
 	CommandCounterIncrement();
 
