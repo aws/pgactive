@@ -1640,11 +1640,7 @@ pgactive_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 		portal = CreatePortal("pgactive", true, true);
 		PortalDefineQuery(portal, NULL,
 						  cmdstr, commandTag,
-#if PG_VERSION_NUM >= 180000
-						  plantree_list, NULL, NULL);
-#else
 						  plantree_list, NULL);
-#endif
 		PortalStart(portal, NULL, 0, InvalidSnapshot);
 
 		receiver = CreateDestReceiver(DestNone);
