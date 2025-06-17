@@ -237,7 +237,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 	/* print all columns individually */
 	for (natt = 0; natt < tupdesc->natts; natt++)
 	{
-		FormData_pg_attribute *attr; /* the attribute itself */
+		FormData_pg_attribute *attr;	/* the attribute itself */
 		Oid			typid;		/* type of current attribute */
 		HeapTuple	type_tuple; /* information about a type */
 		Form_pg_type type_form;

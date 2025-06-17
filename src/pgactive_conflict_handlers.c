@@ -729,7 +729,7 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 	bool		isnull;
 	Oid			event_oid;
 	const char *event = pgactive_conflict_handlers_event_type_name(event_type);
-    FormData_pg_attribute *att0 = NULL;
+	FormData_pg_attribute *att0 = NULL;
 
 	*skip = false;
 

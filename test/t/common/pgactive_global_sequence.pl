@@ -115,11 +115,9 @@ sub join_under_sequence_write_load {
     my $node = PostgreSQL::Test::Cluster->new('node_join_under_write_load');
 
     if ( $type eq 'logical' ) {
-        note '>>>>>>>>>>>> Logical';
         initandstart_logicaljoin_node( $node, $upstream_node );
     }
     elsif ( $type eq 'physical' ) {
-        note '<<<<<<<<<<<< Physical';
         initandstart_physicaljoin_node( $node, $upstream_node );
     }
   TODO: {
