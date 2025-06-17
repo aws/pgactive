@@ -469,10 +469,8 @@ pgactive_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 	char	  **argnames;
 	char	   *argmodes;
 	const char *hint = NULL;
-#if PG_VERSION_NUM >= 180000
 	FormData_pg_attribute *att0 = NULL;
 	FormData_pg_attribute *att1 = NULL;
-#endif
 
 	tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(proc_oid));
 	if (!HeapTupleIsValid(tuple))
@@ -505,15 +503,12 @@ pgactive_conflict_handlers_check_handler_fun(Relation rel, Oid proc_oid)
 			hint = "Function doesn't have 2 OUT arguments";
 			break;
 		}
-#if PG_VERSION_NUM >= 180000
+
 		att0 = TupleDescAttr(retdesc, 0);
 		att1 = TupleDescAttr(retdesc, 1);
+
 		if (att0->atttypid != rel->rd_rel->reltype ||
 			att1->atttypid != pgactive_conflict_handler_action_oid)
-#else
-		if (retdesc->attrs[0].atttypid != rel->rd_rel->reltype ||
-			retdesc->attrs[1].atttypid != pgactive_conflict_handler_action_oid)
-#endif
 		{
 			hint = "OUT argument are not of the expected types.";
 			break;
@@ -734,9 +729,7 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 	bool		isnull;
 	Oid			event_oid;
 	const char *event = pgactive_conflict_handlers_event_type_name(event_type);
-#if PG_VERSION_NUM >= 180000
-	FormData_pg_attribute *att0 = NULL;
-#endif
+    FormData_pg_attribute *att0 = NULL;
 
 	*skip = false;
 
@@ -855,17 +848,11 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 
 			tup_header = DatumGetHeapTupleHeader(val);
 
-#if PG_VERSION_NUM >= 180000
 			att0 = TupleDescAttr(retdesc, 0);
-#endif
 			if (HeapTupleHeaderGetTypeId(tup_header) != rel->rel->rd_rel->reltype)
 				elog(ERROR, "handler %d returned unexpected tuple type %d",
 					 rel->conflict_handlers[i].handler_oid,
-#if PG_VERSION_NUM >= 180000
 					 att0->atttypid);
-#else
-					 retdesc->attrs[0].atttypid);
-#endif
 
 			tup->t_len = HeapTupleHeaderGetDatumLength(tup_header);
 			ItemPointerSetInvalid(&(tup->t_self));

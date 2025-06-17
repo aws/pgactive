@@ -2126,11 +2126,7 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 	/* Consume remote data as long as there's a local column to put it in */
 	for (i = 0; i < Min(desc->natts, rnatts); i++)
 	{
-#if PG_VERSION_NUM >= 180000
 		FormData_pg_attribute *att = TupleDescAttr(desc, i);
-#else
-		Form_pg_attribute att = &desc->attrs[i];
-#endif
 		char		kind;
 		const char *data;
 		int			len;
@@ -2221,11 +2217,7 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 	 */
 	for (i = rnatts; i < desc->natts; i++)
 	{
-#if PG_VERSION_NUM >= 180000
 		FormData_pg_attribute *att = TupleDescAttr(desc, i);
-#else
-		Form_pg_attribute att = &desc->attrs[i];
-#endif
 
 		/*
 		 * If the remote-missing attribute(s) are locally dropped or nullable,

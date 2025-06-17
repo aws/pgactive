@@ -237,11 +237,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 	/* print all columns individually */
 	for (natt = 0; natt < tupdesc->natts; natt++)
 	{
-#if PG_VERSION_NUM >= 180000
-		FormData_pg_attribute *attr;	/* the attribute itself */
-#else
-		Form_pg_attribute attr; /* the attribute itself */
-#endif
+		FormData_pg_attribute *attr; /* the attribute itself */
 		Oid			typid;		/* type of current attribute */
 		HeapTuple	type_tuple; /* information about a type */
 		Form_pg_type type_form;
@@ -252,11 +248,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 		char	   *outputstr = NULL;
 		bool		isnull;		/* column is null? */
 
-#if PG_VERSION_NUM >= 180000
 		attr = TupleDescAttr(tupdesc, natt);
-#else
-		attr = &tupdesc->attrs[natt];
-#endif
 
 		/*
 		 * don't print dropped columns, we can't be sure everything is
