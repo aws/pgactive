@@ -1074,8 +1074,7 @@ write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 	{
 		HeapTuple	typtup;
 		Form_pg_type typclass;
-
-		Form_pg_attribute att = &desc->attrs[i];
+		FormData_pg_attribute *att = TupleDescAttr(desc, i);
 
 		bool		use_binary = false;
 		bool		use_sendrecv = false;

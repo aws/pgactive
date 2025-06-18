@@ -50,7 +50,7 @@ static Oid	pgactiveConflictHistorySeqId = InvalidOid;
 #define SYSID_DIGITS 33
 
 /* We want our own memory ctx to clean up easily & reliably */
-MemoryContext conflict_log_context;
+static MemoryContext conflict_log_context;
 
 /*
  * Perform syscache lookups etc for pgactive conflict logging.
@@ -237,7 +237,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 	/* print all columns individually */
 	for (natt = 0; natt < tupdesc->natts; natt++)
 	{
-		Form_pg_attribute attr; /* the attribute itself */
+		FormData_pg_attribute *attr;	/* the attribute itself */
 		Oid			typid;		/* type of current attribute */
 		HeapTuple	type_tuple; /* information about a type */
 		Form_pg_type type_form;
@@ -248,7 +248,7 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple)
 		char	   *outputstr = NULL;
 		bool		isnull;		/* column is null? */
 
-		attr = &tupdesc->attrs[natt];
+		attr = TupleDescAttr(tupdesc, natt);
 
 		/*
 		 * don't print dropped columns, we can't be sure everything is

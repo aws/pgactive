@@ -43,6 +43,7 @@
 #include "utils/lsyscache.h"
 
 static void pgactiveExecutorStart(QueryDesc *queryDesc, int eflags);
+
 CommandTag	CreateWritableStmtTag(PlannedStmt *plannedstmt);
 
 static ExecutorStart_hook_type PrevExecutorStart_hook = NULL;
@@ -257,6 +258,9 @@ retry:
 	found = false;
 	scan = index_beginscan(rel->rel, idxrel,
 						   &snap,
+#if PG_VERSION_NUM >= 180000
+						   NULL,
+#endif
 						   RelationGetNumberOfAttributes(idxrel),
 						   0);
 	index_rescan(scan, skey, RelationGetNumberOfAttributes(idxrel), NULL, 0);

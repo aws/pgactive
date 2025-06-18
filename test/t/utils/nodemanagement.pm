@@ -165,6 +165,13 @@ sub initandstart_node {
     pgactive_update_postgresql_conf( $node );
     $node->start;
     _create_db_and_exts( $node, $db );
+       my $pg_version = $node->safe_psql($db, q[select setting::int/10000 from pg_settings where name = 'server_version_num';]);
+       if ($pg_version > 17)
+       {
+               # Due to 04ff636cbce4b91fba1f334e1bc0dc88686e7b2d
+               $node->append_conf('postgresql.conf', q{max_active_replication_origins = 15});
+               $node->restart;
+       }
 
 }
 

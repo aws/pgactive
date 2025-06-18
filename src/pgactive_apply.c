@@ -76,11 +76,11 @@ Oid			QueuedDDLCommandsRelid = InvalidOid;
 Oid			QueuedDropsRelid = InvalidOid;
 
 /* Global apply worker state */
-pgactiveNodeId origin;
-bool		started_transaction = false;
+static pgactiveNodeId origin;
+static bool started_transaction = false;
 
 /* During apply, holds xid of remote transaction */
-TransactionId replication_origin_xid = InvalidTransactionId;
+static TransactionId replication_origin_xid = InvalidTransactionId;
 
 /*
  * For tracking of the remote origin's information when in catchup mode
@@ -107,7 +107,7 @@ static pgactiveApplyWorker * pgactive_apply_worker = NULL;
 
 static pgactiveConnectionConfig * pgactive_apply_config = NULL;
 
-dlist_head	pgactive_lsn_association = DLIST_STATIC_INIT(pgactive_lsn_association);
+static dlist_head pgactive_lsn_association = DLIST_STATIC_INIT(pgactive_lsn_association);
 
 struct ActionErrCallbackArg
 {
@@ -1646,7 +1646,11 @@ pgactive_execute_ddl_command(char *cmdstr, char *perpetrator, char *search_path,
 		receiver = CreateDestReceiver(DestNone);
 
 		(void) PortalRun(portal, FETCH_ALL,
+#if PG_VERSION_NUM >= 180000
+						 isTopLevel,
+#else
 						 isTopLevel, true,
+#endif
 						 receiver, receiver,
 						 NULL);
 		(*receiver->rDestroy) (receiver);
@@ -2122,7 +2126,7 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 	/* Consume remote data as long as there's a local column to put it in */
 	for (i = 0; i < Min(desc->natts, rnatts); i++)
 	{
-		Form_pg_attribute att = &desc->attrs[i];
+		FormData_pg_attribute *att = TupleDescAttr(desc, i);
 		char		kind;
 		const char *data;
 		int			len;
@@ -2213,7 +2217,7 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 	 */
 	for (i = rnatts; i < desc->natts; i++)
 	{
-		Form_pg_attribute att = &desc->attrs[i];
+		FormData_pg_attribute *att = TupleDescAttr(desc, i);
 
 		/*
 		 * If the remote-missing attribute(s) are locally dropped or nullable,
