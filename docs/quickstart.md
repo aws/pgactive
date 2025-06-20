@@ -6,10 +6,11 @@ In this example we will create a database "app", some table, enable / setup pgac
 
 ## Use pgactive to deploy an active-active PostgreSQL database
 
-### 1. On each PostgreSQL instance, run the following command:
+### 1. On each PostgreSQL instance, run the following command to create a database and switch to the new database:
 
 ```
 CREATE DATABASE app;
+\c app
 ```
 
 ### 2. Retrieve the network endpoints for the two PostgreSQL instances
