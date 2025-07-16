@@ -366,7 +366,7 @@ After you have detached the nodes, you can run the pgactive.pgactive_remove() co
 
 ```
 SELECT pgactive.pgactive_remove();
-``
+```
 After you have successfully run these commands, you can drop the pgactive extension:
 
 ```
