@@ -46,7 +46,7 @@ Controls how long a DDL lock attempt can wait for concurrent write transactions 
 
 Controls how long a DDL lock attempt can wait to acquire the lock.  The default value `-1` (the default) uses the value of `lock_timeout`. Can be set with time units like `'10s'`. See DDL Locking. Note that once the DDL lock is acquired and the DDL operation begins this timer stops ticking; it doesn\'t limit the overall duration a DDL lock may be held, only how long a transaction can wait for one to be acquired. To limit overall duration use a `statement_timeout`.
 
-`pgactive.debug_trace_ddl_locks_level` (`boolean`)
+`pgactive.debug_trace_ddl_locks_level` (`enum`)
 
 Override the default debug log level for pgactive DDL locking (used in DDL replication) so that DDL-lock related messages are emitted at the LOG debug level instead. This can be used to trace DDL locking activity on the system without having to configure the extremely verbose DEBUG1 or DEBUG2 log levels for the whole server.
 
