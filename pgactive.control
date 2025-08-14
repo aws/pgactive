@@ -1,6 +1,6 @@
 # pgactive extension
 comment = 'Active-Active Replication Extension for PostgreSQL'
-default_version = '2.1.5'
+default_version = '2.1.6'
 module_pathname = '$libdir/pgactive'
 relocatable = false
 schema = pg_catalog

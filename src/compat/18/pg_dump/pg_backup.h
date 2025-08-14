@@ -163,6 +163,8 @@ typedef struct _restoreOptions
 	bool		dumpSchema;
 	bool		dumpData;
 	bool		dumpStatistics;
+
+	char	   *restrict_key;
 } RestoreOptions;
 
 typedef struct _dumpOptions
@@ -214,6 +216,8 @@ typedef struct _dumpOptions
 	bool		dumpSchema;
 	bool		dumpData;
 	bool		dumpStatistics;
+
+	char	   *restrict_key;
 } DumpOptions;
 
 /*
@@ -309,7 +313,7 @@ extern void SetArchiveOptions(Archive *AH, DumpOptions *dopt, RestoreOptions *ro
 
 extern void ProcessArchiveRestoreOptions(Archive *AHX);
 
-extern void RestoreArchive(Archive *AHX, bool append_data);
+extern void RestoreArchive(Archive *AHX);
 
 /* Open an existing archive */
 extern Archive *OpenArchive(const char *FileSpec, const ArchiveFormat fmt);

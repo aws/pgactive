@@ -57,7 +57,6 @@ static ArchiveHandle *_allocAH(const char *FileSpec, const ArchiveFormat fmt,
 							   DataDirSyncMethod sync_method);
 static void _getObjectDescription(PQExpBuffer buf, const TocEntry *te);
 static void _printTocEntry(ArchiveHandle *AH, TocEntry *te, const char *pfx);
-static char *sanitize_line(const char *str, bool want_hyphen);
 static void _doSetFixedOutputState(ArchiveHandle *AH);
 static void _doSetSessionAuth(ArchiveHandle *AH, const char *user);
 static void _reconnectToDB(ArchiveHandle *AH, const char *dbname);
@@ -85,7 +84,7 @@ static int	RestoringToDB(ArchiveHandle *AH);
 static void dump_lo_buf(ArchiveHandle *AH);
 static void dumpTimestamp(ArchiveHandle *AH, const char *msg, time_t tim);
 static void SetOutput(ArchiveHandle *AH, const char *filename,
-					  const pg_compress_specification compression_spec, bool append_data);
+					  const pg_compress_specification compression_spec);
 static CompressFileHandle *SaveOutput(ArchiveHandle *AH);
 static void RestoreOutput(ArchiveHandle *AH, CompressFileHandle *savedOutput);
 
@@ -152,7 +151,7 @@ InitDumpOptions(DumpOptions *opts)
 	opts->dumpSections = DUMP_UNSECTIONED;
 	opts->dumpSchema = true;
 	opts->dumpData = true;
-	opts->dumpStatistics = true;
+	opts->dumpStatistics = false;
 }
 
 /*
@@ -196,6 +195,7 @@ dumpOptionsFromRestoreOptions(RestoreOptions *ropt)
 	dopt->include_everything = ropt->include_everything;
 	dopt->enable_row_security = ropt->enable_row_security;
 	dopt->sequence_data = ropt->sequence_data;
+	dopt->restrict_key = ropt->restrict_key ? pg_strdup(ropt->restrict_key) : NULL;
 
 	return dopt;
 }
@@ -337,14 +337,9 @@ ProcessArchiveRestoreOptions(Archive *AHX)
 		StrictNamesCheck(ropt);
 }
 
-/*
- * RestoreArchive
- *
- * If append_data is set, then append data into file as we are restoring dump
- * of multiple databases which was taken by pg_dumpall.
- */
+/* Public */
 void
-RestoreArchive(Archive *AHX, bool append_data)
+RestoreArchive(Archive *AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	RestoreOptions *ropt = AH->public.ropt;
@@ -461,9 +456,20 @@ RestoreArchive(Archive *AHX, bool append_data)
 	 */
 	sav = SaveOutput(AH);
 	if (ropt->filename || ropt->compression_spec.algorithm != PG_COMPRESSION_NONE)
-		SetOutput(AH, ropt->filename, ropt->compression_spec, append_data);
+		SetOutput(AH, ropt->filename, ropt->compression_spec);
 
 	ahprintf(AH, "--\n-- PostgreSQL database dump\n--\n\n");
+
+	/*
+	 * If generating plain-text output, enter restricted mode to block any
+	 * unexpected psql meta-commands.  A malicious source might try to inject
+	 * a variety of things via bogus responses to queries.  While we cannot
+	 * prevent such sources from affecting the destination at restore time, we
+	 * can block psql meta-commands so that the client machine that runs psql
+	 * with the dump output remains unaffected.
+	 */
+	if (ropt->restrict_key)
+		ahprintf(AH, "\\restrict %s\n\n", ropt->restrict_key);
 
 	if (AH->archiveRemoteVersion)
 		ahprintf(AH, "-- Dumped from database version %s\n",
@@ -804,6 +810,14 @@ RestoreArchive(Archive *AHX, bool append_data)
 		dumpTimestamp(AH, "Completed on", time(NULL));
 
 	ahprintf(AH, "--\n-- PostgreSQL database dump complete\n--\n\n");
+
+	/*
+	 * If generating plain-text output, exit restricted mode at the very end
+	 * of the script. This is not pro forma; in particular, pg_dumpall
+	 * requires this when transitioning from one database to another.
+	 */
+	if (ropt->restrict_key)
+		ahprintf(AH, "\\unrestrict %s\n\n", ropt->restrict_key);
 
 	/*
 	 * Clean up & we're done.
@@ -1300,7 +1314,7 @@ PrintTOCSummary(Archive *AHX)
 
 	sav = SaveOutput(AH);
 	if (ropt->filename)
-		SetOutput(AH, ropt->filename, out_compression_spec, false);
+		SetOutput(AH, ropt->filename, out_compression_spec);
 
 	if (strftime(stamp_str, sizeof(stamp_str), PGDUMP_STRFTIME_FMT,
 				 localtime(&AH->createDate)) == 0)
@@ -1679,8 +1693,7 @@ archprintf(Archive *AH, const char *fmt,...)
 
 static void
 SetOutput(ArchiveHandle *AH, const char *filename,
-		  const pg_compress_specification compression_spec,
-		  bool append_data)
+		  const pg_compress_specification compression_spec)
 {
 	CompressFileHandle *CFH;
 	const char *mode;
@@ -1700,7 +1713,7 @@ SetOutput(ArchiveHandle *AH, const char *filename,
 	else
 		fn = fileno(stdout);
 
-	if (append_data || AH->mode == archModeAppend)
+	if (AH->mode == archModeAppend)
 		mode = PG_BINARY_A;
 	else
 		mode = PG_BINARY_W;
@@ -2655,7 +2668,7 @@ WriteToc(ArchiveHandle *AH)
 				pg_fatal("unexpected TOC entry in WriteToc(): %d %s %s",
 						 te->dumpId, te->desc, te->tag);
 
-			if (fseeko(AH->FH, te->defnLen, SEEK_CUR != 0))
+			if (fseeko(AH->FH, te->defnLen, SEEK_CUR) != 0)
 				pg_fatal("error during file seek: %m");
 		}
 		else if (te->defnDumper)
@@ -3444,11 +3457,21 @@ _reconnectToDB(ArchiveHandle *AH, const char *dbname)
 	else
 	{
 		PQExpBufferData connectbuf;
+		RestoreOptions *ropt = AH->public.ropt;
+
+		/*
+		 * We must temporarily exit restricted mode for \connect, etc.
+		 * Anything added between this line and the following \restrict must
+		 * be careful to avoid any possible meta-command injection vectors.
+		 */
+		ahprintf(AH, "\\unrestrict %s\n", ropt->restrict_key);
 
 		initPQExpBuffer(&connectbuf);
 		appendPsqlMetaConnect(&connectbuf, dbname);
-		ahprintf(AH, "%s\n", connectbuf.data);
+		ahprintf(AH, "%s", connectbuf.data);
 		termPQExpBuffer(&connectbuf);
+
+		ahprintf(AH, "\\restrict %s\n\n", ropt->restrict_key);
 	}
 
 	/*
@@ -4039,42 +4062,6 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, const char *pfx)
 		free(AH->currUser);
 		AH->currUser = NULL;
 	}
-}
-
-/*
- * Sanitize a string to be included in an SQL comment or TOC listing, by
- * replacing any newlines with spaces.  This ensures each logical output line
- * is in fact one physical output line, to prevent corruption of the dump
- * (which could, in the worst case, present an SQL injection vulnerability
- * if someone were to incautiously load a dump containing objects with
- * maliciously crafted names).
- *
- * The result is a freshly malloc'd string.  If the input string is NULL,
- * return a malloc'ed empty string, unless want_hyphen, in which case return a
- * malloc'ed hyphen.
- *
- * Note that we currently don't bother to quote names, meaning that the name
- * fields aren't automatically parseable.  "pg_restore -L" doesn't care because
- * it only examines the dumpId field, but someday we might want to try harder.
- */
-static char *
-sanitize_line(const char *str, bool want_hyphen)
-{
-	char	   *result;
-	char	   *s;
-
-	if (!str)
-		return pg_strdup(want_hyphen ? "-" : "");
-
-	result = pg_strdup(str);
-
-	for (s = result; *s != '\0'; s++)
-	{
-		if (*s == '\n' || *s == '\r')
-			*s = ' ';
-	}
-
-	return result;
 }
 
 /*

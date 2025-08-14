@@ -33,10 +33,10 @@ if restore fails for some reason, these will be missing and dump on next run won
 
 Following table shows commit hash of pg_dump source
 | PG Verison | Commit |
-| 11 | fd851f9e4a13d81cccc4ac5d6059d732c7518111 |
-| 12 | 5ff394503ce2b5b63239ec23fcaca1dc1d1ff049 |
-| 13 | 18e3e290bc6f241a0b4461074255c0fd873d25fe |
-| 14 | 6bc2bfc339ab44395fd0ef7a9bb30f8fdf205205 |
-| 15 | 5d9170697e4e6dd282b015890bc29baf978c6cb5 |
-| 16 | b39c5272c1d22d80a736647081b60a55a2d9d51e |
-| 17 | 915aafe82a7c31e9f7452e8cedf6371c318388bd |
+| 13 | af2dbe860b638dbd45604270d103e0a59dc0a372 |
+| 14 | 4e9da016ade3e75400f6fdc22ed1fed7fdd32f7a |
+| 15 | 0ab43b548237b3791261480d6a023f6b95b53942 |
+| 16 | 327bd6111aede2a41f8891d2cd2501c773bc047e |
+| 17 | e81a5031d51f9cd68adb7bdccc424880bac6838e |
+| 18 | 2102667b3c1ba6dbc65fcbe687cccb578772a5e9 |
+
