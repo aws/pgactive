@@ -284,6 +284,7 @@ Finally, you’ll need to make decisions about your network topology that can he
 
 ## Limitations
 
+- pgactive is supported on [upstream supported PostgreSQL versions](https://www.postgresql.org/support/versioning/).
 - All tables require a Primary Key, otherwise Update's and Delete's aren't allowed. The values in the Primary Key column shouldn't be updated.
 - Sequences may have gaps and sometimes might not follow an order. Sequences are not replicated. For more information, see Handling sequences in active-active replication.
 - DDL and large objects are not replicated.
