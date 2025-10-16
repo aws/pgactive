@@ -985,9 +985,13 @@ process_remote_update(StringInfo s)
 	read_tuple_parts(s, rel, &new_tuple);
 
 	/* lookup index to build scankey */
-	if (rel->rel->rd_indexvalid == 0)
-		RelationGetIndexList(rel->rel);
-	idxoid = rel->rel->rd_replidindex;
+	idxoid = RelationGetReplicaIndex(rel->rel);
+	if (!OidIsValid(idxoid))
+#if PG_VERSION_NUM >= 180000
+		idxoid = RelationGetPrimaryKeyIndex(rel->rel, false);
+#else
+		idxoid = RelationGetPrimaryKeyIndex(rel->rel);
+#endif
 	if (!OidIsValid(idxoid))
 		elog(ERROR, "could not find primary key for table with oid %u",
 			 RelationGetRelid(rel->rel));
@@ -1250,7 +1254,13 @@ process_remote_delete(StringInfo s)
 	/* lookup index to build scankey */
 	if (rel->rel->rd_indexvalid == 0)
 		RelationGetIndexList(rel->rel);
-	idxoid = rel->rel->rd_replidindex;
+	idxoid = RelationGetReplicaIndex(rel->rel);
+	if (!OidIsValid(idxoid))
+#if PG_VERSION_NUM >= 180000
+		idxoid = RelationGetPrimaryKeyIndex(rel->rel, false);
+#else
+		idxoid = RelationGetPrimaryKeyIndex(rel->rel);
+#endif
 	if (!OidIsValid(idxoid))
 		elog(ERROR, "could not find primary key for table with oid %u",
 			 RelationGetRelid(rel->rel));

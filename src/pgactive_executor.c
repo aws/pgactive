@@ -491,6 +491,7 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 	ListCell   *l;
 	List	   *rangeTable;
 	PlannedStmt *plannedstmt = queryDesc->plannedstmt;
+	Oid			idxoid;
 
 	if (pgactive_always_allow_writes)
 		goto done;
@@ -596,9 +597,14 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 							GetCommandTagName(CreateWritableStmtTag(plannedstmt)),
 							RelationGetRelationName(rel))));
 
-		if (rel->rd_indexvalid == 0)
-			RelationGetIndexList(rel);
-		if (OidIsValid(rel->rd_replidindex))
+		idxoid = RelationGetReplicaIndex(rel);
+		if (!OidIsValid(idxoid))
+#if PG_VERSION_NUM >= 180000
+			idxoid = RelationGetPrimaryKeyIndex(rel, false);
+#else
+			idxoid = RelationGetPrimaryKeyIndex(rel);
+#endif
+		if (OidIsValid(idxoid))
 		{
 			RelationClose(rel);
 			continue;
