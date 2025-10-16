@@ -395,6 +395,14 @@ my $node_3_res = $node_3->safe_psql($pgactive_test_dbname, $query);
 is($node_2_res, $expected, "pgactive node node_2 has all the data");
 is($node_3_res, $expected, "pgactive node node_3 has all the data");
 
+# Set Replica Identity FULL for fruits tables and update
+$node_2->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (10, 'KIWI');]);
+$node_3->safe_psql($pgactive_test_dbname,
+    q[ALTER TABLE fruits REPLICA IDENTITY FULL;]);
+$node_3->safe_psql($pgactive_test_dbname,
+    q[UPDATE fruits set name ='Kiwi' WHERE id = 10;]);
+
 $node_2->stop;
 $node_3->stop;
 
