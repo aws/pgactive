@@ -395,6 +395,41 @@ my $node_3_res = $node_3->safe_psql($pgactive_test_dbname, $query);
 is($node_2_res, $expected, "pgactive node node_2 has all the data");
 is($node_3_res, $expected, "pgactive node node_3 has all the data");
 
+# Set Replica Identity FULL for fruits tables and update
+note "Add new fruit to node-2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[INSERT INTO fruits VALUES (10, 'KIWI');]);
+note "Set RIF for fruits table on node-3";
+$node_3->safe_psql($pgactive_test_dbname,
+    q[ALTER TABLE fruits REPLICA IDENTITY FULL;]);
+note "Update id=10 to Kiwi on node-3";
+$node_3->safe_psql($pgactive_test_dbname,
+    q[UPDATE fruits set name ='Kiwi' WHERE id = 10;]);
+note "Query node 3";
+$node_3->safe_psql($pgactive_test_dbname,
+    q[UPDATE fruits set name ='KiwiKiwi' WHERE id = 10;]);
+note "Query node 2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[SELECT count(*) = 1 FROM fruits WHERE id=10 AND name = 'Kiwi';]);
+note "Update id=10 to KiwiKiwi on node-2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[UPDATE fruits set name ='KiwiKiwi' WHERE id = 10;]);
+note "Query node-2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[SELECT count(*) = 1 FROM fruits WHERE id=10 AND name = 'KiwiKiwi';]);
+note "Query node-2";
+$node_3->safe_psql($pgactive_test_dbname,
+    q[SELECT count(*) = 1 FROM fruits WHERE id=10 AND name = 'KiwiKiwi';]);
+note "Delete id=10 on node-2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[DELETE FROM fruits WHERE id = 10;]);
+note "Query node-2";
+$node_2->safe_psql($pgactive_test_dbname,
+    q[SELECT count(*) = 0 FROM fruits WHERE id=10;]);
+note "Query node-3";
+$node_3->safe_psql($pgactive_test_dbname,
+    q[SELECT count(*) = 0 FROM fruits WHERE id=10;]);
+
 $node_2->stop;
 $node_3->stop;
 
