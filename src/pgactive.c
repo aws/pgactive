@@ -516,10 +516,37 @@ pgactive_create_slot(PGconn *streamConn, Name slot_name, char *remote_ident,
 
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
+		char *sqlstate = PQresultErrorField(res, PG_DIAG_SQLSTATE);
+
 		/*
-		 * TODO: Should test whether this error is 'already exists' and carry
-		 * on
+		 * If the slot already exists (ERRCODE_DUPLICATE_OBJECT = 42710),
+		 * we can continue - just need to create the local replication identifier.
 		 */
+		if (sqlstate && strcmp(sqlstate, "42710") == 0)
+		{
+			elog(LOG, "replication slot \"%s\" already exists on remote, continuing",
+				 NameStr(*slot_name));
+			PQclear(res);
+
+			/* Check if local identifier already exists */
+			*replication_identifier = replorigin_by_name(remote_ident, true);
+			if (*replication_identifier == InvalidRepOriginId)
+			{
+				/* Create local identifier since it doesn't exist */
+				*replication_identifier = replorigin_create(remote_ident);
+				elog(DEBUG1, "created replication identifier %u for existing slot",
+					 *replication_identifier);
+			}
+			else
+			{
+				elog(DEBUG1, "replication identifier %u already exists",
+					 *replication_identifier);
+			}
+
+			CurrentResourceOwner = pgactive_saved_resowner;
+			pfree(query.data);
+			return;
+		}
 
 		elog(FATAL, "could not send replication command \"%s\": status %s: %s",
 			 query.data,
