@@ -22,7 +22,21 @@ Before implementation, ensure your use case aligns with pgactive’s capabilitie
 
 * Not a Magic Bullet: It is asynchronous. It does not provide strong consistency across nodes (CAP theorem applies). Application logic *must* tolerate eventual consistency and potential conflicts.
 
-### 2. Schema Design & Application Logic
+### 2. System Resources
+
+- Allocate sufficient CPU, RAM, Network, and Storage
+
+- Each node in pgactive cluster has extra background process running.
+    - A supervisor - To manage pgactive
+    - WAL Sender - one process per participating node
+    - Apply Worker - one process per participating node
+Ex: 
+    - on a two node system, each node will have three extra process
+    - on a three node system, each node will have five extra process
+
+- Adjust `wal_sender_timeout` and `wal_receiver_timeout` based on your network latency.
+
+### 3. Schema Design & Application Logic
 
 Active-active replication fundamentally changes how you must design your database schema.
 
@@ -46,7 +60,7 @@ Active-active replication fundamentally changes how you must design your databas
 2. Wait for replication to catch up.
 3. Deploy application code that uses the new schema.
 
-### 3. Configuration & Setup
+### 4. Configuration & Setup
 
 * Database Parameters:
 * `wal_level = logical` (Required for logical replication).
@@ -58,7 +72,7 @@ Active-active replication fundamentally changes how you must design your databas
 * Default: `last-update-wins`. The transaction with the newer commit timestamp overwrites the older one.
 * Implication: You must ensure NTP (Time) Synchronization across all servers. If clocks drift, "last write" becomes arbitrary.
 
-### 4. Operational Best Practices
+### 5. Operational Best Practices
 
 * Avoid long running transactions:
 * Only completed transactions are replicated. Long running transactions may have longer replication delays because replication doesn't start until the transaction completes.
@@ -77,7 +91,7 @@ Active-active replication fundamentally changes how you must design your databas
 * Active-active is for *availability*, not *backup*. If you accidentally `DELETE FROM users` on Node A, that deletion replicates to Node B instantly.
 * Maintain distinct Point-in-Time Recovery (PITR) backups for at least one node.
 
-### 5. Limitations & Pitfalls
+### 6. Limitations & Pitfalls
 
 * No "Cascading" Logical Replication: Avoid complex topologies where Node A replicates to Node B, which replicates to Node C. Stick to a mesh topology where all nodes connect directly if possible.
 * Large Objects (LOBs): PostgreSQL logical replication does not support Large Objects. Store large files in S3/Blob storage and keep only the reference in the DB.
