@@ -36,6 +36,8 @@ Ex:
 
 - Adjust `wal_sender_timeout` and `wal_receiver_timeout` based on your network latency.
 
+- Adjust `logical_decoding_work_mem` (for PostgreSQL >= 14 monitor `pg_stat_replication_slots` spill_* stats).
+
 ### 3. Schema Design & Application Logic
 
 Active-active replication fundamentally changes how you must design your database schema.

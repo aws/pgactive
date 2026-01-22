@@ -17,6 +17,7 @@ This troubleshooting guide addresses common issues, configuration errors, and op
 * Cause: Network connectivity issues between the instances.
 * Fix:
 * Ensure all instances allow inbound traffic on port `5432` from the *other* instance's.
+* Ensure all instances are setup with correct authentication.
 * Verification: Try creating a standard `postgres_fdw` connection manually between nodes to verify network reachability before using pgactive functions.
 
 ### 2. Replication Issues
