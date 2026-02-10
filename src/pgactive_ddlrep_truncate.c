@@ -319,6 +319,13 @@ pgactive_queue_truncate(PG_FUNCTION_ARGS)
 	if (replorigin_session_origin != InvalidRepOriginId)
 		PG_RETURN_VOID();		/* XXX return type? */
 
+	/*
+	 * If DDL replication is not enabled, we need to set
+	 * pgactive_truncated_tables to NIL to avoid stale pointer.
+	 */
+	if (pgactive_skip_ddl_replication && pgactive_truncated_tables != NIL)
+		pgactive_truncated_tables = NIL;
+
 	/* Make sure the list change survives the trigger call. */
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	pgactive_truncated_tables = lappend_oid(pgactive_truncated_tables,
