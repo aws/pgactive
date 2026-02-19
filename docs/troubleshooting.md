@@ -115,6 +115,6 @@ FROM pgactive.pgactive_get_replication_lag_info();
 
 ### Summary of Anti-Patterns (Don't Do This)
 
-* Don't use `pgactive` for load balancing writes (writing to both nodes for performance). It decreases performance due to conflict handling overhead. Use it for Global Availability (writing to the local region).
+* Don't use `pgactive` for load balancing writes (writing to both nodes for performance). It decreases performance due to conflict handling overhead and at the end the same amount of writes (as without pgactive) has to be done (because they will be replayed if not local). Use it for Global Availability (writing to the local region).
 * Don't rely on `SERIAL` integers for Primary Keys.
 * Don't forget to monitor `pgactive_wait_for_node_ready` and `pgactive_conflict_history`.

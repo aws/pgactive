@@ -26,13 +26,13 @@ Before implementation, ensure your use case aligns with pgactive’s capabilitie
 
 - Allocate sufficient CPU, RAM, Network, and Storage
 
-- Each node in pgactive cluster has extra background process running.
+- Each node in pgactive cluster has extra background processes running.
     - A supervisor - To manage pgactive
     - WAL Sender - one process per participating node
     - Apply Worker - one process per participating node
 Ex: 
-    - on a two node system, each node will have three extra process
-    - on a three node system, each node will have five extra process
+    - on a two node system, each node will have three extra processes
+    - on a three node system, each node will have five extra processes
 
 - Adjust `wal_sender_timeout` and `wal_receiver_timeout` based on your network latency.
 
