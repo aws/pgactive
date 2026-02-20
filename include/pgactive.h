@@ -12,6 +12,7 @@
 
 #include "miscadmin.h"
 #include "access/xlogdefs.h"
+#include "executor/execdesc.h"
 #include "postmaster/bgworker.h"
 
 /* Postgres commit 7dbfea3c455e introduced SIGHUP handler in version 13. */
@@ -677,7 +678,7 @@ extern void pgactive_capture_ddl(Node *parsetree, const char *queryString,
 								 DestReceiver *dest, CommandTag completionTag);
 
 extern void pgactive_locks_shmem_init(void);
-extern void pgactive_locks_check_dml(void);
+extern void pgactive_locks_check_dml(QueryDesc *queryDesc);
 
 /* background workers and supporting functions for them */
 PGDLLEXPORT extern void pgactive_apply_main(Datum main_arg);

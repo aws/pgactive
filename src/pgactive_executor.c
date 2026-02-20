@@ -521,7 +521,7 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 	read_only_node = pgactive_local_node_read_only() && !pgactive_skip_ddl_replication;
 
 	/* check for concurrent global DDL locks */
-	pgactive_locks_check_dml();
+	pgactive_locks_check_dml(queryDesc);
 
 	/*
 	 * Are we in pgactive.replicate_ddl_command? If so, it's not safe to do
