@@ -639,10 +639,14 @@ pgactive_set_data_only_node_init(Oid dboid, bool val)
 	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_EXCLUSIVE);
 	ni = pgactive_get_nid_shmem_pointer(dboid);
 	if (!ni)
+	{
+		LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("could not set data_only_node_init parameter for database with OID %u",
 						dboid)));
+		return;
+	}
 
 	ni->data_only_node_init = val;
 	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
@@ -657,10 +661,14 @@ pgactive_get_data_only_node_init(Oid dboid)
 	LWLockAcquire(pgactiveNodeIdentifierCtl->lock, LW_SHARED);
 	ni = pgactive_get_nid_shmem_pointer(dboid);
 	if (!ni)
+	{
+		LWLockRelease(pgactiveNodeIdentifierCtl->lock);
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("could not get data_only_node_init parameter for database with OID %u",
 						dboid)));
+		return false;
+	}
 
 	data_only_node_init = ni->data_only_node_init;
 	LWLockRelease(pgactiveNodeIdentifierCtl->lock);
