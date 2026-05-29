@@ -97,25 +97,38 @@ UserTableUpdateOpenIndexes(EState *estate, TupleTableSlot *slot,
 	if (relinfo->ri_NumIndices > 0)
 	{
 		recheckIndexes = ExecInsertIndexTuples(
-#if PG_VERSION_NUM >= 140000
+#if PG_VERSION_NUM >= 190000
 											   relinfo,
-#endif
+											   estate,
+											   update ? EIIT_IS_UPDATE : 0,
 											   slot,
-#if PG_VERSION_NUM < 120000
-											   &slot->tts_tuple->t_self,
-#endif
-											   estate
-#if PG_VERSION_NUM >= 140000
-											   ,update
-#endif
-											   ,false
-											   ,NULL
-											   ,NIL
-#if PG_VERSION_NUM >= 160000
-											   ,false);
+											   NIL,
+											   NULL
+#elif PG_VERSION_NUM >= 160000
+											   relinfo,
+											   slot,
+											   estate,
+											   update,
+											   false,
+											   NULL,
+											   NIL,
+											   false
+#elif PG_VERSION_NUM >= 140000
+											   relinfo,
+											   slot,
+											   estate,
+											   update,
+											   false,
+											   NULL,
+											   NIL
 #else
-			);
+											   slot,
+											   estate,
+											   false,
+											   NULL,
+											   NIL
 #endif
+			);
 		if (recheckIndexes != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -262,7 +275,11 @@ retry:
 						   NULL,
 #endif
 						   RelationGetNumberOfAttributes(idxrel),
-						   0);
+						   0
+#if PG_VERSION_NUM >= 190000
+						   , 0
+#endif
+						   );
 	index_rescan(scan, skey, RelationGetNumberOfAttributes(idxrel), NULL, 0);
 #if PG_VERSION_NUM >= 120000
 	if (index_getnext_slot(scan, ForwardScanDirection, slot))
@@ -488,7 +505,9 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	bool		performs_writes = false;
 	bool		read_only_node;
+#if PG_VERSION_NUM < 190000
 	ListCell   *l;
+#endif
 	List	   *rangeTable;
 	PlannedStmt *plannedstmt = queryDesc->plannedstmt;
 	Oid			idxoid;
@@ -562,9 +581,16 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 
 	/* Fail if query tries to UPDATE or DELETE any of tables without PK */
 	rangeTable = plannedstmt->rtable;
+#if PG_VERSION_NUM >= 190000
+	{
+		int			rtei = -1;
+		while ((rtei = bms_next_member(plannedstmt->resultRelationRelids, rtei)) >= 0)
+		{
+#else
 	foreach(l, plannedstmt->resultRelations)
 	{
 		Index		rtei = lfirst_int(l);
+#endif
 		RangeTblEntry *rte = rt_fetch(rtei, rangeTable);
 		Relation	rel;
 
@@ -617,7 +643,12 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 				 errhint("Add a PRIMARY KEY to the table.")));
 
 		RelationClose(rel);
+#if PG_VERSION_NUM >= 190000
+		}
 	}
+#else
+	}
+#endif
 
 done:
 	if (PrevExecutorStart_hook)

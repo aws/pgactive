@@ -781,7 +781,9 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	 * end of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 190000
+	pq_sendint64(ctx->out, txn->commit_time);
+#elif PG_VERSION_NUM >= 150000
 	pq_sendint64(ctx->out, txn->xact_time.commit_time);
 #else
 	pq_sendint64(ctx->out, txn->commit_time);
@@ -850,7 +852,9 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	 */
 	Assert(txn->end_lsn != InvalidXLogRecPtr);
 	pq_sendint64(ctx->out, txn->end_lsn);
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 190000
+	pq_sendint64(ctx->out, txn->commit_time);
+#elif PG_VERSION_NUM >= 150000
 	pq_sendint64(ctx->out, txn->xact_time.commit_time);
 #else
 	pq_sendint64(ctx->out, txn->commit_time);
@@ -858,7 +862,9 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 
 	OutputPluginWrite(ctx, true);
 
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 190000
+	committime = txn->commit_time;
+#elif PG_VERSION_NUM >= 150000
 	committime = txn->xact_time.commit_time;
 #else
 	committime = txn->commit_time;
@@ -1084,7 +1090,7 @@ write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 			pq_sendbyte(out, 'n');	/* null column */
 			continue;
 		}
-		else if (att->attlen == -1 && VARATT_IS_EXTERNAL_ONDISK(values[i]))
+		else if (att->attlen == -1 && VARATT_IS_EXTERNAL_ONDISK(DatumGetPointer(values[i])))
 		{
 			pq_sendbyte(out, 'u');	/* unchanged toast column */
 			continue;
@@ -1125,7 +1131,7 @@ write_tuple(pgactiveOutputData * data, StringInfo out, Relation rel,
 				char	   *data = DatumGetPointer(values[i]);
 
 				/* send indirect datums inline */
-				if (VARATT_IS_EXTERNAL_INDIRECT(values[i]))
+				if (VARATT_IS_EXTERNAL_INDIRECT(DatumGetPointer(values[i])))
 				{
 					struct varatt_indirect redirect;
 

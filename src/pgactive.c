@@ -54,6 +54,9 @@
 
 #include "replication/origin.h"
 
+#if PG_VERSION_NUM >= 190000
+#include "storage/fd.h"
+#endif 
 #include "storage/latch.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"

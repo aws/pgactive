@@ -1377,7 +1377,19 @@ cancel_conflicting_transactions(void)
 		else
 		{
 			/* We reached timeout so lets kill the writing transaction */
+#if PG_VERSION_NUM >= 190000
+			pid_t		p = 0;
+			{
+				PGPROC	   *proc = ProcNumberGetProc(conflict->procNumber);
+				if (proc != NULL && proc->pid != 0)
+				{
+					p = proc->pid;
+					(void) kill(p, SIGTERM);
+				}
+			}
+#else
 			pid_t		p = CancelVirtualTransaction(*conflict, PROCSIG_RECOVERY_CONFLICT_LOCK);
+#endif
 
 			/*
 			 * Either confirm kill or sleep a bit to prevent the other node

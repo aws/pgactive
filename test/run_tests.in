@@ -61,7 +61,7 @@ done
 
 TMPDIR=@abs_srcdir@/test/tmp_check
 SOCKET=$TMPDIR
-PORT=5440
+PORT=54@pgactive_PG_MAJORVERSION@
 OPTIONS="-c config_file=${CONFIGFILE}"
 OPTIONS="$OPTIONS -c unix_socket_directories=$SOCKET"
 OPTIONS="$OPTIONS -c listen_addresses=''"

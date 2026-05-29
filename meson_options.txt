@@ -1,0 +1,4 @@
+option('pg_config', type: 'string', value: 'pg_config',
+       description: 'Path to pg_config')
+option('tests',     type: 'boolean', value: true,
+       description: 'Enable regress_check and prove_check test targets')

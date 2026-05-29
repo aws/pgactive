@@ -47,6 +47,7 @@
 #include "postmaster/bgwriter.h"
 #include "postmaster/fork_process.h"
 
+#include "storage/fd.h"
 #include "storage/latch.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"

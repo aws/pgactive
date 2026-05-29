@@ -311,7 +311,7 @@ filter_AlterTableStmt(Node *parsetree,
 													   astmt->missing_ok);
 						}
 					}
-					/* FALLTHROUGH */
+					pg_fallthrough;
 				case AT_AddIndex:	/* produced by for example ALTER TABLE …
 									 * ADD CONSTRAINT … PRIMARY KEY */
 					{
@@ -335,7 +335,7 @@ filter_AlterTableStmt(Node *parsetree,
 						}
 
 					}
-					/* FALLTHROUGH */
+					pg_fallthrough;
 				case AT_DropColumn:
 				case AT_DropNotNull:
 				case AT_SetNotNull:
@@ -1081,7 +1081,11 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 		case T_CheckPointStmt:
 		case T_ReindexStmt:
 		case T_VacuumStmt:
+#if PG_VERSION_NUM < 190000
 		case T_ClusterStmt:
+#else
+		case T_RepackStmt:
+#endif
 			goto done;
 
 			/*
@@ -1181,6 +1185,7 @@ pgactive_commandfilter(PlannedStmt *pstmt,
 				pgactive_commandfilter_dbname(((RenameStmt *) parsetree)->newname);
 				goto done;
 			}
+			pg_fallthrough;
 
 		default:
 			break;
@@ -1601,7 +1606,7 @@ done:
 		case T_DropStmt:
 			if (((DropStmt *) parsetree)->removeType != OBJECT_EXTENSION)
 				break;
-			/* FALLTHROUGH */
+			pg_fallthrough;
 		case T_CreateExtensionStmt:
 		case T_AlterExtensionStmt:
 		case T_AlterExtensionContentsStmt:

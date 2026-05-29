@@ -37,6 +37,15 @@
 #include "pgactive_compat.h"
 #include "nodes/execnodes.h"
 
+/* pg_fallthrough was introduced in PG 19 (c.h) */
+#ifndef pg_fallthrough
+#if __has_attribute(fallthrough)
+#define pg_fallthrough __attribute__((fallthrough))
+#else
+#define pg_fallthrough
+#endif
+#endif
+
 #define NODEID_BITS		10
 #define MAX_NODE_ID		((1 << NODEID_BITS) - 1)
 

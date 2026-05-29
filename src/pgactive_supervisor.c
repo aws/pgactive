@@ -40,6 +40,7 @@
 #include "utils/elog.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
+#include "utils/lsyscache.h"
 #include "utils/snapmgr.h"
 
 static bool destroy_temp_dump_dirs_callback_registered = false;
