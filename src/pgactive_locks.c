@@ -197,8 +197,10 @@ extern Datum pgactive_get_global_locks_info(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(pgactive_get_global_locks_info);
 
 /* GUCs */
-/* replaced by !pgactive_skip_ddl_replication for now
-bool           pgactive_permit_ddl_locking = false; */
+/*
+ * replaced by !pgactive_skip_ddl_replication for now
+ * bool           pgactive_permit_ddl_locking = false;
+ */
 
 /* -1 means use max_standby_streaming_delay */
 int			pgactive_max_ddl_lock_delay = -1;
@@ -1379,8 +1381,10 @@ cancel_conflicting_transactions(void)
 			/* We reached timeout so lets kill the writing transaction */
 #if PG_VERSION_NUM >= 190000
 			pid_t		p = 0;
+
 			{
 				PGPROC	   *proc = ProcNumberGetProc(conflict->procNumber);
+
 				if (proc != NULL && proc->pid != 0)
 				{
 					p = proc->pid;

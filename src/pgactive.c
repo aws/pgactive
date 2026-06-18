@@ -56,7 +56,7 @@
 
 #if PG_VERSION_NUM >= 190000
 #include "storage/fd.h"
-#endif 
+#endif
 #include "storage/latch.h"
 #include "storage/lmgr.h"
 #include "storage/lwlock.h"
@@ -112,8 +112,10 @@ int			pgactive_max_databases;
 bool		pgactive_skip_ddl_replication;
 bool		prev_pgactive_skip_ddl_replication;
 
-/* replaced by pgactive_skip_ddl_replication for now
-bool		pgactive_skip_ddl_locking; */
+/*
+ * replaced by pgactive_skip_ddl_replication for now
+ * bool		pgactive_skip_ddl_locking;
+ */
 bool		pgactive_do_not_replicate;
 bool		pgactive_discard_mismatched_row_attributes;
 bool		pgactive_debug_trace_replay;
@@ -497,7 +499,7 @@ pgactive_connect(const char *conninfo,
  */
 static void
 pgactive_create_slot(PGconn *streamConn, Name slot_name, char *remote_ident,
-					 RepOriginId *replication_identifier, char *snapshot)
+					 RepOriginId * replication_identifier, char *snapshot)
 {
 	StringInfoData query;
 	PGresult   *res;
@@ -775,7 +777,7 @@ pgactive_establish_connection_and_slot(const char *dsn,
 									   const char *application_name_suffix,
 									   Name out_slot_name,
 									   pgactiveNodeId * out_nodeid,
-									   RepOriginId *out_rep_origin_id,
+									   RepOriginId * out_rep_origin_id,
 									   char *out_snapshot)
 {
 	PGconn	   *streamConn;
@@ -1042,26 +1044,27 @@ _PG_init(void)
 							 PGC_SIGHUP,
 							 0,
 							 NULL, NULL, NULL);
-/* replaced by pgactive_skip_ddl_replication for now
-	DefineCustomBoolVariable("pgactive.permit_ddl_locking",
-							 "Allow commands that can acquire global DDL lock.",
-							 NULL,
-							 &pgactive_permit_ddl_locking,
-							 true,
-							 PGC_USERSET,
-							 0,
-							 NULL, NULL, NULL);
-
-	DefineCustomBoolVariable("pgactive.permit_unsafe_ddl_commands",
-							 "Allow commands that might cause data or " \
-							 "replication problems under pgactive to run.",
-							 NULL,
-							 &pgactive_permit_unsafe_commands,
-							 false,
-							 PGC_SUSET,
-							 0,
-							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
-*/
+/*
+ * replaced by pgactive_skip_ddl_replication for now
+ * DefineCustomBoolVariable("pgactive.permit_ddl_locking",
+ * "Allow commands that can acquire global DDL lock.",
+ * NULL,
+ * &pgactive_permit_ddl_locking,
+ * true,
+ * PGC_USERSET,
+ * 0,
+ * NULL, NULL, NULL);
+ *
+ * DefineCustomBoolVariable("pgactive.permit_unsafe_ddl_commands",
+ * "Allow commands that might cause data or " \
+ * "replication problems under pgactive to run.",
+ * NULL,
+ * &pgactive_permit_unsafe_commands,
+ * false,
+ * PGC_SUSET,
+ * 0,
+ * pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
+ */
 
 	DefineCustomBoolVariable("pgactive.skip_ddl_replication",
 							 "Internal. DDL replication in pgactive is not a fully supported feature yet.",
@@ -1072,16 +1075,17 @@ _PG_init(void)
 							 PGC_SUSET,
 							 0,
 							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
-/* replaced by pgactive_skip_ddl_replication for now
-	DefineCustomBoolVariable("pgactive.skip_ddl_locking",
-							 "Don't acquire global DDL locks while performing DDL.",
-							 "Note that it's quite dangerous to do so.",
-							 &pgactive_skip_ddl_locking,
-							 false,
-							 PGC_SUSET,
-							 0,
-							 pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
-*/
+/*
+ * replaced by pgactive_skip_ddl_replication for now
+ * DefineCustomBoolVariable("pgactive.skip_ddl_locking",
+ * "Don't acquire global DDL locks while performing DDL.",
+ * "Note that it's quite dangerous to do so.",
+ * &pgactive_skip_ddl_locking,
+ * false,
+ * PGC_SUSET,
+ * 0,
+ * pgactive_permit_unsafe_guc_check_hook, NULL, NULL);
+ */
 	DefineCustomIntVariable("pgactive.debug_apply_delay",
 							"Sets apply delay for all configured pgactive connections.",
 							"A transaction won't be replayed until at least apply_delay "

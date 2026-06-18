@@ -46,17 +46,19 @@
 #include "utils/rel.h"
 
 /*
-* pgactive_commandfilter.c: a ProcessUtility_hook to prevent a cluster from running
-* commands that pgactive does not yet support.
-*/
+ * pgactive_commandfilter.c: a ProcessUtility_hook to prevent a cluster from running
+ * commands that pgactive does not yet support.
+ */
 
 static ProcessUtility_hook_type next_ProcessUtility_hook = NULL;
 
 static ClientAuthentication_hook_type next_ClientAuthentication_hook = NULL;
 
 /* GUCs */
-/* replaced by pgactive_skip_ddl_replication for now
-bool           pgactive_permit_unsafe_commands = false; */
+/*
+ * replaced by pgactive_skip_ddl_replication for now
+ * bool           pgactive_permit_unsafe_commands = false;
+ */
 
 #if PG_VERSION_NUM >= 120000
 static bool default_with_oids = false;
@@ -68,11 +70,11 @@ static int	pgactive_ddl_nestlevel = 0;
 bool		pgactive_in_extension = false;
 
 /*
-* Check the passed rangevar, locking it and looking it up in the cache
-* then determine if the relation requires logging to WAL. If it does, then
-* right now pgactive won't cope with it and we must reject the operation that
-* touches this relation.
-*/
+ * Check the passed rangevar, locking it and looking it up in the cache
+ * then determine if the relation requires logging to WAL. If it does, then
+ * right now pgactive won't cope with it and we must reject the operation that
+ * touches this relation.
+ */
 static void
 error_on_persistent_rv(RangeVar *rv,
 					   const char *cmdtag,

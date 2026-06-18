@@ -277,9 +277,9 @@ retry:
 						   RelationGetNumberOfAttributes(idxrel),
 						   0
 #if PG_VERSION_NUM >= 190000
-						   , 0
+						   ,0
 #endif
-						   );
+		);
 	index_rescan(scan, skey, RelationGetNumberOfAttributes(idxrel), NULL, 0);
 #if PG_VERSION_NUM >= 120000
 	if (index_getnext_slot(scan, ForwardScanDirection, slot))
@@ -584,6 +584,7 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 #if PG_VERSION_NUM >= 190000
 	{
 		int			rtei = -1;
+
 		while ((rtei = bms_next_member(plannedstmt->resultRelationRelids, rtei)) >= 0)
 		{
 #else
@@ -644,8 +645,8 @@ pgactiveExecutorStart(QueryDesc *queryDesc, int eflags)
 
 		RelationClose(rel);
 #if PG_VERSION_NUM >= 190000
-		}
 	}
+}
 #else
 	}
 #endif

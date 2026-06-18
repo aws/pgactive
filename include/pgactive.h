@@ -455,11 +455,12 @@ extern bool pgactive_log_conflicts_to_table;
 extern bool pgactive_log_conflicts_to_logfile;
 extern bool pgactive_conflict_logging_include_tuples;
 
-/* replaced by pgactive_skip_ddl_replication for now
-extern bool pgactive_permit_ddl_locking;
-extern bool pgactive_permit_unsafe_commands;
-extern bool pgactive_skip_ddl_locking;
-*/
+/*
+ * replaced by pgactive_skip_ddl_replication for now
+ * extern bool pgactive_permit_ddl_locking;
+ * extern bool pgactive_permit_unsafe_commands;
+ * extern bool pgactive_skip_ddl_locking;
+ */
 extern bool pgactive_skip_ddl_replication;
 extern bool prev_pgactive_skip_ddl_replication;
 extern bool pgactive_do_not_replicate;
@@ -783,7 +784,7 @@ extern struct pg_conn *pgactive_establish_connection_and_slot(const char *dsn,
 															  const char *application_name_suffix,
 															  Name out_slot_name,
 															  pgactiveNodeId * out_nodeid,
-															  RepOriginId *out_rep_origin_id,
+															  RepOriginId * out_rep_origin_id,
 															  char *out_snapshot);
 
 extern PGconn *pgactive_connect_nonrepl(const char *connstring,
