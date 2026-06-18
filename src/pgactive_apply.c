@@ -142,7 +142,7 @@ static void process_remote_delete(StringInfo s);
 
 static void get_local_tuple_origin(HeapTuple tuple,
 								   TimestampTz *commit_ts,
-								   RepOriginId *node_id);
+								   RepOriginId * node_id);
 static void abs_timestamp_difference(TimestampTz start_time,
 									 TimestampTz stop_time,
 									 long *secs, int *microsecs);
@@ -1385,7 +1385,7 @@ process_remote_delete(StringInfo s)
  * Get commit timestamp and origin of the tuple
  */
 static void
-get_local_tuple_origin(HeapTuple tuple, TimestampTz *commit_ts, RepOriginId *node_id)
+get_local_tuple_origin(HeapTuple tuple, TimestampTz *commit_ts, RepOriginId * node_id)
 {
 	TransactionId xmin;
 	RepOriginId node_id_raw;

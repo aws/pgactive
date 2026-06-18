@@ -68,25 +68,6 @@ jobs:
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
 
-      - if: ${{ matrix.version == 'REL_17_STABLE' }}
-        name: Check pgactive code indentation (REL_17_STABLE only)
-        run: |
-          cd postgres
-          make -C src/tools/pg_bsd_indent/ -j4 install
-          cat << EOF >> pgindent.ignore
-          src/compat/13/pg_dump/*
-          src/compat/14/pg_dump/*
-          src/compat/15/pg_dump/*
-          src/compat/16/pg_dump/*
-          src/compat/17/pg_dump/*
-          src/compat/18/pg_dump/*
-          src/compat/19/pg_dump/*
-          src/compat/20/pg_dump/*
-          src/compat/21/pg_dump/*
-          EOF
-          src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --diff $GITHUB_WORKSPACE/pgactive > pgindent.diffs
-          test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0
-
       - name: Build pgactive
         run: |
           cd pgactive

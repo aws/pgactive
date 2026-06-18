@@ -499,7 +499,7 @@ pgactive_connect(const char *conninfo,
  */
 static void
 pgactive_create_slot(PGconn *streamConn, Name slot_name, char *remote_ident,
-					 RepOriginId *replication_identifier, char *snapshot)
+					 RepOriginId * replication_identifier, char *snapshot)
 {
 	StringInfoData query;
 	PGresult   *res;
@@ -776,8 +776,8 @@ PGconn *
 pgactive_establish_connection_and_slot(const char *dsn,
 									   const char *application_name_suffix,
 									   Name out_slot_name,
-									   pgactiveNodeId *out_nodeid,
-									   RepOriginId *out_rep_origin_id,
+									   pgactiveNodeId * out_nodeid,
+									   RepOriginId * out_rep_origin_id,
 									   char *out_snapshot)
 {
 	PGconn	   *streamConn;
