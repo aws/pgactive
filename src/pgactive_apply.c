@@ -2569,7 +2569,7 @@ log_tuple(const char *format, TupleDesc desc, HeapTuple tup)
  * since we'd have to reconnect to apply most kinds of change anyway.
  */
 static void
-pgactive_apply_reload_config()
+pgactive_apply_reload_config(void)
 {
 	pgactiveConnectionConfig *new_apply_config;
 
