@@ -89,7 +89,7 @@ pgactive_worker_exit(int code, Datum arg)
 }
 
 static size_t
-pgactive_worker_shmem_size()
+pgactive_worker_shmem_size(void)
 {
 	Size		size = 0;
 

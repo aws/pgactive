@@ -95,7 +95,7 @@ pgactive_nodecache_invalidate_callback(Datum arg, Oid relid)
 }
 
 static void
-pgactive_nodecache_initialize()
+pgactive_nodecache_initialize(void)
 {
 	HASHCTL		ctl;
 
@@ -322,7 +322,7 @@ pgactive_nodeid_name(const pgactiveNodeId * const node,
  * invalidations, we could get rid of this hack.
  */
 void
-pgactive_setup_my_cached_node_names()
+pgactive_setup_my_cached_node_names(void)
 {
 	pgactiveNodeId myid;
 
@@ -345,7 +345,7 @@ pgactive_setup_cached_remote_name(const pgactiveNodeId * const remote_nodeid)
 }
 
 const char *
-pgactive_get_my_cached_node_name()
+pgactive_get_my_cached_node_name(void)
 {
 	if (my_node_name != NULL)
 		return my_node_name;

@@ -378,7 +378,7 @@ pgactive_locks_shmem_startup(void)
 
 /* Needs to be called from a shared_preload_library _PG_init() */
 void
-pgactive_locks_shmem_init()
+pgactive_locks_shmem_init(void)
 {
 	/* Must be called from postmaster its self */
 	Assert(IsPostmasterEnvironment && !IsUnderPostmaster);

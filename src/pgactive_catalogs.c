@@ -436,7 +436,7 @@ pgactive_fetch_node_id_via_sysid(const pgactiveNodeId * const node)
  * no corresponding pgactive.pgactive_nodes row also get ignored.
  */
 List *
-pgactive_read_connection_configs()
+pgactive_read_connection_configs(void)
 {
 	HeapTuple	tuple;
 	StringInfoData query;

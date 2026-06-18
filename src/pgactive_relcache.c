@@ -89,7 +89,7 @@ pgactiveRelcacheHashInvalidateCallback(Datum arg, Oid relid)
 }
 
 static void
-pgactive_relcache_initialize()
+pgactive_relcache_initialize(void)
 {
 	HASHCTL		ctl;
 

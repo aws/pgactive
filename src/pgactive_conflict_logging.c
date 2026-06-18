@@ -62,7 +62,7 @@ static MemoryContext conflict_log_context;
  * toggled at runtime.
  */
 void
-pgactive_conflict_logging_startup()
+pgactive_conflict_logging_startup(void)
 {
 	Oid			schema_oid;
 

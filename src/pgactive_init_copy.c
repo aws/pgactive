@@ -110,7 +110,7 @@ static char *node_name = NULL;
 static void signal_handler(int sig);
 static void usage(void);
 #if PG_VERSION_NUM >= 180000
-pg_noreturn static void finish_die();
+pg_noreturn static void finish_die(void);
 pg_noreturn static void die(const char *fmt, ...)
 			__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
 #else
@@ -776,7 +776,7 @@ usage(void)
 }
 
 static void
-finish_die()
+finish_die(void)
 {
 	if (local_conn)
 		PQfinish(local_conn);

@@ -62,7 +62,7 @@ pgactive_dbcache_invalidate_entry(Datum arg, int cacheid, uint32 hashvalue)
 }
 
 static void
-pgactive_dbcache_initialize()
+pgactive_dbcache_initialize(void)
 {
 	HASHCTL		ctl;
 

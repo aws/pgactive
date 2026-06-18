@@ -240,7 +240,7 @@ pgactive_register_perdb_worker(Oid dboid)
  * TODO DYNCONF: Handle removal of pgactive from DBs
  */
 static void
-pgactive_supervisor_rescan_dbs()
+pgactive_supervisor_rescan_dbs(void)
 {
 	Relation	secrel;
 	ScanKeyData skey[2];
@@ -375,7 +375,7 @@ pgactive_supervisor_rescan_dbs()
  * without a DB connection; see comments in pgactive_supervisor_worker_main
  */
 static void
-pgactive_supervisor_createdb()
+pgactive_supervisor_createdb(void)
 {
 	Oid			dboid;
 	ParseState *pstate;
@@ -672,7 +672,7 @@ pgactive_supervisor_worker_main(Datum main_arg)
  * init callback later.
  */
 void
-pgactive_supervisor_register()
+pgactive_supervisor_register(void)
 {
 	BackgroundWorker bgw = {0};
 
