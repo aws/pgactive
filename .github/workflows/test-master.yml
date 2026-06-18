@@ -1,41 +1,29 @@
-name: pgactive CI
-
+name: pgactive PG-Master CI
 on:
   #schedule:
   #  # Runs every day at 5am.
-  #  - cron:  '0 5 * * *'
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
+  #  - cron: '0 5 * * *'
+  #push:
+  #  paths-ignore:
+  #    - 'docs/**'
+  #pull_request:
+  #  paths-ignore:
+  #    - 'docs/**'
   workflow_dispatch:
-
 jobs:
-  setup-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      versions: ${{ steps.set-versions.outputs.versions }}
-    steps:
-      - id: set-versions
-        run: |
-          curl -s https://www.postgresql.org/versions.json > versions.json
-          # Format as JSON array and map 'major' to 'REL_XX_STABLE' for postgres branch checkout
-          VERSIONS=$(jq -c '[.[] | select(.supported == true) | "REL_" + (.major | tostring) + "_STABLE"]' versions.json)
-          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
-
   test:
-    needs: setup-matrix
     defaults:
       run:
         shell: sh
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        version: ${{ fromJson(needs.setup-matrix.outputs.versions) }}
-    
+        version: [
+          master
+        ]
+
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
 
@@ -62,14 +50,15 @@ jobs:
           cd postgres
           sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests CFLAGS="-ggdb3 -O0"
           make -j4 install
+
           # Install extensions required for pgactive tests
           make -C contrib/btree_gist install
           make -C contrib/cube install
           make -C contrib/hstore install
           make -C contrib/pg_trgm install
 
-      - if: ${{ matrix.version == 'REL_17_STABLE' }}
-        name: Check pgactive code indentation (REL_17_STABLE only)
+      - if: ${{ matrix.version == 'master' }}
+        name: Check pgactive code indentation
         run: |
           cd postgres
           make -C src/tools/pg_bsd_indent/ -j4 install
@@ -89,9 +78,10 @@ jobs:
 
       - name: Build pgactive
         run: |
-          cd pgactive
-          PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH" sh configure
-          make PROFILE="-Wall -Wmissing-prototypes -Werror=maybe-uninitialized -Werror" -j1 all install
+            cd pgactive
+            PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
+            sh configure
+            make PROFILE="-Wall -Wmissing-prototypes -Werror=maybe-uninitialized -Werror" -j1 all install
 
       - name: Run pgactive core tests
         run: |
