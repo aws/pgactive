@@ -179,6 +179,9 @@
 #include "storage/proc.h"
 #include "storage/procarray.h"
 #include "storage/shmem.h"
+#if PG_VERSION_NUM >= 190000
+#include "storage/standby.h"
+#endif
 #include "storage/sinvaladt.h"
 
 #include "utils/builtins.h"
@@ -1382,15 +1385,8 @@ cancel_conflicting_transactions(void)
 #if PG_VERSION_NUM >= 190000
 			pid_t		p = 0;
 
-			{
-				PGPROC	   *proc = ProcNumberGetProc(conflict->procNumber);
-
-				if (proc != NULL && proc->pid != 0)
-				{
-					p = proc->pid;
-					(void) kill(p, SIGTERM);
-				}
-			}
+			if (SignalRecoveryConflictWithVirtualXID(*conflict, RECOVERY_CONFLICT_LOCK))
+				p = ProcNumberGetProc(conflict->procNumber)->pid;
 #else
 			pid_t		p = CancelVirtualTransaction(*conflict, PROCSIG_RECOVERY_CONFLICT_LOCK);
 #endif

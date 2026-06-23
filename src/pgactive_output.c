@@ -68,6 +68,13 @@
 
 extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
 
+/* PG 15-18 moved commit_time into txn->xact_time.commit_time */
+#if PG_VERSION_NUM >= 150000 && PG_VERSION_NUM < 190000
+#define TXN_COMMIT_TIME(txn) ((txn)->xact_time.commit_time)
+#else
+#define TXN_COMMIT_TIME(txn) ((txn)->commit_time)
+#endif
+
 typedef struct
 {
 	MemoryContext context;
@@ -781,13 +788,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	 * end of commit + 1 so that's what gets recorded in replication origins.
 	 */
 	pq_sendint64(ctx->out, txn->end_lsn);
-#if PG_VERSION_NUM >= 190000
-	pq_sendint64(ctx->out, txn->commit_time);
-#elif PG_VERSION_NUM >= 150000
-	pq_sendint64(ctx->out, txn->xact_time.commit_time);
-#else
-	pq_sendint64(ctx->out, txn->commit_time);
-#endif
+	pq_sendint64(ctx->out, TXN_COMMIT_TIME(txn));
 	pq_sendint(ctx->out, txn->xid, 4);
 
 	/* and optional data selected above */
@@ -852,23 +853,11 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	 */
 	Assert(txn->end_lsn != InvalidXLogRecPtr);
 	pq_sendint64(ctx->out, txn->end_lsn);
-#if PG_VERSION_NUM >= 190000
-	pq_sendint64(ctx->out, txn->commit_time);
-#elif PG_VERSION_NUM >= 150000
-	pq_sendint64(ctx->out, txn->xact_time.commit_time);
-#else
-	pq_sendint64(ctx->out, txn->commit_time);
-#endif
+	pq_sendint64(ctx->out, TXN_COMMIT_TIME(txn));
 
 	OutputPluginWrite(ctx, true);
 
-#if PG_VERSION_NUM >= 190000
-	committime = txn->commit_time;
-#elif PG_VERSION_NUM >= 150000
-	committime = txn->xact_time.commit_time;
-#else
-	committime = txn->commit_time;
-#endif
+	committime = TXN_COMMIT_TIME(txn);
 
 	/* Save last sent transaction info */
 	pgactive_walsender_worker->last_sent_xact_id = txn->xid;
