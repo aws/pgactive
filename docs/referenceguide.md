@@ -11,6 +11,9 @@ Table of contents
 
 The pgactive extension exposes a number of configuration parameters via PostgreSQL\'s usual configuration mechanism. You can set these in the same way as any other setting, via `postgresql.conf` or using `ALTER SYSTEM`. Some variables can also be set per-user, per-database or per-session, but most require a server reload or a full server restart to take effect.
 
+`pgactive.apply_as_table_owner` (`boolean`)
+
+Apply DML changes as the table owner instead of superuser. When enabled, the apply worker switches to the table owner before executing INSERT, UPDATE, or DELETE operations.
 
 `pgactive.conflict_logging_include_tuples` (`boolean`)
 

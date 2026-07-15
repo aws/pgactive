@@ -3,7 +3,7 @@
 - [Introduction](#introduction)
 - [Quick Start](./quickstart.md)
 - [Design](#design)
-- [Best Practices Guide](./best-practives.md)
+- [Best Practices Guide](./best-practices.md)
 - [Troubleshooting Guide](./troubleshooting.md)
 - [Reference Guide](./referenceguide.md)
 
