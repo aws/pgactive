@@ -716,7 +716,7 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 	size_t		i;
 	Datum		retval;
 #if PG_VERSION_NUM >= 120000
-	FunctionCallInfoBaseData fcinfo;
+	LOCAL_FCINFO(fcinfo, 5);
 #else
 	FunctionCallInfoData fcinfo;
 #endif
@@ -751,37 +751,44 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			continue;
 
 		fmgr_info(rel->conflict_handlers[i].handler_oid, &finfo);
+#if PG_VERSION_NUM >= 120000
+		InitFunctionCallInfoData(*fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
+#else
 		InitFunctionCallInfoData(fcinfo, &finfo, 5, InvalidOid, NULL, NULL);
+#endif
 
 #if PG_VERSION_NUM >= 120000
 		if (local != NULL)
 		{
-			fcinfo.args[0].value =
+			fcinfo->args[0].value =
 				heap_copy_tuple_as_datum(local, RelationGetDescr(rel->rel));
-			fcinfo.args[0].isnull = false;
+			fcinfo->args[0].isnull = false;
 		}
 		else
-			fcinfo.args[0].isnull = true;
+			fcinfo->args[0].isnull = true;
 
 		if (remote != NULL)
 		{
-			fcinfo.args[1].value =
+			fcinfo->args[1].value =
 				heap_copy_tuple_as_datum(remote, RelationGetDescr(rel->rel));
-			fcinfo.args[1].isnull = false;
+			fcinfo->args[1].isnull = false;
 		}
 		else
-			fcinfo.args[1].isnull = true;
+			fcinfo->args[1].isnull = true;
 
-		fcinfo.args[2].value = CStringGetTextDatum(command_tag);
-		fcinfo.args[3].value = ObjectIdGetDatum(RelationGetRelid(rel->rel));
-		fcinfo.args[4].value = event_oid;
+		fcinfo->args[2].value = CStringGetTextDatum(command_tag);
+		fcinfo->args[2].isnull = false;
+		fcinfo->args[3].value = ObjectIdGetDatum(RelationGetRelid(rel->rel));
+		fcinfo->args[3].isnull = false;
+		fcinfo->args[4].value = event_oid;
+		fcinfo->args[4].isnull = false;
 
-		retval = FunctionCallInvoke(&fcinfo);
+		retval = FunctionCallInvoke(fcinfo);
 
-		if (!fcinfo.args[0].isnull)
-			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[0].value));
-		if (!fcinfo.args[1].isnull)
-			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.args[1].value));
+		if (!fcinfo->args[0].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo->args[0].value));
+		if (!fcinfo->args[1].isnull)
+			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo->args[1].value));
 #else
 		if (local != NULL)
 		{
@@ -802,8 +809,11 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 			fcinfo.argnull[1] = true;
 
 		fcinfo.arg[2] = CStringGetTextDatum(command_tag);
+		fcinfo.argnull[2] = false;
 		fcinfo.arg[3] = ObjectIdGetDatum(RelationGetRelid(rel->rel));
+		fcinfo.argnull[3] = false;
 		fcinfo.arg[4] = event_oid;
+		fcinfo.argnull[4] = false;
 
 		retval = FunctionCallInvoke(&fcinfo);
 
@@ -812,7 +822,11 @@ pgactive_conflict_handlers_resolve(pgactiveRelation * rel, const HeapTuple local
 		if (!fcinfo.argnull[1])
 			heap_freetuple((HeapTuple) DatumGetPointer(fcinfo.arg[1]));
 #endif
+#if PG_VERSION_NUM >= 120000
+		if (fcinfo->isnull)
+#else
 		if (fcinfo.isnull)
+#endif
 			elog(ERROR, "handler return value is NULL");
 
 		tup_header = DatumGetHeapTupleHeader(retval);
