@@ -11,6 +11,7 @@
 #ifndef pgactive_INTERNAL_H
 #define pgactive_INTERNAL_H
 
+#include <inttypes.h>
 #include <signal.h>
 #include "access/xlogdefs.h"
 
@@ -23,12 +24,18 @@
  */
 #define pgactive_SLOT_NAME_FORMAT "pgactive_%u_"UINT64_FORMAT"_%u_%u__%s"
 
+/* params: local_dboid, remote_sysid, remote_timeline, remote_dboid, parsed_len */
+#define pgactive_SLOT_NAME_SCAN_FORMAT "pgactive_%u_%"SCNu64"_%u_%u__%n"
+
 /*
  * The format used for replication identifiers (riident, replident)
  *
  * params: remote_sysid, remote_timeline, remote_dboid, local_dboid, replname
  */
 #define pgactive_REPORIGIN_ID_FORMAT "pgactive_"UINT64_FORMAT"_%u_%u_%u_%s"
+
+/* params: remote_sysid, remote_timeline, remote_dboid, local_dboid, parsed_len */
+#define pgactive_REPORIGIN_ID_SCAN_FORMAT "pgactive_%"SCNu64"_%u_%u_%u_%n"
 
 typedef enum pgactiveNodeStatus
 {
