@@ -102,7 +102,7 @@ static void tarClose(ArchiveHandle *AH, TAR_MEMBER *th);
 #ifdef __NOT_USED__
 static char *tarGets(char *buf, size_t len, TAR_MEMBER *th);
 #endif
-static int	tarPrintf(TAR_MEMBER *th, const char *fmt,...) pg_attribute_printf(2, 3);
+static int	tarPrintf(TAR_MEMBER *th, const char *fmt, ...) pg_attribute_printf(2, 3);
 
 static void _tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th);
 static TAR_MEMBER *_tarPositionTo(ArchiveHandle *AH, const char *filename);
@@ -584,7 +584,7 @@ _PrintFileData(ArchiveHandle *AH, char *filename)
 
 /*
  * Print data for a given TOC entry
-*/
+ */
 static void
 _PrintTocData(ArchiveHandle *AH, TocEntry *te)
 {
@@ -826,7 +826,7 @@ _CloseArchive(ArchiveHandle *AH)
 		savVerbose = AH->public.verbose;
 		AH->public.verbose = 0;
 
-		RestoreArchive((Archive *) AH, false);
+		RestoreArchive((Archive *) AH);
 
 		SetArchiveOptions((Archive *) AH, savDopt, savRopt);
 
@@ -951,7 +951,7 @@ _EndLOs(ArchiveHandle *AH, TocEntry *te)
  */
 
 static int
-tarPrintf(TAR_MEMBER *th, const char *fmt,...)
+tarPrintf(TAR_MEMBER *th, const char *fmt, ...)
 {
 	int			save_errno = errno;
 	char	   *p;

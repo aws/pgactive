@@ -11,7 +11,7 @@ index 7562e24..0c9866d 100644
  	/* various user-settable parameters */
  	bool		schemaOnly;
 diff --git a/src/compat/15/pg_dump/pg_dump.c b/src/compat/15/pg_dump/pg_dump.c
-index 020a232..b15bbaf 100644
+index 97a22fe..f260d2b 100644
 --- a/src/compat/15/pg_dump/pg_dump.c
 +++ b/src/compat/15/pg_dump/pg_dump.c
 @@ -385,6 +385,7 @@ main(int argc, char **argv)
@@ -22,7 +22,7 @@ index 020a232..b15bbaf 100644
  		{"column-inserts", no_argument, &dopt.column_inserts, 1},
  		{"disable-dollar-quoting", no_argument, &dopt.disable_dollar_quoting, 1},
  		{"disable-triggers", no_argument, &dopt.disable_triggers, 1},
-@@ -8893,6 +8894,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
+@@ -8885,6 +8886,8 @@ shouldPrintColumn(const DumpOptions *dopt, const TableInfo *tbinfo, int colno)
  {
  	if (dopt->binary_upgrade)
  		return true;
@@ -31,7 +31,7 @@ index 020a232..b15bbaf 100644
  	if (tbinfo->attisdropped[colno])
  		return false;
  	return (tbinfo->attislocal[colno] || tbinfo->ispartition);
-@@ -14447,7 +14450,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
+@@ -14437,7 +14440,7 @@ dumpForeignServer(Archive *fout, const ForeignServerInfo *srvinfo)
  	res = ExecuteSqlQueryForSingleRow(fout, query->data);
  	fdwname = PQgetvalue(res, 0, 0);
  
@@ -40,7 +40,7 @@ index 020a232..b15bbaf 100644
  	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
  	{
  		appendPQExpBufferStr(q, " TYPE ");
-@@ -14575,7 +14578,7 @@ dumpUserMappings(Archive *fout,
+@@ -14565,7 +14568,7 @@ dumpUserMappings(Archive *fout,
  		umoptions = PQgetvalue(res, i, i_umoptions);
  
  		resetPQExpBuffer(q);
@@ -49,7 +49,7 @@ index 020a232..b15bbaf 100644
  		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
  
  		if (umoptions && strlen(umoptions) > 0)
-@@ -15896,6 +15899,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
+@@ -15886,6 +15889,35 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
  			}
  		}
  
