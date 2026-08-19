@@ -1,7 +1,7 @@
 project(
   'pgactive',
   'c',
-  version: '2.1.8',
+  version: '2.1.9',
   license: 'Apache-2.0',
   meson_version: '>= 0.57.0',
   default_options: [

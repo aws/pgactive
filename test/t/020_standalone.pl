@@ -173,4 +173,13 @@ $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '
 # Move to new version 2.1.6.
 $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.6';});
 
+# Move to new version 2.1.7.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.7';});
+
+# Move to new version 2.1.8.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.8';});
+
+# Move to new version 2.1.9.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.9';});
+
 done_testing();

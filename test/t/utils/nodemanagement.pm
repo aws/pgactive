@@ -193,6 +193,7 @@ sub pgactive_update_postgresql_conf {
             wal_level = logical
             track_commit_timestamp = on
             shared_preload_libraries = 'pgactive'
+            output_plugin_libraries = 'pgactive,pgoutput'
             max_connections = 100
             max_wal_senders = 20
             max_replication_slots = 20

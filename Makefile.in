@@ -16,7 +16,7 @@ DATA = $(wildcard $(EXTENSION)*--*.sql)
 SCRIPTS_built = pgactive_init_copy pgactive_dump
 EXTRA_CLEAN = src/pgactive_init_copy$(X) src/pgactive_init_copy.o include/pgactive_version.h .distgitrev \
 	test/tmp_check test/results test/log test/tmp_t \
-	test/regression.diffs test/regression.out \
+	test/test test/regression.diffs test/regression.out \
 	pgactive_init_copy_postgres.log home tmp_test_* \
 	pgactive_dump$(X) $(pgactive_DUMP_OBJS) \
 	src/*.o src/compat/*/pg_dump/*.o
