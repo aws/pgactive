@@ -235,6 +235,8 @@ build_index_scan_key(ScanKey skey, Relation rel, Relation idxrel, pgactiveTupleD
 					regop,
 					tup->values[mainattno - 1]);
 
+		skey[attoff].sk_collation = idxrel->rd_indcollation[attoff];
+
 		if (tup->isnull[mainattno - 1])
 		{
 			hasnulls = true;
