@@ -7,7 +7,7 @@ project(
     check: true,
   ).stdout().strip(),
   license: 'Apache-2.0',
-  meson_version: '>= 0.58.0',
+  meson_version: '>= 0.62.0',
   default_options: [
     'warning_level=2',
   ],
@@ -59,11 +59,13 @@ libpq = declare_dependency(
   ],
 )
 
-# pgfeutils (needed by pgactive_dump)
+# Static support libs from the PG install (needed by pgactive_dump and
+# pgactive_init_copy). Required: a missing one is a broken install, and failing
+# here gives a clear error instead of a confusing undefined-reference link error.
 cc = meson.get_compiler('c')
-libpgfeutils = cc.find_library('pgfeutils', dirs: [pg_libdir], required: false)
-libpgcommon  = cc.find_library('pgcommon',  dirs: [pg_libdir], required: false)
-libpgport    = cc.find_library('pgport',    dirs: [pg_libdir], required: false)
+libpgfeutils = cc.find_library('pgfeutils', dirs: [pg_libdir], required: true)
+libpgcommon  = cc.find_library('pgcommon',  dirs: [pg_libdir], required: true)
+libpgport    = cc.find_library('pgport',    dirs: [pg_libdir], required: true)
 
 # ---- Version header generation ----
 git = find_program('git', required: false)
@@ -78,7 +80,7 @@ endif
 
 version_date = run_command('date', '+%Y-%m-%d', check: true).stdout().strip()
 
-version_h = configure_file(
+configure_file(
   input: 'include/pgactive_version.h.in',
   output: 'pgactive_version.h',
   configuration: {
