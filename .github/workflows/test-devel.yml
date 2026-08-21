@@ -1,0 +1,95 @@
+name: pgactive PG-Devel CI
+on:
+  #schedule:
+  #  # Runs every day at 5am.
+  #  - cron: '0 5 * * *'
+  #push:
+  #  paths-ignore:
+  #    - 'docs/**'
+  #pull_request:
+  #  paths-ignore:
+  #    - 'docs/**'
+  workflow_dispatch:
+jobs:
+  test:
+    defaults:
+      run:
+        shell: sh
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        version: [
+          master
+        ]
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout pgactive
+        uses: actions/checkout@v4
+        with:
+          path: pgactive
+
+      - name: Checkout Postgres
+        run: |
+          sudo apt-get -y -q install libipc-run-perl build-essential libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config libicu-dev meson ninja-build
+          git clone --depth 1 --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
+
+      - name: Build Postgres
+        run: |
+          cd $GITHUB_WORKSPACE/postgres
+          # meson build. contrib (btree_gist, cube, hstore, pg_trgm) and the
+          # PostgreSQL::Test perl modules are built and installed as part of the
+          # main tree, so no separate contrib install steps are needed.
+          meson setup build --prefix=$PWD/inst --buildtype=debug -Dcassert=true -Dtap_tests=enabled
+          ninja -C build install
+
+      - name: Check pgactive code indentation
+        run: |
+          cd $GITHUB_WORKSPACE/pgactive
+          ls -1 src/compat/??/pg_dump/*.[ch] >$GITHUB_WORKSPACE/postgres/pgindent.ignore
+
+          cd $GITHUB_WORKSPACE/postgres
+          # pg_bsd_indent is built by meson but not installed; use it from the build tree.
+          ninja -C build src/tools/pg_bsd_indent/pg_bsd_indent
+          src/tools/pgindent/pgindent --indent=$GITHUB_WORKSPACE/postgres/build/src/tools/pg_bsd_indent/pg_bsd_indent --excludes=pgindent.ignore --diff $GITHUB_WORKSPACE/pgactive > pgindent.diffs
+          test -s pgindent.diffs && cat pgindent.diffs && exit 1 || exit 0
+
+      - name: Build pgactive
+        run: |
+          cd $GITHUB_WORKSPACE/pgactive
+          export PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
+          meson setup build -Dpg_config=$GITHUB_WORKSPACE/postgres/inst/bin/pg_config -Dwarning_level=1 -Dwerror=true
+          ninja -C build install
+
+      - name: Run pgactive core tests
+        run: |
+          cd $GITHUB_WORKSPACE/pgactive
+          export PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
+          meson test -C build --suite regress --print-errorlogs
+
+      - name: Show pgactive core tests diff
+        if: ${{ failure() }}
+        run: |
+          cat pgactive/build/meson-logs/testlog.txt 2>/dev/null || true
+          cat pgactive/test/regression.diffs 2>/dev/null || true
+
+      - name: Run pgactive extended tests
+        run: |
+          cd $GITHUB_WORKSPACE/pgactive
+          export PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
+          meson test -C build --suite tap --print-errorlogs
+
+      - name: Upload test artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
+          path: |
+            postgres/pgindent.diffs
+            pgactive/build/meson-logs
+            pgactive/build/tmp_check/log
+          retention-days: 1

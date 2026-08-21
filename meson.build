@@ -1,11 +1,14 @@
 project(
   'pgactive',
   'c',
-  version: '2.1.9',
+  version: run_command(
+    'sh', '-c',
+    'sed -n \'s/^#define[[:space:]]\\+pgactive_VERSION[[:space:]]\\+"\\([^"]*\\)".*/\\1/p\' include/pgactive_version.h.in',
+    check: true,
+  ).stdout().strip(),
   license: 'Apache-2.0',
-  meson_version: '>= 0.57.0',
+  meson_version: '>= 0.58.0',
   default_options: [
-    'c_std=gnu99',
     'warning_level=2',
   ],
 )
@@ -22,6 +25,7 @@ pg_config = find_program(
 pg_bindir             = run_command(pg_config, '--bindir',            check: true).stdout().strip()
 pg_includedir         = run_command(pg_config, '--includedir',        check: true).stdout().strip()
 pg_includedir_server  = run_command(pg_config, '--includedir-server', check: true).stdout().strip()
+pg_pkgincludedir      = run_command(pg_config, '--pkgincludedir',     check: true).stdout().strip()
 pg_pkglibdir          = run_command(pg_config, '--pkglibdir',         check: true).stdout().strip()
 pg_sharedir    = run_command(pg_config, '--sharedir',          check: true).stdout().strip()
 pg_libdir      = run_command(pg_config, '--libdir',            check: true).stdout().strip()
@@ -37,26 +41,23 @@ pg_major = run_command('sh', '-c',
 message('Building against PostgreSQL @0@'.format(pg_major))
 
 pg_inc = include_directories(pg_includedir, pg_includedir_server)
-pg_inc_internal = include_directories(pg_includedir / 'postgresql' / 'internal')
+pg_inc_internal = include_directories(pg_pkgincludedir / 'internal')
 
 # pgxs directory (for test perl modules and pg_regress)
 pgxs_dir = run_command('dirname', pg_pgxs, check: true).stdout().strip()
 pgxs_basedir = run_command('dirname', pgxs_dir, check: true).stdout().strip()
 
-# libpq
-libpq = dependency('libpq', required: false)
-if not libpq.found()
-  libpq = declare_dependency(
-    include_directories: include_directories(
-      run_command(pg_config, '--includedir', check: true).stdout().strip(),
-    ),
-    dependencies: [
-      meson.get_compiler('c').find_library('pq',
-        dirs: [pg_libdir],
-      ),
-    ],
-  )
-endif
+# libpq — must be the copy that belongs to THIS pg_config, not whatever a
+# system pkg-config/cmake happens to find first. A generic dependency('libpq')
+# would prefer a distro libpq (e.g. /usr/lib64 via libpq.pc) over the target
+# server's, an ABI mismatch when building against a custom-prefix install.
+# pg_config's --libdir/--includedir are authoritative, exactly as PGXS uses them.
+libpq = declare_dependency(
+  include_directories: include_directories(pg_includedir),
+  dependencies: [
+    meson.get_compiler('c').find_library('pq', dirs: [pg_libdir]),
+  ],
+)
 
 # pgfeutils (needed by pgactive_dump)
 cc = meson.get_compiler('c')
@@ -174,6 +175,9 @@ pgactive_lib = shared_module(
   name_prefix: '',
   install: true,
   install_dir: pg_pkglibdir,
+  # Resolve the same libpq at runtime that we linked from pg_config --libdir,
+  # not a system copy — matters for custom-prefix servers not in ldconfig.
+  install_rpath: pg_libdir,
 )
 
 # ---- pgactive_init_copy binary ----
@@ -187,6 +191,7 @@ pgactive_init_copy = executable(
   dependencies: [libpq, libpgport, libpgcommon],
   install: true,
   install_dir: pg_bindir,
+  install_rpath: pg_libdir,
 )
 
 # ---- pgactive_dump binary ----
@@ -233,6 +238,7 @@ pgactive_dump = executable(
   dependencies: [libpq, libpgfeutils, libpgport, libpgcommon, libssl, libz, liblz4, libzstd],
   install: true,
   install_dir: pg_bindir,
+  install_rpath: pg_libdir,
 )
 
 # ---- Extension data files ----
