@@ -22,6 +22,7 @@ CREATE FUNCTION pgactive_version()
 RETURNS TEXT
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
+REVOKE ALL ON FUNCTION pgactive_version() FROM public;
 
 CREATE FUNCTION pgactive_variant()
 RETURNS TEXT
@@ -88,11 +89,13 @@ CREATE FUNCTION pgactive_create_conflict_handler (
 RETURNS VOID
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
+REVOKE ALL ON FUNCTION pgactive_create_conflict_handler(regclass, name, regprocedure, pgactive.pgactive_conflict_type, interval) FROM public;
 
 CREATE FUNCTION pgactive_drop_conflict_handler(ch_rel REGCLASS, ch_name NAME)
 RETURNS VOID
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT;
+REVOKE ALL ON FUNCTION pgactive_drop_conflict_handler(regclass, name) FROM public;
 
 CREATE TYPE pgactive_conflict_resolution AS ENUM (
     'conflict_trigger_skip_change',
@@ -265,6 +268,7 @@ CREATE FUNCTION pgactive_replicate_ddl_command(cmd TEXT)
 RETURNS VOID
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
+REVOKE ALL ON FUNCTION pgactive_replicate_ddl_command(text) FROM public;
 
 CREATE FUNCTION pgactive_truncate_trigger_add()
 RETURNS event_trigger
@@ -324,6 +328,7 @@ CREATE FUNCTION pgactive_get_table_replication_sets(relation regclass, OUT sets 
                 ), '["default"]'))
         )|| '{all}';
   $$;
+REVOKE ALL ON FUNCTION pgactive_get_table_replication_sets(regclass) FROM public;
 
 CREATE TABLE pgactive_replication_set_config (
     set_name name PRIMARY KEY,
@@ -1358,6 +1363,7 @@ WHERE n.node_sysid = i.sysid
   AND n.node_timeline = i.timeline
   AND n.node_dboid = i.dboid;
 $$;
+REVOKE ALL ON FUNCTION pgactive_get_local_node_name() FROM public;
 
 COMMENT ON FUNCTION pgactive_get_local_node_name() IS
 'Return the name from pgactive.pgactive_nodes for the local node, or null if no entry exists';
@@ -1366,6 +1372,7 @@ CREATE FUNCTION pgactive_is_apply_paused()
 RETURNS boolean
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
+REVOKE ALL ON FUNCTION pgactive_is_apply_paused() FROM public;
 
 CREATE FUNCTION pgactive_set_node_read_only (node_name text, read_only boolean)
 RETURNS void
@@ -1688,6 +1695,7 @@ CREATE FUNCTION pgactive_is_active_in_db()
 RETURNS boolean
 AS 'MODULE_PATHNAME','pgactive_is_active_in_db'
 LANGUAGE C;
+REVOKE ALL ON FUNCTION pgactive_is_active_in_db() FROM public;
 
 CREATE EVENT TRIGGER pgactive_truncate_trigger_add
 ON ddl_command_end
@@ -1837,6 +1845,7 @@ CREATE FUNCTION pgactive_get_global_locks_info (
 RETURNS record
 AS 'MODULE_PATHNAME', 'pgactive_get_global_locks_info'
 LANGUAGE C VOLATILE;
+REVOKE ALL ON FUNCTION pgactive_get_global_locks_info() FROM public;
 
 COMMENT ON FUNCTION pgactive_get_global_locks_info() IS
 'Backing function for pgactive_global_locks_info view';
@@ -2129,6 +2138,7 @@ CREATE FUNCTION pgactive_get_last_applied_xact_info(
 RETURNS record
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT;
+REVOKE ALL ON FUNCTION pgactive_get_last_applied_xact_info(text, oid, oid) FROM public;
 
 COMMENT ON FUNCTION pgactive_get_last_applied_xact_info(text, oid, oid) IS
 'Gets last applied transaction info of apply worker for a given node.';
@@ -2149,6 +2159,7 @@ CREATE FUNCTION pgactive_get_replication_lag_info(
 RETURNS SETOF record
 AS 'MODULE_PATHNAME'
 LANGUAGE C VOLATILE STRICT;
+REVOKE ALL ON FUNCTION pgactive_get_replication_lag_info() FROM public;
 
 COMMENT ON FUNCTION pgactive_get_replication_lag_info() IS
 'Gets replication lag info.';
@@ -2777,6 +2788,7 @@ BEGIN
 	END IF;
 END;
 $$;
+REVOKE ALL ON FUNCTION pgactive_set_table_replication_sets(regclass, boolean) FROM public;
 
 
 CREATE OR REPLACE FUNCTION pgactive_exclude_table_replication_set(p_relation regclass)
@@ -2791,6 +2803,7 @@ BEGIN
 	PERFORM pgactive.pgactive_set_table_replication_sets(p_relation, true);
 END;
 $$;
+REVOKE ALL ON FUNCTION pgactive_exclude_table_replication_set(regclass) FROM public;
 
 
 CREATE OR REPLACE FUNCTION pgactive_include_table_replication_set(p_relation regclass)
@@ -2805,6 +2818,7 @@ BEGIN
 	PERFORM pgactive.pgactive_set_table_replication_sets(p_relation, false);
 END;
 $$;
+REVOKE ALL ON FUNCTION pgactive_include_table_replication_set(regclass) FROM public;
 
 DROP FUNCTION pgactive_get_connection_replication_sets(
     text[],
