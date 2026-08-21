@@ -5,7 +5,7 @@ project(
   license: 'Apache-2.0',
   meson_version: '>= 0.57.0',
   default_options: [
-    'c_std=gnu99',
+    'c_std=gnu11',
     'warning_level=2',
   ],
 )
