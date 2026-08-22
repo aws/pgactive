@@ -60,6 +60,69 @@ Changes on the pgactive nodes are applied by a background worker. There are a nu
 
 All standard PostgreSQL authentication mechanisms can be utilized. This would include utilizing `pg_user_mapping` to map system users to PostgreSQL users and `.pgpass` to provide the password in a password file as opposed to the connection string.
 
+#### Apply-as-Table-Owner
+
+pgactive apply workers switch to the table owner before executing replicated DML
+(INSERT, UPDATE, DELETE) when `pgactive.apply_as_table_owner` is enabled (the
+default). This uses PostgreSQL's `SwitchToUntrustedUser`/`RestoreUserContext` API
+on PG 16+ and an equivalent shim on older versions, matching the upstream logical
+replication behavior introduced in PG 16 (commit `1e10d49b65d`).
+
+#### Only join databases you trust
+
+Joining a node copies the database from an existing group member into the
+new node using PostgreSQL's `pg_dump` and `pg_restore` (for a logical join) or a
+physical base backup (for a physical join). This is the same mechanism, and
+carries the same risk, that the PostgreSQL documentation warns about for
+[`pg_restore`](https://www.postgresql.org/docs/current/app-pgrestore.html) and
+[`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html):
+
+> **Warning**
+>
+> Restoring a dump causes the destination to execute arbitrary code of the
+> source superusers' choice.
+
+Because a join restores that dump into the joining node with superuser
+privileges, **joining causes the joining node to execute arbitrary code chosen
+by the database you are joining.** The restore runs functions, triggers, event
+triggers, extensions, and other objects defined on the upstream, so a malicious
+or compromised upstream node can use this to run any code it wants on the new
+node.
+
+This trust is **not limited to the upstream's superusers.** Restoring a dump
+evaluates expressions such as `CHECK` constraints, column `DEFAULT`s, functional
+index expressions, and triggers, and it recreates functions and views. Any role
+that can define such objects — for example a mere table owner who adds a `CHECK`
+constraint or default expression that calls a function — can arrange for that
+code to run on the joining node as the restoring superuser, which is a
+straightforward privilege-escalation path. In other words, the joining node must
+trust *every* role that can create or own objects in the database it is joining,
+not just the roles that hold superuser.
+
+Ongoing replication after the join extends the same trust: DDL and data applied
+from peers are executed in the same way.
+
+Therefore:
+
+- Only run `pgactive.pgactive_join_group()` (or `pgactive_init_copy`) against a
+  database whose contents you trust — meaning you trust every role that can
+  define objects in it, not merely its superusers. Treat `join_using_dsn` /
+  `node_dsn` the way you would treat the source of any dump you are about to
+  restore as superuser.
+- If you cannot fully trust the database you are joining, inspect its contents
+  before joining. For a logical copy you can take a `pg_dump` of the upstream
+  database yourself and review the SQL (archive-format dumps can be rendered to
+  readable SQL with `pg_restore --file`) before initiating the join — paying
+  particular attention to function bodies, triggers, and any `CHECK`, `DEFAULT`,
+  or index expressions that will be evaluated during restore.
+- Protect the DSNs and user mappings used for join and replication, and prefer
+  SSL connections, so that an attacker cannot substitute a hostile node in place
+  of a legitimate group member.
+
+Note that this trust flows *from* the joining node *toward* the pgactive group
+it joins: the client that issues the join need not trust the destination, but
+the node being joined must trust the group.
+
 #### Connections
 
 Connections can use SSL to secure the data in flight.
@@ -76,6 +139,17 @@ can define foreign servers for each connection information of pgactive nodes in 
 ### Node Management
 
 ### Joining a node
+
+> **Warning: only join a database you trust.** The initial copy described below
+> restores the upstream node's schema and data into the joining node with
+> superuser privileges, which causes the joining node to execute arbitrary code
+> chosen by the group being joined — the same hazard the PostgreSQL
+> documentation warns about for `pg_dump`/`pg_restore`. This is not limited to
+> the upstream's superusers: any role that can define a `CHECK` constraint,
+> default expression, function, or trigger can get code run on the joining node
+> as superuser. Only join a database whose contents you trust, and inspect them
+> first if you cannot. See [Only join databases you trust](#only-join-databases-you-trust)
+> under Security.
 
 When a new pgactive node is joined to an existing pgactive group, node is subscribed to an upstream peer, the system must copy the existing data from the peer node(s) to the local node before replication can begin. This copy has to be carefully coordinated so that the local and remote data starts out ***identical***, so it's not sufficient to just use pg_dump yourself. The extension provides built-in facilities for making this initial copy.
 Every pgactive node must be ***online and reachable*** when an attempt to join a new node is made. Otherwise the join will hang indefinitely or fail. pgactive is a mesh where every node must be able to communicate with every other node, and while it is tolerant of network partitions and interruptions all nodes need to know about every other node that exist.
