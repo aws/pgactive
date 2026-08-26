@@ -60,6 +60,14 @@ Changes on the pgactive nodes are applied by a background worker. There are a nu
 
 All standard PostgreSQL authentication mechanisms can be utilized. This would include utilizing `pg_user_mapping` to map system users to PostgreSQL users and `.pgpass` to provide the password in a password file as opposed to the connection string.
 
+#### Apply-as-Table-Owner
+
+pgactive apply workers switch to the table owner before executing replicated DML
+(INSERT, UPDATE, DELETE) when `pgactive.apply_as_table_owner` is enabled (the
+default). This uses PostgreSQL's `SwitchToUntrustedUser`/`RestoreUserContext` API
+on PG 16+ and an equivalent shim on older versions, matching the upstream logical
+replication behavior introduced in PG 16 (commit `1e10d49b65d`).
+
 #### Connections
 
 Connections can use SSL to secure the data in flight.
