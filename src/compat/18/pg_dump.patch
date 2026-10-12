@@ -11,7 +11,7 @@ index d9041da..4dd06e8 100644
  	/* various user-settable parameters */
  	int			dumpSections;	/* bitmask of chosen sections */
 diff --git a/src/compat/18/pg_dump/pg_dump.c b/src/compat/18/pg_dump/pg_dump.c
-index 618b0ea..e70c743 100644
+index 2ad151b..00688b4 100644
 --- a/src/compat/18/pg_dump/pg_dump.c
 +++ b/src/compat/18/pg_dump/pg_dump.c
 @@ -488,6 +488,7 @@ main(int argc, char **argv)

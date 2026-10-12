@@ -11,7 +11,7 @@ index 558a8f0..85c1370 100644
  	/* various user-settable parameters */
  	bool		schemaOnly;
 diff --git a/src/compat/16/pg_dump/pg_dump.c b/src/compat/16/pg_dump/pg_dump.c
-index 99c8a0e..a44bd8c 100644
+index 1ae0e38..f10eef3 100644
 --- a/src/compat/16/pg_dump/pg_dump.c
 +++ b/src/compat/16/pg_dump/pg_dump.c
 @@ -400,6 +400,7 @@ main(int argc, char **argv)
