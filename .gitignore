@@ -30,6 +30,7 @@ lib*.pc
 /pgactive_init_copy
 /pgactive_dump
 /include/pgactive_version.h
+/pgactive.control
 /test/log/
 /test/results/
 /test/regression.diffs
