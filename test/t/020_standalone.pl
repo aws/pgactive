@@ -182,4 +182,7 @@ $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '
 # Move to new version 2.1.9.
 $node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.9';});
 
+# Move to new version 2.1.10.
+$node_a->safe_psql($pgactive_test_dbname, q{ALTER EXTENSION pgactive UPDATE TO '2.1.10';});
+
 done_testing();
