@@ -2201,7 +2201,7 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 	{
 		FormData_pg_attribute *att = TupleDescAttr(desc, i);
 		char		kind;
-		const char *data;
+		char	   *data;
 		int			len;
 
 		kind = pq_getmsgbyte(s);
@@ -2223,9 +2223,58 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 				tup->isnull[i] = false;
 				len = pq_getmsgint(s, 4);	/* read length */
 
-				data = pq_getmsgbytes(s, len);
+				if (len < 0)
+					elog(ERROR, "invalid length %d for attribute \"%s\"",
+						 len, NameStr(att->attname));
 
-				/* and data */
+				/*
+				 * Keep by-reference values independent of the input message.
+				 */
+				data = palloc0(len + 1);
+				pq_copymsgbytes(s, data, len);
+
+				/*
+				 * Match the representation expected by the local attribute
+				 * before building its Datum.
+				 */
+				if (att->attlen > 0)
+				{
+					if (len != att->attlen)
+						elog(ERROR, "invalid length %d for attribute \"%s\" (expected %d)",
+							 len, NameStr(att->attname), att->attlen);
+				}
+				else if (att->attlen == -1)
+				{
+					/*
+					 * Note that the output side does not send external values
+					 * in this format.  It marks unchanged on-disk values with
+					 * 'u' and expands indirect values before sending them.
+					 *
+					 * Inspect the one-byte header first, as reading a regular
+					 * varlena header requires at least VARHDRSZ bytes.
+					 */
+					if (len < (int) VARHDRSZ_SHORT || VARATT_IS_EXTERNAL(data))
+						elog(ERROR, "invalid varlena datum for attribute \"%s\"",
+							 NameStr(att->attname));
+
+					if (VARATT_IS_SHORT(data))
+					{
+						if ((int) VARSIZE_SHORT(data) != len)
+							elog(ERROR, "invalid varlena length %d for attribute \"%s\" (expected %d)",
+								 (int) VARSIZE_SHORT(data), NameStr(att->attname), len);
+					}
+					else if (len < (int) VARHDRSZ || (int) VARSIZE(data) != len)
+					{
+						elog(ERROR, "invalid varlena length for attribute \"%s\"",
+							 NameStr(att->attname));
+					}
+				}
+				else
+				{
+					elog(ERROR, "unsupported type length %d for attribute \"%s\"",
+						 att->attlen, NameStr(att->attname));
+				}
+
 				if (att->attbyval)
 					tup->values[i] = fetch_att(data, true, len);
 				else
@@ -2244,14 +2293,14 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 										   &typreceive, &typioparam);
 
 					/*
-					 * Create StringInfo pointing into the bigger buffer.
-					 * First free the palloc-ed memory that initStringInfo
-					 * gives to not leak any memory.
+					 * Keep the receive-function input in its own StringInfo
+					 * buffer.
 					 */
 					initStringInfo(&buf);
-					pfree(buf.data);
-					buf.data = (char *) pq_getmsgbytes(s, len);
+					enlargeStringInfo(&buf, len);
+					pq_copymsgbytes(s, buf.data, len);
 					buf.len = len;
+					buf.data[len] = '\0';
 					tup->values[i] = OidReceiveFunctionCall(
 															typreceive, &buf, typioparam, att->atttypmod);
 
@@ -2270,10 +2319,14 @@ read_tuple_parts(StringInfo s, pgactiveRelation * rel, pgactiveTupleData * tup)
 					len = pq_getmsgint(s, 4);	/* read length */
 
 					getTypeInputInfo(att->atttypid, &typinput, &typioparam);
-					/* and data */
-					data = (char *) pq_getmsgbytes(s, len);
+
+					/*
+					 * Type input functions expect a zero-terminated string.
+					 */
+					data = palloc0(len + 1);
+					pq_copymsgbytes(s, data, len);
 					tup->values[i] = OidInputFunctionCall(
-														  typinput, (char *) data, typioparam, att->atttypmod);
+														  typinput, data, typioparam, att->atttypmod);
 				}
 				break;
 			default:
