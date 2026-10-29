@@ -346,15 +346,14 @@ pgactive_fetch_sysid_via_node_id(RepOriginId node_id, pgactiveNodeId * node)
 void
 pgactive_parse_replident_name(const char *riname, pgactiveNodeId * node, Oid *local_dboid)
 {
-	NameData	replication_name;
+	int			parsed_len = -1;
 
-	if (sscanf(riname, pgactive_REPORIGIN_ID_FORMAT,
+	if (sscanf(riname, pgactive_REPORIGIN_ID_SCAN_FORMAT,
 			   &node->sysid, &node->timeline, &node->dboid, local_dboid,
-			   NameStr(replication_name)) != 4)
-	{
-		/* Note: the test above excludes non-empty replication names */
-		elog(ERROR, "could not parse slot name: %s", riname);
-	}
+			   &parsed_len) != 4 ||
+		parsed_len < 0 ||
+		riname[parsed_len] != '\0')
+		elog(ERROR, "could not parse replication origin name: %s", riname);
 }
 
 /*
@@ -365,15 +364,14 @@ pgactive_parse_replident_name(const char *riname, pgactiveNodeId * node, Oid *lo
 void
 pgactive_parse_slot_name(const char *sname, pgactiveNodeId * remote, Oid *local_dboid)
 {
-	NameData	replication_name;
+	int			parsed_len = -1;
 
-	if (sscanf(sname, pgactive_SLOT_NAME_FORMAT,
+	if (sscanf(sname, pgactive_SLOT_NAME_SCAN_FORMAT,
 			   local_dboid, &remote->sysid, &remote->timeline, &remote->dboid,
-			   NameStr(replication_name)) != 4)
-	{
-		/* Note: the test above excludes non-empty replication names */
+			   &parsed_len) != 4 ||
+		parsed_len < 0 ||
+		sname[parsed_len] != '\0')
 		elog(ERROR, "could not parse slot name: %s", sname);
-	}
 }
 
 /*
