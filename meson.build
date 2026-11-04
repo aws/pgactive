@@ -302,7 +302,7 @@ if get_option('tests')
 
   # Common env for both test targets
   test_env_base = {
-    'PATH':       getopt_dir + pg_bindir + ':' + run_command('sh', '-c', 'echo $PATH', check: true).stdout().strip(),
+    'PATH':       pg_bindir + ':' + getopt_dir + run_command('sh', '-c', 'echo $PATH', check: true).stdout().strip(),
     'PG_CONFIG':  pg_config.full_path(),
     'PG_REGRESS': pg_regress_bin,
   }
