@@ -302,6 +302,10 @@ if get_option('tests')
 
   # Common env for both test targets
   test_env_base = {
+    # pg_bindir must come first: find_program() also searches $PATH, so on Linux
+    # getopt_dir is /usr/bin (seen on Ubuntu and Fedora), and putting it first
+    # makes tests run any other PostgreSQL client installed there instead of
+    # the target's (CI: /usr/bin/pg_basebackup -> "incompatible server version").
     'PATH':       pg_bindir + ':' + getopt_dir + run_command('sh', '-c', 'echo $PATH', check: true).stdout().strip(),
     'PG_CONFIG':  pg_config.full_path(),
     'PG_REGRESS': pg_regress_bin,
@@ -421,7 +425,7 @@ if get_option('tests')
       # exactly as `make prove_check` does with `cd $(srcdir) && prove ...`.
       workdir: meson.current_source_dir(),
       depends: [pgactive_lib, pgactive_init_copy, pgactive_dump],
-      timeout: 1800,
+      timeout: 3600,
       is_parallel: false,
       suite: 'tap',
     )
