@@ -390,7 +390,7 @@ if get_option('tests')
   # ------------------------------------------------------------------
   if prove.found()
     # Determine the pgxs test perl dir for PostgreSQL::Test::Cluster etc.
-    pgxs_test_perl = pgxs_basedir / 'src' / 'test' / 'perl'
+    pgxs_test_perl = pgxs_basedir / 'test' / 'perl'
 
     prove_env = test_env_base
     prove_env += {
@@ -417,6 +417,9 @@ if get_option('tests')
         meson.current_source_dir() / 'test' / 't',
       ],
       env: prove_env,
+      # Run from srcdir so the TAP tests' `use lib 'test/t/'` (relative) resolves,
+      # exactly as `make prove_check` does with `cd $(srcdir) && prove ...`.
+      workdir: meson.current_source_dir(),
       depends: [pgactive_lib, pgactive_init_copy, pgactive_dump],
       timeout: 1800,
       is_parallel: false,
