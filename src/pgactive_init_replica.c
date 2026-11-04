@@ -1003,9 +1003,11 @@ pgactive_nodes_set_remote_status_ready(PGconn *conn)
 
 	if (PQntuples(res) != 1)
 	{
+		int			ntuples = PQntuples(res);
+
 		PQclear(res);
 		elog(ERROR, "failed to update my pgactive.pgactive_nodes entry on remote server: affected %d rows instead of expected 1",
-			 PQntuples(res));
+			 ntuples);
 	}
 
 	Assert(PQnfields(res) == 1);

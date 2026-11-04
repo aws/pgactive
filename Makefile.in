@@ -14,7 +14,7 @@ MODULE_big = pgactive
 EXTENSION = pgactive
 DATA = $(wildcard $(EXTENSION)*--*.sql)
 SCRIPTS_built = pgactive_init_copy pgactive_dump
-EXTRA_CLEAN = src/pgactive_init_copy$(X) src/pgactive_init_copy.o include/pgactive_version.h .distgitrev \
+EXTRA_CLEAN = src/pgactive_init_copy$(X) src/pgactive_init_copy.o include/pgactive_version.h $(EXTENSION).control .distgitrev \
 	test/tmp_check test/results test/log test/tmp_t \
 	test/test test/regression.diffs test/regression.out \
 	pgactive_init_copy_postgres.log home tmp_test_* \
@@ -197,6 +197,14 @@ pgactive_version.h: include/pgactive_version.h.in
 	sed -r '0,/pgactive_VERSION_DATE/s,(pgactive_VERSION_DATE).,\1 "$(DATE)",;0,/pgactive_VERSION_GITHASH/s,(pgactive_VERSION_GITHASH).,\1 "$(GITHASH)",' include/pgactive_version.h.in > include/pgactive_version.h
 
 src/pgactive.o: pgactive_version.h
+
+# Generate the control file from its template, keeping default_version in sync
+# with include/pgactive_version.h.in (the single source of truth for the
+# version, same value meson derives via meson.project_version()).
+PGACTIVE_VERSION := $(shell sed -n 's/^\#define[[:space:]]\+pgactive_VERSION[[:space:]]\+"\([^"]*\)".*/\1/p' include/pgactive_version.h.in)
+
+$(EXTENSION).control: $(EXTENSION).control.in include/pgactive_version.h.in
+	sed 's/@PGACTIVE_VERSION@/$(PGACTIVE_VERSION)/' $< > $@
 
 # Ensure Makefiles are up to date.
 Makefile: Makefile.in config.status configure

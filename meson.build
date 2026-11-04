@@ -9,7 +9,7 @@ project(
   license: 'Apache-2.0',
   meson_version: '>= 0.62.0',
   default_options: [
-    'warning_level=2',
+    'warning_level=1',
   ],
 )
 
@@ -66,6 +66,22 @@ cc = meson.get_compiler('c')
 libpgfeutils = cc.find_library('pgfeutils', dirs: [pg_libdir], required: true)
 libpgcommon  = cc.find_library('pgcommon',  dirs: [pg_libdir], required: true)
 libpgport    = cc.find_library('pgport',    dirs: [pg_libdir], required: true)
+
+# ---- Inherit PostgreSQL's server compile flags ----
+# The Makefile build gets these for free via `include $(PGXS)`. Beyond the
+# warning suite, pg_config --cflags carries correctness-relevant codegen flags
+# the backend relies on (-fwrapv, -fno-strict-aliasing, -fexcess-precision=
+# standard); compiling the extension without them is a latent miscompilation
+# risk at -O2. Strip -O*/-g* so meson's buildtype and sanitizer options keep
+# control of optimization and debug info, and run the rest through the compiler
+# so any flag it rejects (e.g. on clang) is simply dropped rather than erroring.
+pg_cflags_wanted = []
+foreach flag : run_command(pg_config, '--cflags', check: true).stdout().strip().split()
+  if not (flag.startswith('-O') or flag.startswith('-g'))
+    pg_cflags_wanted += flag
+  endif
+endforeach
+add_project_arguments(cc.get_supported_arguments(pg_cflags_wanted), language: 'c')
 
 # ---- Version header generation ----
 git = find_program('git', required: false)
@@ -244,8 +260,16 @@ pgactive_dump = executable(
 )
 
 # ---- Extension data files ----
+# Generate the control file from its template so default_version stays in sync
+# with include/pgactive_version.h.in (the single source of truth — same value as
+# meson.project_version(), derived from that header at the top of this file).
+pgactive_control = configure_file(
+  input: 'pgactive.control.in',
+  output: 'pgactive.control',
+  configuration: {'PGACTIVE_VERSION': meson.project_version()},
+)
 install_data(
-  'pgactive.control',
+  pgactive_control,
   install_dir: pg_sharedir / 'extension',
 )
 
@@ -278,7 +302,11 @@ if get_option('tests')
 
   # Common env for both test targets
   test_env_base = {
-    'PATH':       getopt_dir + pg_bindir + ':' + run_command('sh', '-c', 'echo $PATH', check: true).stdout().strip(),
+    # pg_bindir must come first: find_program() also searches $PATH, so on Linux
+    # getopt_dir is /usr/bin (seen on Ubuntu and Fedora), and putting it first
+    # makes tests run any other PostgreSQL client installed there instead of
+    # the target's (CI: /usr/bin/pg_basebackup -> "incompatible server version").
+    'PATH':       pg_bindir + ':' + getopt_dir + run_command('sh', '-c', 'echo $PATH', check: true).stdout().strip(),
     'PG_CONFIG':  pg_config.full_path(),
     'PG_REGRESS': pg_regress_bin,
   }
@@ -366,7 +394,7 @@ if get_option('tests')
   # ------------------------------------------------------------------
   if prove.found()
     # Determine the pgxs test perl dir for PostgreSQL::Test::Cluster etc.
-    pgxs_test_perl = pgxs_basedir / 'src' / 'test' / 'perl'
+    pgxs_test_perl = pgxs_basedir / 'test' / 'perl'
 
     prove_env = test_env_base
     prove_env += {
@@ -385,11 +413,19 @@ if get_option('tests')
       args: [
         '--verbose',
         '--timer',
+        # prove defaults to *.t; pgactive's TAP tests are *.pl. Handed only the
+        # directory, prove matches nothing and the suite passes vacuously
+        # (NOTESTS) -- unlike `make check`, which globs test/t/*.pl. Select the
+        # same set here so `meson test` actually runs the TAP suite.
+        '--ext', '.pl',
         meson.current_source_dir() / 'test' / 't',
       ],
       env: prove_env,
+      # Run from srcdir so the TAP tests' `use lib 'test/t/'` (relative) resolves,
+      # exactly as `make prove_check` does with `cd $(srcdir) && prove ...`.
+      workdir: meson.current_source_dir(),
       depends: [pgactive_lib, pgactive_init_copy, pgactive_dump],
-      timeout: 1800,
+      timeout: 3600,
       is_parallel: false,
       suite: 'tap',
     )

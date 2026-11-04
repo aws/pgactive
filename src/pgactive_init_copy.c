@@ -1020,6 +1020,7 @@ get_remote_info(char *remote_connstr)
 	RemoteInfo *ri = (RemoteInfo *) pg_malloc0(sizeof(RemoteInfo));
 	char	   *remote_sysid;
 	char	   *remote_tlid;
+	char	   *endptr;
 	int			i;
 	PGresult   *res;
 	PQExpBuffer conninfo = createPQExpBuffer();
@@ -1058,22 +1059,32 @@ get_remote_info(char *remote_connstr)
 
 	if (PQntuples(res) != 1 || PQnfields(res) < 4 || PQnfields(res) > 5)
 	{
+		int			ntuples = PQntuples(res);
+		int			nfields = PQnfields(res);
+
 		PQclear(res);
 		die(_("Could not identify system: got %d rows and %d fields, expected %d rows and %d or %d fields\n"),
-			PQntuples(res), PQnfields(res), 1, 4, 5);
+			ntuples, nfields, 1, 4, 5);
 	}
 
 	remote_sysid = PQgetvalue(res, 0, 0);
 	remote_tlid = PQgetvalue(res, 0, 1);
 
-	PQclear(res);
-	PQfinish(remote_conn);
-	remote_conn = NULL;
-
-	ri->sysid = strtou64(remote_sysid, NULL, 10);
+	/*
+	 * Parse the values while "res" is still live: PQgetvalue returns pointers
+	 * into the PGresult, so they must be consumed before PQclear() frees it.
+	 */
+	errno = 0;
+	ri->sysid = strtou64(remote_sysid, &endptr, 10);
+	if (errno != 0 || endptr == remote_sysid || *endptr != '\0')
+		die(_("Could not parse remote sysid %s\n"), remote_sysid);
 
 	if (sscanf(remote_tlid, "%u", &ri->tlid) != 1)
 		die(_("Could not parse remote tlid %s\n"), remote_tlid);
+
+	PQclear(res);
+	PQfinish(remote_conn);
+	remote_conn = NULL;
 
 	ri->tlid = pgactiveThisTimeLineID;
 
@@ -1176,13 +1187,19 @@ get_remote_info(char *remote_connstr)
 
 		if (PQntuples(res) != 1 || PQnfields(res) != 1)
 		{
+			int			ntuples = PQntuples(res);
+			int			nfields = PQnfields(res);
+
 			PQclear(res);
 			die(_("Could not fetch pgactive node identifier: got %d rows and %d columns, expected 1 row and 1 column\n"),
-				PQntuples(res), PQnfields(res));
+				ntuples, nfields);
 		}
 
 		nid_str = PQgetvalue(res, 0, 0);
-		ri->nids[i] = strtou64(nid_str, NULL, 10);
+		errno = 0;
+		ri->nids[i] = strtou64(nid_str, &endptr, 10);
+		if (errno != 0 || endptr == nid_str || *endptr != '\0')
+			die(_("Could not parse pgactive node identifier %s\n"), nid_str);
 		PQclear(res);
 		PQfinish(remote_conn);
 		remote_conn = NULL;
