@@ -349,9 +349,9 @@ pgactive_locks_shmem_size(void)
 	Size		size = 0;
 	uint32		TotalProcs = MaxBackends + NUM_AUXILIARY_PROCS;
 
-	size = add_size(size, sizeof(pgactiveLocksCtl));
-	size = add_size(size, mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases));
-	size = add_size(size, mul_size(sizeof(pgactiveLockWaiter), TotalProcs));
+	size = add_size(size, MAXALIGN(sizeof(pgactiveLocksCtl)));
+	size = add_size(size, MAXALIGN(mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases)));
+	size = add_size(size, MAXALIGN(mul_size(sizeof(pgactiveLockWaiter), TotalProcs)));
 
 	return size;
 }
@@ -374,10 +374,10 @@ pgactive_locks_shmem_startup(void)
 		pgactive_locks_ctl->lock = &(GetNamedLWLockTranche("pgactive_locks")->lock);
 		/* These offsets are byte counts, not counts of the target struct. */
 		pgactive_locks_ctl->dbstate = (pgactiveLocksDBState *)
-			((char *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl));
+			((char *) pgactive_locks_ctl + MAXALIGN(sizeof(pgactiveLocksCtl)));
 		pgactive_locks_ctl->waiters = (pgactiveLockWaiter *)
-			((char *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl) +
-			 mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases));
+			((char *) pgactive_locks_ctl + MAXALIGN(sizeof(pgactiveLocksCtl)) +
+			 MAXALIGN(mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases)));
 	}
 	LWLockRelease(AddinShmemInitLock);
 }
