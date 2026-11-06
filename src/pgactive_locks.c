@@ -372,9 +372,12 @@ pgactive_locks_shmem_startup(void)
 	{
 		memset(pgactive_locks_ctl, 0, pgactive_locks_shmem_size());
 		pgactive_locks_ctl->lock = &(GetNamedLWLockTranche("pgactive_locks")->lock);
-		pgactive_locks_ctl->dbstate = (pgactiveLocksDBState *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl);
-		pgactive_locks_ctl->waiters = (pgactiveLockWaiter *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl) +
-			mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases);
+		/* These offsets are byte counts, not counts of the target struct. */
+		pgactive_locks_ctl->dbstate = (pgactiveLocksDBState *)
+			((char *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl));
+		pgactive_locks_ctl->waiters = (pgactiveLockWaiter *)
+			((char *) pgactive_locks_ctl + sizeof(pgactiveLocksCtl) +
+			 mul_size(sizeof(pgactiveLocksDBState), pgactive_max_databases));
 	}
 	LWLockRelease(AddinShmemInitLock);
 }
