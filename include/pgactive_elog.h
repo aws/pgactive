@@ -32,6 +32,9 @@ typedef enum pgactiveTrackedErrorCodes
 	/* perdb worker error codes start --> */
 	PGACTIVE_PERDB_WORKER_ERROR_CODE_START = 1,
 	PGACTIVE_ERROR_CODE_MAX_NODES_PARAM_MISMATCH = 2,
+	PGACTIVE_ERROR_CODE_INIT_DUMP_FAILURE,
+	PGACTIVE_ERROR_CODE_INIT_RESTORE_FAILURE,
+	PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE,
 
 	/* add new perdb worker error codes here */
 
