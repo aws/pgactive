@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-24.04]
         version: [
           REL_18_STABLE,
           REL_17_STABLE,
@@ -25,12 +25,14 @@ jobs:
 
     steps:
       - name: Checkout pgactive
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: pgactive
+          persist-credentials: false
 
       - name: Checkout Postgres
         run: |
+          sudo apt-get -q update
           sudo apt-get -y -q install libipc-run-perl lcov build-essential libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config libicu-dev
 
           git clone --depth 1 --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
@@ -71,7 +73,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
@@ -99,7 +101,7 @@ jobs:
 
       - name: Upload code coverage artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-coverage-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |

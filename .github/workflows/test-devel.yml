@@ -19,7 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        # ubuntu-latest is moving to Ubuntu 26.04 (Oct 19 - Nov 19, 2026);
+        # run this manual workflow on both images before moving the others.
+        os: [ubuntu-24.04, ubuntu-26.04]
         version: [
           master
         ]
@@ -29,12 +31,14 @@ jobs:
 
     steps:
       - name: Checkout pgactive
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: pgactive
+          persist-credentials: false
 
       - name: Checkout Postgres
         run: |
+          sudo apt-get -q update
           sudo apt-get -y -q install libipc-run-perl build-essential libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config libicu-dev meson ninja-build
           git clone --depth 1 --branch ${{ matrix.version }} https://github.com/postgres/postgres.git
 
@@ -85,7 +89,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version }}
           path: |
