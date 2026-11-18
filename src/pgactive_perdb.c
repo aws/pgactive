@@ -1294,6 +1294,14 @@ pgactive_perdb_worker_main(Datum main_arg)
 		PopActiveSnapshot();
 		CommitTransactionCommand();
 
+		/*
+		 * A node whose initialization failed isn't initialized again. Deal
+		 * with that before the checks below, which connect to this and other
+		 * nodes and can fail for reasons of their own.
+		 */
+		if (local_node->status == pgactive_NODE_STATUS_COPYING_INITIAL_DATA)
+			pgactive_init_replica_failed();
+
 		check_local_node_connectability();
 
 		check_params_are_same();

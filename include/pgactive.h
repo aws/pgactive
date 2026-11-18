@@ -654,6 +654,7 @@ extern bool pgactive_get_bigendian(void);
 
 /* initialize a new pgactive member */
 extern void pgactive_init_replica(pgactiveNodeInfo * local_node);
+extern void pgactive_init_replica_failed(void);
 
 extern void pgactive_maintain_schema(bool update_extensions);
 
