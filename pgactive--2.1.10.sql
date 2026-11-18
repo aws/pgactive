@@ -2374,9 +2374,6 @@ DECLARE
   init_error text;
   init_unregistered boolean;
   init_failed boolean;
-  init_origins int8;
-  init_roname text;
-  init_slot text;
   cleanup_hint text;
   have_remote boolean := false;
 BEGIN
@@ -2444,30 +2441,12 @@ BEGIN
                                 false);
 
         IF init_failed AND init_unregistered THEN
-          -- What a failed initialization leaves behind: the replication
-          -- origin for the join_using_dsn node here, and this node's slot on
-          -- that node, whose name has that node's database OID, from the
-          -- origin's name. pgactive_parse_replident_name() fails on any
-          -- other name, so filter those out first. Name them only if there
-          -- is exactly one such origin.
-          SELECT count(*), min(ro.roname),
-                 min(pgactive.pgactive_format_slot_name(local_node.node_sysid,
-                                                        local_node.node_timeline,
-                                                        local_node.node_dboid,
-                                                        ri.remote_dboid))
-            FROM (SELECT roname FROM pg_catalog.pg_replication_origin
-                  WHERE roname ~ '^pgactive_[0-9]+_[0-9]+_[0-9]+_[0-9]+_$'
-                  OFFSET 0) ro,
-                 pgactive.pgactive_parse_replident_name(ro.roname) ri
-            WHERE ri.local_dboid = local_node.node_dboid
-            INTO init_origins, init_roname, init_slot;
-
-          IF init_origins = 1 THEN
-            cleanup_hint := format('Then drop replication slot "%s" on the join_using_dsn node and replication origin "%s" on this node, drop and recreate this database, and try again.',
-                                   init_slot, init_roname);
-          ELSE
-            cleanup_hint := 'Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again.';
-          END IF;
+          -- What a failed initialization leaves behind: this node's slot on
+          -- the join_using_dsn node, and the replication origin for that
+          -- node here. Don't name them: nothing here ties a replication
+          -- origin to the join_using_dsn node for certain, as
+          -- initialization can fail before it creates its own.
+          cleanup_hint := 'Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again.';
 
           IF init_error = 'pgactive_init_dump_failure' THEN
             RAISE EXCEPTION 'node % could not dump the database from the join_using_dsn node',

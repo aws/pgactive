@@ -42,18 +42,29 @@ sub per_db_last_error
 					   WHERE datname = current_database())]);
 }
 
-# The cleanup that the errors ask for names this node's slot on the origin,
-# and the replication origin for the origin on this node. Check that both
-# exist, and return their names.
+# The cleanup that the errors ask for: this node's slot on the origin, and
+# the replication origin for the origin on this node. Check that the hint asks
+# for it and that both exist, and return their names.
 sub check_cleanup_hint
 {
 	my ($stderr, $origin, $joiner) = @_;
-	my ($slot, $rorigin) = $stderr =~
-	  /Then drop replication slot "(\w+)" on the join_using_dsn node and replication origin "(\w+)" on this node, drop and recreate this database, and try again\./;
 
-	ok(defined($slot), 'the hint names a slot and a replication origin');
-	$slot //= '';
-	$rorigin //= '';
+	like(
+		$stderr,
+		qr/Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again\./,
+		'the hint gives the cleanup');
+
+	my ($osysid, $otli, $odboid) = split /\|/,
+	  $origin->safe_psql($pgactive_test_dbname,
+		q[SELECT sysid, timeline, dboid FROM pgactive.pgactive_get_local_nodeid()]);
+	my ($jsysid, $jtli, $jdboid) = split /\|/,
+	  $joiner->safe_psql($pgactive_test_dbname,
+		q[SELECT sysid, timeline, dboid FROM pgactive.pgactive_get_local_nodeid()]);
+	my $slot = $joiner->safe_psql($pgactive_test_dbname,
+		qq[SELECT pgactive.pgactive_format_slot_name('$jsysid', $jtli, $jdboid, $odboid)]);
+	my $rorigin = $joiner->safe_psql($pgactive_test_dbname,
+		qq[SELECT pgactive.pgactive_format_replident_name('$osysid', $otli, $odboid, $jdboid)]);
+
 	is( $origin->safe_psql(
 			$pgactive_test_dbname,
 			qq[SELECT count(*) FROM pg_replication_slots WHERE slot_name = '$slot']),
@@ -88,9 +99,9 @@ pgactive_logical_join($joiner_a, $origin_a, nowait => 1);
 my $stderr = wait_for_ready_stderr($joiner_a);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop replication slot /,
+	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop the replication slot of this node on the join_using_dsn node /,
 	'the dump failure is reported, with both nodes\' server logs');
-my ($slot_a, $rorigin_a) = check_cleanup_hint($stderr, $origin_a, $joiner_a);
+check_cleanup_hint($stderr, $origin_a, $joiner_a);
 ok( find_in_log(
 		$origin_a, qr/ERROR:  invalid internal value for enum/,
 		$origin_a_logstart),
@@ -118,26 +129,14 @@ $origin_a->stop;
 $stderr = wait_for_ready_stderr($joiner_a);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop replication slot "\Q$slot_a\E" on the join_using_dsn node and replication origin "\Q$rorigin_a\E" on this node, drop and recreate this database, and try again\./,
+	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again\./,
 	'the dump failure and its cleanup are reported with origin_a stopped');
 $joiner_a->restart;
 $stderr = wait_for_ready_stderr($joiner_a);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_a could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop replication slot "\Q$slot_a\E" on the join_using_dsn node and replication origin "\Q$rorigin_a\E" on this node, /,
+	qr/ERROR:  node joiner_a could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, /,
 	'the earlier failure is reported after a server restart with origin_a stopped');
-
-# With a second replication origin for the joining node's database, the hint
-# can't tell which one to drop, and names neither.
-my $dboid_a = $joiner_a->safe_psql('postgres',
-	qq[SELECT oid FROM pg_database WHERE datname = '$pgactive_test_dbname']);
-$joiner_a->safe_psql('postgres',
-	qq[SELECT pg_replication_origin_create('pgactive_1_0_1_${dboid_a}_')]);
-$stderr = wait_for_ready_stderr($joiner_a);
-like(
-	$stderr,
-	qr/HINT:  .*Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again\./,
-	'the hint names no slot or origin when two replication origins match');
 
 # A restore failure. The joining node has a view with the name of a table on
 # the origin, so pg_restore can't create the table.
@@ -156,7 +155,7 @@ pgactive_logical_join($joiner_b, $origin_b, nowait => 1);
 $stderr = wait_for_ready_stderr($joiner_b);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_b could not restore the dump of the database from the join_using_dsn node\n.*DETAIL:  pg_restore failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node for the error\. Then drop replication slot /,
+	qr/ERROR:  node joiner_b could not restore the dump of the database from the join_using_dsn node\n.*DETAIL:  pg_restore failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node for the error\. Then drop the replication slot of this node on the join_using_dsn node /,
 	'the restore failure is reported, with this node\'s server log');
 check_cleanup_hint($stderr, $origin_b, $joiner_b);
 ok( find_in_log(
@@ -183,7 +182,7 @@ $joiner_b->restart;
 $stderr = wait_for_ready_stderr($joiner_b);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_b could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop replication slot /,
+	qr/ERROR:  node joiner_b could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop the replication slot of this node on the join_using_dsn node /,
 	'the earlier failure is reported after a server restart');
 is(per_db_last_error($joiner_b),
 	'pgactive_previous_init_failure',
