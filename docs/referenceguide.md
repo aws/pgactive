@@ -604,5 +604,5 @@ Arguments: timeout integer DEFAULT 0
 
 Returns: void 
 
-Description: This function shows status of background progress of pgactive_create_group() and pgactive_join_group() functions. This function does not change or trigger anything. If the joining node could not be initialized from the node given in `join_using_dsn`, it raises an error saying whether dumping or restoring the database failed, and which nodes' server logs have the error.
+Description: This function shows status of background progress of pgactive_create_group() and pgactive_join_group() functions. This function does not change or trigger anything. If the joining node could not be initialized from the node given in `join_using_dsn`, it raises an error saying whether dumping or restoring the database failed, and which nodes' server logs have the error. The joining node keeps which of the two failed only in shared memory. After its server restarts, the function can say only that an earlier initialization attempt failed; the server logs from that attempt have the error.
 

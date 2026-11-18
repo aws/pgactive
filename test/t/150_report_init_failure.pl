@@ -91,7 +91,7 @@ like(
 	$stderr,
 	qr/ERROR:  node joiner_a could not dump database 'pgactive_test' from node origin_a\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of node origin_a for the error\. Then drop replication slot /,
 	'the dump failure is reported, with both nodes\' server logs');
-check_cleanup_hint($stderr, $origin_a, $joiner_a);
+my ($slot_a, $rorigin_a) = check_cleanup_hint($stderr, $origin_a, $joiner_a);
 ok( find_in_log(
 		$origin_a, qr/ERROR:  invalid internal value for enum/,
 		$origin_a_logstart),
@@ -101,16 +101,32 @@ ok( find_in_log(
 		$joiner_a_logstart),
 	'joiner_a\'s server log has pgactive_dump\'s own error');
 
-# The per-db worker restarts, finds the earlier attempt failed, and keeps the
-# dump failure as its last error.
+# The per-db worker restarts, finds the earlier attempt failed, and
+# unregisters, keeping the dump failure as its last error.
 ok( find_in_log(
 		$joiner_a,
-		qr/ERROR:  previous init failed, manual cleanup is required/,
+		qr/LOG:  unregistering per-db worker on node .* due to failed initialization/,
 		$joiner_a_logstart),
-	'joiner_a\'s per-db worker restarted after the dump failure');
+	'joiner_a\'s per-db worker unregistered after the dump failure');
 is(per_db_last_error($joiner_a),
 	'pgactive_init_dump_failure',
-	'the restarted per-db worker keeps the dump failure as its last error');
+	'the unregistered per-db worker keeps the dump failure as its last error');
+
+# With origin_a stopped, the failure and the cleanup are still reported. After
+# a server restart too, as the per-db worker finds that the earlier attempt
+# failed without connecting to origin_a.
+$origin_a->stop;
+$stderr = wait_for_ready_stderr($joiner_a);
+like(
+	$stderr,
+	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop replication slot "\Q$slot_a\E" on the join_using_dsn node and replication origin "\Q$rorigin_a\E" on this node, drop and recreate this database, and try again\./,
+	'the dump failure and its cleanup are reported with origin_a stopped');
+$joiner_a->restart;
+$stderr = wait_for_ready_stderr($joiner_a);
+like(
+	$stderr,
+	qr/ERROR:  node joiner_a could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop replication slot "\Q$slot_a\E" on the join_using_dsn node and replication origin "\Q$rorigin_a\E" on this node, /,
+	'the earlier failure is reported after a server restart with origin_a stopped');
 
 # A restore failure. The joining node has a view with the name of a table on
 # the origin, so pg_restore can't create the table.
@@ -156,6 +172,8 @@ is(per_db_last_error($joiner_b),
 my ($slot_b, $rorigin_b) = check_cleanup_hint($stderr, $origin_b, $joiner_b);
 
 # Do the cleanup the hint asks for, and join again.
+my $old_dboid_b = $joiner_b->safe_psql('postgres',
+	qq[SELECT oid FROM pg_database WHERE datname = '$pgactive_test_dbname']);
 $origin_b->safe_psql($pgactive_test_dbname,
 	qq[SELECT pg_drop_replication_slot('$slot_b')]);
 $joiner_b->safe_psql('postgres',
@@ -168,6 +186,15 @@ $origin_b->safe_psql($pgactive_test_dbname,
 pgactive_logical_join($joiner_b, $origin_b);
 is($joiner_b->safe_psql($pgactive_test_dbname, q[SELECT id FROM public.restore_fail]),
 	'1', 'joiner_b joins after the cleanup that the hint asks for');
+# The per-db worker of the dropped database stays unregistered, so it isn't
+# restarted to fail connecting to that database every 5 seconds.
+is( $joiner_b->safe_psql(
+		$pgactive_test_dbname, qq[
+		SELECT count(*) FROM pgactive.pgactive_get_workers_info()
+		WHERE worker_type = 'per-db' AND dboid = $old_dboid_b
+		  AND NOT unregistered]),
+	'0',
+	'no per-db worker is registered for the dropped database');
 
 $_->stop for ($origin_a, $joiner_a, $origin_b, $joiner_b);
 

@@ -31,7 +31,12 @@ DECLARE
   sleep_sec integer;
   worker_timeout integer;
   init_error text;
+  init_roname text;
+  init_slot text;
+  r_node text;
+  r_dbname text;
   cleanup_hint text;
+  have_remote boolean := false;
 BEGIN
 
     IF timeout < 0 THEN
@@ -71,22 +76,6 @@ BEGIN
       RAISE NOTICE 'checking status of pgactive.pgactive_create_group';
     ELSE
       RAISE NOTICE 'checking status of pgactive.pgactive_join_group';
-      SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
-        INTO remote_node;
-      SELECT pg_size_pretty(remote_node.dbsize) INTO r_db;
-      SELECT pg_database_size(local_node.node_dboid) INTO l_db_init_sz;
-      -- What a failed initialization leaves behind: this node's slot on
-      -- remote_node, and the replication origin for remote_node here.
-      cleanup_hint := format('Then drop replication slot "%s" on node %s and replication origin "%s" on this node, drop and recreate this database, and try again.',
-                             pgactive.pgactive_format_slot_name(local_node.node_sysid,
-                                                                local_node.node_timeline,
-                                                                local_node.node_dboid,
-                                                                remote_node.dboid),
-                             remote_node.node_name,
-                             pgactive.pgactive_format_replident_name(remote_node.sysid,
-                                                                     remote_node.timeline,
-                                                                     remote_node.dboid,
-                                                                     local_node.node_dboid));
     END IF;
     w_lp_cnt := 0;
     sleep_sec := 10;
@@ -97,6 +86,86 @@ BEGIN
         = pgactive.pgactive_get_local_nodeid()
       INTO local_node;
 
+      -- The per-db worker records why initializing this node from the
+      -- join_using_dsn node failed, and unregisters, as it doesn't retry
+      -- it. Report that instead of waiting, and say which server logs have
+      -- the error. This needs nothing from the join_using_dsn node, which
+      -- might not be reachable.
+      IF local_node.node_init_from_dsn IS NOT NULL AND local_node.node_status <> 'r' THEN
+        SELECT last_error FROM pgactive.pgactive_get_workers_info()
+          WHERE worker_type = 'per-db' AND dboid = local_node.node_dboid
+            AND unregistered
+          INTO init_error;
+
+        IF init_error IN ('pgactive_init_dump_failure',
+                          'pgactive_init_restore_failure',
+                          'pgactive_previous_init_failure') THEN
+          -- What a failed initialization leaves behind: the replication
+          -- origin for the join_using_dsn node here, and this node's slot on
+          -- that node, whose name has that node's database OID, from the
+          -- origin's name. pgactive_parse_replident_name() fails on any
+          -- other name, so filter those out first.
+          SELECT ro.roname,
+                 pgactive.pgactive_format_slot_name(local_node.node_sysid,
+                                                    local_node.node_timeline,
+                                                    local_node.node_dboid,
+                                                    ri.remote_dboid)
+            FROM (SELECT roname FROM pg_catalog.pg_replication_origin
+                  WHERE roname ~ '^pgactive_[0-9]+_[0-9]+_[0-9]+_[0-9]+_$'
+                  OFFSET 0) ro,
+                 pgactive.pgactive_parse_replident_name(ro.roname) ri
+            WHERE ri.local_dboid = local_node.node_dboid
+            INTO init_roname, init_slot;
+
+          -- The join_using_dsn node's name, if it can be reached.
+          BEGIN
+            SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
+              INTO remote_node;
+            r_node := 'node ' || remote_node.node_name;
+            r_dbname := 'database ''' || remote_node.dbname || '''';
+          EXCEPTION WHEN OTHERS THEN
+            NULL;
+          END;
+          r_node := coalesce(r_node, 'the join_using_dsn node');
+          r_dbname := coalesce(r_dbname, 'the database');
+
+          cleanup_hint := format('Then drop %s on %s and %s on this node, drop and recreate this database, and try again.',
+                                 CASE WHEN init_slot IS NULL THEN 'the replication slot of this node'
+                                      ELSE format('replication slot "%s"', init_slot) END,
+                                 r_node,
+                                 CASE WHEN init_roname IS NULL THEN format('the replication origin for %s', r_node)
+                                      ELSE format('replication origin "%s"', init_roname) END);
+
+          IF init_error = 'pgactive_init_dump_failure' THEN
+            RAISE EXCEPTION 'node % could not dump % from %',
+                            local_node.node_name, r_dbname, r_node
+            USING DETAIL = 'pgactive_dump failed. Initialization of a node is not retried after a failure.',
+            HINT = format('Check the server logs of this node and of %s for the error. %s',
+                          r_node, cleanup_hint);
+          ELSIF init_error = 'pgactive_init_restore_failure' THEN
+            RAISE EXCEPTION 'node % could not restore the dump of % from %',
+                            local_node.node_name, r_dbname, r_node
+            USING DETAIL = 'pg_restore failed. Initialization of a node is not retried after a failure.',
+            HINT = format('Check the server log of this node for the error. %s',
+                          cleanup_hint);
+          ELSE
+            RAISE EXCEPTION 'node % could not be initialized from %',
+                            local_node.node_name, r_node
+            USING DETAIL = 'An earlier initialization attempt failed. Initialization of a node is not retried after a failure.',
+            HINT = format('Check the server log of this node from that attempt for the error, and the server log of %s if pgactive_dump failed. %s',
+                          r_node, cleanup_hint);
+          END IF;
+        END IF;
+      END IF;
+
+      IF local_node.node_init_from_dsn IS NOT NULL AND NOT have_remote THEN
+        SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
+          INTO remote_node;
+        SELECT pg_size_pretty(remote_node.dbsize) INTO r_db;
+        SELECT pg_database_size(local_node.node_dboid) INTO l_db_init_sz;
+        have_remote := true;
+      END IF;
+
       IF local_node.node_status = 'r' THEN
         IF remote_node IS NOT NULL THEN
           RAISE NOTICE
@@ -106,35 +175,6 @@ BEGIN
           RAISE NOTICE 'successfully created first node in pgactive group';
         END IF;
         EXIT;
-      END IF;
-
-      -- The per-db worker records why initializing this node from
-      -- remote_node failed, and doesn't retry it. Report that instead of
-      -- waiting, and say which server logs have the error.
-      IF remote_node IS NOT NULL THEN
-        SELECT last_error FROM pgactive.pgactive_get_workers_info()
-          WHERE worker_type = 'per-db' AND dboid = local_node.node_dboid
-          INTO init_error;
-
-        IF init_error = 'pgactive_init_dump_failure' THEN
-          RAISE EXCEPTION 'node % could not dump database ''%'' from node %',
-                          local_node.node_name, remote_node.dbname, remote_node.node_name
-          USING DETAIL = 'pgactive_dump failed. Initialization of a node is not retried after a failure.',
-          HINT = format('Check the server logs of this node and of node %s for the error. %s',
-                        remote_node.node_name, cleanup_hint);
-        ELSIF init_error = 'pgactive_init_restore_failure' THEN
-          RAISE EXCEPTION 'node % could not restore the dump of database ''%'' from node %',
-                          local_node.node_name, remote_node.dbname, remote_node.node_name
-          USING DETAIL = 'pg_restore failed. Initialization of a node is not retried after a failure.',
-          HINT = format('Check the server log of this node for the error. %s',
-                        cleanup_hint);
-        ELSIF init_error = 'pgactive_previous_init_failure' THEN
-          RAISE EXCEPTION 'node % could not be initialized from node %',
-                          local_node.node_name, remote_node.node_name
-          USING DETAIL = 'An earlier initialization attempt failed. Initialization of a node is not retried after a failure.',
-          HINT = format('Check the server log of this node from that attempt for the error, and the server log of node %s if pgactive_dump failed. %s',
-                        remote_node.node_name, cleanup_hint);
-        END IF;
       END IF;
 
       IF timeout > 0 THEN
