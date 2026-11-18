@@ -14,6 +14,7 @@
 #define pgactive_ELOG_H
 
 #include "datatype/timestamp.h"
+#include "storage/spin.h"
 
 /*
  * Define pgactive error codes for which last error info needs to be tracked.
@@ -53,8 +54,15 @@ typedef enum pgactiveTrackedErrorCodes
 
 extern PGDLLIMPORT const char *const pgactiveErrorMessages[];
 
+/*
+ * A worker's last error. A worker sets and resets only its own, but
+ * pgactive_get_workers_info() reads every worker's, so both fields are read
+ * and written under mutex, together. Do nothing else while holding it, and
+ * never acquire an LWLock while holding it.
+ */
 typedef struct pgactiveLastErrorInfo
 {
+	slock_t		mutex;
 	pgactiveTrackedErrorCodes errcode;
 	TimestampTz errtime;
 }			pgactiveLastErrorInfo;
@@ -87,5 +95,8 @@ struct pgactiveWorker;
 extern void pgactive_set_worker_last_error_info(struct pgactiveWorker *w,
 												pgactiveTrackedErrorCodes errcode);
 extern void pgactive_reset_worker_last_error_info(struct pgactiveWorker *w);
+extern void pgactive_get_worker_last_error_info(struct pgactiveWorker *w,
+												pgactiveTrackedErrorCodes *errcode,
+												TimestampTz *errtime);
 
 #endif							/* pgactive_ELOG_H */

@@ -1809,6 +1809,8 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 		char		sysid_str[33];
 		text	   *worker_type = NULL; /* keep compiler quiet */
 		bool		unregistered = false;
+		pgactiveTrackedErrorCodes errcode;
+		TimestampTz errtime;
 
 		/* unused slot */
 		if (w->worker_type == pgactive_WORKER_EMPTY_SLOT)
@@ -1854,11 +1856,12 @@ pgactive_get_workers_info(PG_FUNCTION_ARGS)
 		values[4] = Int32GetDatum(w->worker_pid);
 		values[5] = BoolGetDatum(unregistered);
 
-		if (w->last_error_info.errcode != PGACTIVE_ERRCODE_NONE)
+		pgactive_get_worker_last_error_info(w, &errcode, &errtime);
+		if (errcode != PGACTIVE_ERRCODE_NONE)
 		{
-			Assert(w->last_error_info.errtime != 0);
-			values[6] = CStringGetTextDatum(pgactiveErrorMessages[w->last_error_info.errcode]);
-			values[7] = TimestampTzGetDatum(w->last_error_info.errtime);
+			Assert(errtime != 0);
+			values[6] = CStringGetTextDatum(pgactiveErrorMessages[errcode]);
+			values[7] = TimestampTzGetDatum(errtime);
 		}
 		else
 		{

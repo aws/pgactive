@@ -236,6 +236,7 @@ pgactive_worker_shmem_alloc(pgactiveWorkerType worker_type, uint32 *ctl_idx)
 		if (new_entry->worker_type == pgactive_WORKER_EMPTY_SLOT)
 		{
 			memset(new_entry, 0, sizeof(pgactiveWorker));
+			SpinLockInit(&new_entry->last_error_info.mutex);
 			new_entry->worker_type = worker_type;
 			if (ctl_idx)
 				*ctl_idx = i;

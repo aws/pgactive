@@ -1157,9 +1157,10 @@ pgactive_init_replica_failed(void)
 	 */
 	if (pgactive_worker_slot != NULL)
 	{
-		pgactiveTrackedErrorCodes last_error =
-			pgactive_worker_slot->last_error_info.errcode;
+		pgactiveTrackedErrorCodes last_error;
 
+		pgactive_get_worker_last_error_info(pgactive_worker_slot,
+											&last_error, NULL);
 		if (last_error != PGACTIVE_ERROR_CODE_INIT_DUMP_FAILURE &&
 			last_error != PGACTIVE_ERROR_CODE_INIT_RESTORE_FAILURE &&
 			last_error != PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE)
