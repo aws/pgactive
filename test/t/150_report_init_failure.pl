@@ -48,13 +48,12 @@ sub per_db_last_error
 sub check_cleanup_hint
 {
 	my ($stderr, $origin, $joiner) = @_;
-	my ($slot, $node_name, $rorigin) = $stderr =~
-	  /Then drop replication slot "(\w+)" on node (\w+) and replication origin "(\w+)" on this node, drop and recreate this database, and try again\./;
+	my ($slot, $rorigin) = $stderr =~
+	  /Then drop replication slot "(\w+)" on the join_using_dsn node and replication origin "(\w+)" on this node, drop and recreate this database, and try again\./;
 
 	ok(defined($slot), 'the hint names a slot and a replication origin');
 	$slot //= '';
 	$rorigin //= '';
-	is($node_name, $origin->name, 'the hint names the origin as the slot\'s node');
 	is( $origin->safe_psql(
 			$pgactive_test_dbname,
 			qq[SELECT count(*) FROM pg_replication_slots WHERE slot_name = '$slot']),
@@ -89,7 +88,7 @@ pgactive_logical_join($joiner_a, $origin_a, nowait => 1);
 my $stderr = wait_for_ready_stderr($joiner_a);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_a could not dump database 'pgactive_test' from node origin_a\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of node origin_a for the error\. Then drop replication slot /,
+	qr/ERROR:  node joiner_a could not dump the database from the join_using_dsn node\n.*DETAIL:  pgactive_dump failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server logs of this node and of the join_using_dsn node for the error\. Then drop replication slot /,
 	'the dump failure is reported, with both nodes\' server logs');
 my ($slot_a, $rorigin_a) = check_cleanup_hint($stderr, $origin_a, $joiner_a);
 ok( find_in_log(
@@ -128,6 +127,18 @@ like(
 	qr/ERROR:  node joiner_a could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop replication slot "\Q$slot_a\E" on the join_using_dsn node and replication origin "\Q$rorigin_a\E" on this node, /,
 	'the earlier failure is reported after a server restart with origin_a stopped');
 
+# With a second replication origin for the joining node's database, the hint
+# can't tell which one to drop, and names neither.
+my $dboid_a = $joiner_a->safe_psql('postgres',
+	qq[SELECT oid FROM pg_database WHERE datname = '$pgactive_test_dbname']);
+$joiner_a->safe_psql('postgres',
+	qq[SELECT pg_replication_origin_create('pgactive_1_0_1_${dboid_a}_')]);
+$stderr = wait_for_ready_stderr($joiner_a);
+like(
+	$stderr,
+	qr/HINT:  .*Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again\./,
+	'the hint names no slot or origin when two replication origins match');
+
 # A restore failure. The joining node has a view with the name of a table on
 # the origin, so pg_restore can't create the table.
 my $origin_b = PostgreSQL::Test::Cluster->new('origin_b');
@@ -145,7 +156,7 @@ pgactive_logical_join($joiner_b, $origin_b, nowait => 1);
 $stderr = wait_for_ready_stderr($joiner_b);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_b could not restore the dump of database 'pgactive_test' from node origin_b\n.*DETAIL:  pg_restore failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node for the error\. Then drop replication slot /,
+	qr/ERROR:  node joiner_b could not restore the dump of the database from the join_using_dsn node\n.*DETAIL:  pg_restore failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node for the error\. Then drop replication slot /,
 	'the restore failure is reported, with this node\'s server log');
 check_cleanup_hint($stderr, $origin_b, $joiner_b);
 ok( find_in_log(
@@ -158,13 +169,21 @@ is(per_db_last_error($joiner_b),
 
 # A server restart clears the restore failure from shared memory. The
 # restarted per-db worker finds that an earlier attempt failed, and records
-# that instead.
+# that instead. It does that before its other startup checks, which can fail
+# for reasons of their own. Here a ready node that can't be reached makes its
+# comparison of parameters with the other nodes fail.
+$joiner_b->safe_psql(
+	$pgactive_test_dbname, q[
+	SET pgactive.skip_ddl_replication = on;
+	INSERT INTO pgactive.pgactive_nodes
+	  (node_sysid, node_timeline, node_dboid, node_status, node_name, node_dsn)
+	VALUES ('1', 1, 1, 'r', 'unreachable', 'host=/nonexistent port=1 dbname=x');]);
 $joiner_b->restart;
 
 $stderr = wait_for_ready_stderr($joiner_b);
 like(
 	$stderr,
-	qr/ERROR:  node joiner_b could not be initialized from node origin_b\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of node origin_b if pgactive_dump failed\. Then drop replication slot /,
+	qr/ERROR:  node joiner_b could not be initialized from the join_using_dsn node\n.*DETAIL:  An earlier initialization attempt failed\. Initialization of a node is not retried after a failure\.\n.*HINT:  Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed\. Then drop replication slot /,
 	'the earlier failure is reported after a server restart');
 is(per_db_last_error($joiner_b),
 	'pgactive_previous_init_failure',

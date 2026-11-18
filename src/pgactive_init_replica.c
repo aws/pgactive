@@ -1119,6 +1119,68 @@ pgactive_init_standalone_node(pgactiveNodeInfo * local_node)
 }
 
 /*
+ * Handle a node whose initialization from a remote node failed (state 'i').
+ * The per-db worker calls this before anything else that can fail, such as
+ * connecting to this or other nodes. It doesn't return.
+ */
+void
+pgactive_init_replica_failed(void)
+{
+	/*
+	 * A previous init attempt seems to have failed.
+	 *
+	 * We can't just re-use the slot and replication identifier that were
+	 * created last time (if they were), because we have no way of getting
+	 * the slot's exported snapshot after CREATE_REPLICATION_SLOT.
+	 *
+	 * We could drop and re-create the slot, but...
+	 *
+	 * We also have no way to undo a failed pg_restore, so if that phase
+	 * fails it's necessary to do manual cleanup, dropping and re-creating
+	 * the db.
+	 *
+	 * To avoid that We need to be able to run pg_restore --clean, and that
+	 * needs a way to exclude the pgactive schema, the pgactive extension,
+	 * and their dependencies like plpgsql. (TODO patch pg_restore for that)
+	 *
+	 * Record this as the worker's last error for
+	 * pgactive_wait_for_node_ready(), unless the slot already has an init
+	 * failure, such as the dump or restore failure that got us here.
+	 * That's lost if the server has restarted since.
+	 *
+	 * Then unregister. Restarting can't make progress, and once the
+	 * database is dropped for the cleanup a restarted worker would fail to
+	 * connect to it every time. The slot keeps the last error until the
+	 * supervisor frees it, once the database no longer has pgactive's
+	 * security label, as after it's dropped. None of this needs another
+	 * node, or the local node's connection settings.
+	 */
+	if (pgactive_worker_slot != NULL)
+	{
+		pgactiveTrackedErrorCodes last_error =
+			pgactive_worker_slot->last_error_info.errcode;
+
+		if (last_error != PGACTIVE_ERROR_CODE_INIT_DUMP_FAILURE &&
+			last_error != PGACTIVE_ERROR_CODE_INIT_RESTORE_FAILURE &&
+			last_error != PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE)
+			pgactive_set_worker_last_error_info(pgactive_worker_slot,
+												PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE);
+	}
+
+	ereport(LOG,
+			(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+			 errmsg("previous init failed, manual cleanup is required"),
+			 errdetail("Found pgactive.pgactive_nodes entry for " pgactive_NODEID_FORMAT_WITHNAME " with state=i in remote pgactive.pgactive_nodes.", pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
+			 errhint("Drop the replication slot for this node on the init target node and the replication origin for the init target node on this node, then drop and recreate this database and try again.")));
+
+	elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failed initialization",
+		 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
+
+	pgactive_worker_unregister();
+	pg_unreachable();
+}
+
+/*
  * Initialize the database, from a remote node if necessary.
  */
 void
@@ -1131,6 +1193,8 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 	status = local_node->status;
 
 	Assert(status != pgactive_NODE_STATUS_READY);
+	/* Handled by pgactive_init_replica_failed() */
+	Assert(status != pgactive_NODE_STATUS_COPYING_INITIAL_DATA);
 
 	elog(DEBUG2, "initializing database in pgactive_init_replica");
 
@@ -1177,62 +1241,6 @@ pgactive_init_replica(pgactiveNodeInfo * local_node)
 
 	if (!local_conn_config)
 		elog(ERROR, "cannot find local pgactive connection configurations");
-
-	if (status == pgactive_NODE_STATUS_COPYING_INITIAL_DATA)
-	{
-		/*
-		 * A previous init attempt seems to have failed.
-		 *
-		 * We can't just re-use the slot and replication identifier that were
-		 * created last time (if they were), because we have no way of getting
-		 * the slot's exported snapshot after CREATE_REPLICATION_SLOT.
-		 *
-		 * We could drop and re-create the slot, but...
-		 *
-		 * We also have no way to undo a failed pg_restore, so if that phase
-		 * fails it's necessary to do manual cleanup, dropping and re-creating
-		 * the db.
-		 *
-		 * To avoid that We need to be able to run pg_restore --clean, and that
-		 * needs a way to exclude the pgactive schema, the pgactive extension,
-		 * and their dependencies like plpgsql. (TODO patch pg_restore for that)
-		 *
-		 * Record this as the worker's last error for
-		 * pgactive_wait_for_node_ready(), unless the slot already has an init
-		 * failure, such as the dump or restore failure that got us here.
-		 * That's lost if the server has restarted since.
-		 *
-		 * Then unregister. Restarting can't make progress, and once the
-		 * database is dropped for the cleanup a restarted worker would fail
-		 * to connect to it every time. The slot keeps the last error until
-		 * the supervisor frees it, once the database no longer has pgactive's
-		 * security label, as after it's dropped. None of this needs the init
-		 * target node, so don't connect to it first.
-		 */
-		if (pgactive_worker_slot != NULL)
-		{
-			pgactiveTrackedErrorCodes last_error =
-				pgactive_worker_slot->last_error_info.errcode;
-
-			if (last_error != PGACTIVE_ERROR_CODE_INIT_DUMP_FAILURE &&
-				last_error != PGACTIVE_ERROR_CODE_INIT_RESTORE_FAILURE &&
-				last_error != PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE)
-				pgactive_set_worker_last_error_info(pgactive_worker_slot,
-													PGACTIVE_ERROR_CODE_PREVIOUS_INIT_FAILURE);
-		}
-
-		ereport(LOG,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("previous init failed, manual cleanup is required"),
-				 errdetail("Found pgactive.pgactive_nodes entry for " pgactive_NODEID_FORMAT_WITHNAME " with state=i in remote pgactive.pgactive_nodes.", pgactive_LOCALID_FORMAT_WITHNAME_ARGS),
-				 errhint("Drop the replication slot for this node on the init target node and the replication origin for the init target node on this node, then drop and recreate this database and try again.")));
-
-		elog(LOG, "unregistering per-db worker on node " pgactive_NODEID_FORMAT_WITHNAME " due to failed initialization",
-			 pgactive_LOCALID_FORMAT_WITHNAME_ARGS);
-
-		pgactive_worker_unregister();
-		pg_unreachable();
-	}
 
 	elog(DEBUG1, "init_replica init from remote %s",
 		 local_node->init_from_dsn);

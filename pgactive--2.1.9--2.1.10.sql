@@ -31,10 +31,11 @@ DECLARE
   sleep_sec integer;
   worker_timeout integer;
   init_error text;
+  init_unregistered boolean;
+  init_failed boolean;
+  init_origins int8;
   init_roname text;
   init_slot text;
-  r_node text;
-  r_dbname text;
   cleanup_hint text;
   have_remote boolean := false;
 BEGIN
@@ -89,76 +90,70 @@ BEGIN
       -- The per-db worker records why initializing this node from the
       -- join_using_dsn node failed, and unregisters, as it doesn't retry
       -- it. Report that instead of waiting, and say which server logs have
-      -- the error. This needs nothing from the join_using_dsn node, which
-      -- might not be reachable.
+      -- the error. Don't connect to the join_using_dsn node for this: that
+      -- can fail, even with FATAL, and hide the error.
+      init_failed := false;
       IF local_node.node_init_from_dsn IS NOT NULL AND local_node.node_status <> 'r' THEN
-        SELECT last_error FROM pgactive.pgactive_get_workers_info()
+        SELECT last_error, unregistered FROM pgactive.pgactive_get_workers_info()
           WHERE worker_type = 'per-db' AND dboid = local_node.node_dboid
-            AND unregistered
-          INTO init_error;
+          INTO init_error, init_unregistered;
+        init_failed := coalesce(init_error IN ('pgactive_init_dump_failure',
+                                               'pgactive_init_restore_failure',
+                                               'pgactive_previous_init_failure'),
+                                false);
 
-        IF init_error IN ('pgactive_init_dump_failure',
-                          'pgactive_init_restore_failure',
-                          'pgactive_previous_init_failure') THEN
+        IF init_failed AND init_unregistered THEN
           -- What a failed initialization leaves behind: the replication
           -- origin for the join_using_dsn node here, and this node's slot on
           -- that node, whose name has that node's database OID, from the
           -- origin's name. pgactive_parse_replident_name() fails on any
-          -- other name, so filter those out first.
-          SELECT ro.roname,
-                 pgactive.pgactive_format_slot_name(local_node.node_sysid,
-                                                    local_node.node_timeline,
-                                                    local_node.node_dboid,
-                                                    ri.remote_dboid)
+          -- other name, so filter those out first. Name them only if there
+          -- is exactly one such origin.
+          SELECT count(*), min(ro.roname),
+                 min(pgactive.pgactive_format_slot_name(local_node.node_sysid,
+                                                        local_node.node_timeline,
+                                                        local_node.node_dboid,
+                                                        ri.remote_dboid))
             FROM (SELECT roname FROM pg_catalog.pg_replication_origin
                   WHERE roname ~ '^pgactive_[0-9]+_[0-9]+_[0-9]+_[0-9]+_$'
                   OFFSET 0) ro,
                  pgactive.pgactive_parse_replident_name(ro.roname) ri
             WHERE ri.local_dboid = local_node.node_dboid
-            INTO init_roname, init_slot;
+            INTO init_origins, init_roname, init_slot;
 
-          -- The join_using_dsn node's name, if it can be reached.
-          BEGIN
-            SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
-              INTO remote_node;
-            r_node := 'node ' || remote_node.node_name;
-            r_dbname := 'database ''' || remote_node.dbname || '''';
-          EXCEPTION WHEN OTHERS THEN
-            NULL;
-          END;
-          r_node := coalesce(r_node, 'the join_using_dsn node');
-          r_dbname := coalesce(r_dbname, 'the database');
-
-          cleanup_hint := format('Then drop %s on %s and %s on this node, drop and recreate this database, and try again.',
-                                 CASE WHEN init_slot IS NULL THEN 'the replication slot of this node'
-                                      ELSE format('replication slot "%s"', init_slot) END,
-                                 r_node,
-                                 CASE WHEN init_roname IS NULL THEN format('the replication origin for %s', r_node)
-                                      ELSE format('replication origin "%s"', init_roname) END);
+          IF init_origins = 1 THEN
+            cleanup_hint := format('Then drop replication slot "%s" on the join_using_dsn node and replication origin "%s" on this node, drop and recreate this database, and try again.',
+                                   init_slot, init_roname);
+          ELSE
+            cleanup_hint := 'Then drop the replication slot of this node on the join_using_dsn node and the replication origin for the join_using_dsn node on this node, drop and recreate this database, and try again.';
+          END IF;
 
           IF init_error = 'pgactive_init_dump_failure' THEN
-            RAISE EXCEPTION 'node % could not dump % from %',
-                            local_node.node_name, r_dbname, r_node
+            RAISE EXCEPTION 'node % could not dump the database from the join_using_dsn node',
+                            local_node.node_name
             USING DETAIL = 'pgactive_dump failed. Initialization of a node is not retried after a failure.',
-            HINT = format('Check the server logs of this node and of %s for the error. %s',
-                          r_node, cleanup_hint);
+            HINT = format('Check the server logs of this node and of the join_using_dsn node for the error. %s',
+                          cleanup_hint);
           ELSIF init_error = 'pgactive_init_restore_failure' THEN
-            RAISE EXCEPTION 'node % could not restore the dump of % from %',
-                            local_node.node_name, r_dbname, r_node
+            RAISE EXCEPTION 'node % could not restore the dump of the database from the join_using_dsn node',
+                            local_node.node_name
             USING DETAIL = 'pg_restore failed. Initialization of a node is not retried after a failure.',
             HINT = format('Check the server log of this node for the error. %s',
                           cleanup_hint);
           ELSE
-            RAISE EXCEPTION 'node % could not be initialized from %',
-                            local_node.node_name, r_node
+            RAISE EXCEPTION 'node % could not be initialized from the join_using_dsn node',
+                            local_node.node_name
             USING DETAIL = 'An earlier initialization attempt failed. Initialization of a node is not retried after a failure.',
-            HINT = format('Check the server log of this node from that attempt for the error, and the server log of %s if pgactive_dump failed. %s',
-                          r_node, cleanup_hint);
+            HINT = format('Check the server log of this node from that attempt for the error, and the server log of the join_using_dsn node if pgactive_dump failed. %s',
+                          cleanup_hint);
           END IF;
         END IF;
       END IF;
 
-      IF local_node.node_init_from_dsn IS NOT NULL AND NOT have_remote THEN
+      -- Look up the join_using_dsn node once, for the messages below, but
+      -- not while a recorded failure waits for the worker to unregister.
+      IF local_node.node_init_from_dsn IS NOT NULL AND NOT have_remote
+         AND NOT init_failed THEN
         SELECT * FROM pgactive._pgactive_get_node_info_private(local_node.node_init_from_dsn)
           INTO remote_node;
         SELECT pg_size_pretty(remote_node.dbsize) INTO r_db;
@@ -197,7 +192,7 @@ BEGIN
         END IF;
       END IF;
 
-      IF progress_interval > 0 AND local_node.node_init_from_dsn IS NOT NULL THEN
+      IF progress_interval > 0 AND have_remote THEN
         p_lp_cnt := p_lp_cnt + sleep_sec;
 
         IF p_lp_cnt > progress_interval THEN
