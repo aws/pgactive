@@ -132,9 +132,15 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-artifact-${{ matrix.os }}-${{ matrix.version.branch }}
+          # Server logs: the regress suite (test/run_tests) writes
+          # test/tmp_check/postmaster.log and initdb.log; TAP tests write
+          # per-node logs under tmp_check/log. Sanitizer reports land in these.
           path: |
             postgres/pgindent.diffs
+            postgres/build/meson-logs
             pgactive/test/regression.diffs
+            pgactive/test/results
+            pgactive/test/tmp_check/*.log
             pgactive/test/tmp_check/log
             pgactive/build/meson-logs
             pgactive/build/tmp_check/log
