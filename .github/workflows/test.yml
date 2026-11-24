@@ -43,6 +43,10 @@ jobs:
     # Build PG 18 and newer with meson; keep autoconf/make for older majors.
     env:
       USE_MESON: ${{ matrix.version.major >= 18 && '1' || '0' }}
+      # AddressSanitizer runtime options (applies to meson builds, which are
+      # built with -Db_sanitize=address). Leak detection is disabled because
+      # PostgreSQL memory contexts free memory in bulk, causing false positives.
+      ASAN_OPTIONS: detect_leaks=0:abort_on_error=1
 
     steps:
       - name: Checkout pgactive
@@ -70,7 +74,7 @@ jobs:
           if [ "$USE_MESON" = "1" ]; then
             # meson build. contrib and the PostgreSQL::Test perl modules are
             # built and installed with the main tree — no separate steps needed.
-            meson setup build --prefix=$PWD/inst --buildtype=debug -Dcassert=true -Dtap_tests=enabled
+            meson setup build --prefix=$PWD/inst --buildtype=debug -Dcassert=true -Dtap_tests=enabled -Db_sanitize=address
             ninja -C build install
           else
             sh configure --prefix=$PWD/inst/ --enable-debug --enable-cassert --enable-tap-tests CFLAGS="-ggdb3 -O0"
@@ -87,7 +91,7 @@ jobs:
           cd pgactive
           export PATH=$GITHUB_WORKSPACE/postgres/inst/bin:"$PATH"
           if [ "$USE_MESON" = "1" ]; then
-            meson setup build -Dpg_config=$GITHUB_WORKSPACE/postgres/inst/bin/pg_config -Dwarning_level=1 -Dwerror=true
+            meson setup build -Dpg_config=$GITHUB_WORKSPACE/postgres/inst/bin/pg_config -Dwarning_level=1 -Dwerror=true -Db_sanitize=address
             ninja -C build install
           else
             sh configure
